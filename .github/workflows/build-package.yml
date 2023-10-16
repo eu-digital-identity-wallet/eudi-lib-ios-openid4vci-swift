@@ -1,5 +1,5 @@
 ---
-name: build-presentation-exchange-swift
+name: build-package
 on:
   pull_request:
     types: [opened, reopened]
