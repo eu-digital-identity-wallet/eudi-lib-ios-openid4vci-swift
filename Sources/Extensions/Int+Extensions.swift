@@ -14,6 +14,9 @@
  * limitations under the License.
  */
 import Foundation
-import SwiftyJSON
 
-public typealias CredentialDefinition = JSON
+public extension Int {
+  func isWithinRange(_ range: ClosedRange<Int>) -> Bool {
+    return range.contains(self)
+  }
+}

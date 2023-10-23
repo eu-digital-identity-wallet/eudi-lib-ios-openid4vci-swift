@@ -15,7 +15,7 @@
  */
 import Foundation
 
-public struct Display: Codable {
+public struct Display: Codable, Equatable {
   public let name: String?
   public let locale: String?
   let logo: Logo?
@@ -51,7 +51,7 @@ public struct Display: Codable {
 
 public extension Display {
   
-  struct Logo: Codable {
+  struct Logo: Codable, Equatable {
     let url: String?
     let alternativeText: String?
     

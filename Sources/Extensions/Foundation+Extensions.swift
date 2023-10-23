@@ -14,6 +14,21 @@
  * limitations under the License.
  */
 import Foundation
-import SwiftyJSON
 
-public typealias CredentialDefinition = JSON
+public extension URL {
+  /// Extracts query parameters from the URL.
+  var queryParameters: [String: String] {
+    var parameters = [String: String]()
+    
+    if let components = URLComponents(url: self, resolvingAgainstBaseURL: false),
+       let queryItems = components.queryItems {
+      for item in queryItems {
+        let name = item.name
+        if let value = item.value {
+          parameters[name] = value
+        }
+      }
+    }
+    return parameters
+  }
+}

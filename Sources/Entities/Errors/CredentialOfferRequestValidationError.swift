@@ -14,6 +14,11 @@
  * limitations under the License.
  */
 import Foundation
-import SwiftyJSON
 
-public typealias CredentialDefinition = JSON
+enum CredentialOfferRequestValidationError: Error {
+    case oneOfCredentialOfferOrCredentialOfferUri
+    case invalidCredentialOfferUri
+    case invalidCredentialIssuerId
+    case invalidCredentials
+    case invalidGrants
+}

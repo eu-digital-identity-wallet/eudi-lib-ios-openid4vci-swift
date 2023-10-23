@@ -15,6 +15,25 @@
  */
 import Foundation
 
-enum CredentialError: Error {
-  case genericError
+public struct CredentialIssuerId: Codable, Equatable {
+  public let url: URL
+  
+  init(string: String, validate: Bool = true) throws {
+    if validate {
+      if let queryItems = URLComponents(string: string)?.queryItems,
+         queryItems.count > 0 {
+        throw CredentialError.genericError
+      }
+    }
+    
+    if let validURL = URL(string: string) {
+      self.url = validURL
+      
+      if self.url.fragment != nil {
+       throw CredentialError.genericError
+     }
+    } else {
+      throw CredentialError.genericError
+    }
+  }
 }

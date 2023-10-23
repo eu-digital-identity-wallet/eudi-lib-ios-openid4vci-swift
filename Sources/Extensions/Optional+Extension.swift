@@ -14,6 +14,9 @@
  * limitations under the License.
  */
 import Foundation
-import SwiftyJSON
 
-public typealias CredentialDefinition = JSON
+extension Optional where Wrapped == String {
+  var isNilOrEmpty: Bool {
+    return self?.isEmpty ?? true
+  }
+}

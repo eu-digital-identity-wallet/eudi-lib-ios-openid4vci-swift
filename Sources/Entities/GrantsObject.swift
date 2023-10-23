@@ -16,7 +16,7 @@
 import Foundation
 
 // Grant, conforming to Codable.
-public struct Grant: Codable {
+public struct GrantsObject: Codable, Equatable {
   // Properties for authorization code and pre-authorization code.
   public let authorizationCode: AuthorizationCode
   public let preAuthorizationCode: PreAuthorizationCode
@@ -34,10 +34,10 @@ public struct Grant: Codable {
 }
 
 // Grant extension
-public extension Grant {
+public extension GrantsObject {
   
   // AuthorizationCode, conforming to Codable.
-  struct AuthorizationCode: Codable {
+  struct AuthorizationCode: Codable, Equatable {
     // Property representing issuer state.
     let issuerState: String
     
@@ -52,7 +52,7 @@ public extension Grant {
   }
   
   // Define another nested struct named PreAuthorizationCode, conforming to Codable.
-  struct PreAuthorizationCode: Codable {
+  struct PreAuthorizationCode: Codable, Equatable {
     public let preAuthorizedCode: String
     public let userPinRequired: Bool?
     

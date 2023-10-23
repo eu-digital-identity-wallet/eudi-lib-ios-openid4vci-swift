@@ -16,7 +16,7 @@
 import Foundation
 import SwiftyJSON
 
-public struct CredentialIssuerMetadata: Codable {
+public struct CredentialIssuerMetadata: Codable, Equatable {
   let credentialIssuerIdentifier: String
   let authorizationServer: String?
   let credentialEndpoint: String

@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 import Foundation
-import SwiftyJSON
 
-public typealias CredentialDefinition = JSON
+public enum CredentialError: Error {
+  case genericError
+}
