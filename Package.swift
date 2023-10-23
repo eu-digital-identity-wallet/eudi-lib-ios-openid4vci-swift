@@ -13,7 +13,8 @@ let package = Package(
     ),
   ],
   dependencies: [
-    .package(url: "https://github.com/SwiftyJSON/SwiftyJSON.git", from: "4.0.0")
+    .package(url: "https://github.com/SwiftyJSON/SwiftyJSON.git", from: "4.0.0"),
+    .package(url: "https://github.com/niscy-eudiw/JOSESwift.git", from: "2.4.1"),
   ],
   targets: [
     .target(
@@ -22,6 +23,10 @@ let package = Package(
         .product(
           name: "SwiftyJSON",
           package: "SwiftyJSON"
+        ),
+        .product(
+          name: "JOSESwift",
+          package: "JOSESwift"
         )
       ],
       path: "Sources",
@@ -36,6 +41,10 @@ let package = Package(
         .product(
           name: "SwiftyJSON",
           package: "SwiftyJSON"
+        ),
+        .product(
+          name: "JOSESwift",
+          package: "JOSESwift"
         )
       ],
       path: "Tests"

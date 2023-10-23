@@ -15,6 +15,7 @@
  */
 import Foundation
 import SwiftyJSON
+import JOSESwift
 
 public struct CredentialIssuerMetadata: Codable, Equatable {
   let credentialIssuerIdentifier: String
@@ -22,8 +23,8 @@ public struct CredentialIssuerMetadata: Codable, Equatable {
   let credentialEndpoint: String
   let batchCredentialEndpoint: String?
   let deferredCredentialEndpoint: String?
-  let credentialResponseEncryptionAlgorithmsSupported: [String]?
-  let credentialResponseEncryptionMethodsSupported: [String]?
+  let credentialResponseEncryptionAlgorithmsSupported: [JWEAlgorithm]
+  let credentialResponseEncryptionMethodsSupported: [JOSEEncryptionMethod]
   let requireCredentialResponseEncryption: Bool?
   let credentialsSupported: [JSON]
   let display: [Display]?
@@ -39,5 +40,29 @@ public struct CredentialIssuerMetadata: Codable, Equatable {
     case requireCredentialResponseEncryption = "require_credential_response_encryption"
     case credentialsSupported = "credentials_supported"
     case display = "display"
+  }
+  
+  public init(
+    credentialIssuerIdentifier: String,
+    authorizationServer: String?,
+    credentialEndpoint: String,
+    batchCredentialEndpoint: String?,
+    deferredCredentialEndpoint: String?,
+    credentialResponseEncryptionAlgorithmsSupported: [JWEAlgorithm] = [],
+    credentialResponseEncryptionMethodsSupported: [JOSEEncryptionMethod] = [],
+    requireCredentialResponseEncryption: Bool?,
+    credentialsSupported: [JSON],
+    display: [Display]?
+  ) {
+    self.credentialIssuerIdentifier = credentialIssuerIdentifier
+    self.authorizationServer = authorizationServer
+    self.credentialEndpoint = credentialEndpoint
+    self.batchCredentialEndpoint = batchCredentialEndpoint
+    self.deferredCredentialEndpoint = deferredCredentialEndpoint
+    self.credentialResponseEncryptionAlgorithmsSupported = credentialResponseEncryptionAlgorithmsSupported
+    self.credentialResponseEncryptionMethodsSupported = credentialResponseEncryptionMethodsSupported
+    self.requireCredentialResponseEncryption = requireCredentialResponseEncryption
+    self.credentialsSupported = credentialsSupported
+    self.display = display
   }
 }
