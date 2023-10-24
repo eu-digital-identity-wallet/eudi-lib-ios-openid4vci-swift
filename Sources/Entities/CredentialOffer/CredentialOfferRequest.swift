@@ -15,28 +15,33 @@
  */
 import Foundation
 
-public enum CredentialOfferSource {
+public enum CredentialOfferRequest {
   case passByValue(metaData: String)
   case fetchByReference(url: URL)
 }
 
-public extension CredentialOfferSource {
+public extension CredentialOfferRequest {
   init(urlString: String) throws {
     
     guard let url = URL(string: urlString) else {
-      throw CredentialError.genericError
+      throw CredentialOfferRequestError.nonParsableCredentialOfferEndpointUrl(reason: urlString)
     }
     
     let parameters = url.queryParameters
     if let byValue = parameters["credential_offer"],
       !byValue.isEmpty {
       self = .passByValue(metaData: byValue)
+      return
     } else if let byReference = parameters["credential_offer_uri"],
-      !byReference.isEmpty,
-      let reference = URL(string: byReference) {
-      self = .fetchByReference(url: reference)
+      !byReference.isEmpty {
+      if let reference = URL(string: byReference) {
+        self = .fetchByReference(url: reference)
+        return
+      } else {
+        throw CredentialOfferRequestValidationError.invalidCredentialOfferUri(byReference)
+      }
+    } else {
+      throw CredentialOfferRequestValidationError.oneOfCredentialOfferOrCredentialOfferUri
     }
-    
-    throw CredentialError.genericError
   }
 }

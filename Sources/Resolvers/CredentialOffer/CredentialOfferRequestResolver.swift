@@ -24,7 +24,7 @@ public actor CredentialOfferRequestResolver: ResolverType {
   /// - Returns: An asynchronous result containing the resolved metadata or an error of type ResolvingError.
   public func resolve(
     fetcher: Fetcher<CredentialOfferRequestObject> = Fetcher(),
-    source: CredentialOfferSource?
+    source: CredentialOfferRequest?
   ) async -> Result<CredentialOfferRequestObject?, CredentialError> {
     guard let source = source else { return .success(nil) }
     switch source {

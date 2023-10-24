@@ -15,10 +15,18 @@
  */
 import Foundation
 
-public enum CredentialOfferRequestValidationError: Error {
-  case oneOfCredentialOfferOrCredentialOfferUri
-  case invalidCredentialOfferUri(String)
-  case invalidCredentialIssuerId
-  case invalidCredentials
-  case invalidGrants
+public typealias ClientId = String
+public typealias ClientSecret = String
+
+public struct WalletOpenId4VCIConfig {
+  public let clientId: ClientId
+  public let clientSecret: ClientSecret
+  public let authFlowRedirectionURI: URL
+  
+  public init(clientId: ClientId, clientSecret: ClientSecret, authFlowRedirectionURI: URL) {
+    self.clientId = clientId
+    self.clientSecret = clientSecret
+    self.authFlowRedirectionURI = authFlowRedirectionURI
+  }
 }
+

@@ -20,17 +20,17 @@ public enum CredentialOfferRequestError: Error {
   case genericError
   
   // The Credential Offer Endpoint URL could not be parsed.
-  case nonParsableCredentialOfferEndpointUrl(reason: Error)
+  case nonParsableCredentialOfferEndpointUrl(reason: String)
   
   // The Credential Offer object could not be fetched.
-  case unableToFetchCredentialOffer(reason: Error)
+  case unableToFetchCredentialOffer(reason: String)
   
   // The Credential Offer object could not be parsed.
-  case nonParseableCredentialOffer(reason: Error)
+  case nonParseableCredentialOffer(reason: String)
   
   // The metadata of the Credential Issuer could not be resolved.
-  case unableToResolveCredentialIssuerMetadata(reason: Error)
+  case unableToResolveCredentialIssuerMetadata(reason: String)
   
   // The metadata of the Authorization Server could not be resolved.
-  case unableToResolveAuthorizationServerMetadata(reason: Error)
+  case unableToResolveAuthorizationServerMetadata(reason: String)
 }

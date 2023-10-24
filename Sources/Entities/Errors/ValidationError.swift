@@ -15,10 +15,7 @@
  */
 import Foundation
 
-public enum CredentialOfferRequestValidationError: Error {
-  case oneOfCredentialOfferOrCredentialOfferUri
-  case invalidCredentialOfferUri(String)
-  case invalidCredentialIssuerId
-  case invalidCredentials
-  case invalidGrants
+public enum ValidationError: Error {
+  case nonHttpsUrl(String)
+  case invalidUrl(String)
 }
