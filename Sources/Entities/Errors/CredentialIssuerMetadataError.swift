@@ -15,23 +15,20 @@
  */
 import Foundation
 
-public struct CredentialIssuerId: Codable, Equatable {
-  public let url: URL
+enum CredentialIssuerMetadataError: Error {
+  case unableToFetchCredentialIssuerMetadata(cause: Error)
+  case nonParseableCredentialIssuerMetadata(cause: Error)
   
-  init(string: String) throws {
-    if let queryItems = URLComponents(string: string)?.queryItems,
-       queryItems.count > 0 {
-      throw CredentialError.genericError
-    }
-    
-    guard
-      let validURL = URL(string: string),
-        validURL.scheme == "https",
-        validURL.fragment == nil 
-    else {
-      throw CredentialError.genericError
-    }
-    
-    self.url = validURL
+  func toException() -> CredentialIssuerMetadataException {
+    return CredentialIssuerMetadataException(error: self)
+  }
+  
+  func raise() throws {
+    throw self.toException()
   }
 }
+
+struct CredentialIssuerMetadataException: Error {
+  let error: CredentialIssuerMetadataError
+}
+
