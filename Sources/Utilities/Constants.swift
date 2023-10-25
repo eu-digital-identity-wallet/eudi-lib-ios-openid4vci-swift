@@ -14,11 +14,14 @@
  * limitations under the License.
  */
 import Foundation
-import SwiftyJSON
 
-public typealias CredentialDefinition = JSON
-
-public enum ContentType: String {
-  case key = "Content-Type"
-  case form = "application/x-www-form-urlencoded; charset=UTF-8"
+public struct Constants {
+  public static let GRANT_TYPE_PARAM = "grant_type"
+  public static let REDIRECT_URI_PARAM = "redirect_uri"
+  public static let CLIENT_ID_PARAM = "client_id"
+  public static let CODE_VERIFIER_PARAM = "code_verifier"
+  public static let AUTHORIZATION_CODE_PARAM = "code"
+  
+  public static let USER_PIN_PARAM = "user_pin"
+  public static let PRE_AUTHORIZED_CODE_PARAM = "pre_authorized_code"
 }

@@ -31,4 +31,17 @@ public extension URL {
     }
     return parameters
   }
+  
+  // Function to add query parameters to a URL
+  func appendingQueryParameters(_ parameters: [String: String]) -> URL? {
+    var components = URLComponents(url: self, resolvingAgainstBaseURL: false)
+    
+    var queryItems = components?.queryItems ?? []
+    for (name, value) in parameters {
+      queryItems.append(URLQueryItem(name: name, value: value))
+    }
+    
+    components?.queryItems = queryItems
+    return components?.url
+  }
 }

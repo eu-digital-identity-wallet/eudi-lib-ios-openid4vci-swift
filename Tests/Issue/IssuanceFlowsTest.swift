@@ -14,11 +14,21 @@
  * limitations under the License.
  */
 import Foundation
-import SwiftyJSON
+import XCTest
 
-public typealias CredentialDefinition = JSON
+@testable import OpenID4VCI
 
-public enum ContentType: String {
-  case key = "Content-Type"
-  case form = "application/x-www-form-urlencoded; charset=UTF-8"
+class IssuanceFlowsTest: XCTestCase {
+  
+  override func setUp() async throws {
+    try await super.setUp()
+  }
+  
+  override func tearDown() {
+    super.tearDown()
+  }
+  
+  func test() throws {
+    
+  }
 }

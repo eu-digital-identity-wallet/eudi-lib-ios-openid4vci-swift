@@ -16,6 +16,19 @@
 import Foundation
 
 public extension String {
+  
+  /// URL encodes a string using UTF-8 encoding.
+  ///
+  /// - Returns: The URL-encoded string or nil if encoding fails.
+  func utf8UrlEncoded() throws -> String {
+    if let utf8Data = self.data(using: .utf8) {
+      let allowedCharacterSet = CharacterSet(charactersIn: "!*'();:@&=+$,/?%#[]").inverted
+      return try utf8Data.map { String(format: "%%%02X", $0) }.joined()
+        .addingPercentEncoding(withAllowedCharacters: allowedCharacterSet) ?? { throw NSError(domain: "utf8UrlEncoded", code: 0, userInfo: [:]) }()
+    }
+    throw NSError(domain: "utf8UrlEncoded", code: 0, userInfo: [:])
+  }
+  
   var base64urlEncode: String {
     let data = Data(self.utf8)
     let base64 = data.base64EncodedString()
@@ -25,7 +38,7 @@ public extension String {
       .replacingOccurrences(of: "=", with: "")
     return base64url
   }
-
+  
   /// Loads the contents of a string file from the bundle associated with the Swift package.
   ///
   /// - Parameters:
@@ -34,10 +47,10 @@ public extension String {
   /// - Returns: The contents of the string file, or `nil` if it fails to load.
   static func loadStringFileFromBundle(named fileName: String, withExtension fileExtension: String) -> String? {
     let bundle = Bundle.module
-
+    
     guard let fileURL = bundle.url(forResource: fileName, withExtension: fileExtension),
-      let data = try? Data(contentsOf: fileURL),
-      let string = String(data: data, encoding: .utf8) else {
+          let data = try? Data(contentsOf: fileURL),
+          let string = String(data: data, encoding: .utf8) else {
       return nil
     }
     return string
