@@ -14,11 +14,9 @@
  * limitations under the License.
  */
 import Foundation
-import SwiftyJSON
 
-public typealias CredentialDefinition = JSON
-
-public enum ContentType: String {
-  case key = "Content-Type"
-  case form = "application/x-www-form-urlencoded; charset=UTF-8"
+extension Optional where Wrapped == String {
+  var isNilOrEmpty: Bool {
+    return self?.isEmpty ?? true
+  }
 }

@@ -1,6 +1,15 @@
 {
   "pins" : [
     {
+      "identity" : "joseswift",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/niscy-eudiw/JOSESwift.git",
+      "state" : {
+        "revision" : "ef86488a729fb1eb85edc3b174f528ac212c5ce6",
+        "version" : "2.4.1"
+      }
+    },
+    {
       "identity" : "swiftyjson",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/SwiftyJSON/SwiftyJSON.git",

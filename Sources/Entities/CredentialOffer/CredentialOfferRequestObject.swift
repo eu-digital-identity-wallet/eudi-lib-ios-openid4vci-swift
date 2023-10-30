@@ -16,10 +16,10 @@
 import Foundation
 import SwiftyJSON
 
-public struct CredentialOfferRequest: Codable {
+public struct CredentialOfferRequestObject: Codable, Equatable {
   public let credentialIssuer: String
   public let credentials: JSON
-  public let grants: Grant?
+  public let grants: GrantsObject?
   
   enum CodingKeys: String, CodingKey {
     case credentialIssuer = "credential_issuer"
@@ -30,10 +30,23 @@ public struct CredentialOfferRequest: Codable {
   public init(
     credentialIssuer: String,
     credentials: JSON,
-    grants: Grant?
+    grants: GrantsObject?
   ) {
     self.credentialIssuer = credentialIssuer
     self.credentials = credentials
     self.grants = grants
+  }
+  
+  public init?(jsonString: String) {
+    guard let jsonData = jsonString.data(using: .utf8) else {
+      return nil // Return nil if JSON string is invalid
+    }
+    
+    do {
+      let decoder = JSONDecoder()
+      self = try decoder.decode(Self.self, from: jsonData)
+    } catch {
+      return nil
+    }
   }
 }

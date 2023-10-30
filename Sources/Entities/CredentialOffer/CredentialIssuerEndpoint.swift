@@ -14,11 +14,24 @@
  * limitations under the License.
  */
 import Foundation
-import SwiftyJSON
 
-public typealias CredentialDefinition = JSON
-
-public enum ContentType: String {
-  case key = "Content-Type"
-  case form = "application/x-www-form-urlencoded; charset=UTF-8"
+public struct CredentialIssuerEndpoint: Codable, Equatable {
+  public let url: URL
+  
+  init(string: String) throws {
+    if let queryItems = URLComponents(string: string)?.queryItems,
+       queryItems.count > 0 {
+      throw CredentialError.genericError
+    }
+    
+    if let validURL = URL(string: string) {
+      self.url = validURL
+      
+      if self.url.fragment != nil {
+       throw CredentialError.genericError
+     }
+    } else {
+      throw CredentialError.genericError
+    }
+  }
 }

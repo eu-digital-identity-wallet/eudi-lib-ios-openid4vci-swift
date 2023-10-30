@@ -14,11 +14,19 @@
  * limitations under the License.
  */
 import Foundation
-import SwiftyJSON
 
-public typealias CredentialDefinition = JSON
+public typealias ClientId = String
+public typealias ClientSecret = String
 
-public enum ContentType: String {
-  case key = "Content-Type"
-  case form = "application/x-www-form-urlencoded; charset=UTF-8"
+public struct WalletOpenId4VCIConfig {
+  public let clientId: ClientId
+  public let clientSecret: ClientSecret
+  public let authFlowRedirectionURI: URL
+  
+  public init(clientId: ClientId, clientSecret: ClientSecret, authFlowRedirectionURI: URL) {
+    self.clientId = clientId
+    self.clientSecret = clientSecret
+    self.authFlowRedirectionURI = authFlowRedirectionURI
+  }
 }
+

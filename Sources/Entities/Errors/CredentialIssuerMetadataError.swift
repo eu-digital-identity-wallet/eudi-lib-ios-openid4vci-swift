@@ -14,11 +14,21 @@
  * limitations under the License.
  */
 import Foundation
-import SwiftyJSON
 
-public typealias CredentialDefinition = JSON
-
-public enum ContentType: String {
-  case key = "Content-Type"
-  case form = "application/x-www-form-urlencoded; charset=UTF-8"
+enum CredentialIssuerMetadataError: Error {
+  case unableToFetchCredentialIssuerMetadata(cause: Error)
+  case nonParseableCredentialIssuerMetadata(cause: Error)
+  
+  func toException() -> CredentialIssuerMetadataException {
+    return CredentialIssuerMetadataException(error: self)
+  }
+  
+  func raise() throws {
+    throw self.toException()
+  }
 }
+
+struct CredentialIssuerMetadataException: Error {
+  let error: CredentialIssuerMetadataError
+}
+

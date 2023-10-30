@@ -19,7 +19,7 @@ import SwiftyJSON
 public struct W3CVerifiableCredentialSignedJwtCredentialSupported: Codable {
   public let format: String
   public let scope: String?
-  public let cryptographicBindingMethodsSupported: [String]?
+  public let cryptographicBindingMethodsSupported: [CryptographicBindingMethod]?
   public let cryptographicSuitesSupported: [String]?
   public let proofTypesSupported: [String]?
   public let display: [Display]?
@@ -40,10 +40,10 @@ public struct W3CVerifiableCredentialSignedJwtCredentialSupported: Codable {
   public init(
     format: String,
     scope: String? = nil,
-    cryptographicBindingMethodsSupported: [String]? = nil,
-    cryptographicSuitesSupported: [String]? = nil,
-    proofTypesSupported: [String]? = nil,
-    display: [Display]? = nil,
+    cryptographicBindingMethodsSupported: [CryptographicBindingMethod] = [],
+    cryptographicSuitesSupported: [String] = [],
+    proofTypesSupported: [String] = [],
+    display: [Display] = [],
     credentialDefinition: JSON,
     order: [String]? = nil
   ) {
