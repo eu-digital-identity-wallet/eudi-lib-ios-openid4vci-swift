@@ -20,11 +20,17 @@ public typealias CIAuthorizationServerMetadata = Any
 public struct CredentialOffer {
   public let credentialIssuerIdentifier: CredentialIssuerId
   public let credentialIssuerMetadata: CredentialIssuerMetadata
-  public let credentials: [OfferedCredential]
+  public let credentials: [CredentialMetadata]
   public let grants: Grants?
   public let authorizationServerMetadata: CIAuthorizationServerMetadata
   
-  public init(credentialIssuerIdentifier: CredentialIssuerId, credentialIssuerMetadata: CredentialIssuerMetadata, credentials: [OfferedCredential], grants: Grants?, authorizationServerMetadata: CIAuthorizationServerMetadata) throws {
+  public init(
+    credentialIssuerIdentifier: CredentialIssuerId,
+    credentialIssuerMetadata: CredentialIssuerMetadata,
+    credentials: [CredentialMetadata],
+    grants: Grants?,
+    authorizationServerMetadata: CIAuthorizationServerMetadata
+  ) throws {
     self.credentialIssuerIdentifier = credentialIssuerIdentifier
     self.credentialIssuerMetadata = credentialIssuerMetadata
     self.credentials = credentials

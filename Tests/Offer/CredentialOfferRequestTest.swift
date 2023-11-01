@@ -131,6 +131,7 @@ class CredentialOfferRequestTest: XCTestCase {
        }
     }
     """
+    
     let urlString = "https://example.com/?credential_offer=\(value)"
     
     // When
@@ -143,7 +144,7 @@ class CredentialOfferRequestTest: XCTestCase {
       
       if let request = CredentialOfferRequestObject(jsonString: value) {
         XCTAssert(request.credentials.count == 2)
-        XCTAssert(request.grants?.authorizationCode.issuerState == "eyJhbGciOiJSU0Et...FYUaBy")
+        XCTAssert(request.grants?.authorizationCode?.issuerState == "eyJhbGciOiJSU0Et...FYUaBy")
         
       } else {
         XCTFail("Invalid pass by value object.")

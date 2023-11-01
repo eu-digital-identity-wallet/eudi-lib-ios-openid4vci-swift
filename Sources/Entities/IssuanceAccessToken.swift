@@ -20,8 +20,14 @@ public struct IssuanceAccessToken: Codable {
   
   public init(accessToken: String) throws {
     guard !accessToken.isEmpty else {
-      throw CredentialError.genericError
+      throw ValidationError.error(reason: "Access token cannot be empty")
     }
     self.accessToken = accessToken
+  }
+}
+
+public extension IssuanceAccessToken {
+  var authorizationHeader: [String: String] {
+    ["Authorization": "BEARER \(accessToken)"]
   }
 }

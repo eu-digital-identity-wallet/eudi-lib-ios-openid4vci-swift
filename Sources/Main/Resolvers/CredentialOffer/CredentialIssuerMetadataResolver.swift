@@ -29,25 +29,25 @@ public actor CredentialIssuerMetadataResolver: ResolverType {
   public func resolve(
     fetcher: Fetcher<CredentialIssuerMetadata> = Fetcher(),
     source: CredentialIssuerSource?
-  ) async -> Result<CredentialIssuerMetadata?, CredentialError> {
+  ) async -> Result<CredentialIssuerMetadata?, Error> {
     switch source {
     case .credentialIssuer(let issuerId):
 
       let pathComponent1 = ".well-known"
       let pathComponent2 = "openid-credential-issuer"
 
-      let url = issuerId.url.appendingPathComponent(pathComponent1).appendingPathComponent(pathComponent2)
+      let url = issuerId.url
+        .appendingPathComponent(pathComponent1)
+        .appendingPathComponent(pathComponent2)
 
-      
       let result = await fetcher.fetch(url: url)
       let metaData = try? result.get()
       if let metaData = metaData {
         return .success(metaData)
       }
-      return .failure(.genericError)
+      return .failure(ValidationError.error(reason: "Unable to retrieve metadata"))
     case .none:
-      return .failure(.genericError)
+      return .failure(CredentialError.genericError)
     }
-    return .failure(.genericError)
   }
 }

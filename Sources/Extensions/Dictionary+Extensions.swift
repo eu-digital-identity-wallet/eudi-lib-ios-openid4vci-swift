@@ -24,7 +24,7 @@ public extension Dictionary where Key == String, Value == Any {
     }
     return from(JSONfile: URL(fileURLWithPath: path))
   }
-
+  
   // Converts the dictionary to an array of URLQueryItem objects
   func toQueryItems() -> [URLQueryItem] {
     var queryItems: [URLQueryItem] = []
@@ -43,7 +43,7 @@ public extension Dictionary where Key == String, Value == Any {
     }
     return queryItems
   }
-
+  
   func getValue<T: Codable>(
     for key: String,
     error: LocalizedError
@@ -57,7 +57,7 @@ public extension Dictionary where Key == String, Value == Any {
   var jsonData: Data? {
     return try? JSONSerialization.data(withJSONObject: self, options: [.prettyPrinted])
   }
-
+  
   func toJSONString() -> String? {
     if let jsonData = jsonData {
       let jsonString = String(data: jsonData, encoding: .utf8)
@@ -65,7 +65,7 @@ public extension Dictionary where Key == String, Value == Any {
     }
     return nil
   }
-
+  
   static func from(JSONfile url: URL) -> Result<Self, JSONParseError> {
     let data: Data
     do {
@@ -73,21 +73,33 @@ public extension Dictionary where Key == String, Value == Any {
     } catch let error {
       return .failure(.dataInitialisation(error))
     }
-
+    
     let jsonObject: Any
     do {
       jsonObject = try JSONSerialization.jsonObject(with: data, options: .mutableLeaves)
     } catch let error {
       return .failure(.jsonSerialization(error))
     }
-
+    
     guard let jsonResult = jsonObject as? Self else {
       return .failure(.mappingFail(
         value: String(describing: jsonObject),
         toType: String(describing: Self.Type.self)
       ))
     }
-
+    
     return .success(jsonResult)
+  }
+  
+  func convertToDictionaryOfStrings() -> [Key: String] {
+    var stringDictionary: [Key: String] = [:]
+    
+    for (key, value) in self {
+      if let stringValue = value as? String {
+        stringDictionary[key] = stringValue
+      }
+    }
+    
+    return stringDictionary
   }
 }

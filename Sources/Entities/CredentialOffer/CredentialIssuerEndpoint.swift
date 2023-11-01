@@ -34,4 +34,14 @@ public struct CredentialIssuerEndpoint: Codable, Equatable {
       throw CredentialError.genericError
     }
   }
+  
+  private enum CodingKeys: String, CodingKey {
+    case url = "credential_endpoint"
+  }
+  
+  // Implement the required init(from decoder:) method
+  public init(from decoder: Decoder) throws {
+    let container = try decoder.container(keyedBy: CodingKeys.self)
+    url = try container.decode(URL.self, forKey: .url)
+  }
 }

@@ -15,6 +15,31 @@
  */
 import Foundation
 
+public protocol CredentialOfferRequestResolverType {
+  /// The input type for resolving a type.
+  associatedtype InputType
+
+  /// The output type for resolved type. Must be Codable and Equatable.
+  associatedtype OutputType: Codable, Equatable
+  
+  /// The fetch type for resolved type. Must be Codable and Equatable.
+  associatedtype FetchType: Codable, Equatable
+
+  /// The error type for resolving type. Must conform to the Error protocol.
+  associatedtype ErrorType: Error
+
+  /// Resolves type asynchronously.
+  ///
+  /// - Parameters:
+  ///   - fetcher: The fetcher object responsible for fetching data.
+  ///   - source: The input source for resolving data.
+  /// - Returns: An asynchronous result containing the resolved data or an error.
+  func resolve(
+    fetcher: Fetcher<FetchType>,
+    source: InputType?
+  ) async -> Result<OutputType?, ErrorType>
+}
+
 public actor CredentialOfferRequestResolver: ResolverType {
   /// Resolves client metadata asynchronously.
   ///
@@ -25,21 +50,25 @@ public actor CredentialOfferRequestResolver: ResolverType {
   public func resolve(
     fetcher: Fetcher<CredentialOfferRequestObject> = Fetcher(),
     source: CredentialOfferRequest?
-  ) async -> Result<CredentialOfferRequestObject?, CredentialError> {
+  ) async -> Result<CredentialOffer?, Error> {
     guard let source = source else { return .success(nil) }
     switch source {
     case .passByValue(let value):
-      guard let offer: CredentialOfferRequestObject = .init(jsonString: value) else {
-        return .failure(.genericError)
+      guard 
+        let offer: CredentialOfferRequestObject = .init(jsonString: value),
+        let domain = offer.toDomain()
+      else {
+        return .failure(ValidationError.error(reason: "Unable to parse credential offer request"))
       }
-      return .success(offer)
+      return .success(domain)
+      
     case .fetchByReference(let url):
       let result = await fetcher.fetch(url: url)
       let metaData = try? result.get()
-      if let metaData = metaData {
-        return .success(metaData)
+      if let metaData = metaData, let domain = metaData.toDomain() {
+        return .success(domain)
       }
-      return .failure(.genericError)
+      return .failure(ValidationError.error(reason: "Unable to fetch credential offer request by reference"))
     }
   }
 }

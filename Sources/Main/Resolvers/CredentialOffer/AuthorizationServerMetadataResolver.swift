@@ -20,7 +20,21 @@ public enum AuthorizationServerMetadataSink {
   case oauth(AuthorizationServerMetadata)
 }
 
-public actor AuthorizationServerMetadataResolver {
+protocol AuthorizationServerMetadataResolverType {
+  /// Resolves client metadata asynchronously.
+  ///
+  /// - Parameters:
+  ///   - fetcher: The fetcher object responsible for fetching metadata. Default value is Fetcher<ClientMetaData>().
+  ///   - source: The input source for resolving metadata.
+  /// - Returns: An asynchronous result containing the resolved metadata or an error of type ResolvingError.
+  func resolve(
+    oidcFetcher: Fetcher<OIDCProviderMetadata>,
+    oauthFetcher: Fetcher<AuthorizationServerMetadata>,
+    url: URL
+  ) async -> Result<AuthorizationServerMetadataSink, Error>
+}
+
+public actor AuthorizationServerMetadataResolver: AuthorizationServerMetadataResolverType {
   /// Resolves client metadata asynchronously.
   ///
   /// - Parameters:
@@ -31,26 +45,43 @@ public actor AuthorizationServerMetadataResolver {
     oidcFetcher: Fetcher<OIDCProviderMetadata> = Fetcher(),
     oauthFetcher: Fetcher<AuthorizationServerMetadata> = Fetcher(),
     url: URL
-  ) async -> Result<AuthorizationServerMetadataSink, CredentialError> {
+  ) async -> Result<AuthorizationServerMetadataSink, Error> {
     
-    if let oidc = try? await oidcFetcher.fetch(url: url).get() {
+    if let oidc = await fetchOIDCProviderMetadata(
+      fetcher: oidcFetcher,
+      url: url
+    ) {
       return .success(.oidc(oidc))
-    } else if let oauth = try? await oauthFetcher.fetch(url: url).get() {
+      
+    } else if let oauth = await fetchAuthorizationServerMetadata(
+      fetcher: oauthFetcher,
+      url: url
+    ) {
       return .success(.oauth(oauth))
     }
     
-    return .failure(.genericError)
+    return .failure(ValidationError.error(reason: "Unable to fetch metadata"))
   }
   
   private func fetchOIDCProviderMetadata(
-    fetcher: Fetcher<OIDCProviderMetadata>
+    fetcher: Fetcher<OIDCProviderMetadata>,
+    url: URL
   ) async -> OIDCProviderMetadata? {
-    nil
+    try? await fetcher.fetch(
+      url: url
+        .appendingPathComponent(".well-known")
+        .appendingPathComponent("openid-configuration")
+    ).get()
   }
   
   private func fetchAuthorizationServerMetadata(
-    fetcher: Fetcher<AuthorizationServerMetadata>
+    fetcher: Fetcher<AuthorizationServerMetadata>,
+    url: URL
   ) async -> AuthorizationServerMetadata? {
-    nil
+    try? await fetcher.fetch(
+      url: url
+        .appendingPathComponent(".well-known")
+        .appendingPathComponent("oauth-authorization-server")
+    ).get()
   }
 }

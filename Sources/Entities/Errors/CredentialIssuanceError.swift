@@ -15,8 +15,9 @@
  */
 import Foundation
 
-public enum ValidationError: Error {
-  case error(reason: String)
-  case nonHttpsUrl(String)
-  case invalidUrl(String)
+public enum CredentialIssuanceError: Error {
+  case pushedAuthorizationRequestFailed(error: String, errorDescription: String?)
+  case accessTokenRequestFailed(error: String, errorDescription: String?)
+  case issuerDoesNotSupportBatchIssuance
+  case responseUnparsable(String)
 }

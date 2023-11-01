@@ -19,13 +19,13 @@ import Foundation
 public protocol AuthorisationServiceType {
   /// Posts a response and returns a generic result.
   func formPost<T: Codable, U: Codable>(
-    poster: Posting,
+    poster: PostingType,
     url: URL,
     request: T
   ) async throws -> U
   
   func formPost<U: Codable>(
-    poster: Posting,
+    poster: PostingType,
     url: URL,
     parameters: [String: String]
   ) async throws -> U
@@ -38,7 +38,7 @@ public actor AuthorisationService: AuthorisationServiceType {
   
   /// Posts a response and returns a generic result.
   public func formPost<T: Codable, U: Codable>(
-    poster: Posting = Poster(),
+    poster: PostingType = Poster(),
     url: URL,
     request: T
   ) async throws -> U {
@@ -55,7 +55,7 @@ public actor AuthorisationService: AuthorisationServiceType {
   }
   
   public func formPost<U: Codable>(
-    poster: Posting,
+    poster: PostingType,
     url: URL,
     parameters: [String: String]
   ) async throws -> U {

@@ -15,8 +15,7 @@
  */
 import Foundation
 
-public enum ValidationError: Error {
-  case error(reason: String)
-  case nonHttpsUrl(String)
-  case invalidUrl(String)
+public enum AuthorizedRequest {
+  case noProofRequired(token: IssuanceAccessToken)
+  case proofRequired(token: IssuanceAccessToken, cNonce: CNonce)
 }

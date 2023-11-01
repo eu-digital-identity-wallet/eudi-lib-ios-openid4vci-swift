@@ -39,6 +39,16 @@ class PKCEGeneratorTests: XCTestCase {
     XCTAssert(true, "Generated random base64 string \(randomString)")
   }
   
+  func testGenerateRandomBase64StringOfLength43() {
+    let length = 32
+    guard let randomString = PKCEGenerator.generateRandomBase64String(length: length) else {
+      XCTFail("Failed to generate random base64 string")
+      return
+    }
+    
+    XCTAssert(true, "Generated random base64 string \(randomString)")
+  }
+  
   func testGenerateCodeChallenge() {
     if let codeChallenge = PKCEGenerator.generateCodeChallenge() {
       XCTAssertEqual(codeChallenge.count, 44) // Base64-encoded SHA256 hash length

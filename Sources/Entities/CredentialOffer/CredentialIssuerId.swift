@@ -26,12 +26,22 @@ public struct CredentialIssuerId: Codable, Equatable {
     
     guard
       let validURL = URL(string: string),
-        validURL.scheme == "https",
-        validURL.fragment == nil 
+      validURL.scheme == "https",
+      validURL.fragment == nil
     else {
       throw CredentialError.genericError
     }
     
     self.url = validURL
+  }
+  
+  private enum CodingKeys: String, CodingKey {
+    case url = "credential_issuer"
+  }
+  
+  // Implement the required init(from decoder:) method
+  public init(from decoder: Decoder) throws {
+    let container = try decoder.container(keyedBy: CodingKeys.self)
+    url = try container.decode(URL.self, forKey: .url)
   }
 }

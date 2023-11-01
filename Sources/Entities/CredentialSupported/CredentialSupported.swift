@@ -15,17 +15,12 @@
  */
 import Foundation
 
-public enum CredentialSupported {
-  
-  /// The data of a W3C Verifiable Credential issued as a signed JWT, not using JSON-LD.
-  case w3CVerifiableCredentialCredentialSupported(jwtVcJson: W3CVerifiableCredentialSignedJwtCredentialSupported)
-  
-  /// The data of a W3C Verifiable Credential issued as a signed JWT using JSON-LD.
-  case w3CVerifiableCredentialCredentialSupported(jwtVcJsonLd: W3CVerifiableCredentialJsonLdSignedJwtCredentialSupported)
-  
-  /// The data of a W3C Verifiable Credential issued as using Data Integrity and JSON-LD.
-  case w3CVerifiableCredentialCredentialSupported(ldpVc: W3CVerifiableCredentialsJsonLdDataIntegrityCredentialSupported)
-  
-  /// The data of a Verifiable Credentials issued as an ISO mDL.
-  case w3CVerifiableCredentialCredentialSupported(isoMdl: MsoMdocCredentialCredentialSupported)
+public enum CredentialSupported: Codable {
+  case withScope(
+      scope: String?,
+      cryptographicBindingMethodsSupported: [CryptographicBindingMethod],
+      cryptographicSuitesSupported: [String],
+      proofTypesSupported: [ProofType],
+      display: [Display]
+  )
 }

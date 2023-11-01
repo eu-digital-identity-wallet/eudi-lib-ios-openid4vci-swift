@@ -50,3 +50,10 @@ public struct CredentialOfferRequestObject: Codable, Equatable {
     }
   }
 }
+
+public extension CredentialOfferRequestObject {
+  
+  func toDomain() -> CredentialOffer? {
+    nil
+  }
+}

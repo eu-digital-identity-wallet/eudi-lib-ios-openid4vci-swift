@@ -18,15 +18,15 @@ import SwiftyJSON
 import JOSESwift
 
 public struct CredentialIssuerMetadata: Codable, Equatable {
-  let credentialIssuerIdentifier: String
-  let authorizationServer: String?
-  let credentialEndpoint: String
-  let batchCredentialEndpoint: String?
-  let deferredCredentialEndpoint: String?
+  let credentialIssuerIdentifier: CredentialIssuerId
+  let authorizationServer: URL?
+  let credentialEndpoint: CredentialIssuerEndpoint
+  let batchCredentialEndpoint: CredentialIssuerEndpoint?
+  let deferredCredentialEndpoint: CredentialIssuerEndpoint?
   let credentialResponseEncryptionAlgorithmsSupported: [JWEAlgorithm]
   let credentialResponseEncryptionMethodsSupported: [JOSEEncryptionMethod]
   let requireCredentialResponseEncryption: Bool?
-  let credentialsSupported: [JSON]
+  let credentialsSupported: [CredentialSupported]
   let display: [Display]?
   
   enum CodingKeys: String, CodingKey {
@@ -43,15 +43,15 @@ public struct CredentialIssuerMetadata: Codable, Equatable {
   }
   
   public init(
-    credentialIssuerIdentifier: String,
-    authorizationServer: String?,
-    credentialEndpoint: String,
-    batchCredentialEndpoint: String?,
-    deferredCredentialEndpoint: String?,
+    credentialIssuerIdentifier: CredentialIssuerId,
+    authorizationServer: URL?,
+    credentialEndpoint: CredentialIssuerEndpoint,
+    batchCredentialEndpoint: CredentialIssuerEndpoint?,
+    deferredCredentialEndpoint: CredentialIssuerEndpoint?,
     credentialResponseEncryptionAlgorithmsSupported: [JWEAlgorithm] = [],
     credentialResponseEncryptionMethodsSupported: [JOSEEncryptionMethod] = [],
     requireCredentialResponseEncryption: Bool?,
-    credentialsSupported: [JSON],
+    credentialsSupported: [CredentialSupported],
     display: [Display]?
   ) {
     self.credentialIssuerIdentifier = credentialIssuerIdentifier
@@ -64,5 +64,9 @@ public struct CredentialIssuerMetadata: Codable, Equatable {
     self.requireCredentialResponseEncryption = requireCredentialResponseEncryption
     self.credentialsSupported = credentialsSupported
     self.display = display
+  }
+  
+  public static func == (lhs: CredentialIssuerMetadata, rhs: CredentialIssuerMetadata) -> Bool {
+    lhs.credentialIssuerIdentifier == rhs.credentialIssuerIdentifier
   }
 }

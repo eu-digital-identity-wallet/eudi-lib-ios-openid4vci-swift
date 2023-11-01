@@ -15,8 +15,7 @@
  */
 import Foundation
 
-public enum ValidationError: Error {
-  case error(reason: String)
-  case nonHttpsUrl(String)
-  case invalidUrl(String)
+public enum CodeChallenge: String {
+  case plain = "plain"
+  case sha256 = "sha256"
 }

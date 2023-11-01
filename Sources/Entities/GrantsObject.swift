@@ -18,8 +18,8 @@ import Foundation
 // Grant, conforming to Codable.
 public struct GrantsObject: Codable, Equatable {
   // Properties for authorization code and pre-authorization code.
-  public let authorizationCode: AuthorizationCode
-  public let preAuthorizationCode: PreAuthorizationCode
+  public let authorizationCode: AuthorizationCode?
+  public let preAuthorizationCode: PreAuthorizationCode?
   
   // CodingKeys enumeration to map JSON keys to struct properties.
   enum CodingKeys: String, CodingKey {
@@ -27,7 +27,10 @@ public struct GrantsObject: Codable, Equatable {
     case preAuthorizationCode = "urn:ietf:params:oauth:grant-type:pre-authorized_code"
   }
   
-  public init(authorizationCode: AuthorizationCode, preAuthorizationCode: PreAuthorizationCode) {
+  public init(
+    authorizationCode: AuthorizationCode?,
+    preAuthorizationCode: PreAuthorizationCode?
+  ) {
     self.authorizationCode = authorizationCode
     self.preAuthorizationCode = preAuthorizationCode
   }
