@@ -228,10 +228,7 @@ private extension Issuer {
     switch scoped {
     case .byScope(let byScope):
       return try metaData.credentialsSupported.first { element in
-        switch element {
-        case .withScope(let scope, _, _, _, _):
-          return scope == byScope.value
-        }
+        return element.scope == byScope.value
       } ?? { throw ValidationError.error(reason: "Issuer does not support issuance of credential scope: \(byScope)") }()
     default: throw ValidationError.error(reason: "")
     }

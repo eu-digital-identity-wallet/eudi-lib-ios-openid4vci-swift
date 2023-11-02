@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 import Foundation
+import SwiftyJSON
 
 public typealias CIAuthorizationServerMetadata = Any
 
@@ -42,3 +43,4 @@ public struct CredentialOffer {
     }
   }
 }
+

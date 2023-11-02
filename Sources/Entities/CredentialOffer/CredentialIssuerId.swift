@@ -41,7 +41,8 @@ public struct CredentialIssuerId: Codable, Equatable {
   
   // Implement the required init(from decoder:) method
   public init(from decoder: Decoder) throws {
-    let container = try decoder.container(keyedBy: CodingKeys.self)
-    url = try container.decode(URL.self, forKey: .url)
+    let container = try decoder.singleValueContainer()
+    let urlString = try container.decode(String.self)
+    url = try URL(string: urlString) ?? { throw ValidationError.error(reason: "Invalid credential_issuer URL")}()
   }
 }

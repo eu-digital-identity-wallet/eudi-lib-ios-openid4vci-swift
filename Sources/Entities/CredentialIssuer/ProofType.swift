@@ -28,9 +28,9 @@ public enum ProofType: Codable {
     let rawValue = try container.decode(String.self)
     
     switch rawValue {
-    case "JWT":
+    case "JWT", "jwt":
       self = .jwt
-    case "CWT":
+    case "CWT", "cwt":
       self = .cwt
     default:
       throw DecodingError.dataCorruptedError(in: container, debugDescription: "Invalid proof type")

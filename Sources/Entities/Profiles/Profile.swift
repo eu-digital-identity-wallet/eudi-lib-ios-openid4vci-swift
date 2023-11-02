@@ -15,7 +15,4 @@
  */
 import Foundation
 
-public struct MsoMdocProfile: Profile {
-  
-  static let FORMAT = "mso_mdoc"
-}
+public protocol Profile {}

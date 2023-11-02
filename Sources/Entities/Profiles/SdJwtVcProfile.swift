@@ -15,7 +15,7 @@
  */
 import Foundation
 
-public struct MsoMdocProfile: Profile {
+public struct SdJwtVcProfile: Profile {
   
-  static let FORMAT = "mso_mdoc"
+  static let FORMAT = "vc+sd-jwt"
 }

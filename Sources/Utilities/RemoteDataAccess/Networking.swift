@@ -15,7 +15,16 @@
  */
 import Foundation
 
-public struct MsoMdocProfile: Profile {
-  
-  static let FORMAT = "mso_mdoc"
+public protocol Networking {
+  func data(
+    from url: URL
+  ) async throws -> (Data, URLResponse)
 }
+
+public extension Networking {
+  func data(from url: URL) async throws -> (Data, URLResponse) {
+    try await data(from: url)
+  }
+}
+
+extension URLSession: Networking {}

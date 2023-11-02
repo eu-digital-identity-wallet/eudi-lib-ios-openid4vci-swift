@@ -18,8 +18,8 @@ import SwiftyJSON
 
 public struct CredentialOfferRequestObject: Codable, Equatable {
   public let credentialIssuer: String
-  public let credentials: JSON
-  public let grants: GrantsObject?
+  public let credentials: [JSON]
+  public let grants: GrantsDTO?
   
   enum CodingKeys: String, CodingKey {
     case credentialIssuer = "credential_issuer"
@@ -29,8 +29,8 @@ public struct CredentialOfferRequestObject: Codable, Equatable {
   
   public init(
     credentialIssuer: String,
-    credentials: JSON,
-    grants: GrantsObject?
+    credentials: [JSON],
+    grants: GrantsDTO?
   ) {
     self.credentialIssuer = credentialIssuer
     self.credentials = credentials
@@ -48,12 +48,5 @@ public struct CredentialOfferRequestObject: Codable, Equatable {
     } catch {
       return nil
     }
-  }
-}
-
-public extension CredentialOfferRequestObject {
-  
-  func toDomain() -> CredentialOffer? {
-    nil
   }
 }

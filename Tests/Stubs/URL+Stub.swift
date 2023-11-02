@@ -15,7 +15,13 @@
  */
 import Foundation
 
-public struct MsoMdocProfile: Profile {
+extension URL: Stubbable {
   
-  static let FORMAT = "mso_mdoc"
+  public var id: ObjectIdentifier {
+    ObjectIdentifier(NSObject())
+  }
+  
+  static func stub() -> URL {
+    return URL(string: "https://www.example.com/")!
+  }
 }

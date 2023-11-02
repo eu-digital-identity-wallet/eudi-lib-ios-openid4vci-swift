@@ -15,7 +15,6 @@
  */
 import Foundation
 
-public struct MsoMdocProfile: Profile {
-  
-  static let FORMAT = "mso_mdoc"
+protocol Stubbable: Identifiable {
+  static func stub() -> Self
 }

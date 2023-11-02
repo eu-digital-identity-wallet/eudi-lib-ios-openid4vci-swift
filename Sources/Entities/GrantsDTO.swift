@@ -16,7 +16,7 @@
 import Foundation
 
 // Grant, conforming to Codable.
-public struct GrantsObject: Codable, Equatable {
+public struct GrantsDTO: Codable, Equatable {
   // Properties for authorization code and pre-authorization code.
   public let authorizationCode: AuthorizationCode?
   public let preAuthorizationCode: PreAuthorizationCode?
@@ -37,7 +37,7 @@ public struct GrantsObject: Codable, Equatable {
 }
 
 // Grant extension
-public extension GrantsObject {
+public extension GrantsDTO {
   
   // AuthorizationCode, conforming to Codable.
   struct AuthorizationCode: Codable, Equatable {

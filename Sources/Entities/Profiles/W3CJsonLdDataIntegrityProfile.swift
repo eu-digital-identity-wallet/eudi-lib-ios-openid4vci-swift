@@ -15,7 +15,7 @@
  */
 import Foundation
 
-public struct MsoMdocProfile: Profile {
+public struct W3CJsonLdDataIntegrityProfile: Profile {
   
-  static let FORMAT = "mso_mdoc"
+  static let FORMAT = "ldp_vc"
 }

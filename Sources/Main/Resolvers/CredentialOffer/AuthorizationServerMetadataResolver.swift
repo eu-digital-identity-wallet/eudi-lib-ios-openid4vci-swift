@@ -28,13 +28,23 @@ protocol AuthorizationServerMetadataResolverType {
   ///   - source: The input source for resolving metadata.
   /// - Returns: An asynchronous result containing the resolved metadata or an error of type ResolvingError.
   func resolve(
-    oidcFetcher: Fetcher<OIDCProviderMetadata>,
-    oauthFetcher: Fetcher<AuthorizationServerMetadata>,
     url: URL
   ) async -> Result<AuthorizationServerMetadataSink, Error>
 }
 
 public actor AuthorizationServerMetadataResolver: AuthorizationServerMetadataResolverType {
+  
+  private let oidcFetcher: Fetcher<OIDCProviderMetadata>
+  private let oauthFetcher: Fetcher<AuthorizationServerMetadata>
+  
+  public init(
+    oidcFetcher: Fetcher<OIDCProviderMetadata> = Fetcher(),
+    oauthFetcher: Fetcher<AuthorizationServerMetadata> = Fetcher()
+  ) {
+    self.oidcFetcher = oidcFetcher
+    self.oauthFetcher = oauthFetcher
+  }
+  
   /// Resolves client metadata asynchronously.
   ///
   /// - Parameters:
@@ -42,8 +52,6 @@ public actor AuthorizationServerMetadataResolver: AuthorizationServerMetadataRes
   ///   - source: The input source for resolving metadata.
   /// - Returns: An asynchronous result containing the resolved metadata or an error of type ResolvingError.
   public func resolve(
-    oidcFetcher: Fetcher<OIDCProviderMetadata> = Fetcher(),
-    oauthFetcher: Fetcher<AuthorizationServerMetadata> = Fetcher(),
     url: URL
   ) async -> Result<AuthorizationServerMetadataSink, Error> {
     

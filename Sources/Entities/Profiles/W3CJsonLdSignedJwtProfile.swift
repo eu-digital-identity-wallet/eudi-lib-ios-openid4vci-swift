@@ -15,7 +15,7 @@
  */
 import Foundation
 
-public struct MsoMdocProfile: Profile {
+public struct W3CJsonLdSignedJwtProfile: Profile {
   
-  static let FORMAT = "mso_mdoc"
+  static let FORMAT = "jwt_vc_json-ld"
 }

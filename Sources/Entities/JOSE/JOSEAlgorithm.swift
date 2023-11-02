@@ -42,6 +42,12 @@ public class JOSEAlgorithm: Codable, Hashable {
   public func toJsonData() throws -> Data {
     return try JSONSerialization.data(withJSONObject: [self.name])
   }
+  
+  required public init(from decoder: Decoder) throws {
+    let container = try decoder.singleValueContainer()
+    name = try container.decode(String.self)
+    requirement = .OPTIONAL
+  }
 }
 
 public extension JOSEAlgorithm {
