@@ -81,11 +81,18 @@ public actor CredentialOfferRequestResolver {
         }
         
         let credentialIssuerId = try CredentialIssuerId(string: credentialOfferRequestObject.credentialIssuer)
-        let credentialIssuerMetadata = await credentialIssuerMetadataResolver.resolve(source: .credentialIssuer(credentialIssuerId))
+        guard let credentialIssuerMetadata = try? await credentialIssuerMetadataResolver.resolve(source: .credentialIssuer(credentialIssuerId)).get() else {
+          return .failure(ValidationError.error(reason: "Invalid credential metadata"))
+        }
+        
+        guard let authorizationServerMetadata = try? await authorizationServerMetadataResolver.resolve(url: credentialIssuerMetadata.authorizationServer).get() else {
+          return .failure(ValidationError.error(reason: "Invalid authorization metadata"))
+        }
         
         let domain = try toDomain(
           credentialOfferRequestObject: credentialOfferRequestObject,
-          credentialIssuerMetadata: credentialIssuerMetadata.get()
+          credentialIssuerMetadata: credentialIssuerMetadata,
+          authorizationServerMetadata: authorizationServerMetadata
         )
         return .success(domain)
         
@@ -94,11 +101,18 @@ public actor CredentialOfferRequestResolver {
         let credentialOfferRequestObject = try? result.get()
         if let credentialOfferRequestObject = credentialOfferRequestObject {
           let credentialIssuerId = try CredentialIssuerId(string: credentialOfferRequestObject.credentialIssuer)
-          let credentialIssuerMetadata = await credentialIssuerMetadataResolver.resolve(source: .credentialIssuer(credentialIssuerId))
+          guard let credentialIssuerMetadata = try? await credentialIssuerMetadataResolver.resolve(source: .credentialIssuer(credentialIssuerId)).get() else {
+            return .failure(ValidationError.error(reason: "Invalid credential metadata"))
+          }
+          
+          guard let authorizationServerMetadata = try? await authorizationServerMetadataResolver.resolve(url: credentialIssuerMetadata.authorizationServer).get() else {
+            return .failure(ValidationError.error(reason: "Invalid authorization metadata"))
+          }
           
           let domain = try toDomain(
             credentialOfferRequestObject: credentialOfferRequestObject,
-            credentialIssuerMetadata: credentialIssuerMetadata.get()
+            credentialIssuerMetadata: credentialIssuerMetadata,
+            authorizationServerMetadata: authorizationServerMetadata
           )
           return .success(domain)
         }
@@ -111,7 +125,8 @@ public actor CredentialOfferRequestResolver {
   
   func toDomain(
     credentialOfferRequestObject: CredentialOfferRequestObject,
-    credentialIssuerMetadata: CredentialIssuerMetadata?
+    credentialIssuerMetadata: CredentialIssuerMetadata?,
+    authorizationServerMetadata: CIAuthorizationServerMetadata
   ) throws -> CredentialOffer {
     
     guard let credentialIssuerMetadata = credentialIssuerMetadata else {
@@ -127,7 +142,7 @@ public actor CredentialOfferRequestResolver {
         credentialIssuerMetadata: credentialIssuerMetadata,
         credentials: credentials,
         grants: grants,
-        authorizationServerMetadata: 0
+        authorizationServerMetadata: authorizationServerMetadata
       )
     } catch {
       throw ValidationError.error(reason: error.localizedDescription)

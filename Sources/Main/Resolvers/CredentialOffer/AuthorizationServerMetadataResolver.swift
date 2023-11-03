@@ -15,11 +15,6 @@
  */
 import Foundation
 
-public enum AuthorizationServerMetadataSink {
-  case oidc(OIDCProviderMetadata)
-  case oauth(AuthorizationServerMetadata)
-}
-
 protocol AuthorizationServerMetadataResolverType {
   /// Resolves client metadata asynchronously.
   ///
@@ -29,7 +24,7 @@ protocol AuthorizationServerMetadataResolverType {
   /// - Returns: An asynchronous result containing the resolved metadata or an error of type ResolvingError.
   func resolve(
     url: URL
-  ) async -> Result<AuthorizationServerMetadataSink, Error>
+  ) async -> Result<CIAuthorizationServerMetadata, Error>
 }
 
 public actor AuthorizationServerMetadataResolver: AuthorizationServerMetadataResolverType {
@@ -53,7 +48,7 @@ public actor AuthorizationServerMetadataResolver: AuthorizationServerMetadataRes
   /// - Returns: An asynchronous result containing the resolved metadata or an error of type ResolvingError.
   public func resolve(
     url: URL
-  ) async -> Result<AuthorizationServerMetadataSink, Error> {
+  ) async -> Result<CIAuthorizationServerMetadata, Error> {
     
     if let oidc = await fetchOIDCProviderMetadata(
       fetcher: oidcFetcher,

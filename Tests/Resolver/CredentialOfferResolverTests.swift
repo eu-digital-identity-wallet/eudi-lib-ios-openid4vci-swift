@@ -28,8 +28,9 @@ class CredentialOfferResolverTests: XCTestCase {
     super.tearDown()
   }
   
-  func testCredentialOfferResolution() async throws {
+  func testValidCredentialOfferDataAndOIDVWhenAResolutionIsRequestedSucessWithValidData() async throws {
     
+    // Given
     let credentialIssuerMetadataResolver = CredentialIssuerMetadataResolver(
       fetcher: Fetcher<CredentialIssuerMetadata>(session: NetworkingMock(
         path: "credential_issuer_metadata",
@@ -40,6 +41,53 @@ class CredentialOfferResolverTests: XCTestCase {
     let authorizationServerMetadataResolver = AuthorizationServerMetadataResolver(
       oidcFetcher: Fetcher<OIDCProviderMetadata>(session: NetworkingMock(
         path: "oidc_authorization_server_metadata",
+        extension: "json"
+      )),
+      oauthFetcher: Fetcher<AuthorizationServerMetadata>(session: NetworkingMock(
+        path: "test",
+        extension: "json"
+      ))
+    )
+    
+    let credentialOfferRequestResolver = CredentialOfferRequestResolver(
+      fetcher: Fetcher<CredentialOfferRequestObject>(session: NetworkingMock(
+        path: "credential_offer_with_blank_pre_authorized_code",
+        extension: "json"
+      )),
+      credentialIssuerMetadataResolver: credentialIssuerMetadataResolver,
+      authorizationServerMetadataResolver: authorizationServerMetadataResolver
+    )
+    
+    // When
+    let result = await credentialOfferRequestResolver.resolve(
+      source: .fetchByReference(url: .stub())
+    )
+    
+    // Then
+    switch result {
+    case .success(let result):
+      XCTAssert(result?.credentialIssuerIdentifier.url.absoluteString == "https://credential-issuer.example.com")
+      XCTAssert(result?.credentialIssuerMetadata.batchCredentialEndpoint?.url.absoluteString == "https://credential-issuer.example.com/credentials/batch")
+      XCTAssert(result?.credentialIssuerMetadata.deferredCredentialEndpoint?.url.absoluteString == "https://credential-issuer.example.com/credentials/deferred")
+
+    case .failure(let error):
+      XCTAssert(false, error.localizedDescription)
+    }
+  }
+  
+  func testValidCredentialOfferDataAndOAUTHWhenAResolutionIsRequestedSucessWithValidData() async throws {
+    
+    // Given
+    let credentialIssuerMetadataResolver = CredentialIssuerMetadataResolver(
+      fetcher: Fetcher<CredentialIssuerMetadata>(session: NetworkingMock(
+        path: "credential_issuer_metadata",
+        extension: "json"
+      )
+    ))
+    
+    let authorizationServerMetadataResolver = AuthorizationServerMetadataResolver(
+      oidcFetcher: Fetcher<OIDCProviderMetadata>(session: NetworkingMock(
+        path: "test",
         extension: "json"
       )),
       oauthFetcher: Fetcher<AuthorizationServerMetadata>(session: NetworkingMock(
@@ -57,15 +105,65 @@ class CredentialOfferResolverTests: XCTestCase {
       authorizationServerMetadataResolver: authorizationServerMetadataResolver
     )
     
+    // When
     let result = await credentialOfferRequestResolver.resolve(
       source: .fetchByReference(url: .stub())
     )
     
+    // Then
     switch result {
     case .success(let result):
-      print(result)
+      XCTAssert(result?.credentialIssuerIdentifier.url.absoluteString == "https://credential-issuer.example.com")
+      XCTAssert(result?.credentialIssuerMetadata.batchCredentialEndpoint?.url.absoluteString == "https://credential-issuer.example.com/credentials/batch")
+      XCTAssert(result?.credentialIssuerMetadata.deferredCredentialEndpoint?.url.absoluteString == "https://credential-issuer.example.com/credentials/deferred")
+
     case .failure(let error):
       XCTAssert(false, error.localizedDescription)
+    }
+  }
+  
+  func testInvalidCredentialOfferDataAndOAUTHWhenAResolutionIsRequestedSucessWithValidData() async throws {
+    
+    // Given
+    let credentialIssuerMetadataResolver = CredentialIssuerMetadataResolver(
+      fetcher: Fetcher<CredentialIssuerMetadata>(session: NetworkingMock(
+        path: "credential_issuer_metadata",
+        extension: "json"
+      )
+    ))
+    
+    let authorizationServerMetadataResolver = AuthorizationServerMetadataResolver(
+      oidcFetcher: Fetcher<OIDCProviderMetadata>(session: NetworkingMock(
+        path: "test",
+        extension: "json"
+      )),
+      oauthFetcher: Fetcher<AuthorizationServerMetadata>(session: NetworkingMock(
+        path: "oauth_authorization_server_metadata",
+        extension: "json"
+      ))
+    )
+    
+    let credentialOfferRequestResolver = CredentialOfferRequestResolver(
+      fetcher: Fetcher<CredentialOfferRequestObject>(session: NetworkingMock(
+        path: "invalid_credential_issuer_metadata",
+        extension: "json"
+      )),
+      credentialIssuerMetadataResolver: credentialIssuerMetadataResolver,
+      authorizationServerMetadataResolver: authorizationServerMetadataResolver
+    )
+    
+    // When
+    let result = await credentialOfferRequestResolver.resolve(
+      source: .fetchByReference(url: .stub())
+    )
+    
+    // Then
+    switch result {
+    case .success:
+      XCTAssert(false)
+
+    case .failure(let error):
+      XCTAssert(true, error.localizedDescription)
     }
   }
 }

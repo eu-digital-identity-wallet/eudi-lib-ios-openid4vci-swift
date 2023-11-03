@@ -16,8 +16,6 @@
 import Foundation
 import SwiftyJSON
 
-public typealias CIAuthorizationServerMetadata = Any
-
 public struct CredentialOffer {
   public let credentialIssuerIdentifier: CredentialIssuerId
   public let credentialIssuerMetadata: CredentialIssuerMetadata
