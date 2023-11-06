@@ -34,11 +34,11 @@ public struct Display: Codable, Equatable {
   
   public init(
     name: String?,
-    locale: String?,
-    logo: Logo?,
-    description: String?,
-    backgroundColor: String?,
-    textColor: String?
+    locale: String? = nil,
+    logo: Logo? = nil,
+    description: String? = nil,
+    backgroundColor: String? = nil,
+    textColor: String? = nil
   ) {
     self.name = name
     self.locale = locale

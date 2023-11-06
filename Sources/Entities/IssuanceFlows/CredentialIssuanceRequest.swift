@@ -18,7 +18,7 @@ import JOSESwift
 
 public typealias Namespace = String
 public typealias ClaimName = String
-public typealias Claim = String
+
 public typealias MsoMdocClaims = [Namespace: [ClaimName: Claim]]
 
 public protocol CredentialIssuanceRequest {

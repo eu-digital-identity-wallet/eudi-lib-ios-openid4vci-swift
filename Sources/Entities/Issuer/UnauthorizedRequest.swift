@@ -16,8 +16,9 @@
 import Foundation
 
 public enum CredentialMetadata {
-  case byScope(Scope)
-  case byProfile
+  case scope(Scope)
+  case msoMdoc(MsoMdocProfile)
+  case profile
 }
 
 /// State denoting that the pushed authorization request has been placed successfully and response processed

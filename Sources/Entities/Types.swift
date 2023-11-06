@@ -91,3 +91,21 @@ public struct BatchIssuanceSuccessResponse: Codable {
     self.cNonceExpiresInSeconds = cNonceExpiresInSeconds
   }
 }
+
+public struct Claim: Codable {
+  public let mandatory: Bool?
+  public let valueType: String?
+  public let display: [Display]?
+  
+  enum CodingKeys: String, CodingKey {
+    case mandatory
+    case valueType = "value_type"
+    case display
+  }
+  
+  public init(mandatory: Bool?, valueType: String?, display: [Display]?) {
+    self.mandatory = mandatory
+    self.valueType = valueType
+    self.display = display
+  }
+}

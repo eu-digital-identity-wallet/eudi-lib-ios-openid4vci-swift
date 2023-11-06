@@ -60,16 +60,4 @@ public struct MsoMdocCredentialCredentialSupported: Codable {
     self.claims = claims
     self.order = order
   }
-  
-  public struct Claim: Codable {
-    public let mandatory: Bool?
-    public let valueType: String?
-    public let display: [Display]?
-    
-    enum CodingKeys: String, CodingKey {
-      case mandatory
-      case valueType = "value_type"
-      case display
-    }
-  }
 }

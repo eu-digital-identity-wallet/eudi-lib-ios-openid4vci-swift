@@ -135,7 +135,10 @@ public actor CredentialOfferRequestResolver {
     
     do {
       let credentialIssuerId = credentialIssuerMetadata.credentialIssuerIdentifier
-      let credentials: [CredentialMetadata] = try self.computeCredentialMetadata(credentialOfferRequestObject: credentialOfferRequestObject)
+      let credentials: [CredentialMetadata] = try self.computeCredentialMetadata(
+        credentialOfferRequestObject: credentialOfferRequestObject,
+        credentialIssuerMetadata: credentialIssuerMetadata
+      )
       let grants = try credentialOfferRequestObject.grants?.toDomain()
       return try .init(
         credentialIssuerIdentifier: credentialIssuerId,
@@ -150,12 +153,17 @@ public actor CredentialOfferRequestResolver {
   }
   
   private func computeCredentialMetadata(
-    credentialOfferRequestObject: CredentialOfferRequestObject
+    credentialOfferRequestObject: CredentialOfferRequestObject,
+    credentialIssuerMetadata: CredentialIssuerMetadata
   ) throws -> [CredentialMetadata] {
     try credentialOfferRequestObject.credentials.map { element in
       if element.type == .string,
-         let string = element.string {
-        return .byScope(try .init(value: string))
+         let content = element.string {
+        if credentialIssuerMetadata.credentialsSupported.first(where: { $0.scope ==  content }) != nil {
+          return .scope(try .init(value: content))
+        } else {
+          throw ValidationError.error(reason: "Unknown scope \(content)")
+        }
         
       } else if element.type == .dictionary,
              let dictionary = element.dictionary {
@@ -163,11 +171,17 @@ public actor CredentialOfferRequestResolver {
            let format = dictionary["format"]?.string {
           switch format {
           case MsoMdocProfile.FORMAT:
-            return .byProfile
+            return .profile
+          case W3CSignedJwtProfile.FORMAT:
+            return .profile
+          case W3CJsonLdSignedJwtProfile.FORMAT:
+            return .profile
+          case W3CJsonLdDataIntegrityProfile.FORMAT:
+            return .profile
           case SdJwtVcProfile.FORMAT:
-            return .byProfile
+            return .profile
           default:
-            return .byProfile
+            return .profile
           }
           
         } else {
