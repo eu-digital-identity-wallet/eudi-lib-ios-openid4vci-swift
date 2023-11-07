@@ -162,11 +162,15 @@ public actor CredentialOfferRequestResolver {
          let scope = element.string {
         if credentialIssuerMetadata.credentialsSupported.first(where: { supportedCredential in
           switch supportedCredential {
-          case .profile:
-            return true
           case .msoMdoc(let profile):
             return profile.scope == scope
           case .w3CSignedJwt(let profile):
+            return profile.scope == scope
+          case .sdJwtVc(let profile):
+            return profile.scope == scope
+          case .w3CJsonLdSignedJwt(let profile):
+            return profile.scope == scope
+          case .w3CJsonLdDataIntegrity(let profile):
             return profile.scope == scope
           }
           
@@ -191,14 +195,23 @@ public actor CredentialOfferRequestResolver {
               json: element,
               metadata: credentialIssuerMetadata
             )
-          case W3CJsonLdSignedJwtProfile.FORMAT:
-            return .profile
-          case W3CJsonLdDataIntegrityProfile.FORMAT:
-            return .profile
           case SdJwtVcProfile.FORMAT:
-            return .profile
+            return try SdJwtVcProfile.matchSupportedAndToDomain(
+              json: element,
+              metadata: credentialIssuerMetadata
+            )
+          case W3CJsonLdSignedJwtProfile.FORMAT:
+            return try W3CJsonLdSignedJwtProfile.matchSupportedAndToDomain(
+              json: element,
+              metadata: credentialIssuerMetadata
+            )
+          case W3CJsonLdDataIntegrityProfile.FORMAT:
+            return try W3CJsonLdDataIntegrityProfile.matchSupportedAndToDomain(
+              json: element,
+              metadata: credentialIssuerMetadata
+            )
           default:
-            return .profile
+            throw ValidationError.error(reason: "Invalid profile")
           }
           
         } else {

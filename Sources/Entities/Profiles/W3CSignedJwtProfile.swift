@@ -63,7 +63,7 @@ public extension W3CSignedJwtProfile {
     }
     
     func toDomain() -> CredentialDefinition {
-      W3CSignedJwtProfile.CredentialDefinition(
+      CredentialDefinition(
         type: type,
         credentialSubject: credentialSubject
       )
@@ -275,7 +275,6 @@ public extension W3CSignedJwtProfile {
       default: break
       }
     }
-    
     throw ValidationError.error(reason: "Unable to parse a list of supported credentials for W3CJsonLdSignedJwtProfile")
   }
 }

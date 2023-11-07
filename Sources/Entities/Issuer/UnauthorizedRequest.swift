@@ -19,7 +19,9 @@ public enum CredentialMetadata {
   case scope(Scope)
   case msoMdoc(MsoMdocProfile)
   case w3CSignedJwt(W3CSignedJwtProfile)
-  case profile
+  case w3CJsonLdSignedJwt(W3CJsonLdSignedJwtProfile)
+  case w3CJsonLdDataIntegrity(W3CJsonLdDataIntegrityProfile)
+  case sdJwtVc(SdJwtVcProfile)
 }
 
 /// State denoting that the pushed authorization request has been placed successfully and response processed

@@ -89,7 +89,19 @@ public struct CredentialIssuerMetadata: Codable, Equatable {
       case MsoMdocProfile.FORMAT:
         let profile = try MsoMdocProfile.CredentialSupported(json: json)
         return .msoMdoc(profile)
-      default: return .profile//throw ValidationError.error(reason: "Unknow credential format")
+      case W3CSignedJwtProfile.FORMAT:
+        let profile = try W3CSignedJwtProfile.CredentialSupported(json: json)
+        return .w3CSignedJwt(profile)
+      case SdJwtVcProfile.FORMAT:
+        let profile = try SdJwtVcProfile.CredentialSupported(json: json)
+        return .sdJwtVc(profile)
+      case W3CJsonLdSignedJwtProfile.FORMAT:
+        let profile = try W3CJsonLdSignedJwtProfile.CredentialSupported(json: json)
+        return .w3CJsonLdSignedJwt(profile)
+      case W3CJsonLdDataIntegrityProfile.FORMAT:
+        let profile = try W3CJsonLdDataIntegrityProfile.CredentialSupported(json: json)
+        return .w3CJsonLdDataIntegrity(profile)
+      default: throw ValidationError.error(reason: "Unknow credential format")
       }
     }
     display = try container.decodeIfPresent([Display].self, forKey: .display) ?? []
