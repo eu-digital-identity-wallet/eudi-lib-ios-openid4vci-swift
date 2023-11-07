@@ -212,19 +212,23 @@ public actor Issuer: IssuerType {
 
 private extension Issuer {
   
-    private func toIssuerSupportedCredential(metaData: CredentialMetadata) throws -> CredentialSupported {
+    private func toIssuerSupportedCredential(metaData: CredentialMetadata) throws -> SupportedCredential? {
+      /*
       switch metaData {
       case .scope:
         return try supportedCredentialByScope(metaData: requester.issuerMetadata, scoped: metaData)
       default:
         throw ValidationError.error(reason: "")// requester.issuerMetadata.supportedCredentialByProfile(this)
       }
+       */
+      return nil
     }
   
   private func supportedCredentialByScope(
     metaData: CredentialIssuerMetadata,
     scoped: CredentialMetadata
-  ) throws -> CredentialSupported {
+  ) throws -> SupportedCredential? {
+    /*
     switch scoped {
     case .scope(let byScope):
       return try metaData.credentialsSupported.first { element in
@@ -232,5 +236,7 @@ private extension Issuer {
       } ?? { throw ValidationError.error(reason: "Issuer does not support issuance of credential scope: \(byScope)") }()
     default: throw ValidationError.error(reason: "")
     }
+     */
+    return nil
   }
 }

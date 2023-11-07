@@ -18,6 +18,19 @@ import SwiftyJSON
 
 public struct MsoMdocProfile: Profile {
   static let FORMAT = "mso_mdoc"
+  
+  public let docType: String
+  public let scope: String?
+  
+  enum CodingKeys: String, CodingKey {
+    case docType = "doctype"
+    case scope
+  }
+  
+  init(docType: String, scope: String?) {
+    self.docType = docType
+    self.scope = scope
+  }
 }
 
 public extension MsoMdocProfile {
@@ -124,7 +137,7 @@ public extension MsoMdocProfile {
       case cryptographicSuitesSupported = "cryptographic_suites_supported"
       case proofTypesSupported = "proof_types_supported"
       case display
-      case docType = "doc_type"
+      case docType = "doctype"
       case claims
       case order
     }
@@ -174,34 +187,65 @@ public extension MsoMdocProfile {
       try container.encode(cryptographicSuitesSupported, forKey: .cryptographicSuitesSupported)
       try container.encode(proofTypesSupported, forKey: .proofTypesSupported)
       try container.encode(display, forKey: .display)
+      try container.encode(docType, forKey: .docType)
+      try container.encode(claims, forKey: .claims)
+      try container.encode(order, forKey: .order)
+    }
+    
+    init(json: JSON) throws {
+      self.format = json["format"].string
+      self.scope = json["scope"].string
+      self.cryptographicBindingMethodsSupported = try json["cryptographic_binding_methods_supported"].arrayValue.map {
+        try CryptographicBindingMethod(method: $0.stringValue)
+      }
+      self.cryptographicSuitesSupported = json["cryptographic_suites_supported"].arrayValue.map {
+        $0.stringValue
+      }
+      self.proofTypesSupported = try json["proofTypesSupported"].arrayValue.map {
+        try ProofType(type: $0.stringValue)
+      }
+      self.display = json["display"].arrayValue.map { json in
+        Display(
+          name: json["name"].stringValue,
+          locale: json["locale"].stringValue,
+          description:json["description"].stringValue,
+          backgroundColor: json["background_color"].stringValue,
+          textColor: json["text_color"].stringValue
+        )
+      }
+      self.docType = json["doctype"].stringValue
+      self.claims = MsoMdocClaims(json: json["claims"])
+      self.order = json["order"].arrayValue.map {
+        ClaimName($0.stringValue)
+      }
     }
   }
 }
 
 public extension MsoMdocProfile {
   
-  func matchSupportedAndToDomain(
+  static func matchSupportedAndToDomain(
     json: JSON,
     metadata: CredentialIssuerMetadata
-  ) -> CredentialMetadata? {
-    guard let docType = json["doc_type"] as? String else {
-      return nil
+  ) throws -> CredentialMetadata {
+    guard let docType = json["doctype"].string else {
+      throw ValidationError.error(reason: "Missing doctype")
     }
-//      fun fail(): Nothing =
-//          throw IllegalArgumentException("Unsupported MsoMdocCredential with format '$FORMAT' and docType '$docType'")
     
-//    return metadata.credentialsSupported.first { credentialSupported in
-//      credentialSupported.
-//    }
-//
-//      return metadata.credentialsSupported
-//          .firstOrNull {
-//              it is CredentialSupported && it.docType == docType
-//          }
-//          ?.let {
-//              CredentialMetadata(docType, (it as CredentialSupported).scope)
-//          }
-//          ?: fail()
-    return nil
+    if let credentialsSupported = metadata.credentialsSupported.first(where: { credential in
+      switch credential {
+      case .msoMdocProfile(let credentialSupported):
+        return credentialSupported.docType == docType
+      default: return false
+      }
+    }) {
+      switch credentialsSupported {
+      case .msoMdocProfile(let profile):
+        return .msoMdoc(.init(docType: docType, scope: profile.scope))
+      default: break
+      }
+    }
+    
+    throw ValidationError.error(reason: "Unable to parse a list of supported credentials")
   }
 }

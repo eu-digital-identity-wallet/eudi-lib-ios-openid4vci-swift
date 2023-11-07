@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 import Foundation
+import SwiftyJSON
 
 public protocol CredentialOfferRequestResolverType {
   /// The input type for resolving a type.
@@ -158,20 +159,31 @@ public actor CredentialOfferRequestResolver {
   ) throws -> [CredentialMetadata] {
     try credentialOfferRequestObject.credentials.map { element in
       if element.type == .string,
-         let content = element.string {
-        if credentialIssuerMetadata.credentialsSupported.first(where: { $0.scope ==  content }) != nil {
-          return .scope(try .init(value: content))
+         let scope = element.string {
+        if credentialIssuerMetadata.credentialsSupported.first(where: { supportedCredential in
+          switch supportedCredential {
+          case .profile:
+            return true
+          case .msoMdocProfile(let profile):
+            return profile.scope == scope
+          }
+          
+        }) != nil {
+          return .scope(try .init(value: scope))
+          
         } else {
-          throw ValidationError.error(reason: "Unknown scope \(content)")
+          throw ValidationError.error(reason: "Unknown scope \(scope)")
         }
-        
       } else if element.type == .dictionary,
              let dictionary = element.dictionary {
         if dictionary["format"]?.type == .string,
            let format = dictionary["format"]?.string {
           switch format {
           case MsoMdocProfile.FORMAT:
-            return .profile
+            return try MsoMdocProfile.matchSupportedAndToDomain(
+              json: element,
+              metadata: credentialIssuerMetadata
+            )
           case W3CSignedJwtProfile.FORMAT:
             return .profile
           case W3CJsonLdSignedJwtProfile.FORMAT:
@@ -185,7 +197,7 @@ public actor CredentialOfferRequestResolver {
           }
           
         } else {
-          throw ValidationError.error(reason: "Invalid 'format'")
+          throw ValidationError.error(reason: "Invalid format")
         }
       } else {
         throw ValidationError.error(reason: "Invalid JsonElement for Credential. Found \(element.type)")
