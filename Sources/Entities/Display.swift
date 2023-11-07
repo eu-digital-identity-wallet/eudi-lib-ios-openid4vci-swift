@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 import Foundation
+import SwiftyJSON
 
 public struct Display: Codable, Equatable {
   public let name: String?
@@ -77,5 +78,30 @@ public extension Display {
       }
       alternativeText = try? container.decode(String.self, forKey: .alternativeText)
     }
+    
+    init(json: JSON) {
+      var url: URL?
+      if let urlString = json["url"].string {
+        url = URL(string: urlString)
+      } else {
+        url = nil
+      }
+
+      self.init(
+        url: url,
+        alternativeText: json["alt_text"].string
+      )
+    }
+  }
+  
+  init(json: JSON) {
+    self.init(
+      name: json["name"].stringValue,
+      locale: json["locale"].stringValue,
+      logo: .init(json: json["logo"]),
+      description:json["description"].stringValue,
+      backgroundColor: json["background_color"].stringValue,
+      textColor: json["text_color"].stringValue
+    )
   }
 }

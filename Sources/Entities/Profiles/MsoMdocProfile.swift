@@ -205,13 +205,7 @@ public extension MsoMdocProfile {
         try ProofType(type: $0.stringValue)
       }
       self.display = json["display"].arrayValue.map { json in
-        Display(
-          name: json["name"].stringValue,
-          locale: json["locale"].stringValue,
-          description:json["description"].stringValue,
-          backgroundColor: json["background_color"].stringValue,
-          textColor: json["text_color"].stringValue
-        )
+        Display(json: json)
       }
       self.docType = json["doctype"].stringValue
       self.claims = MsoMdocClaims(json: json["claims"])
