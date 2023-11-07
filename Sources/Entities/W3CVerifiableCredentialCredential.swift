@@ -14,10 +14,11 @@
  * limitations under the License.
  */
 import Foundation
+import SwiftyJSON
 
 public struct W3CVerifiableCredentialCredential: Codable {
   let format: String
-  let credentialDefinition: CredentialDefinition
+  let credentialDefinition: JSON
   
   enum CodingKeys: String, CodingKey {
     case format

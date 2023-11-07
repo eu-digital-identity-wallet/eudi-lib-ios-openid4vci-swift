@@ -17,5 +17,6 @@ import Foundation
 
 public enum SupportedCredential: Codable {
   case profile
-  case msoMdocProfile(MsoMdocProfile.CredentialSupported)
+  case msoMdoc(MsoMdocProfile.CredentialSupported)
+  case w3CSignedJwt(W3CSignedJwtProfile.CredentialSupported)
 }

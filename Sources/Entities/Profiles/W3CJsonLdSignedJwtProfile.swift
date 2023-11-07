@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 import Foundation
+import SwiftyJSON
 
 public struct W3CJsonLdSignedJwtProfile: Profile {
   

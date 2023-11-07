@@ -164,7 +164,9 @@ public actor CredentialOfferRequestResolver {
           switch supportedCredential {
           case .profile:
             return true
-          case .msoMdocProfile(let profile):
+          case .msoMdoc(let profile):
+            return profile.scope == scope
+          case .w3CSignedJwt(let profile):
             return profile.scope == scope
           }
           
@@ -185,7 +187,10 @@ public actor CredentialOfferRequestResolver {
               metadata: credentialIssuerMetadata
             )
           case W3CSignedJwtProfile.FORMAT:
-            return .profile
+            return try W3CSignedJwtProfile.matchSupportedAndToDomain(
+              json: element,
+              metadata: credentialIssuerMetadata
+            )
           case W3CJsonLdSignedJwtProfile.FORMAT:
             return .profile
           case W3CJsonLdDataIntegrityProfile.FORMAT:

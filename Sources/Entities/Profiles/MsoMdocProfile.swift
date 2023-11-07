@@ -201,7 +201,7 @@ public extension MsoMdocProfile {
       self.cryptographicSuitesSupported = json["cryptographic_suites_supported"].arrayValue.map {
         $0.stringValue
       }
-      self.proofTypesSupported = try json["proofTypesSupported"].arrayValue.map {
+      self.proofTypesSupported = try json["proof_types_supported"].arrayValue.map {
         try ProofType(type: $0.stringValue)
       }
       self.display = json["display"].arrayValue.map { json in
@@ -228,18 +228,18 @@ public extension MsoMdocProfile {
     
     if let credentialsSupported = metadata.credentialsSupported.first(where: { credential in
       switch credential {
-      case .msoMdocProfile(let credentialSupported):
+      case .msoMdoc(let credentialSupported):
         return credentialSupported.docType == docType
       default: return false
       }
     }) {
       switch credentialsSupported {
-      case .msoMdocProfile(let profile):
+      case .msoMdoc(let profile):
         return .msoMdoc(.init(docType: docType, scope: profile.scope))
       default: break
       }
     }
     
-    throw ValidationError.error(reason: "Unable to parse a list of supported credentials")
+    throw ValidationError.error(reason: "Unable to parse a list of supported credentials for MsoMdocProfile")
   }
 }

@@ -88,7 +88,7 @@ public struct CredentialIssuerMetadata: Codable, Equatable {
       switch format {
       case MsoMdocProfile.FORMAT:
         let profile = try MsoMdocProfile.CredentialSupported(json: json)
-        return .msoMdocProfile(profile)
+        return .msoMdoc(profile)
       default: return .profile//throw ValidationError.error(reason: "Unknow credential format")
       }
     }

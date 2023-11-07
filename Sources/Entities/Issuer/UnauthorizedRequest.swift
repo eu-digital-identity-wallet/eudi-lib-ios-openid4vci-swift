@@ -18,6 +18,7 @@ import Foundation
 public enum CredentialMetadata {
   case scope(Scope)
   case msoMdoc(MsoMdocProfile)
+  case w3CSignedJwt(W3CSignedJwtProfile)
   case profile
 }
 

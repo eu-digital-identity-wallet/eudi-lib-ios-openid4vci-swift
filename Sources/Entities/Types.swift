@@ -16,8 +16,6 @@
 import Foundation
 import SwiftyJSON
 
-public typealias CredentialDefinition = JSON
-
 public enum ContentType: String {
   case key = "Content-Type"
   case form = "application/x-www-form-urlencoded; charset=UTF-8"
@@ -107,5 +105,18 @@ public struct Claim: Codable {
     self.mandatory = mandatory
     self.valueType = valueType
     self.display = display
+  }
+  
+  init(json: JSON) {
+    mandatory = json["mandatory"].bool
+    valueType = json["value_type"].string
+    
+    if let displayArray = json["display"].array {
+      display = displayArray.map { displayJson in
+        Display(json: displayJson)
+      }
+    } else {
+      display = nil
+    }
   }
 }
