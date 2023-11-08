@@ -52,7 +52,7 @@ public struct Display: Codable, Equatable {
 public extension Display {
   
   struct Logo: Codable, Equatable {
-    let url: String?
+    let url: URL?
     let alternativeText: String?
     
     enum CodingKeys: String, CodingKey {
@@ -61,11 +61,21 @@ public extension Display {
     }
     
     public init(
-      url: String? = nil,
+      url: URL? = nil,
       alternativeText: String? = nil
     ) {
       self.url = url
       self.alternativeText = alternativeText
+    }
+    
+    public init(from decoder: Decoder) throws {
+      let container = try decoder.container(keyedBy: CodingKeys.self)
+      if let urlString = try? container.decode(String.self, forKey: .url) {
+        url = URL(string: urlString)
+      } else {
+        url = nil
+      }
+      alternativeText = try? container.decode(String.self, forKey: .alternativeText)
     }
   }
 }

@@ -15,8 +15,13 @@
  */
 import Foundation
 
-public enum ValidationError: Error {
-  case error(reason: String)
-  case nonHttpsUrl(String)
-  case invalidUrl(String)
+extension URL: Stubbable {
+  
+  public var id: ObjectIdentifier {
+    ObjectIdentifier(NSObject())
+  }
+  
+  static func stub() -> URL {
+    return URL(string: "https://www.example.com/")!
+  }
 }

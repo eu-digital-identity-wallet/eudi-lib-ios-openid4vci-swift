@@ -18,7 +18,8 @@ import JOSESwift
 
 public typealias Namespace = String
 public typealias ClaimName = String
-public typealias MsoMdocClaims = [Namespace: [ClaimName: CredentialSupported]]
+public typealias Claim = String
+public typealias MsoMdocClaims = [Namespace: [ClaimName: Claim]]
 
 public protocol CredentialIssuanceRequest {
   var format: String { get }
@@ -26,6 +27,69 @@ public protocol CredentialIssuanceRequest {
   var credentialEncryptionJwk: JWK? { get }
   var credentialResponseEncryptionAlg: JWEAlgorithm? { get }
   var credentialResponseEncryptionMethod: JOSEEncryptionMethod? { get }
+}
+
+public struct BatchCredentials: Codable {
+  public let credentialRequests: [SingleCredential]
+}
+
+public struct DeferredCredentialRequest: Codable {
+  let transactionId: String
+  let token: IssuanceAccessToken
+}
+
+public struct SingleCredential: Codable, CredentialIssuanceRequest {
+  public var format: String
+  public var proof: ProofType?
+  public var credentialEncryptionJwk: JWK?
+  public var credentialResponseEncryptionAlg: JWEAlgorithm?
+  public var credentialResponseEncryptionMethod: JOSEEncryptionMethod?
+  
+  enum CodingKeys: String, CodingKey {
+    case format
+    case proof
+    case credentialEncryptionJwk
+    case credentialResponseEncryptionAlg
+    case credentialResponseEncryptionMethod
+  }
+  
+  public init(
+    format: String,
+    proof: ProofType? = nil,
+    credentialEncryptionJwk: JWK? = nil,
+    credentialResponseEncryptionAlg: JWEAlgorithm? = nil,
+    credentialResponseEncryptionMethod: JOSEEncryptionMethod? = nil
+  ) {
+    self.format = format
+    self.proof = proof
+    self.credentialEncryptionJwk = credentialEncryptionJwk
+    self.credentialResponseEncryptionAlg = credentialResponseEncryptionAlg
+    self.credentialResponseEncryptionMethod = credentialResponseEncryptionMethod
+  }
+  
+  public func requiresEncryptedResponse() -> Bool {
+    credentialResponseEncryptionAlg != nil &&
+    credentialEncryptionJwk != nil &&
+    credentialResponseEncryptionMethod != nil
+  }
+  
+  public init(from decoder: Decoder) throws {
+    fatalError("No supported yet")
+  }
+  
+  public func encode(to encoder: Encoder) throws {
+    var container = encoder.container(keyedBy: CodingKeys.self)
+    try container.encode(proof, forKey: .proof)
+    
+    if let credentialEncryptionJwk = credentialEncryptionJwk as? RSAPublicKey {
+      try container.encode(credentialEncryptionJwk, forKey: .credentialEncryptionJwk)
+    } else if let credentialEncryptionJwk = credentialEncryptionJwk as? ECPublicKey {
+      try container.encode(credentialEncryptionJwk, forKey: .credentialEncryptionJwk)
+    }
+    
+    try container.encode(credentialResponseEncryptionAlg, forKey: .credentialResponseEncryptionAlg)
+    try container.encode(credentialResponseEncryptionMethod, forKey: .credentialResponseEncryptionMethod)
+  }
 }
 
 public struct MsoMdocIssuanceRequest: CredentialIssuanceRequest {

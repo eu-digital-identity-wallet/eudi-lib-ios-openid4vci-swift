@@ -44,4 +44,5 @@ public struct GetAuthorizationCodeURL {
   
   public static let PARAM_CLIENT_ID = "client_id"
   public static let PARAM_REQUEST_URI = "request_uri"
+  public static let PARAM_REQUEST_STATE = "state"
 }

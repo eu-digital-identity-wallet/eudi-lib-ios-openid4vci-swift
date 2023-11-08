@@ -34,7 +34,7 @@ public enum PostError: Error {
   }
 }
 
-public protocol Posting {
+public protocol PostingType {
   /**
    Performs a POST request with the provided URLRequest.
 
@@ -56,7 +56,7 @@ public protocol Posting {
   func check(request: URLRequest) async -> Result<Bool, PostError>
 }
 
-public struct Poster: Posting {
+public struct Poster: PostingType {
   /**
    Initializes a Poster instance.
    */

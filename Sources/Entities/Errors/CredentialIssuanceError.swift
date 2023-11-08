@@ -13,4 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+import Foundation
 
+public enum CredentialIssuanceError: Error {
+  case pushedAuthorizationRequestFailed(error: String, errorDescription: String?)
+  case accessTokenRequestFailed(error: String, errorDescription: String?)
+  case issuerDoesNotSupportBatchIssuance
+  case responseUnparsable(String)
+}

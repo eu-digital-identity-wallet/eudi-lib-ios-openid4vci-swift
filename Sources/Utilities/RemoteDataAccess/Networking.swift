@@ -15,8 +15,16 @@
  */
 import Foundation
 
-public enum ValidationError: Error {
-  case error(reason: String)
-  case nonHttpsUrl(String)
-  case invalidUrl(String)
+public protocol Networking {
+  func data(
+    from url: URL
+  ) async throws -> (Data, URLResponse)
 }
+
+public extension Networking {
+  func data(from url: URL) async throws -> (Data, URLResponse) {
+    try await data(from: url)
+  }
+}
+
+extension URLSession: Networking {}

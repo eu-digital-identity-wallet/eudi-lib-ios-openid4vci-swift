@@ -15,8 +15,7 @@
  */
 import Foundation
 
-public enum ValidationError: Error {
-  case error(reason: String)
-  case nonHttpsUrl(String)
-  case invalidUrl(String)
+public struct SdJwtVcProfile: Profile {
+  
+  static let FORMAT = "vc+sd-jwt"
 }

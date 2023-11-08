@@ -16,142 +16,108 @@
 import Foundation
 
 public struct AuthorizationServerMetadata: Codable, Equatable {
-  public let issuer: String?
-  public let jwksUri: String?
-  public let scopesSupported: Bool?
-  public let responseTypesSupported: Bool?
-  public let responseModesSupported: Bool?
-  public let grantTypesSupported: Bool?
-  public let codeChallengeMethodsSupported: Bool?
-  public let tokenEndpointAuthMethodsSupported: Bool?
-  public let tokenEndpointAuthSigningAlgValuesSupported: Bool?
-  public let requestParameterSupported: Bool?
-  public let requestUriParameterSupported: Bool?
-  public let requireRequestUriRegistration: Bool?
-  public let requestObjectSigningAlgValuesSupported: Bool?
-  public let requestObjectEncryptionAlgValuesSupported: Bool?
-  public let requestObjectEncryptionEncValuesSupported: Bool?
-  public let uiLocalesSupported: Bool?
-  public let serviceDocumentation: String?
-  public let opPolicyUri: String?
-  public let opTosUri: String?
-  public let introspectionEndpointAuthMethodsSupported: Bool?
-  public let introspectionEndpointAuthSigningAlgValuesSupported: Bool?
-  public let revocationEndpointAuthMethodsSupported: Bool?
-  public let revocationEndpointAuthSigningAlgValuesSupported: Bool?
-  public let mtlsEndpointAliases: Bool?
-  public let tlsClientCertificateBoundAccessTokens: Bool?
-  public let dpopSigningAlgValuesSupported: Bool?
-  public let authorizationSigningAlgValuesSupported: Bool?
-  public let authorizationEncryptionAlgValuesSupported: Bool?
-  public let authorizationEncryptionEncValuesSupported: Bool?
-  public let requirePushedAuthorizationRequests: Bool?
-  public let authorizationDetailsTypesSupported: Bool?
-  public let incrementalAuthzTypesSupported: Bool?
-  public let authorizationResponseIssParameterSupported: Bool?
-  public let backchannelTokenDeliveryModesSupported: Bool?
-  public let backchannelAuthenticationRequestSigningAlgValuesSupported: Bool?
-  public let backchannelUserCodeParameterSupported: Bool?
-  public let promptValuesSupported: Bool?
-  public let organizationName: String?
-  public let jwks: String?
-  public let signedJwksUri: String?
-  public let clientRegistrationTypesSupported: Bool?
-  public let requestAuthenticationMethodsSupported: Bool?
-  public let requestAuthenticationSigningAlgValuesSupported: Bool?
-  public let federationRegistrationEndpoint: String?
+  public let issuer, authorizationEndpoint, tokenEndpoint, introspectionEndpoint: String
+  public let jwksURI: String
+  public let grantTypesSupported, responseTypesSupported, requestObjectSigningAlgValuesSupported, requestObjectEncryptionAlgValuesSupported: [String]
+  public let requestObjectEncryptionEncValuesSupported, responseModesSupported: [String]
+  public let registrationEndpoint: String
+  public let tokenEndpointAuthMethodsSupported, tokenEndpointAuthSigningAlgValuesSupported, introspectionEndpointAuthMethodsSupported, introspectionEndpointAuthSigningAlgValuesSupported: [String]
+  public let authorizationSigningAlgValuesSupported, authorizationEncryptionAlgValuesSupported, authorizationEncryptionEncValuesSupported, scopesSupported: [String]
+  public let requestParameterSupported, requestURIParameterSupported, requireRequestURIRegistration: Bool
+  public let codeChallengeMethodsSupported: [String]
+  public let tlsClientCertificateBoundAccessTokens: Bool
+  public let dpopSigningAlgValuesSupported: [String]
+  public let revocationEndpoint: String
+  public let revocationEndpointAuthMethodsSupported, revocationEndpointAuthSigningAlgValuesSupported: [String]
+  public let deviceAuthorizationEndpoint: String
+  public let backchannelTokenDeliveryModesSupported: [String]
+  public let backchannelAuthenticationEndpoint: String
+  public let backchannelAuthenticationRequestSigningAlgValuesSupported: [String]
+  public let requirePushedAuthorizationRequests: Bool
+  public let pushedAuthorizationRequestEndpoint: String
+  public let mtlsEndpointAliases: MtlsEndpointAliases
+  public let authorizationResponseIssParameterSupported: Bool
   
   enum CodingKeys: String, CodingKey {
-    case issuer = "issuer"
-    case jwksUri = "jwks_uri"
-    case scopesSupported = "scopes_supported"
-    case responseTypesSupported = "response_types_supported"
-    case responseModesSupported = "response_modes_supported"
+    case issuer
+    case authorizationEndpoint = "authorization_endpoint"
+    case tokenEndpoint = "token_endpoint"
+    case introspectionEndpoint = "introspection_endpoint"
+    case jwksURI = "jwks_uri"
     case grantTypesSupported = "grant_types_supported"
-    case codeChallengeMethodsSupported = "code_challenge_methods_supported"
-    case tokenEndpointAuthMethodsSupported = "token_endpoint_auth_methods_supported"
-    case tokenEndpointAuthSigningAlgValuesSupported = "token_endpoint_auth_signing_alg_values_supported"
-    case requestParameterSupported = "request_parameter_supported"
-    case requestUriParameterSupported = "request_uri_parameter_supported"
-    case requireRequestUriRegistration = "require_request_uri_registration"
+    case responseTypesSupported = "response_types_supported"
     case requestObjectSigningAlgValuesSupported = "request_object_signing_alg_values_supported"
     case requestObjectEncryptionAlgValuesSupported = "request_object_encryption_alg_values_supported"
     case requestObjectEncryptionEncValuesSupported = "request_object_encryption_enc_values_supported"
-    case uiLocalesSupported = "ui_locales_supported"
-    case serviceDocumentation = "service_documentation"
-    case opPolicyUri = "op_policy_uri"
-    case opTosUri = "op_tos_uri"
+    case responseModesSupported = "response_modes_supported"
+    case registrationEndpoint = "registration_endpoint"
+    case tokenEndpointAuthMethodsSupported = "token_endpoint_auth_methods_supported"
+    case tokenEndpointAuthSigningAlgValuesSupported = "token_endpoint_auth_signing_alg_values_supported"
     case introspectionEndpointAuthMethodsSupported = "introspection_endpoint_auth_methods_supported"
     case introspectionEndpointAuthSigningAlgValuesSupported = "introspection_endpoint_auth_signing_alg_values_supported"
-    case revocationEndpointAuthMethodsSupported = "revocation_endpoint_auth_methods_supported"
-    case revocationEndpointAuthSigningAlgValuesSupported = "revocation_endpoint_auth_signing_alg_values_supported"
-    case mtlsEndpointAliases = "mtls_endpoint_aliases"
-    case tlsClientCertificateBoundAccessTokens = "tls_client_certificate_bound_access_tokens"
-    case dpopSigningAlgValuesSupported = "dpop_signing_alg_values_supported"
     case authorizationSigningAlgValuesSupported = "authorization_signing_alg_values_supported"
     case authorizationEncryptionAlgValuesSupported = "authorization_encryption_alg_values_supported"
     case authorizationEncryptionEncValuesSupported = "authorization_encryption_enc_values_supported"
-    case requirePushedAuthorizationRequests = "require_pushed_authorization_requests"
-    case authorizationDetailsTypesSupported = "authorization_details_types_supported"
-    case incrementalAuthzTypesSupported = "incremental_authz_types_supported"
-    case authorizationResponseIssParameterSupported = "authorization_response_iss_parameter_supported"
+    case scopesSupported = "scopes_supported"
+    case requestParameterSupported = "request_parameter_supported"
+    case requestURIParameterSupported = "request_uri_parameter_supported"
+    case requireRequestURIRegistration = "require_request_uri_registration"
+    case codeChallengeMethodsSupported = "code_challenge_methods_supported"
+    case tlsClientCertificateBoundAccessTokens = "tls_client_certificate_bound_access_tokens"
+    case dpopSigningAlgValuesSupported = "dpop_signing_alg_values_supported"
+    case revocationEndpoint = "revocation_endpoint"
+    case revocationEndpointAuthMethodsSupported = "revocation_endpoint_auth_methods_supported"
+    case revocationEndpointAuthSigningAlgValuesSupported = "revocation_endpoint_auth_signing_alg_values_supported"
+    case deviceAuthorizationEndpoint = "device_authorization_endpoint"
     case backchannelTokenDeliveryModesSupported = "backchannel_token_delivery_modes_supported"
+    case backchannelAuthenticationEndpoint = "backchannel_authentication_endpoint"
     case backchannelAuthenticationRequestSigningAlgValuesSupported = "backchannel_authentication_request_signing_alg_values_supported"
-    case backchannelUserCodeParameterSupported = "backchannel_user_code_parameter_supported"
-    case promptValuesSupported = "prompt_values_supported"
-    case organizationName = "organization_name"
-    case jwks = "jwks"
-    case signedJwksUri = "signed_jwks_uri"
-    case clientRegistrationTypesSupported = "client_registration_types_supported"
-    case requestAuthenticationMethodsSupported = "request_authentication_methods_supported"
-    case requestAuthenticationSigningAlgValuesSupported = "request_authentication_signing_alg_values_supported"
-    case federationRegistrationEndpoint = "federation_registration_endpoint"
+    case requirePushedAuthorizationRequests = "require_pushed_authorization_requests"
+    case pushedAuthorizationRequestEndpoint = "pushed_authorization_request_endpoint"
+    case mtlsEndpointAliases = "mtls_endpoint_aliases"
+    case authorizationResponseIssParameterSupported = "authorization_response_iss_parameter_supported"
   }
   
-  init(issuer: String?, jwksUri: String?, scopesSupported: Bool?, responseTypesSupported: Bool?, responseModesSupported: Bool?, grantTypesSupported: Bool?, codeChallengeMethodsSupported: Bool?, tokenEndpointAuthMethodsSupported: Bool?, tokenEndpointAuthSigningAlgValuesSupported: Bool?, requestParameterSupported: Bool?, requestUriParameterSupported: Bool?, requireRequestUriRegistration: Bool?, requestObjectSigningAlgValuesSupported: Bool?, requestObjectEncryptionAlgValuesSupported: Bool?, requestObjectEncryptionEncValuesSupported: Bool?, uiLocalesSupported: Bool?, serviceDocumentation: String?, opPolicyUri: String?, opTosUri: String?, introspectionEndpointAuthMethodsSupported: Bool?, introspectionEndpointAuthSigningAlgValuesSupported: Bool?, revocationEndpointAuthMethodsSupported: Bool?, revocationEndpointAuthSigningAlgValuesSupported: Bool?, mtlsEndpointAliases: Bool?, tlsClientCertificateBoundAccessTokens: Bool?, dpopSigningAlgValuesSupported: Bool?, authorizationSigningAlgValuesSupported: Bool?, authorizationEncryptionAlgValuesSupported: Bool?, authorizationEncryptionEncValuesSupported: Bool?, requirePushedAuthorizationRequests: Bool?, authorizationDetailsTypesSupported: Bool?, incrementalAuthzTypesSupported: Bool?, authorizationResponseIssParameterSupported: Bool?, backchannelTokenDeliveryModesSupported: Bool?, backchannelAuthenticationRequestSigningAlgValuesSupported: Bool?, backchannelUserCodeParameterSupported: Bool?, promptValuesSupported: Bool?, organizationName: String?, jwks: String?, signedJwksUri: String?, clientRegistrationTypesSupported: Bool?, requestAuthenticationMethodsSupported: Bool?, requestAuthenticationSigningAlgValuesSupported: Bool?, federationRegistrationEndpoint: String?) {
+  public init(issuer: String, authorizationEndpoint: String, tokenEndpoint: String, introspectionEndpoint: String, jwksURI: String, grantTypesSupported: [String], responseTypesSupported: [String], requestObjectSigningAlgValuesSupported: [String], requestObjectEncryptionAlgValuesSupported: [String], requestObjectEncryptionEncValuesSupported: [String], responseModesSupported: [String], registrationEndpoint: String, tokenEndpointAuthMethodsSupported: [String], tokenEndpointAuthSigningAlgValuesSupported: [String], introspectionEndpointAuthMethodsSupported: [String], introspectionEndpointAuthSigningAlgValuesSupported: [String], authorizationSigningAlgValuesSupported: [String], authorizationEncryptionAlgValuesSupported: [String], authorizationEncryptionEncValuesSupported: [String], scopesSupported: [String], requestParameterSupported: Bool, requestURIParameterSupported: Bool, requireRequestURIRegistration: Bool, codeChallengeMethodsSupported: [String], tlsClientCertificateBoundAccessTokens: Bool, dpopSigningAlgValuesSupported: [String], revocationEndpoint: String, revocationEndpointAuthMethodsSupported: [String], revocationEndpointAuthSigningAlgValuesSupported: [String], deviceAuthorizationEndpoint: String, backchannelTokenDeliveryModesSupported: [String], backchannelAuthenticationEndpoint: String, backchannelAuthenticationRequestSigningAlgValuesSupported: [String], requirePushedAuthorizationRequests: Bool, pushedAuthorizationRequestEndpoint: String, mtlsEndpointAliases: MtlsEndpointAliases, authorizationResponseIssParameterSupported: Bool) {
     self.issuer = issuer
-    self.jwksUri = jwksUri
-    self.scopesSupported = scopesSupported
-    self.responseTypesSupported = responseTypesSupported
-    self.responseModesSupported = responseModesSupported
+    self.authorizationEndpoint = authorizationEndpoint
+    self.tokenEndpoint = tokenEndpoint
+    self.introspectionEndpoint = introspectionEndpoint
+    self.jwksURI = jwksURI
     self.grantTypesSupported = grantTypesSupported
-    self.codeChallengeMethodsSupported = codeChallengeMethodsSupported
-    self.tokenEndpointAuthMethodsSupported = tokenEndpointAuthMethodsSupported
-    self.tokenEndpointAuthSigningAlgValuesSupported = tokenEndpointAuthSigningAlgValuesSupported
-    self.requestParameterSupported = requestParameterSupported
-    self.requestUriParameterSupported = requestUriParameterSupported
-    self.requireRequestUriRegistration = requireRequestUriRegistration
+    self.responseTypesSupported = responseTypesSupported
     self.requestObjectSigningAlgValuesSupported = requestObjectSigningAlgValuesSupported
     self.requestObjectEncryptionAlgValuesSupported = requestObjectEncryptionAlgValuesSupported
     self.requestObjectEncryptionEncValuesSupported = requestObjectEncryptionEncValuesSupported
-    self.uiLocalesSupported = uiLocalesSupported
-    self.serviceDocumentation = serviceDocumentation
-    self.opPolicyUri = opPolicyUri
-    self.opTosUri = opTosUri
+    self.responseModesSupported = responseModesSupported
+    self.registrationEndpoint = registrationEndpoint
+    self.tokenEndpointAuthMethodsSupported = tokenEndpointAuthMethodsSupported
+    self.tokenEndpointAuthSigningAlgValuesSupported = tokenEndpointAuthSigningAlgValuesSupported
     self.introspectionEndpointAuthMethodsSupported = introspectionEndpointAuthMethodsSupported
     self.introspectionEndpointAuthSigningAlgValuesSupported = introspectionEndpointAuthSigningAlgValuesSupported
-    self.revocationEndpointAuthMethodsSupported = revocationEndpointAuthMethodsSupported
-    self.revocationEndpointAuthSigningAlgValuesSupported = revocationEndpointAuthSigningAlgValuesSupported
-    self.mtlsEndpointAliases = mtlsEndpointAliases
-    self.tlsClientCertificateBoundAccessTokens = tlsClientCertificateBoundAccessTokens
-    self.dpopSigningAlgValuesSupported = dpopSigningAlgValuesSupported
     self.authorizationSigningAlgValuesSupported = authorizationSigningAlgValuesSupported
     self.authorizationEncryptionAlgValuesSupported = authorizationEncryptionAlgValuesSupported
     self.authorizationEncryptionEncValuesSupported = authorizationEncryptionEncValuesSupported
-    self.requirePushedAuthorizationRequests = requirePushedAuthorizationRequests
-    self.authorizationDetailsTypesSupported = authorizationDetailsTypesSupported
-    self.incrementalAuthzTypesSupported = incrementalAuthzTypesSupported
-    self.authorizationResponseIssParameterSupported = authorizationResponseIssParameterSupported
+    self.scopesSupported = scopesSupported
+    self.requestParameterSupported = requestParameterSupported
+    self.requestURIParameterSupported = requestURIParameterSupported
+    self.requireRequestURIRegistration = requireRequestURIRegistration
+    self.codeChallengeMethodsSupported = codeChallengeMethodsSupported
+    self.tlsClientCertificateBoundAccessTokens = tlsClientCertificateBoundAccessTokens
+    self.dpopSigningAlgValuesSupported = dpopSigningAlgValuesSupported
+    self.revocationEndpoint = revocationEndpoint
+    self.revocationEndpointAuthMethodsSupported = revocationEndpointAuthMethodsSupported
+    self.revocationEndpointAuthSigningAlgValuesSupported = revocationEndpointAuthSigningAlgValuesSupported
+    self.deviceAuthorizationEndpoint = deviceAuthorizationEndpoint
     self.backchannelTokenDeliveryModesSupported = backchannelTokenDeliveryModesSupported
+    self.backchannelAuthenticationEndpoint = backchannelAuthenticationEndpoint
     self.backchannelAuthenticationRequestSigningAlgValuesSupported = backchannelAuthenticationRequestSigningAlgValuesSupported
-    self.backchannelUserCodeParameterSupported = backchannelUserCodeParameterSupported
-    self.promptValuesSupported = promptValuesSupported
-    self.organizationName = organizationName
-    self.jwks = jwks
-    self.signedJwksUri = signedJwksUri
-    self.clientRegistrationTypesSupported = clientRegistrationTypesSupported
-    self.requestAuthenticationMethodsSupported = requestAuthenticationMethodsSupported
-    self.requestAuthenticationSigningAlgValuesSupported = requestAuthenticationSigningAlgValuesSupported
-    self.federationRegistrationEndpoint = federationRegistrationEndpoint
+    self.requirePushedAuthorizationRequests = requirePushedAuthorizationRequests
+    self.pushedAuthorizationRequestEndpoint = pushedAuthorizationRequestEndpoint
+    self.mtlsEndpointAliases = mtlsEndpointAliases
+    self.authorizationResponseIssParameterSupported = authorizationResponseIssParameterSupported
+  }
+  public static func == (lhs: AuthorizationServerMetadata, rhs: AuthorizationServerMetadata) -> Bool {
+    lhs.authorizationEndpoint == rhs.authorizationEndpoint
   }
 }

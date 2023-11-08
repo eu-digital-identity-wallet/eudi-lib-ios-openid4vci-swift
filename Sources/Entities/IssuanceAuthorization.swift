@@ -16,8 +16,8 @@
 import Foundation
 
 public enum IssuanceAuthorization {
-  case authorizationCode(String)
-  case preAuthorizationCode(String)
+  case authorizationCode(authorizationCode: String)
+  case preAuthorizationCode(preAuthorizedCode: String, pin: String)
 }
 
 public extension IssuanceAuthorization {
@@ -28,15 +28,15 @@ public extension IssuanceAuthorization {
       throw CredentialError.genericError
     }
     
-    self = .authorizationCode(authorizationCode)
+    self = .authorizationCode(authorizationCode: authorizationCode)
   }
   
-  init(preAuthorizationCode: String) throws {
+  init(preAuthorizationCode: String, pin: String) throws {
     
     guard !preAuthorizationCode.isEmpty else {
       throw CredentialError.genericError
     }
     
-    self = .preAuthorizationCode(preAuthorizationCode)
+    self = .preAuthorizationCode(preAuthorizedCode: preAuthorizationCode, pin: pin)
   }
 }

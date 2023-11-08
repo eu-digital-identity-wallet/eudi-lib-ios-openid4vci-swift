@@ -15,72 +15,128 @@
  */
 import Foundation
 
-public actor IssuanceAuthorizer {
+public protocol IssuanceAuthorizerType {
+  
+  func submitPushedAuthorizationRequest(
+    scopes: [Scope],
+    state: String,
+    issuerState: String?
+  ) async throws -> Result<(PKCEVerifier, GetAuthorizationCodeURL), Error>
+  
+  func requestAccessTokenAuthFlow(
+    authorizationCode: String,
+    codeVerifier: String
+  ) async throws -> Result<(String, String?), ValidationError>
+  
+  func requestAccessTokenPreAuthFlow(
+    preAuthorizedCode: String,
+    userPin: String
+  ) async throws -> Result<(String, String?), ValidationError>
+}
+
+public actor IssuanceAuthorizer: IssuanceAuthorizerType {
   
   let config: WalletOpenId4VCIConfig
+  
   let service: AuthorisationServiceType
-  let poster: Posting
+  let poster: PostingType
+  
+  let parEndpoint: URL
+  let authorizationEndpoint: URL
+
+  let redirectionURI: URL
+  let clientId: String
+  
+  static let responseType = "code"
+  static let grantAuthorizationCode = "authorization_code"
+  static let grantPreauthorizationCode = "urn:ietf:params:oauth:grant-type:pre-authorized_code"
   
   public init(
     service: AuthorisationServiceType = AuthorisationService(),
-    poster: Posting = Poster(),
-    config: WalletOpenId4VCIConfig
+    poster: PostingType = Poster(),
+    config: WalletOpenId4VCIConfig,
+    parEndpoint: URL,
+    authorizationEndpoint: URL,
+    redirectionURI: URL,
+    clientId: String
   ) {
     self.service = service
     self.poster = poster
     self.config = config
+    self.parEndpoint = parEndpoint
+    self.authorizationEndpoint = authorizationEndpoint
+    self.redirectionURI = redirectionURI
+    self.clientId = clientId
   }
   
-  func submitPushedAuthorizationRequest(
-    scopes: [String],
+  public func submitPushedAuthorizationRequest(
+    scopes: [Scope],
     state: String,
     issuerState: String?
   ) async throws -> Result<(PKCEVerifier, GetAuthorizationCodeURL), Error> {
+    guard !scopes.isEmpty else {
+      throw ValidationError.error(reason: "No scopes provided. Cannot submit par with no scopes.")
+    }
+    
     let authzRequest = AuthorizationRequest(
-      responseType: "code",
+      responseType: Self.responseType,
+      clientId: config.clientId,
       redirectUri: config.authFlowRedirectionURI.absoluteString,
-      scope: scopes.joined(separator: " "),
+      scope: scopes.map { $0.value }.joined(separator: " "),
       state: state,
       codeChallenge: PKCEGenerator.generateRandomBase64String(),
       issuerState: issuerState
     )
     
     do {
-      let url = URL(string: "")!
       let response: PushedAuthorizationRequestResponse = try await service.formPost(
         poster: poster,
-        url: url,
+        url: parEndpoint,
         request: authzRequest
       )
       
-      let verifier = try PKCEVerifier(codeVerifier: "", codeVerifierMethod: "")
-      
-      let queryParams = [
-        GetAuthorizationCodeURL.PARAM_CLIENT_ID: "value1",
-        GetAuthorizationCodeURL.PARAM_REQUEST_URI: "value2"
-      ]
-      
-      guard let urlWithParams = url.appendingQueryParameters(queryParams) else {
-        throw ValidationError.invalidUrl("")
+      switch response {
+      case .success(requestURI: let requestURI, _):
+        guard let codeVerifier = PKCEGenerator.codeVerifier() else {
+          throw ValidationError.error(reason: "Unable to generate code verifier")
+        }
+        
+        let verifier = try PKCEVerifier(
+          codeVerifier: codeVerifier,
+          codeVerifierMethod: CodeChallenge.sha256.rawValue
+        )
+        
+        let queryParams = [
+          GetAuthorizationCodeURL.PARAM_CLIENT_ID: config.clientId,
+          GetAuthorizationCodeURL.PARAM_REQUEST_STATE: state,
+          GetAuthorizationCodeURL.PARAM_REQUEST_URI: requestURI
+        ]
+        
+        guard let urlWithParams = parEndpoint.appendingQueryParameters(queryParams) else {
+          throw ValidationError.invalidUrl(parEndpoint.absoluteString)
+        }
+        
+        let authorizationCodeURL = try GetAuthorizationCodeURL(
+          urlString: urlWithParams.absoluteString
+        )
+        
+        return .success((verifier, authorizationCodeURL))
+        
+      case .failure(error: let error, errorDescription: let errorDescription):
+        throw CredentialIssuanceError.pushedAuthorizationRequestFailed(
+          error: error,
+          errorDescription: errorDescription
+        )
       }
-      
-      let authorizationCodeURL = try GetAuthorizationCodeURL(
-        urlString: urlWithParams.absoluteString
-      )
-      
-      return .success((verifier, authorizationCodeURL))
-      
     } catch {
-      return .failure(ValidationError.nonHttpsUrl(""))
+      return .failure(ValidationError.error(reason: error.localizedDescription))
     }
   }
   
-  func requestAccessTokenAuthFlow(
+  public func requestAccessTokenAuthFlow(
     authorizationCode: String,
-    codeVerifier: String,
-    redirectionURI: URL,
-    clientId: String
-  ) async throws -> Result<String, ValidationError> {
+    codeVerifier: String
+  ) async throws -> Result<(String, String?), ValidationError> {
     
     let parameters: [String: String] = authCodeFlow(
       authorizationCode: authorizationCode,
@@ -89,42 +145,46 @@ public actor IssuanceAuthorizer {
       codeVerifier: codeVerifier
     )
     
-    let url = URL(string: "")!
     let response: AccessTokenRequestResponse = try await service.formPost(
       poster: poster,
-      url: url,
+      url: authorizationEndpoint,
       parameters: parameters
     )
-
+    
     switch response {
-    case .success(let accessToken, let expiresIn, let scope):
-      return .success(accessToken)
+    case .success(let accessToken, _, _, let nonce, _):
+      return .success((accessToken, nonce))
     case .failure(let error, let errorDescription):
-      return .failure(ValidationError.nonHttpsUrl(""))
+      throw CredentialIssuanceError.pushedAuthorizationRequestFailed(
+        error: error,
+        errorDescription: errorDescription
+      )
     }
   }
   
-  func requestAccessTokenPreAuthFlow(
+  public func requestAccessTokenPreAuthFlow(
     preAuthorizedCode: String,
     userPin: String
-  ) async throws -> Result<String, ValidationError> {
+  ) async throws -> Result<(String, String?), ValidationError> {
     let parameters: [String: String] = try preAuthCodeFlow(
       preAuthorizedCode: preAuthorizedCode,
       userPin: userPin
     )
     
-    let url = URL(string: "")!
     let response: AccessTokenRequestResponse = try await service.formPost(
       poster: poster,
-      url: url,
+      url: authorizationEndpoint,
       parameters: parameters
     )
-
+    
     switch response {
-    case .success(let accessToken, let expiresIn, let scope):
-      return .success(accessToken)
+    case .success(let accessToken, _, _, let nonce, _):
+      return .success((accessToken, nonce))
     case .failure(let error, let errorDescription):
-      return .failure(ValidationError.nonHttpsUrl(""))
+      throw CredentialIssuanceError.pushedAuthorizationRequestFailed(
+        error: error,
+        errorDescription: errorDescription
+      )
     }
   }
 }
@@ -138,30 +198,23 @@ private extension IssuanceAuthorizer {
     codeVerifier: String
   ) -> [String: String]  {
     
-    let grantValue = "authorization_code"
-    let params: [String: String] = [
-      Constants.GRANT_TYPE_PARAM: grantValue,
+    [
+      Constants.GRANT_TYPE_PARAM: Self.grantAuthorizationCode,
       Constants.AUTHORIZATION_CODE_PARAM: authorizationCode,
       Constants.REDIRECT_URI_PARAM: redirectionURI.absoluteString,
       Constants.CLIENT_ID_PARAM: clientId,
       Constants.CODE_VERIFIER_PARAM: codeVerifier,
     ]
-    
-    return params
   }
   
   func preAuthCodeFlow(
     preAuthorizedCode: String,
     userPin: String
   ) throws -> [String: String]  {
-    
-    let grantValue = "urn:ietf:params:oauth:grant-type:pre-authorized_code"
-    let params: [String: String] = [
-      Constants.GRANT_TYPE_PARAM: try grantValue.utf8UrlEncoded(),
+    [
+      Constants.GRANT_TYPE_PARAM: try Self.grantPreauthorizationCode.utf8UrlEncoded(),
       Constants.PRE_AUTHORIZED_CODE_PARAM: preAuthorizedCode,
       Constants.USER_PIN_PARAM: userPin
     ]
-    
-    return params
   }
 }

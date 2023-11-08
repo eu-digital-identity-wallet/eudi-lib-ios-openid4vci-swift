@@ -17,6 +17,11 @@ import Foundation
 import CryptoKit
 
 public struct PKCEGenerator {
+  
+  public static func codeVerifier() -> String? {
+    Self.generateRandomBase64String(length: 256)
+  }
+  
   public static func generateRandomData(length: Int = 48) -> Data? {
     var data = Data(count: length)
     let result = data.withUnsafeMutableBytes { mutableBytes in

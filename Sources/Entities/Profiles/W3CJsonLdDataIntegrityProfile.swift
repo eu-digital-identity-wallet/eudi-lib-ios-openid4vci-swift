@@ -15,8 +15,7 @@
  */
 import Foundation
 
-public enum ValidationError: Error {
-  case error(reason: String)
-  case nonHttpsUrl(String)
-  case invalidUrl(String)
+public struct W3CJsonLdDataIntegrityProfile: Profile {
+  
+  static let FORMAT = "ldp_vc"
 }

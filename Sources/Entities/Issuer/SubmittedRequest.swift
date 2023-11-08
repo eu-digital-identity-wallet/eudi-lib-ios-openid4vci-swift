@@ -15,8 +15,23 @@
  */
 import Foundation
 
-public enum ValidationError: Error {
-  case error(reason: String)
-  case nonHttpsUrl(String)
-  case invalidUrl(String)
+public struct CredentialIssuanceResponse: Codable {
+  public let credentialResponses: [Result]
+  public let cNonce: CNonce?
+  
+  public enum Result: Codable {
+    case complete(format: String, credential: String)
+    case deferred(transactionId: String)
+  }
+  
+  public init(credentialResponses: [Result], cNonce: CNonce?) {
+    self.credentialResponses = credentialResponses
+    self.cNonce = cNonce
+  }
+}
+
+public enum SubmittedRequest {
+  case success(response: CredentialIssuanceResponse)
+  case failed(error: CredentialIssuanceError)
+  case invalidProof(cNonce: CNonce, errorDescription: String?)
 }

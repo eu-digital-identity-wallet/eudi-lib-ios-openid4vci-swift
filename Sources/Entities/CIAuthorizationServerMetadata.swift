@@ -15,8 +15,7 @@
  */
 import Foundation
 
-public enum ValidationError: Error {
-  case error(reason: String)
-  case nonHttpsUrl(String)
-  case invalidUrl(String)
+public enum CIAuthorizationServerMetadata {
+  case oidc(OIDCProviderMetadata)
+  case oauth(AuthorizationServerMetadata)
 }

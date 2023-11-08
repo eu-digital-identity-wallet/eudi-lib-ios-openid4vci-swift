@@ -15,32 +15,61 @@
  */
 import Foundation
 
-public struct AuthorizationCode {
-  public let issuerState: String?
-  
-  public init(issuerState: String? = nil) {
-    self.issuerState = issuerState
-  }
-}
-
-public struct PreAuthorizedCode {
-  public let preAuthorizedCode: String
-  public let pinRequired: Bool
-  public let interval: TimeInterval
-  
-  public init(
-    preAuthorizedCode: String,
-    pinRequired: Bool = false,
-    interval: TimeInterval = 5.0
-  ) {
-    self.preAuthorizedCode = preAuthorizedCode
-    self.pinRequired = pinRequired
-    self.interval = interval
-  }
-}
-
 public enum Grants {
   case authorizationCode(AuthorizationCode)
   case preAuthorizedCode(PreAuthorizedCode)
   case both(AuthorizationCode, PreAuthorizedCode)
+  
+  public struct AuthorizationCode {
+    public let issuerState: String?
+    
+    public init(issuerState: String? = nil) {
+      self.issuerState = issuerState
+    }
+  }
+
+  public struct PreAuthorizedCode {
+    public let preAuthorizedCode: String
+    public let pinRequired: Bool
+    public let interval: TimeInterval
+    
+    public init(
+      preAuthorizedCode: String,
+      pinRequired: Bool = false,
+      interval: TimeInterval = 5.0
+    ) {
+      self.preAuthorizedCode = preAuthorizedCode
+      self.pinRequired = pinRequired
+      self.interval = interval
+    }
+  }
+}
+
+extension GrantsDTO {
+  func toDomain() throws -> Grants {
+    if let authorizationCode = authorizationCode,
+       let preAuthorizationCode = preAuthorizationCode {
+      return .both(
+        Grants.AuthorizationCode(issuerState: authorizationCode.issuerState),
+        Grants.PreAuthorizedCode(
+          preAuthorizedCode: preAuthorizationCode.preAuthorizedCode,
+          pinRequired: preAuthorizationCode.userPinRequired ?? false
+        )
+      )
+      
+    } else if let authorizationCode = authorizationCode {
+      return .authorizationCode(
+        Grants.AuthorizationCode(issuerState: authorizationCode.issuerState)
+      )
+      
+    } else if let preAuthorizationCode = preAuthorizationCode {
+      return .preAuthorizedCode(
+        Grants.PreAuthorizedCode(
+          preAuthorizedCode: preAuthorizationCode.preAuthorizedCode,
+          pinRequired: preAuthorizationCode.userPinRequired ?? false
+        )
+      )
+    }
+    throw ValidationError.error(reason: "Invalid Grants DTO")
+  }
 }

@@ -15,8 +15,13 @@
  */
 import Foundation
 
-public enum ValidationError: Error {
-  case error(reason: String)
-  case nonHttpsUrl(String)
-  case invalidUrl(String)
+public struct Scope {
+  public let value: String
+  
+  public init(value: String) throws {
+    guard !value.isEmpty else {
+      throw ValidationError.error(reason: "Scope cannot be empty")
+    }
+    self.value = value
+  }
 }
