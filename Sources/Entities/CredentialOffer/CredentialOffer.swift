@@ -21,14 +21,14 @@ public struct CredentialOffer {
   public let credentialIssuerMetadata: CredentialIssuerMetadata
   public let credentials: [CredentialMetadata]
   public let grants: Grants?
-  public let authorizationServerMetadata: CIAuthorizationServerMetadata
+  public let authorizationServerMetadata: IdentityAndAccessManagementMetadata
   
   public init(
     credentialIssuerIdentifier: CredentialIssuerId,
     credentialIssuerMetadata: CredentialIssuerMetadata,
     credentials: [CredentialMetadata],
     grants: Grants?,
-    authorizationServerMetadata: CIAuthorizationServerMetadata
+    authorizationServerMetadata: IdentityAndAccessManagementMetadata
   ) throws {
     self.credentialIssuerIdentifier = credentialIssuerIdentifier
     self.credentialIssuerMetadata = credentialIssuerMetadata

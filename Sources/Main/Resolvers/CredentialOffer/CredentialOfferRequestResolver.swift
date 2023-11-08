@@ -127,7 +127,7 @@ public actor CredentialOfferRequestResolver {
   func toDomain(
     credentialOfferRequestObject: CredentialOfferRequestObject,
     credentialIssuerMetadata: CredentialIssuerMetadata?,
-    authorizationServerMetadata: CIAuthorizationServerMetadata
+    authorizationServerMetadata: IdentityAndAccessManagementMetadata
   ) throws -> CredentialOffer {
     
     guard let credentialIssuerMetadata = credentialIssuerMetadata else {

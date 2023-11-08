@@ -15,13 +15,7 @@
  */
 import Foundation
 
-public struct Scope {
-  public let value: String
-  
-  public init(value: String) throws {
-    guard !value.isEmpty else {
-      throw ValidationError.error(reason: "Scope cannot be empty")
-    }
-    self.value = value
-  }
+public enum IdentityAndAccessManagementMetadata {
+  case oidc(OIDCProviderMetadata)
+  case oauth(AuthorizationServerMetadata)
 }

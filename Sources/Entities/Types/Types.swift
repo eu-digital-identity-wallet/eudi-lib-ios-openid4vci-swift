@@ -16,6 +16,17 @@
 import Foundation
 import SwiftyJSON
 
+public struct Scope {
+  public let value: String
+  
+  public init(value: String) throws {
+    guard !value.isEmpty else {
+      throw ValidationError.error(reason: "Scope cannot be empty")
+    }
+    self.value = value
+  }
+}
+
 public enum ContentType: String {
   case key = "Content-Type"
   case form = "application/x-www-form-urlencoded; charset=UTF-8"
