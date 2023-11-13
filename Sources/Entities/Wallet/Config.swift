@@ -20,12 +20,10 @@ public typealias ClientSecret = String
 
 public struct WalletOpenId4VCIConfig {
   public let clientId: ClientId
-  public let clientSecret: ClientSecret
   public let authFlowRedirectionURI: URL
   
-  public init(clientId: ClientId, clientSecret: ClientSecret, authFlowRedirectionURI: URL) {
+  public init(clientId: ClientId, authFlowRedirectionURI: URL) {
     self.clientId = clientId
-    self.clientSecret = clientSecret
     self.authFlowRedirectionURI = authFlowRedirectionURI
   }
 }

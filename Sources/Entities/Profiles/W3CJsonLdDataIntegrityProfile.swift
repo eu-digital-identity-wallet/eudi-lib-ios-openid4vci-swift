@@ -260,6 +260,13 @@ public extension W3CJsonLdDataIntegrityProfile {
         ClaimName($0.stringValue)
       }
     }
+    
+    func toIssuanceRequest(
+      claimSet: ClaimSet?,
+      proof: Proof?
+    ) -> CredentialIssuanceRequest {
+      .single(.init(format: ""))
+    }
   }
   
   struct CredentialDefinition: Codable {

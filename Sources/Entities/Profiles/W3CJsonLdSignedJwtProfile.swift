@@ -245,6 +245,13 @@ public extension W3CJsonLdSignedJwtProfile {
         ClaimName($0.stringValue)
       }
     }
+    
+    func toIssuanceRequest(
+      claimSet: ClaimSet?,
+      proof: Proof?
+    ) -> CredentialIssuanceRequest {
+      .single(.init(format: ""))
+    }
   }
   
   struct CredentialDefinition: Codable {

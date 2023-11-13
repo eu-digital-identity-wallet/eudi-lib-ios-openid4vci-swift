@@ -31,13 +31,7 @@ public extension MsoMdocClaims {
           mandatory: claimJSON["mandatory"].bool,
           valueType: claimJSON["valuetype"].string,
           display: claimJSON["display"].arrayValue.compactMap {
-            Display(
-              name: $0["name"].string,
-              locale: $0["locale"].string,
-              description: $0["description"].string,
-              backgroundColor: $0["background_color"].string,
-              textColor: $0["text_color"].string
-            )
+            Display(json: $0)
           }
         )
         namespaceClaims[claimName] = claim
@@ -48,16 +42,9 @@ public extension MsoMdocClaims {
   }
 }
 
-public protocol CredentialIssuanceRequest {
-  var format: String { get }
-  var proof: ProofType? { get }
-  var credentialEncryptionJwk: JWK? { get }
-  var credentialResponseEncryptionAlg: JWEAlgorithm? { get }
-  var credentialResponseEncryptionMethod: JOSEEncryptionMethod? { get }
-}
-
-public struct BatchCredentials: Codable {
-  public let credentialRequests: [SingleCredential]
+public enum CredentialIssuanceRequest {
+  case single(SingleCredential)
+  case batch([SingleCredential])
 }
 
 public struct DeferredCredentialRequest: Codable {
@@ -65,7 +52,7 @@ public struct DeferredCredentialRequest: Codable {
   let token: IssuanceAccessToken
 }
 
-public struct SingleCredential: Codable, CredentialIssuanceRequest {
+public struct SingleCredential: Codable {
   public var format: String
   public var proof: ProofType?
   public var credentialEncryptionJwk: JWK?
@@ -119,7 +106,7 @@ public struct SingleCredential: Codable, CredentialIssuanceRequest {
   }
 }
 
-public struct MsoMdocIssuanceRequest: CredentialIssuanceRequest {
+public struct MsoMdocIssuanceRequest {
   public let format: String
   public let proof: ProofType?
   public let credentialEncryptionJwk: JWK?

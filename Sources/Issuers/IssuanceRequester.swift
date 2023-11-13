@@ -26,7 +26,7 @@ protocol IssuanceRequesterType {
   
   func placeBatchIssuanceRequest(
     accessToken: IssuanceAccessToken,
-    request: BatchCredentials
+    request: [SingleCredential]
   ) async throws -> Result<CredentialIssuanceResponse, Error>
   
   func placeDeferredCredentialRequest(
@@ -80,7 +80,7 @@ public actor IssuanceRequester: IssuanceRequesterType {
   
   func placeBatchIssuanceRequest(
     accessToken: IssuanceAccessToken,
-    request: BatchCredentials
+    request: [SingleCredential]
   ) async throws -> Result<CredentialIssuanceResponse, Error> {
     guard
       let endpoint = issuerMetadata.batchCredentialEndpoint?.url

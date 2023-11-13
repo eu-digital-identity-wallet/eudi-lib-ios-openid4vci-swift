@@ -15,8 +15,25 @@
  */
 import Foundation
 import SwiftyJSON
+import JOSESwift
 
-public struct Scope {
+public typealias JWT = String
+
+public enum Proof {
+  case jwt(JWT)
+  case cwt(String)
+  
+  public func type() -> ProofType {
+    switch self {
+    case .jwt:
+      return .jwt
+    case .cwt:
+      return .cwt
+    }
+  }
+}
+
+public struct Scope: Codable {
   public let value: String
   
   public init(value: String) throws {

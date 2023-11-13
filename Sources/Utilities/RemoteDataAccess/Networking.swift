@@ -19,11 +19,18 @@ public protocol Networking {
   func data(
     from url: URL
   ) async throws -> (Data, URLResponse)
+  func data(
+    for request: URLRequest
+  ) async throws -> (Data, URLResponse)
 }
 
 public extension Networking {
   func data(from url: URL) async throws -> (Data, URLResponse) {
     try await data(from: url)
+  }
+  
+  func data(for request: URLRequest) async throws -> (Data, URLResponse) {
+    try await data(for: request)
   }
 }
 

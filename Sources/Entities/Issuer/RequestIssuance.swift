@@ -20,11 +20,9 @@ public enum ClaimSet {
   
 }
 
-public struct X509Certificate {
-  
-}
+public struct X509Certificate {}
 
-enum BindingKey {
+public enum BindingKey {
   
   // JWK Binding Key
   case jwk(algorithm: JWSAlgorithm, jwk: JWK)

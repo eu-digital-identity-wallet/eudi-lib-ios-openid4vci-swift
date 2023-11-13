@@ -15,13 +15,6 @@
  */
 import Foundation
 
-public protocol AuthorizeIssuance {
+class WebpageHelper {
   
-  /// Authorized Code Flow transitions
-  func pushAuthorizationCodeRequest(credentials: [CredentialMetadata], issuerState: String?) async throws -> Result<ParRequested, Error>
-  func handleAuthorizationCode(_ authorizationCode: IssuanceAuthorization) async throws -> Result<AuthorizationCodeRetrieved, Error>
-  func requestAccessToken() async throws -> AuthorizedRequest
-  
-  /// Pre-Authorized Code Flow
-  func authorizeWithPreAuthorizationCode(credentials: [CredentialMetadata], authorizationCode: IssuanceAuthorization) async throws -> AuthorizedRequest
 }

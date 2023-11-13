@@ -213,6 +213,13 @@ public extension MsoMdocProfile {
         ClaimName($0.stringValue)
       }
     }
+    
+    func toIssuanceRequest(
+      claimSet: ClaimSet?,
+      proof: Proof?
+    ) -> CredentialIssuanceRequest {
+      .single(.init(format: ""))
+    }
   }
 }
 

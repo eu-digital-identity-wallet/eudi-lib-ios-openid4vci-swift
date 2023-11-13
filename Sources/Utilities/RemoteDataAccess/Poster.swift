@@ -35,6 +35,9 @@ public enum PostError: Error {
 }
 
 public protocol PostingType {
+  
+  var session: Networking { get set }
+  
   /**
    Performs a POST request with the provided URLRequest.
 
@@ -57,10 +60,15 @@ public protocol PostingType {
 }
 
 public struct Poster: PostingType {
+  
+  public var session: Networking
+  
   /**
    Initializes a Poster instance.
    */
-  public init() {}
+  public init(session: Networking = URLSession.shared) {
+    self.session = session
+  }
 
   /**
    Performs a POST request with the provided URLRequest.
@@ -72,19 +80,12 @@ public struct Poster: PostingType {
    */
   public func post<Response: Codable>(request: URLRequest) async -> Result<Response, PostError> {
     do {
-      let delegate = SelfSignedSessionDelegate()
-      let configuration = URLSessionConfiguration.default
-      let session = URLSession(configuration: configuration, delegate: delegate, delegateQueue: nil)
-      let (data, _) = try await session.data(for: request)
+      let (data, _) = try await self.session.data(for: request)
       let object = try JSONDecoder().decode(Response.self, from: data)
 
       return .success(object)
     } catch let error as NSError {
-      if error.domain == NSURLErrorDomain {
-        return .failure(.networkError(error))
-      } else {
-        return .failure(.networkError(error))
-      }
+      return .failure(.networkError(error))
     } catch {
       return .failure(.networkError(error))
     }
@@ -100,20 +101,10 @@ public struct Poster: PostingType {
    */
   public func check(request: URLRequest) async -> Result<Bool, PostError> {
     do {
-      let delegate = SelfSignedSessionDelegate()
-      let configuration = URLSessionConfiguration.default
-      let session = URLSession(configuration: configuration, delegate: delegate, delegateQueue: nil)
-      let (_, response) = try await session.data(for: request)
-      
-      print(response)
-      
+      let (_, response) = try await self.session.data(for: request)
       return .success((response as? HTTPURLResponse)?.statusCode.isWithinRange(200...299) ?? false)
     } catch let error as NSError {
-      if error.domain == NSURLErrorDomain {
-        return .failure(.networkError(error))
-      } else {
-        return .failure(.networkError(error))
-      }
+      return .failure(.networkError(error))
     } catch {
       return .failure(.networkError(error))
     }

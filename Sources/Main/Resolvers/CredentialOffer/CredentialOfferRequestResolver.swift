@@ -54,8 +54,8 @@ public actor CredentialOfferRequestResolver {
   ///   - authorizationServerMetadataResolver: An object responsible for resolving authorization server metadata.
   public init(
     fetcher: Fetcher<CredentialOfferRequestObject> = Fetcher(),
-    credentialIssuerMetadataResolver: CredentialIssuerMetadataResolver,
-    authorizationServerMetadataResolver: AuthorizationServerMetadataResolver
+    credentialIssuerMetadataResolver: CredentialIssuerMetadataResolver = CredentialIssuerMetadataResolver(),
+    authorizationServerMetadataResolver: AuthorizationServerMetadataResolver = AuthorizationServerMetadataResolver()
   ) {
     self.fetcher = fetcher
     self.credentialIssuerMetadataResolver = credentialIssuerMetadataResolver
@@ -70,8 +70,8 @@ public actor CredentialOfferRequestResolver {
   /// - Returns: An asynchronous result containing the resolved metadata or an error of type ResolvingError.
   public func resolve(
     source: CredentialOfferRequest?
-  ) async -> Result<CredentialOffer?, Error> {
-    guard let source = source else { return .success(nil) }
+  ) async -> Result<CredentialOffer, Error> {
+    guard let source = source else { return .failure(ValidationError.error(reason: "Invalid source")) }
     do {
       switch source {
       case .passByValue(let value):
@@ -81,7 +81,7 @@ public actor CredentialOfferRequestResolver {
           return .failure(ValidationError.error(reason: "Unable to parse credential offer request"))
         }
         
-        let credentialIssuerId = try CredentialIssuerId(string: credentialOfferRequestObject.credentialIssuer)
+        let credentialIssuerId = try CredentialIssuerId(credentialOfferRequestObject.credentialIssuer)
         guard let credentialIssuerMetadata = try? await credentialIssuerMetadataResolver.resolve(source: .credentialIssuer(credentialIssuerId)).get() else {
           return .failure(ValidationError.error(reason: "Invalid credential metadata"))
         }
@@ -101,7 +101,7 @@ public actor CredentialOfferRequestResolver {
         let result = await fetcher.fetch(url: url)
         let credentialOfferRequestObject = try? result.get()
         if let credentialOfferRequestObject = credentialOfferRequestObject {
-          let credentialIssuerId = try CredentialIssuerId(string: credentialOfferRequestObject.credentialIssuer)
+          let credentialIssuerId = try CredentialIssuerId(credentialOfferRequestObject.credentialIssuer)
           guard let credentialIssuerMetadata = try? await credentialIssuerMetadataResolver.resolve(source: .credentialIssuer(credentialIssuerId)).get() else {
             return .failure(ValidationError.error(reason: "Invalid credential metadata"))
           }
@@ -162,6 +162,8 @@ public actor CredentialOfferRequestResolver {
          let scope = element.string {
         if credentialIssuerMetadata.credentialsSupported.first(where: { supportedCredential in
           switch supportedCredential {
+          case .scope(let scope):
+            return scope.value == scope.value
           case .msoMdoc(let profile):
             return profile.scope == scope
           case .w3CSignedJwt(let profile):

@@ -201,6 +201,13 @@ public extension SdJwtVcProfile {
       }
       self.credentialDefinition = CredentialDefinition(json: json["credential_definition"])
     }
+    
+    func toIssuanceRequest(
+      claimSet: ClaimSet?,
+      proof: Proof?
+    ) -> CredentialIssuanceRequest {
+      .single(.init(format: ""))
+    }
   }
   
   struct CredentialDefinition: Codable {

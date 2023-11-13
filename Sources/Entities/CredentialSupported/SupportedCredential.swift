@@ -16,9 +16,47 @@
 import Foundation
 
 public enum SupportedCredential: Codable {
+  case scope(Scope)
   case msoMdoc(MsoMdocProfile.CredentialSupported)
   case w3CSignedJwt(W3CSignedJwtProfile.CredentialSupported)
   case w3CJsonLdSignedJwt(W3CJsonLdSignedJwtProfile.CredentialSupported)
   case w3CJsonLdDataIntegrity(W3CJsonLdDataIntegrityProfile.CredentialSupported)
   case sdJwtVc(SdJwtVcProfile.CredentialSupported)
+}
+
+public extension SupportedCredential {
+  func toIssuanceRequest(
+      claimSet: ClaimSet?,
+      proof: Proof? = nil
+  ) throws -> CredentialIssuanceRequest {
+    switch self {
+    case .msoMdoc(let credentialSupported):
+      return credentialSupported.toIssuanceRequest(
+        claimSet: claimSet,
+        proof: proof
+      )
+    case .w3CSignedJwt(let credentialSupported):
+      return credentialSupported.toIssuanceRequest(
+        claimSet: claimSet,
+        proof: proof
+      )
+    case .w3CJsonLdSignedJwt(let credentialSupported):
+      return credentialSupported.toIssuanceRequest(
+        claimSet: claimSet,
+        proof: proof
+      )
+    case .w3CJsonLdDataIntegrity(let credentialSupported):
+      return credentialSupported.toIssuanceRequest(
+        claimSet: claimSet,
+        proof: proof
+      )
+    case .sdJwtVc(let credentialSupported):
+      return credentialSupported.toIssuanceRequest(
+        claimSet: claimSet,
+        proof: proof
+      )
+    default:
+      throw ValidationError.error(reason: "Unsupported profile for issueance request")
+    }
+  }
 }
