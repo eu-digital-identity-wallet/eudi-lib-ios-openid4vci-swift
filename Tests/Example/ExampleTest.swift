@@ -63,6 +63,14 @@ class ExampleTest: XCTestCase {
     super.tearDown()
   }
   
+  func testWebPageFormSubmission() async throws {
+
+    try await WebpageHelper().submit(
+      formUrl: URL(string: "https://www.w3schools.com/html/html_forms.asp")!,
+      actionUrl: URL(string: "https://www.w3schools.com/action_page.php")!
+    )
+  }
+  
   func test() async throws {
     
     let privateKey = try KeyController.generateRSAPrivateKey()
