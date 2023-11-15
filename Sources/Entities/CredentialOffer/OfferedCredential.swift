@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 import Foundation
+import SwiftyJSON
 
 public enum OfferedCredential: Codable {
   case msoMdocCredential(MsoMdocCredential)
@@ -88,30 +89,30 @@ public enum W3CVerifiableCredential: Codable {
 }
 
 public struct SignedJwt: Codable {
-  public let credentialDefinition: CredentialDefinition
+  public let credentialDefinition: JSON
   public let scope: String?
   
-  public init(credentialDefinition: CredentialDefinition, scope: String?) {
+  public init(credentialDefinition: JSON, scope: String?) {
     self.credentialDefinition = credentialDefinition
     self.scope = scope
   }
 }
 
 public struct JsonLdSignedJwt: Codable {
-  public let credentialDefinition: CredentialDefinition
+  public let credentialDefinition: JSON
   public let scope: String?
   
-  public init(credentialDefinition: CredentialDefinition, scope: String?) {
+  public init(credentialDefinition: JSON, scope: String?) {
     self.credentialDefinition = credentialDefinition
     self.scope = scope
   }
 }
 
 public struct JsonLdDataIntegrity: Codable {
-  public let credentialDefinition: CredentialDefinition
+  public let credentialDefinition: JSON
   public let scope: String?
   
-  public init(credentialDefinition: CredentialDefinition, scope: String?) {
+  public init(credentialDefinition: JSON, scope: String?) {
     self.credentialDefinition = credentialDefinition
     self.scope = scope
   }

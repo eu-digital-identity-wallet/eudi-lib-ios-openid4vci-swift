@@ -26,7 +26,7 @@ public struct CredentialIssuerMetadata: Codable, Equatable {
   let credentialResponseEncryptionAlgorithmsSupported: [JWEAlgorithm]?
   let credentialResponseEncryptionMethodsSupported: [JOSEEncryptionMethod]?
   let requireCredentialResponseEncryption: Bool
-  let credentialsSupported: [CredentialSupported]
+  let credentialsSupported: [SupportedCredential]
   let display: [Display]
   
   enum CodingKeys: String, CodingKey {
@@ -51,7 +51,7 @@ public struct CredentialIssuerMetadata: Codable, Equatable {
     credentialResponseEncryptionAlgorithmsSupported: [JWEAlgorithm]? = nil,
     credentialResponseEncryptionMethodsSupported: [JOSEEncryptionMethod]? = nil,
     requireCredentialResponseEncryption: Bool?,
-    credentialsSupported: [CredentialSupported],
+    credentialsSupported: [SupportedCredential],
     display: [Display]?
   ) {
     self.credentialIssuerIdentifier = credentialIssuerIdentifier
@@ -79,7 +79,31 @@ public struct CredentialIssuerMetadata: Codable, Equatable {
     credentialResponseEncryptionAlgorithmsSupported = try container.decodeIfPresent([JWEAlgorithm].self, forKey: .credentialResponseEncryptionAlgorithmsSupported)
     credentialResponseEncryptionMethodsSupported = try container.decodeIfPresent([JOSEEncryptionMethod].self, forKey: .credentialResponseEncryptionMethodsSupported)
     requireCredentialResponseEncryption = try container.decodeIfPresent(Bool.self, forKey: .requireCredentialResponseEncryption) ?? false
-    credentialsSupported = try container.decodeIfPresent([CredentialSupported].self, forKey: .credentialsSupported) ?? []
+    let credentialsSupportedJSON = try container.decodeIfPresent([JSON].self, forKey: .credentialsSupported) ?? []
+    credentialsSupported = try credentialsSupportedJSON.map { json in
+      guard let format = json["format"].string else {
+        throw ValidationError.error(reason: "Profile format not found")
+      }
+      
+      switch format {
+      case MsoMdocProfile.FORMAT:
+        let profile = try MsoMdocProfile.CredentialSupported(json: json)
+        return .msoMdoc(profile)
+      case W3CSignedJwtProfile.FORMAT:
+        let profile = try W3CSignedJwtProfile.CredentialSupported(json: json)
+        return .w3CSignedJwt(profile)
+      case SdJwtVcProfile.FORMAT:
+        let profile = try SdJwtVcProfile.CredentialSupported(json: json)
+        return .sdJwtVc(profile)
+      case W3CJsonLdSignedJwtProfile.FORMAT:
+        let profile = try W3CJsonLdSignedJwtProfile.CredentialSupported(json: json)
+        return .w3CJsonLdSignedJwt(profile)
+      case W3CJsonLdDataIntegrityProfile.FORMAT:
+        let profile = try W3CJsonLdDataIntegrityProfile.CredentialSupported(json: json)
+        return .w3CJsonLdDataIntegrity(profile)
+      default: throw ValidationError.error(reason: "Unknow credential format")
+      }
+    }
     display = try container.decodeIfPresent([Display].self, forKey: .display) ?? []
   }
   

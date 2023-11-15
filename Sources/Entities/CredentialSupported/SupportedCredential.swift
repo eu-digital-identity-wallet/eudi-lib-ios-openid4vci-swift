@@ -15,7 +15,10 @@
  */
 import Foundation
 
-public enum CIAuthorizationServerMetadata {
-  case oidc(OIDCProviderMetadata)
-  case oauth(AuthorizationServerMetadata)
+public enum SupportedCredential: Codable {
+  case msoMdoc(MsoMdocProfile.CredentialSupported)
+  case w3CSignedJwt(W3CSignedJwtProfile.CredentialSupported)
+  case w3CJsonLdSignedJwt(W3CJsonLdSignedJwtProfile.CredentialSupported)
+  case w3CJsonLdDataIntegrity(W3CJsonLdDataIntegrityProfile.CredentialSupported)
+  case sdJwtVc(SdJwtVcProfile.CredentialSupported)
 }

@@ -47,4 +47,15 @@ public enum ProofType: Codable {
       try container.encode("CWT")
     }
   }
+  
+  public init(type: String) throws {
+    switch type {
+    case "JWT", "jwt":
+      self = .jwt
+    case "CWT", "cwt":
+      self = .cwt
+    default:
+      throw ValidationError.error(reason: "Invalid proof type: \(type)")
+    }
+  }
 }

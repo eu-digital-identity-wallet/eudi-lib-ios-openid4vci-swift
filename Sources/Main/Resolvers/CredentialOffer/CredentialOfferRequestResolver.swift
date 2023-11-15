@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 import Foundation
+import SwiftyJSON
 
 public protocol CredentialOfferRequestResolverType {
   /// The input type for resolving a type.
@@ -126,7 +127,7 @@ public actor CredentialOfferRequestResolver {
   func toDomain(
     credentialOfferRequestObject: CredentialOfferRequestObject,
     credentialIssuerMetadata: CredentialIssuerMetadata?,
-    authorizationServerMetadata: CIAuthorizationServerMetadata
+    authorizationServerMetadata: IdentityAndAccessManagementMetadata
   ) throws -> CredentialOffer {
     
     guard let credentialIssuerMetadata = credentialIssuerMetadata else {
@@ -135,7 +136,10 @@ public actor CredentialOfferRequestResolver {
     
     do {
       let credentialIssuerId = credentialIssuerMetadata.credentialIssuerIdentifier
-      let credentials: [CredentialMetadata] = try self.computeCredentialMetadata(credentialOfferRequestObject: credentialOfferRequestObject)
+      let credentials: [CredentialMetadata] = try self.computeCredentialMetadata(
+        credentialOfferRequestObject: credentialOfferRequestObject,
+        credentialIssuerMetadata: credentialIssuerMetadata
+      )
       let grants = try credentialOfferRequestObject.grants?.toDomain()
       return try .init(
         credentialIssuerIdentifier: credentialIssuerId,
@@ -150,28 +154,68 @@ public actor CredentialOfferRequestResolver {
   }
   
   private func computeCredentialMetadata(
-    credentialOfferRequestObject: CredentialOfferRequestObject
+    credentialOfferRequestObject: CredentialOfferRequestObject,
+    credentialIssuerMetadata: CredentialIssuerMetadata
   ) throws -> [CredentialMetadata] {
     try credentialOfferRequestObject.credentials.map { element in
       if element.type == .string,
-         let string = element.string {
-        return .byScope(try .init(value: string))
-        
+         let scope = element.string {
+        if credentialIssuerMetadata.credentialsSupported.first(where: { supportedCredential in
+          switch supportedCredential {
+          case .msoMdoc(let profile):
+            return profile.scope == scope
+          case .w3CSignedJwt(let profile):
+            return profile.scope == scope
+          case .sdJwtVc(let profile):
+            return profile.scope == scope
+          case .w3CJsonLdSignedJwt(let profile):
+            return profile.scope == scope
+          case .w3CJsonLdDataIntegrity(let profile):
+            return profile.scope == scope
+          }
+          
+        }) != nil {
+          return .scope(try .init(value: scope))
+          
+        } else {
+          throw ValidationError.error(reason: "Unknown scope \(scope)")
+        }
       } else if element.type == .dictionary,
              let dictionary = element.dictionary {
         if dictionary["format"]?.type == .string,
            let format = dictionary["format"]?.string {
           switch format {
           case MsoMdocProfile.FORMAT:
-            return .byProfile
+            return try MsoMdocProfile.matchSupportedAndToDomain(
+              json: element,
+              metadata: credentialIssuerMetadata
+            )
+          case W3CSignedJwtProfile.FORMAT:
+            return try W3CSignedJwtProfile.matchSupportedAndToDomain(
+              json: element,
+              metadata: credentialIssuerMetadata
+            )
           case SdJwtVcProfile.FORMAT:
-            return .byProfile
+            return try SdJwtVcProfile.matchSupportedAndToDomain(
+              json: element,
+              metadata: credentialIssuerMetadata
+            )
+          case W3CJsonLdSignedJwtProfile.FORMAT:
+            return try W3CJsonLdSignedJwtProfile.matchSupportedAndToDomain(
+              json: element,
+              metadata: credentialIssuerMetadata
+            )
+          case W3CJsonLdDataIntegrityProfile.FORMAT:
+            return try W3CJsonLdDataIntegrityProfile.matchSupportedAndToDomain(
+              json: element,
+              metadata: credentialIssuerMetadata
+            )
           default:
-            return .byProfile
+            throw ValidationError.error(reason: "Invalid profile")
           }
           
         } else {
-          throw ValidationError.error(reason: "Invalid 'format'")
+          throw ValidationError.error(reason: "Invalid format")
         }
       } else {
         throw ValidationError.error(reason: "Invalid JsonElement for Credential. Found \(element.type)")

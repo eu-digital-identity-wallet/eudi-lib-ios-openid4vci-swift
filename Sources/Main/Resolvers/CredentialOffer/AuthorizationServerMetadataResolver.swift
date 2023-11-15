@@ -24,7 +24,7 @@ protocol AuthorizationServerMetadataResolverType {
   /// - Returns: An asynchronous result containing the resolved metadata or an error of type ResolvingError.
   func resolve(
     url: URL
-  ) async -> Result<CIAuthorizationServerMetadata, Error>
+  ) async -> Result<IdentityAndAccessManagementMetadata, Error>
 }
 
 public actor AuthorizationServerMetadataResolver: AuthorizationServerMetadataResolverType {
@@ -48,7 +48,7 @@ public actor AuthorizationServerMetadataResolver: AuthorizationServerMetadataRes
   /// - Returns: An asynchronous result containing the resolved metadata or an error of type ResolvingError.
   public func resolve(
     url: URL
-  ) async -> Result<CIAuthorizationServerMetadata, Error> {
+  ) async -> Result<IdentityAndAccessManagementMetadata, Error> {
     
     if let oidc = await fetchOIDCProviderMetadata(
       fetcher: oidcFetcher,

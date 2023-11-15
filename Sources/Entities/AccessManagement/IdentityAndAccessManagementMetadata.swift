@@ -15,12 +15,7 @@
  */
 import Foundation
 
-public struct W3CVerifiableCredentialCredential: Codable {
-  let format: String
-  let credentialDefinition: CredentialDefinition
-  
-  enum CodingKeys: String, CodingKey {
-    case format
-    case credentialDefinition = "credential_definition"
-  }
+public enum IdentityAndAccessManagementMetadata {
+  case oidc(OIDCProviderMetadata)
+  case oauth(AuthorizationServerMetadata)
 }

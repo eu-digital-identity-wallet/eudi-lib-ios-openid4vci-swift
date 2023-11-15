@@ -15,13 +15,11 @@
  */
 import Foundation
 
-public struct Scope {
-  public let value: String
-  
-  public init(value: String) throws {
-    guard !value.isEmpty else {
-      throw ValidationError.error(reason: "Scope cannot be empty")
-    }
-    self.value = value
-  }
+public enum CredentialMetadata {
+  case scope(Scope)
+  case msoMdoc(MsoMdocProfile)
+  case w3CSignedJwt(W3CSignedJwtProfile)
+  case w3CJsonLdSignedJwt(W3CJsonLdSignedJwtProfile)
+  case w3CJsonLdDataIntegrity(W3CJsonLdDataIntegrityProfile)
+  case sdJwtVc(SdJwtVcProfile)
 }

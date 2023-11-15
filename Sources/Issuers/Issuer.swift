@@ -65,16 +65,16 @@ public actor Issuer: IssuerType {
   ) async -> Result<UnauthorizedRequest, Error> {
     let scopes: [Scope] = credentials
       .filter {
-        if case .byScope = $0 {
+        if case .scope = $0 {
           return true
         }
         return false
       }
       .compactMap { metaData in
         switch metaData {
-        case .byScope(let scope):
+        case .scope(let scope):
           return scope
-        case .byProfile:
+        default:
           return nil
         }
       }
@@ -212,25 +212,31 @@ public actor Issuer: IssuerType {
 
 private extension Issuer {
   
-    private func toIssuerSupportedCredential(metaData: CredentialMetadata) throws -> CredentialSupported {
+    private func toIssuerSupportedCredential(metaData: CredentialMetadata) throws -> SupportedCredential? {
+      /*
       switch metaData {
-      case .byScope:
+      case .scope:
         return try supportedCredentialByScope(metaData: requester.issuerMetadata, scoped: metaData)
-      case .byProfile:
+      default:
         throw ValidationError.error(reason: "")// requester.issuerMetadata.supportedCredentialByProfile(this)
       }
+       */
+      return nil
     }
   
   private func supportedCredentialByScope(
     metaData: CredentialIssuerMetadata,
     scoped: CredentialMetadata
-  ) throws -> CredentialSupported {
+  ) throws -> SupportedCredential? {
+    /*
     switch scoped {
-    case .byScope(let byScope):
+    case .scope(let byScope):
       return try metaData.credentialsSupported.first { element in
         return element.scope == byScope.value
       } ?? { throw ValidationError.error(reason: "Issuer does not support issuance of credential scope: \(byScope)") }()
     default: throw ValidationError.error(reason: "")
     }
+     */
+    return nil
   }
 }

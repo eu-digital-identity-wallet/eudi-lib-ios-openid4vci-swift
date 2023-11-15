@@ -15,11 +15,6 @@
  */
 import Foundation
 
-public enum CredentialMetadata {
-  case byScope(Scope)
-  case byProfile
-}
-
 /// State denoting that the pushed authorization request has been placed successfully and response processed
 public struct ParRequested {
   public let credentials: [CredentialMetadata]

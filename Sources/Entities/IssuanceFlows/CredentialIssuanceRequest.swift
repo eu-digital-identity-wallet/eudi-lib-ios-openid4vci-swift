@@ -15,11 +15,38 @@
  */
 import Foundation
 import JOSESwift
+import SwiftyJSON
 
 public typealias Namespace = String
 public typealias ClaimName = String
-public typealias Claim = String
+
 public typealias MsoMdocClaims = [Namespace: [ClaimName: Claim]]
+public extension MsoMdocClaims {
+  init(json: JSON) {
+    var claims = MsoMdocClaims()
+    for (namespace, subJSON) in json.dictionaryValue {
+      var namespaceClaims = [ClaimName: Claim]()
+      for (claimName, claimJSON) in subJSON.dictionaryValue {
+        let claim = Claim(
+          mandatory: claimJSON["mandatory"].bool,
+          valueType: claimJSON["valuetype"].string,
+          display: claimJSON["display"].arrayValue.compactMap {
+            Display(
+              name: $0["name"].string,
+              locale: $0["locale"].string,
+              description: $0["description"].string,
+              backgroundColor: $0["background_color"].string,
+              textColor: $0["text_color"].string
+            )
+          }
+        )
+        namespaceClaims[claimName] = claim
+      }
+      claims[namespace] = namespaceClaims
+    }
+    self = claims
+  }
+}
 
 public protocol CredentialIssuanceRequest {
   var format: String { get }
@@ -99,7 +126,7 @@ public struct MsoMdocIssuanceRequest: CredentialIssuanceRequest {
   public let credentialResponseEncryptionAlg: JWEAlgorithm?
   public let credentialResponseEncryptionMethod: JOSEEncryptionMethod?
   public let doctype: String
-  public let claims: [Namespace: [ClaimName: CredentialSupported]]
+  public let claims: [Namespace: [ClaimName: SupportedCredential]]
   
   public init(
     format: String,
@@ -108,7 +135,7 @@ public struct MsoMdocIssuanceRequest: CredentialIssuanceRequest {
     credentialResponseEncryptionAlg: JWEAlgorithm?,
     credentialResponseEncryptionMethod: JOSEEncryptionMethod?,
     doctype: String,
-    claims: [Namespace: [ClaimName: CredentialSupported]]
+    claims: [Namespace: [ClaimName: SupportedCredential]]
   ) {
     self.format = format
     self.proof = proof
@@ -125,7 +152,7 @@ public struct MsoMdocIssuanceRequest: CredentialIssuanceRequest {
     credentialResponseEncryptionAlg: JWEAlgorithm?,
     credentialResponseEncryptionMethod: JOSEEncryptionMethod?,
     doctype: String,
-    claims: [Namespace: [ClaimName: CredentialSupported]]
+    claims: [Namespace: [ClaimName: SupportedCredential]]
   ) -> MsoMdocIssuanceRequest {
     var encryptionMethod = credentialResponseEncryptionMethod
     if credentialResponseEncryptionAlg != nil && credentialResponseEncryptionMethod == nil {

@@ -16,7 +16,16 @@
 import Foundation
 import SwiftyJSON
 
-public typealias CredentialDefinition = JSON
+public struct Scope {
+  public let value: String
+  
+  public init(value: String) throws {
+    guard !value.isEmpty else {
+      throw ValidationError.error(reason: "Scope cannot be empty")
+    }
+    self.value = value
+  }
+}
 
 public enum ContentType: String {
   case key = "Content-Type"
@@ -89,5 +98,36 @@ public struct BatchIssuanceSuccessResponse: Codable {
     self.credentialResponses = credentialResponses
     self.cNonce = cNonce
     self.cNonceExpiresInSeconds = cNonceExpiresInSeconds
+  }
+}
+
+public struct Claim: Codable {
+  public let mandatory: Bool?
+  public let valueType: String?
+  public let display: [Display]?
+  
+  enum CodingKeys: String, CodingKey {
+    case mandatory
+    case valueType = "value_type"
+    case display
+  }
+  
+  public init(mandatory: Bool?, valueType: String?, display: [Display]?) {
+    self.mandatory = mandatory
+    self.valueType = valueType
+    self.display = display
+  }
+  
+  init(json: JSON) {
+    mandatory = json["mandatory"].bool
+    valueType = json["value_type"].string
+    
+    if let displayArray = json["display"].array {
+      display = displayArray.map { displayJson in
+        Display(json: displayJson)
+      }
+    } else {
+      display = nil
+    }
   }
 }

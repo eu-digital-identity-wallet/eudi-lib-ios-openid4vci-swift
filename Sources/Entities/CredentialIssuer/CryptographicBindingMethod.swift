@@ -37,7 +37,11 @@ public enum CryptographicBindingMethod: Codable {
     case "mso":
       self = .mso
     default:
-      self = .did(method: stringValue)
+      if stringValue.hasPrefix("did") {
+        self = .did(method: stringValue)
+      } else {
+        throw ValidationError.error(reason: "Unknown cryptographic binding method: \(stringValue)")
+      }
     }
   }
   
@@ -52,6 +56,23 @@ public enum CryptographicBindingMethod: Codable {
       try container.encode("mso")
     case .did(let method):
       try container.encode(method)
+    }
+  }
+  
+  public init(method: String) throws {
+    switch method {
+    case "jwk":
+      self = .jwk
+    case "cose":
+      self = .cose
+    case "mso":
+      self = .mso
+    default:
+      if method.hasPrefix("did") {
+        self = .did(method: method)
+      } else {
+        throw ValidationError.error(reason: "Unknown cryptographic binding method: \(method)")
+      }
     }
   }
 }
