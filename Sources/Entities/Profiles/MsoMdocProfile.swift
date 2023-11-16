@@ -37,7 +37,7 @@ public struct MsoMdocProfile: Profile {
 public extension MsoMdocProfile {
   
   struct MsoMdocSingleCredential: Codable {
-    public let format: String
+    public let docType: String
     public let proof: ProofType?
     public let credentialEncryptionJwk: JWK?
     public let credentialResponseEncryptionAlg: JWEAlgorithm?
@@ -45,7 +45,7 @@ public extension MsoMdocProfile {
     public let claimSet: ClaimSet?
     
     enum CodingKeys: String, CodingKey {
-      case format
+      case doctype
       case proof
       case credentialEncryptionJwk
       case credentialResponseEncryptionAlg
@@ -54,14 +54,14 @@ public extension MsoMdocProfile {
     }
     
     public init(
-      format: String,
+      docType: String,
       proof: ProofType? = nil,
       credentialEncryptionJwk: JWK? = nil,
       credentialResponseEncryptionAlg: JWEAlgorithm? = nil,
       credentialResponseEncryptionMethod: JOSEEncryptionMethod? = nil,
       claimSet: ClaimSet? = nil
     ) {
-      self.format = format
+      self.docType = docType
       self.proof = proof
       self.credentialEncryptionJwk = credentialEncryptionJwk
       self.credentialResponseEncryptionAlg = credentialResponseEncryptionAlg
@@ -91,15 +91,7 @@ public extension MsoMdocProfile {
       
       try container.encode(credentialResponseEncryptionAlg, forKey: .credentialResponseEncryptionAlg)
       try container.encode(credentialResponseEncryptionMethod, forKey: .credentialResponseEncryptionMethod)
-      
-      switch claimSet {
-      case .msoMdoc(let msoMdocClaimSet):
-        break
-      case .sdJwtVc(let sdJwtVcClaimSet):
-        break
-      default:
-        throw ValidationError.error(reason: "Unsupported claim set")
-      }
+      try container.encode(claimSet, forKey: .claimSet)
     }
   }
   
@@ -317,10 +309,14 @@ public extension MsoMdocProfile {
         return claimSet
       }
       
-      let validClaimSet: MsoMdocProfile.MsoMdocClaimSet?
+      var validClaimSet: MsoMdocProfile.MsoMdocClaimSet?
       if let claimSet = claimSet {
         switch claimSet {
         case .msoMdoc(let claimSet):
+          guard let claimSet else {
+            throw CredentialIssuanceError.invalidIssuanceRequest(
+              "Invalid Claim Set provided for issuance")
+          }
           validClaimSet = try validateClaimSet(claimSet: claimSet)
         default: throw CredentialIssuanceError.invalidIssuanceRequest(
           "Invalid Claim Set provided for issuance"
@@ -332,7 +328,14 @@ public extension MsoMdocProfile {
         )
       }
       
-      return .single(.msoMdoc(.init(format: "")))
+      return .single(
+        .msoMdoc(
+          .init(
+            docType: docType,
+            claimSet: .msoMdoc(validClaimSet)
+          )
+        )
+      )
     }
   }
 }

@@ -19,8 +19,8 @@ public enum ClaimSet: Codable {
   case w3CJsonLdDataIntegrity(W3CJsonLdDataIntegrityProfile.W3CJsonLdDataIntegrityClaimSet)
   case w3CJsonLdSignedJwt(W3CJsonLdSignedJwtProfile.W3CJsonLdSignedJwtClaimSet)
   case w3CSignedJwt(W3CSignedJwtProfile.W3CSignedJwtClaimSet)
-  case msoMdoc(MsoMdocProfile.MsoMdocClaimSet)
-  case sdJwtVc(SdJwtVcProfile.SdJwtVcClaimSet)
+  case msoMdoc(MsoMdocProfile.MsoMdocClaimSet?)
+  case sdJwtVc(SdJwtVcProfile.SdJwtVcClaimSet?)
 }
 
 public extension ClaimSet {

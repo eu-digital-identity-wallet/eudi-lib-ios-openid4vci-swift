@@ -41,6 +41,11 @@ public extension SupportedCredential {
         proof: proof
       )
     case .sdJwtVc(let credentialSupported):
+      if let proof,
+         let proofTypesSupported = credentialSupported.proofTypesSupported,
+         proofTypesSupported.contains(proof.type()) {
+        
+      }
       return try credentialSupported.toIssuanceRequest(
         claimSet: claimSet,
         proof: proof

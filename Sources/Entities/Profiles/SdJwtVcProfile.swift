@@ -54,7 +54,6 @@ public extension SdJwtVcProfile {
     
     public init(
       proof: Proof?,
-      type: String,
       credentialEncryptionJwk: JWK? = nil,
       credentialResponseEncryptionAlg: JWEAlgorithm? = nil,
       credentialResponseEncryptionMethod: JOSEEncryptionMethod? = nil,
@@ -65,7 +64,7 @@ public extension SdJwtVcProfile {
       self.credentialResponseEncryptionAlg = credentialResponseEncryptionAlg
       self.credentialResponseEncryptionMethod = credentialResponseEncryptionMethod
       self.credentialDefinition = .init(
-        type: type,
+        type: credentialDefinition.type,
         claims: credentialDefinition.claims
       )
     }
@@ -94,6 +93,24 @@ public extension SdJwtVcProfile {
       try container.encode(credentialResponseEncryptionMethod, forKey: .credentialResponseEncryptionMethod)
       
       try container.encode(credentialDefinition, forKey: .credentialDefinition)
+    }
+    
+    public struct CredentialDefinition: Codable {
+      public let type: String
+      public let claims: ClaimSet?
+      
+      enum CodingKeys: String, CodingKey {
+        case type
+        case claims
+      }
+      
+      public init(
+        type: String,
+        claims: ClaimSet?
+      ) {
+        self.type = type
+        self.claims = claims
+      }
     }
   }
   
@@ -234,7 +251,6 @@ public extension SdJwtVcProfile {
     
     public init(from decoder: Decoder) throws {
       let container = try decoder.container(keyedBy: CodingKeys.self)
-      
       scope = try container.decodeIfPresent(String.self, forKey: .scope)
       cryptographicBindingMethodsSupported = try container.decode([CryptographicBindingMethod].self, forKey: .cryptographicBindingMethodsSupported)
       cryptographicSuitesSupported = try container.decode([String].self, forKey: .cryptographicSuitesSupported)
@@ -245,7 +261,6 @@ public extension SdJwtVcProfile {
     
     public func encode(to encoder: Encoder) throws {
       var container = encoder.container(keyedBy: CodingKeys.self)
-      
       try container.encode(scope, forKey: .scope)
       try container.encode(cryptographicBindingMethodsSupported, forKey: .cryptographicBindingMethodsSupported)
       try container.encode(cryptographicSuitesSupported, forKey: .cryptographicSuitesSupported)
@@ -294,10 +309,14 @@ public extension SdJwtVcProfile {
         return claimSet
       }
       
-      let validClaimSet: SdJwtVcProfile.SdJwtVcClaimSet?
+      var validClaimSet: SdJwtVcProfile.SdJwtVcClaimSet?
       if let claimSet = claimSet {
         switch claimSet {
         case .sdJwtVc(let claimSet):
+          guard let claimSet else {
+            throw CredentialIssuanceError.invalidIssuanceRequest(
+              "Invalid Claim Set provided for issuance")
+          }
           validClaimSet = try validateClaimSet(claimSet: claimSet)
         default: throw CredentialIssuanceError.invalidIssuanceRequest(
           "Invalid Claim Set provided for issuance"
@@ -305,11 +324,19 @@ public extension SdJwtVcProfile {
         }
       }
       
-      return .single(.sdJwtVc(.init(
-        proof: proof, 
-        type: credentialDefinition.type,
-        credentialDefinition: credentialDefinition
-      )))
+      return .single(
+        .sdJwtVc(
+          .init(
+            proof: proof,
+            credentialDefinition: .init(
+              type: credentialDefinition.type,
+              claims: .sdJwtVc(
+                validClaimSet
+              )
+            )
+          )
+        )
+      )
     }
   }
   
