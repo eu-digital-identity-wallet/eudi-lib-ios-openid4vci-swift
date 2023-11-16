@@ -52,57 +52,18 @@ public struct DeferredCredentialRequest: Codable {
   let token: IssuanceAccessToken
 }
 
-public struct SingleCredential: Codable {
-  public var format: String
-  public var proof: ProofType?
-  public var credentialEncryptionJwk: JWK?
-  public var credentialResponseEncryptionAlg: JWEAlgorithm?
-  public var credentialResponseEncryptionMethod: JOSEEncryptionMethod?
-  
-  enum CodingKeys: String, CodingKey {
-    case format
-    case proof
-    case credentialEncryptionJwk
-    case credentialResponseEncryptionAlg
-    case credentialResponseEncryptionMethod
+public enum SingleCredential {
+  case msoMdoc(MsoMdocProfile.MsoMdocSingleCredential)
+  case sdJwtVc(SdJwtVcProfile.SdJwtVcSingleCredential)
+}
+
+public extension SingleCredential {
+  func toDictionary() -> JSON {
+    JSON()
   }
   
-  public init(
-    format: String,
-    proof: ProofType? = nil,
-    credentialEncryptionJwk: JWK? = nil,
-    credentialResponseEncryptionAlg: JWEAlgorithm? = nil,
-    credentialResponseEncryptionMethod: JOSEEncryptionMethod? = nil
-  ) {
-    self.format = format
-    self.proof = proof
-    self.credentialEncryptionJwk = credentialEncryptionJwk
-    self.credentialResponseEncryptionAlg = credentialResponseEncryptionAlg
-    self.credentialResponseEncryptionMethod = credentialResponseEncryptionMethod
-  }
-  
-  public func requiresEncryptedResponse() -> Bool {
-    credentialResponseEncryptionAlg != nil &&
-    credentialEncryptionJwk != nil &&
-    credentialResponseEncryptionMethod != nil
-  }
-  
-  public init(from decoder: Decoder) throws {
-    fatalError("No supported yet")
-  }
-  
-  public func encode(to encoder: Encoder) throws {
-    var container = encoder.container(keyedBy: CodingKeys.self)
-    try container.encode(proof, forKey: .proof)
-    
-    if let credentialEncryptionJwk = credentialEncryptionJwk as? RSAPublicKey {
-      try container.encode(credentialEncryptionJwk, forKey: .credentialEncryptionJwk)
-    } else if let credentialEncryptionJwk = credentialEncryptionJwk as? ECPublicKey {
-      try container.encode(credentialEncryptionJwk, forKey: .credentialEncryptionJwk)
-    }
-    
-    try container.encode(credentialResponseEncryptionAlg, forKey: .credentialResponseEncryptionAlg)
-    try container.encode(credentialResponseEncryptionMethod, forKey: .credentialResponseEncryptionMethod)
+  func requiresEncryptedResponse() -> Bool {
+    false
   }
 }
 

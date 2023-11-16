@@ -87,8 +87,8 @@ extension Wallet {
     switch result {
     case .success(let offer):
       return try await issueOfferedCredentialWithProof(offer: offer)
-    case .failure:
-      throw ValidationError.error(reason: "Unable to resolve credential offer")
+    case .failure(let error):
+      throw ValidationError.error(reason: "Unable to resolve credential offer: \(error.localizedDescription)")
     }
   }
   
@@ -100,7 +100,11 @@ extension Wallet {
       config: config
     )
 
-    let authorized = try await authorizeRequestWithAuthCodeUseCase(issuer: issuer, offer: offer)
+    let authorized = try await authorizeRequestWithAuthCodeUseCase(
+      issuer: issuer,
+      offer: offer
+    )
+    
     switch authorized {
     case .noProofRequired:
       return try await noProofRequiredSubmissionUseCase(
@@ -138,12 +142,12 @@ extension Wallet {
        case let .par(parRequested) = request {
       print("--> Placed PAR. Get authorization code URL is: \(parRequested.getAuthorizationCodeURL)")
       
-      let authorizationCode = try loginUserAndGetAuthCode(
+      let authorizationCode = try await loginUserAndGetAuthCode(
         getAuthorizationCodeUrl: parRequested.getAuthorizationCodeURL.url,
         actingUser: actingUser
       ) ?? { throw  ValidationError.error(reason: "Could not retrieve authorization code") } ()
       
-      print("--> Authorization code retrieved: $authorizationCode")
+      print("--> Authorization code retrieved: \(authorizationCode)")
       
       let unAuthorized = await issuer.handleAuthorizationCode(
         parRequested: request,
@@ -165,6 +169,7 @@ extension Wallet {
         throw  ValidationError.error(reason: error.localizedDescription)
       }
     }
+    
     throw  ValidationError.error(reason: "Failed to get push authorization code request")
   }
   
@@ -176,7 +181,7 @@ extension Wallet {
     switch noProofRequiredState {
     case .noProofRequired:
       let requestOutcome = try await issuer.requestSingle(
-        authorizedRequest: noProofRequiredState,
+        noProofRequest: noProofRequiredState,
         credentialMetadata: offer.credentials.first
       )
       switch requestOutcome {
@@ -249,7 +254,13 @@ extension Wallet {
   private func loginUserAndGetAuthCode(
     getAuthorizationCodeUrl: URL,
     actingUser: ActingUser
-  ) -> String? {
-    nil
+  ) async throws -> String? {
+    
+    let helper = WebpageHelper()
+    return try await helper.submit(
+      formUrl: getAuthorizationCodeUrl,
+      username: actingUser.username,
+      password: actingUser.password
+    )
   }
 }

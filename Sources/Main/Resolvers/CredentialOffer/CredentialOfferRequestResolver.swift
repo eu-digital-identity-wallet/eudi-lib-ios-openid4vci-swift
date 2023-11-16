@@ -157,7 +157,7 @@ public actor CredentialOfferRequestResolver {
     credentialOfferRequestObject: CredentialOfferRequestObject,
     credentialIssuerMetadata: CredentialIssuerMetadata
   ) throws -> [CredentialMetadata] {
-    try credentialOfferRequestObject.credentials.map { element in
+    return try credentialOfferRequestObject.credentials.map { element in
       if element.type == .string,
          let scope = element.string {
         if credentialIssuerMetadata.credentialsSupported.first(where: { supportedCredential in

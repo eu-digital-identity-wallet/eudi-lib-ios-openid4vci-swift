@@ -42,6 +42,14 @@ public struct W3CJsonLdSignedJwtProfile: Profile {
 
 public extension W3CJsonLdSignedJwtProfile {
   
+  struct W3CJsonLdSignedJwtClaimSet {
+    public let claims: [ClaimName: Claim]
+    
+    public init(claims: [ClaimName : Claim]) {
+      self.claims = claims
+    }
+  }
+  
   struct CredentialDefinitionTO: Codable {
     public let context: [String]
     public let type: [String]
@@ -249,8 +257,8 @@ public extension W3CJsonLdSignedJwtProfile {
     func toIssuanceRequest(
       claimSet: ClaimSet?,
       proof: Proof?
-    ) -> CredentialIssuanceRequest {
-      .single(.init(format: ""))
+    ) throws -> CredentialIssuanceRequest {
+      throw ValidationError.error(reason: "Not yet implemented")
     }
   }
   

@@ -42,6 +42,7 @@ public actor IssuanceAuthorizer: IssuanceAuthorizerType {
   public let tokenPoster: PostingType
   public let parEndpoint: URL
   public let authorizationEndpoint: URL
+  public let tokenEndpoint: URL
   public let redirectionURI: URL
   public let clientId: String
   public let authorizationServerMetadata: IdentityAndAccessManagementMetadata
@@ -67,7 +68,14 @@ public actor IssuanceAuthorizer: IssuanceAuthorizerType {
     
     switch authorizationServerMetadata {
     case .oidc(let data):
-      if let url = URL(string: data.pushedAuthorizationRequestEndpoint) {
+      
+      if let url = URL(string: data.tokenEndpoint) {
+        self.tokenEndpoint = url
+      } else {
+        throw ValidationError.error(reason: "Invalid token endpoint")
+      }
+      
+      if let url = URL(string: data.authorizationEndpoint) {
         self.authorizationEndpoint = url
       } else {
         throw ValidationError.error(reason: "In valid authorization endpoint")
@@ -79,6 +87,13 @@ public actor IssuanceAuthorizer: IssuanceAuthorizerType {
         throw ValidationError.error(reason: "In valid authorization endpoint")
       }
     case .oauth(let data):
+      
+      if let url = URL(string: data.tokenEndpoint) {
+        self.tokenEndpoint = url
+      } else {
+        throw ValidationError.error(reason: "Invalid token endpoint")
+      }
+      
       if let url = URL(string: data.pushedAuthorizationRequestEndpoint) {
         self.authorizationEndpoint = url
       } else {
@@ -102,13 +117,15 @@ public actor IssuanceAuthorizer: IssuanceAuthorizerType {
       throw ValidationError.error(reason: "No scopes provided. Cannot submit par with no scopes.")
     }
     
+    let codeVerifier = PKCEGenerator.codeVerifier() ?? ""
     let authzRequest = AuthorizationRequest(
       responseType: Self.responseType,
       clientId: config.clientId,
       redirectUri: config.authFlowRedirectionURI.absoluteString,
-      scope: scopes.map { $0.value }.joined(separator: " ").appending("openid"),
+      scope: scopes.map { $0.value }.joined(separator: " ").appending(" openid"),
       state: state,
-      codeChallenge: PKCEGenerator.generateRandomBase64String(),
+      codeChallenge: PKCEGenerator.generateCodeChallenge(codeVerifier: codeVerifier),
+      codeChallengeMethod: CodeChallenge.sha256.rawValue,
       issuerState: issuerState
     )
     
@@ -121,9 +138,6 @@ public actor IssuanceAuthorizer: IssuanceAuthorizerType {
       
       switch response {
       case .success(requestURI: let requestURI, _):
-        guard let codeVerifier = PKCEGenerator.codeVerifier() else {
-          throw ValidationError.error(reason: "Unable to generate code verifier")
-        }
         
         let verifier = try PKCEVerifier(
           codeVerifier: codeVerifier,
@@ -136,7 +150,7 @@ public actor IssuanceAuthorizer: IssuanceAuthorizerType {
           GetAuthorizationCodeURL.PARAM_REQUEST_URI: requestURI
         ]
         
-        guard let urlWithParams = parEndpoint.appendingQueryParameters(queryParams) else {
+        guard let urlWithParams = authorizationEndpoint.appendingQueryParameters(queryParams) else {
           throw ValidationError.invalidUrl(parEndpoint.absoluteString)
         }
         
@@ -171,7 +185,7 @@ public actor IssuanceAuthorizer: IssuanceAuthorizerType {
     
     let response: AccessTokenRequestResponse = try await service.formPost(
       poster: tokenPoster,
-      url: authorizationEndpoint,
+      url: tokenEndpoint,
       parameters: parameters
     )
     

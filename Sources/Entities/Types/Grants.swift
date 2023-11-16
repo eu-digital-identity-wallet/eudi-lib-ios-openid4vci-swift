@@ -29,12 +29,12 @@ public enum Grants {
   }
 
   public struct PreAuthorizedCode {
-    public let preAuthorizedCode: String
+    public let preAuthorizedCode: String?
     public let pinRequired: Bool
     public let interval: TimeInterval
     
     public init(
-      preAuthorizedCode: String,
+      preAuthorizedCode: String?,
       pinRequired: Bool = false,
       interval: TimeInterval = 5.0
     ) {

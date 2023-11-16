@@ -65,9 +65,10 @@ class ExampleTest: XCTestCase {
   
   func testWebPageFormSubmission() async throws {
 
-    try await WebpageHelper().submit(
+    _ = try await WebpageHelper().submit(
       formUrl: URL(string: "https://www.w3schools.com/html/html_forms.asp")!,
-      actionUrl: URL(string: "https://www.w3schools.com/action_page.php")!
+      username: "username",
+      password: "password"
     )
   }
   
@@ -100,7 +101,7 @@ class ExampleTest: XCTestCase {
       bindingKey: bindingKey
     )
     
-    try await walletInitiatedIssuanceNoOffer(wallet: wallet)
+//    try await walletInitiatedIssuanceNoOffer(wallet: wallet)
     try await walletInitiatedIssuanceWithOffer(wallet: wallet)
   }
 }

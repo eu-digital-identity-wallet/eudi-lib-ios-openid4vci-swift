@@ -44,7 +44,7 @@ public protocol IssuerType {
   
   func requestSingle(
     noProofRequest: AuthorizedRequest,
-    credentialMetadata: CredentialMetadata,
+    credentialMetadata: CredentialMetadata?,
     claimSet: ClaimSet?
   ) async throws -> Result<SubmittedRequest, Error>
   
@@ -104,11 +104,15 @@ public actor Issuer: IssuerType {
       }
     let state = UUID().uuidString
     do {
-      let result: (verifier: PKCEVerifier, code: GetAuthorizationCodeURL) = try await authorizer.submitPushedAuthorizationRequest(
+      let result: (
+        verifier: PKCEVerifier,
+        code: GetAuthorizationCodeURL
+      ) = try await authorizer.submitPushedAuthorizationRequest(
         scopes: scopes,
         state: state,
         issuerState: issuerState
       ).get()
+      
       return .success(
         .par(
           .init(
@@ -167,7 +171,10 @@ public actor Issuer: IssuerType {
       switch request.authorizationCode {
       case .authorizationCode(authorizationCode: let authorizationCode):
         do {
-          let response: (accessToken: String, nonce: String?) = try await authorizer.requestAccessTokenAuthFlow(
+          let response: (
+            accessToken: String,
+            nonce: String?
+          ) = try await authorizer.requestAccessTokenAuthFlow(
             authorizationCode: authorizationCode,
             codeVerifier: request.pkceVerifier.codeVerifier
           ).get()
@@ -197,7 +204,7 @@ public actor Issuer: IssuerType {
   public func handleAuthorizationCode(
     parRequested: UnauthorizedRequest,
     authorizationCode: IssuanceAuthorization
-  ) async -> Result<UnauthorizedRequest, Error> {
+  ) -> Result<UnauthorizedRequest, Error> {
     switch parRequested {
     case .par(let request):
       switch authorizationCode {
@@ -233,9 +240,14 @@ public actor Issuer: IssuerType {
   
   public func requestSingle(
     noProofRequest: AuthorizedRequest,
-    credentialMetadata: CredentialMetadata,
-    claimSet: ClaimSet?
+    credentialMetadata: CredentialMetadata?,
+    claimSet: ClaimSet? = nil
   ) async throws -> Result<SubmittedRequest, Error> {
+    
+    guard let credentialMetadata else {
+      throw ValidationError.error(reason: "Invalid credential CredentialMetadata for requestSingle")
+    }
+    
     switch noProofRequest {
     case .noProofRequired(let token):
       return try await requestIssuance(token: token) {
@@ -341,11 +353,16 @@ private extension Issuer {
     case .scope(let byScope):
       return try metaData.credentialsSupported.first { element in
         switch element {
-        case .scope(let scope):
-          return scope.value == byScope.value
+        case .sdJwtVc(let credential):
+          return credential.scope  == byScope.value
+        case .msoMdoc(let credential):
+          return credential.scope  == byScope.value
         default: return false
         }
-      } ?? { throw ValidationError.error(reason: "Issuer does not support issuance of credential scope: \(byScope)") }()
+      } ?? {
+        throw ValidationError.error(
+          reason: "Issuer does not support issuance of credential scope: \(byScope)"
+        ) }()
     default: throw ValidationError.error(reason: "")
     }
   }

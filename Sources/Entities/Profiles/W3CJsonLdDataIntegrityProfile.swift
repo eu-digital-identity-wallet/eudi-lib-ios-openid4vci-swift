@@ -42,6 +42,14 @@ public struct W3CJsonLdDataIntegrityProfile: Profile {
 
 public extension W3CJsonLdDataIntegrityProfile {
   
+  struct W3CJsonLdDataIntegrityClaimSet {
+    public let claims: [ClaimName: Claim]
+    
+    public init(claims: [ClaimName : Claim]) {
+      self.claims = claims
+    }
+  }
+  
   struct CredentialDefinitionTO: Codable {
     public let context: [String]
     public let type: [String]
@@ -264,8 +272,8 @@ public extension W3CJsonLdDataIntegrityProfile {
     func toIssuanceRequest(
       claimSet: ClaimSet?,
       proof: Proof?
-    ) -> CredentialIssuanceRequest {
-      .single(.init(format: ""))
+    ) throws -> CredentialIssuanceRequest {
+      throw ValidationError.error(reason: "Not yet implemented")
     }
   }
   

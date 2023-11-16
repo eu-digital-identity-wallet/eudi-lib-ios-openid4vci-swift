@@ -15,10 +15,10 @@
  */
 import Foundation
 
-public enum CredentialIssuanceError: Error {
-  case pushedAuthorizationRequestFailed(error: String, errorDescription: String?)
-  case accessTokenRequestFailed(error: String, errorDescription: String?)
-  case issuerDoesNotSupportBatchIssuance
-  case responseUnparsable(String)
-  case invalidIssuanceRequest(String)
+public enum ClaimSet {
+  case w3CJsonLdDataIntegrity(W3CJsonLdDataIntegrityProfile.W3CJsonLdDataIntegrityClaimSet)
+  case w3CJsonLdSignedJwt(W3CJsonLdSignedJwtProfile.W3CJsonLdSignedJwtClaimSet)
+  case w3CSignedJwt(W3CSignedJwtProfile.W3CSignedJwtClaimSet)
+  case msoMdoc(MsoMdocProfile.MsoMdocClaimSet)
+  case sdJwtVc(SdJwtVcProfile.SdJwtVcClaimSet)
 }

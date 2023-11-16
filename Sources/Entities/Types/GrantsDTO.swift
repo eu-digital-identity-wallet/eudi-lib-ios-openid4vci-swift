@@ -42,7 +42,7 @@ public extension GrantsDTO {
   // AuthorizationCode, conforming to Codable.
   struct AuthorizationCode: Codable, Equatable {
     // Property representing issuer state.
-    let issuerState: String
+    let issuerState: String?
     
     // CodingKeys enumeration to map JSON keys to struct properties.
     enum CodingKeys: String, CodingKey {
@@ -56,7 +56,7 @@ public extension GrantsDTO {
   
   // Define another nested struct named PreAuthorizationCode, conforming to Codable.
   struct PreAuthorizationCode: Codable, Equatable {
-    public let preAuthorizedCode: String
+    public let preAuthorizedCode: String?
     public let userPinRequired: Bool?
     
     enum CodingKeys: String, CodingKey {

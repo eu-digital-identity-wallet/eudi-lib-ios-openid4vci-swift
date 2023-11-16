@@ -102,4 +102,10 @@ public extension Dictionary where Key == String, Value == Any {
     
     return stringDictionary
   }
+  
+  func containsAll(_ keys: [Key]) -> Bool {
+    let keySet = Set(keys)
+    let dictionaryKeySet = Set(self.keys)
+    return keySet.isSubset(of: dictionaryKeySet)
+  }
 }

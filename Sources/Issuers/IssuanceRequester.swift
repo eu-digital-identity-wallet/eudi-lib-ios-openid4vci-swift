@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 import Foundation
+import SwiftyJSON
 
 protocol IssuanceRequesterType {
   
@@ -59,13 +60,15 @@ public actor IssuanceRequester: IssuanceRequesterType {
     
     do {
       let authorizationHeader: [String: Any] = accessToken.authorizationHeader
-      let encodedRequest: [String: Any] = try JSONEncoder().encode(request).toDictionary()
-      let merged = authorizationHeader.merging(encodedRequest) { (_, new) in new }
+      let encodedRequest: [String: Any] = request.toDictionary().dictionaryValue
+      let merged = authorizationHeader
+        .merging(encodedRequest) { (_, new) in new }
+        .convertToDictionaryOfStrings()
       
       let response: SingleIssuanceSuccessResponse = try await service.formPost(
         poster: poster,
         url: endpoint,
-        parameters: merged.convertToDictionaryOfStrings()
+        parameters: merged
       )
       
       if request.requiresEncryptedResponse() {
@@ -90,7 +93,11 @@ public actor IssuanceRequester: IssuanceRequesterType {
     
     do {
       let authorizationHeader: [String: Any] = accessToken.authorizationHeader
-      let encodedRequest: [String: Any] = try JSONEncoder().encode(request).toDictionary()
+      let encodedRequest: [String: JSON] = request
+        .map { $0.toDictionary() }
+        .reduce(into: [:]) { result, dictionary in
+          result.merge(dictionary) { (_, new) in new }
+        }
       let merged = authorizationHeader.merging(encodedRequest) { (_, new) in new }
       
       let response: BatchIssuanceSuccessResponse = try await service.formPost(

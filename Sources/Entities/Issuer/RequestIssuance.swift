@@ -16,10 +16,6 @@
 import Foundation
 import JOSESwift
 
-public enum ClaimSet {
-  
-}
-
 public struct X509Certificate {}
 
 public enum BindingKey {

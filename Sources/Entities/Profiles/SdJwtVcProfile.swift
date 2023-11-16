@@ -15,6 +15,7 @@
  */
 import Foundation
 import SwiftyJSON
+import JOSESwift
 
 public struct SdJwtVcProfile: Profile {
   
@@ -35,6 +36,85 @@ public struct SdJwtVcProfile: Profile {
 }
 
 public extension SdJwtVcProfile {
+  
+  struct SdJwtVcSingleCredential: Codable {
+    public let format: String
+    public let proof: ProofType?
+    public let credentialEncryptionJwk: JWK?
+    public let credentialResponseEncryptionAlg: JWEAlgorithm?
+    public let credentialResponseEncryptionMethod: JOSEEncryptionMethod?
+    public let credentialDefinition: CredentialDefinition
+    public let type: String
+    public let claimSet: ClaimSet?
+    
+    enum CodingKeys: String, CodingKey {
+      case format
+      case proof
+      case credentialEncryptionJwk
+      case credentialResponseEncryptionAlg
+      case credentialResponseEncryptionMethod
+      case claimSet
+      case credentialDefinition
+      case type
+    }
+    
+    public init(
+      format: String,
+      proof: ProofType? = nil,
+      credentialEncryptionJwk: JWK? = nil,
+      credentialResponseEncryptionAlg: JWEAlgorithm? = nil,
+      credentialResponseEncryptionMethod: JOSEEncryptionMethod? = nil,
+      credentialDefinition: CredentialDefinition,
+      type: String,
+      claimSet: ClaimSet?
+    ) {
+      self.format = format
+      self.proof = proof
+      self.credentialEncryptionJwk = credentialEncryptionJwk
+      self.credentialResponseEncryptionAlg = credentialResponseEncryptionAlg
+      self.credentialResponseEncryptionMethod = credentialResponseEncryptionMethod
+      self.credentialDefinition = credentialDefinition
+      self.type = type
+      self.claimSet = claimSet
+    }
+    
+    public func requiresEncryptedResponse() -> Bool {
+      credentialResponseEncryptionAlg != nil &&
+      credentialEncryptionJwk != nil &&
+      credentialResponseEncryptionMethod != nil
+    }
+    
+    public init(from decoder: Decoder) throws {
+      fatalError("No supported yet")
+    }
+    
+    public func encode(to encoder: Encoder) throws {
+      var container = encoder.container(keyedBy: CodingKeys.self)
+      try container.encode(proof, forKey: .proof)
+      
+      if let credentialEncryptionJwk = credentialEncryptionJwk as? RSAPublicKey {
+        try container.encode(credentialEncryptionJwk, forKey: .credentialEncryptionJwk)
+      } else if let credentialEncryptionJwk = credentialEncryptionJwk as? ECPublicKey {
+        try container.encode(credentialEncryptionJwk, forKey: .credentialEncryptionJwk)
+      }
+      
+      try container.encode(credentialResponseEncryptionAlg, forKey: .credentialResponseEncryptionAlg)
+      try container.encode(credentialResponseEncryptionMethod, forKey: .credentialResponseEncryptionMethod)
+      
+      try container.encode(credentialDefinition, forKey: .credentialDefinition)
+      
+      try container.encode(type, forKey: .type)
+//      try container.encode(claimSet, forKey: .claimSet)
+    }
+  }
+  
+  struct SdJwtVcClaimSet {
+    public let claims: [ClaimName: Claim]
+    
+    public init(claims: [ClaimName : Claim]) {
+      self.claims = claims
+    }
+  }
   
   struct CredentialDefinitionTO: Codable {
     public let type: String
@@ -205,8 +285,40 @@ public extension SdJwtVcProfile {
     func toIssuanceRequest(
       claimSet: ClaimSet?,
       proof: Proof?
-    ) -> CredentialIssuanceRequest {
-      .single(.init(format: ""))
+    ) throws -> CredentialIssuanceRequest {
+      
+      func validateClaimSet(claimSet: SdJwtVcClaimSet) throws -> SdJwtVcClaimSet {
+        if credentialDefinition.claims == nil || (((credentialDefinition.claims?.isEmpty) != nil) && claimSet.claims.isEmpty) {
+          throw CredentialIssuanceError.invalidIssuanceRequest(
+            "Issuer does not support claims for credential [\(SdJwtVcProfile.FORMAT)-\(credentialDefinition.type)]"
+          )
+        }
+        
+        if credentialDefinition.claims == nil || (((credentialDefinition.claims?.isEmpty) != nil) && claimSet.claims.isEmpty) {
+          throw CredentialIssuanceError.invalidIssuanceRequest(
+            "Issuer does not support claims for credential [\(SdJwtVcProfile.FORMAT)-\(credentialDefinition.type)]"
+          )
+        }
+        return claimSet
+      }
+      
+      let validClaimSet: SdJwtVcProfile.SdJwtVcClaimSet?
+      if let claimSet = claimSet {
+        switch claimSet {
+        case .sdJwtVc(let claimSet):
+          validClaimSet = try validateClaimSet(claimSet: claimSet)
+        default: throw CredentialIssuanceError.invalidIssuanceRequest(
+          "Invalid Claim Set provided for issuance"
+        )
+        }
+      }
+      
+      return .single(.sdJwtVc(.init(
+        format: "",
+        credentialDefinition: credentialDefinition,
+        type: "",
+        claimSet: nil
+      )))
     }
   }
   

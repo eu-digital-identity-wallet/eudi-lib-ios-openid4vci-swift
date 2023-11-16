@@ -16,6 +16,8 @@
 import Foundation
 import SwiftSoup
 
+@testable import OpenID4VCI
+
 class WebpageHelper {
   
   func downloadWebPage(url: URL) async -> Result<String?, Error> {
@@ -30,102 +32,85 @@ class WebpageHelper {
       return .success(nil)
     }
   }
-
-  func extractFormFields(from htmlString: String) -> [String: String] {
+  
+  func extractAction(from htmlString: String) -> URL? {
     do {
       let doc = try SwiftSoup.parse(htmlString)
-      let form = try doc.select("form").first()
-      var formFields = [String: String]()
-      
-      for element in try form?.select("input") ?? .init() {
-        let name = try element.attr("name")
-        let value = try element.val()
-        formFields[name] = value
+      let form = try doc.getElementById("kc-form-login")
+      guard let action = try? form?.attr("action") else {
+        return nil
       }
-      
-      return formFields
+      return URL(string: action)
       
     } catch {
       print("Error parsing HTML: \(error)")
-      return [:]
+      return nil
     }
   }
-
+  
   func submitFormUsingBody(
     username: String,
     password: String,
-    formFields: [String: String],
     actionURL: URL
-  ) async throws {
+  ) async throws -> String {
     var request = URLRequest(url: actionURL)
     request.httpMethod = "POST"
     
-    // Build the request body using the form fields
     var body = ""
-    for (key, value) in formFields {
-      body += "\(key)=\(value)&"
-    }
-    body += "fname=\(username)&lname=\(password)"
+    body += "username=\(username)&password=\(password)"
     request.httpBody = body.data(using: .utf8)
     
-    let (data, _) = try await URLSession.shared.data(for: request)
+    let (_, response) = try await URLSession.shared.data(for: request)
     
-    if let responseString = String(data: data, encoding: .utf8) {
-      // Handle the response here
-      print("Response: \(responseString)")
-    } else {
-      print("Invalid response data.")
+    guard let httpResponse = response as? HTTPURLResponse else {
+      throw ValidationError.error(reason: "Invalid response")
     }
+    
+    let redirectUrl = httpResponse.url
+    
+    return try extractValue(
+      url: redirectUrl,
+      forKey: "code"
+    ) ?? {
+      throw ValidationError.error(reason: "Invalid authorisation code")
+    }()
   }
-
-  func submitFormDataUsingQuery(
-    username: String,
-    password: String,
-    formFields: [String: String],
-    actionURL: URL
-  ) async throws {
-    var components = URLComponents(url: actionURL, resolvingAgainstBaseURL: false)!
-    components.queryItems = formFields.compactMap { field in
-      if field.key == "fname" {
-        return URLQueryItem(name: field.key, value: username)
-      } else if field.key == "lname" {
-        return URLQueryItem(name: field.key, value: password)
-      }
-      return nil
-    }
-    
-    guard let finalURL = components.url else {
-      throw NSError(domain: "Invalid URL", code: 0, userInfo: nil)
-    }
-    
-    var request = URLRequest(url: finalURL)
-    request.httpMethod = "POST"
-    
-    let (data, _) = try await URLSession.shared.data(for: request)
-    
-    if let responseString = String(data: data, encoding: .utf8) {
-      print("Response: \(responseString)")
-    } else {
-      print("Invalid response data.")
-    }
-  }
-
+  
   func submit(
     formUrl: URL,
-    actionUrl: URL
-  ) async throws {
+    username: String,
+    password: String
+  ) async throws -> String? {
     
-    if let htmlString = try await downloadWebPage(url: formUrl).get() {
-      let formFields = extractFormFields(from: htmlString)
-      let username = "username"
-      let password = "password"
+    if let htmlString = try await downloadWebPage(url: formUrl).get(),
+       let actionUrl = extractAction(from: htmlString) {
       
-      try await submitFormDataUsingQuery(
+      let username = "babis"
+      let password = "babis"
+      
+      return try await submitFormUsingBody(
         username: username,
         password: password,
-        formFields: formFields,
         actionURL: actionUrl
       )
     }
+    
+    return nil
+  }
+  
+  private func extractValue(
+    url: URL?,
+    forKey key: String
+  ) -> String? {
+    if let url = url,
+       let queryItems = URLComponents(url: url, resolvingAgainstBaseURL: true)?.queryItems {
+      
+      // Find the query item with the specified key
+      if let queryItem = queryItems.first(where: { $0.name == key }),
+         let value = queryItem.value {
+        return value
+      }
+    }
+    return nil
   }
 }
