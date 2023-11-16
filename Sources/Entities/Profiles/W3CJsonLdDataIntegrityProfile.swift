@@ -42,7 +42,7 @@ public struct W3CJsonLdDataIntegrityProfile: Profile {
 
 public extension W3CJsonLdDataIntegrityProfile {
   
-  struct W3CJsonLdDataIntegrityClaimSet {
+  struct W3CJsonLdDataIntegrityClaimSet: Codable {
     public let claims: [ClaimName: Claim]
     
     public init(claims: [ClaimName : Claim]) {

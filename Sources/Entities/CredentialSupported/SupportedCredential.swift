@@ -31,26 +31,16 @@ public extension SupportedCredential {
   ) throws -> CredentialIssuanceRequest {
     switch self {
     case .msoMdoc(let credentialSupported):
+      if let proof,
+         let proofTypesSupported = credentialSupported.proofTypesSupported,
+         proofTypesSupported.contains(proof.type()) {
+        
+      }
       return try credentialSupported.toIssuanceRequest(
         claimSet: claimSet,
         proof: proof
       )
     case .sdJwtVc(let credentialSupported):
-      return try credentialSupported.toIssuanceRequest(
-        claimSet: claimSet,
-        proof: proof
-      )
-    case .w3CSignedJwt(let credentialSupported):
-      return try credentialSupported.toIssuanceRequest(
-        claimSet: claimSet,
-        proof: proof
-      )
-    case .w3CJsonLdSignedJwt(let credentialSupported):
-      return try credentialSupported.toIssuanceRequest(
-        claimSet: claimSet,
-        proof: proof
-      )
-    case .w3CJsonLdDataIntegrity(let credentialSupported):
       return try credentialSupported.toIssuanceRequest(
         claimSet: claimSet,
         proof: proof

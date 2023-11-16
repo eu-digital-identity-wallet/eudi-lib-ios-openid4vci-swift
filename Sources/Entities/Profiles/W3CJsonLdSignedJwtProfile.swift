@@ -42,7 +42,7 @@ public struct W3CJsonLdSignedJwtProfile: Profile {
 
 public extension W3CJsonLdSignedJwtProfile {
   
-  struct W3CJsonLdSignedJwtClaimSet {
+  struct W3CJsonLdSignedJwtClaimSet: Codable {
     public let claims: [ClaimName: Claim]
     
     public init(claims: [ClaimName : Claim]) {

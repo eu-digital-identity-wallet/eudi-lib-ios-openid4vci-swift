@@ -83,7 +83,13 @@ extension Wallet {
 extension Wallet {
   
   func issueByCredentialOfferUrl(url: String) async throws -> String {
-    let result = await CredentialOfferRequestResolver().resolve(source: try .init(urlString: url))
+    let result = await CredentialOfferRequestResolver()
+      .resolve(
+        source: try .init(
+          urlString: url
+        )
+      )
+    
     switch result {
     case .success(let offer):
       return try await issueOfferedCredentialWithProof(offer: offer)

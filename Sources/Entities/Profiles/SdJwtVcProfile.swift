@@ -38,44 +38,36 @@ public struct SdJwtVcProfile: Profile {
 public extension SdJwtVcProfile {
   
   struct SdJwtVcSingleCredential: Codable {
-    public let format: String
-    public let proof: ProofType?
+    public let proof: Proof?
     public let credentialEncryptionJwk: JWK?
     public let credentialResponseEncryptionAlg: JWEAlgorithm?
     public let credentialResponseEncryptionMethod: JOSEEncryptionMethod?
     public let credentialDefinition: CredentialDefinition
-    public let type: String
-    public let claimSet: ClaimSet?
     
     enum CodingKeys: String, CodingKey {
-      case format
       case proof
       case credentialEncryptionJwk
       case credentialResponseEncryptionAlg
       case credentialResponseEncryptionMethod
-      case claimSet
       case credentialDefinition
-      case type
     }
     
     public init(
-      format: String,
-      proof: ProofType? = nil,
+      proof: Proof?,
+      type: String,
       credentialEncryptionJwk: JWK? = nil,
       credentialResponseEncryptionAlg: JWEAlgorithm? = nil,
       credentialResponseEncryptionMethod: JOSEEncryptionMethod? = nil,
-      credentialDefinition: CredentialDefinition,
-      type: String,
-      claimSet: ClaimSet?
+      credentialDefinition: CredentialDefinition
     ) {
-      self.format = format
       self.proof = proof
       self.credentialEncryptionJwk = credentialEncryptionJwk
       self.credentialResponseEncryptionAlg = credentialResponseEncryptionAlg
       self.credentialResponseEncryptionMethod = credentialResponseEncryptionMethod
-      self.credentialDefinition = credentialDefinition
-      self.type = type
-      self.claimSet = claimSet
+      self.credentialDefinition = .init(
+        type: type,
+        claims: credentialDefinition.claims
+      )
     }
     
     public func requiresEncryptedResponse() -> Bool {
@@ -102,13 +94,10 @@ public extension SdJwtVcProfile {
       try container.encode(credentialResponseEncryptionMethod, forKey: .credentialResponseEncryptionMethod)
       
       try container.encode(credentialDefinition, forKey: .credentialDefinition)
-      
-      try container.encode(type, forKey: .type)
-//      try container.encode(claimSet, forKey: .claimSet)
     }
   }
   
-  struct SdJwtVcClaimSet {
+  struct SdJwtVcClaimSet: Codable {
     public let claims: [ClaimName: Claim]
     
     public init(claims: [ClaimName : Claim]) {
@@ -287,8 +276,11 @@ public extension SdJwtVcProfile {
       proof: Proof?
     ) throws -> CredentialIssuanceRequest {
       
-      func validateClaimSet(claimSet: SdJwtVcClaimSet) throws -> SdJwtVcClaimSet {
-        if credentialDefinition.claims == nil || (((credentialDefinition.claims?.isEmpty) != nil) && claimSet.claims.isEmpty) {
+      func validateClaimSet(
+        claimSet: SdJwtVcClaimSet
+      ) throws -> SdJwtVcClaimSet {
+        if credentialDefinition.claims == nil ||
+           (((credentialDefinition.claims?.isEmpty) != nil) && claimSet.claims.isEmpty) {
           throw CredentialIssuanceError.invalidIssuanceRequest(
             "Issuer does not support claims for credential [\(SdJwtVcProfile.FORMAT)-\(credentialDefinition.type)]"
           )
@@ -314,10 +306,9 @@ public extension SdJwtVcProfile {
       }
       
       return .single(.sdJwtVc(.init(
-        format: "",
-        credentialDefinition: credentialDefinition,
-        type: "",
-        claimSet: nil
+        proof: proof, 
+        type: credentialDefinition.type,
+        credentialDefinition: credentialDefinition
       )))
     }
   }
@@ -331,7 +322,10 @@ public extension SdJwtVcProfile {
       case claims
     }
     
-    public init(type: String, claims: [ClaimName : Claim?]?) {
+    public init(
+      type: String,
+      claims: [ClaimName: Claim?]?
+    ) {
       self.type = type
       self.claims = claims
     }

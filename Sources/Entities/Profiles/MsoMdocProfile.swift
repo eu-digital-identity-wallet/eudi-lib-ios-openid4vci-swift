@@ -103,7 +103,7 @@ public extension MsoMdocProfile {
     }
   }
   
-  struct MsoMdocClaimSet {
+  struct MsoMdocClaimSet: Codable {
     public let claims: MsoMdocClaims
     
     public init(claims: MsoMdocClaims) {

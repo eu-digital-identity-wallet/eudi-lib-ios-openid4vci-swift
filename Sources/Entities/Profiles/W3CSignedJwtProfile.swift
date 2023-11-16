@@ -36,7 +36,7 @@ public struct W3CSignedJwtProfile: Profile {
 
 public extension W3CSignedJwtProfile {
   
-  struct W3CSignedJwtClaimSet {
+  struct W3CSignedJwtClaimSet: Codable {
     public let claims: [ClaimName: Claim]
     
     public init(claims: [ClaimName : Claim]) {

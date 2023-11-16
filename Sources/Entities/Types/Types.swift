@@ -19,7 +19,7 @@ import JOSESwift
 
 public typealias JWT = String
 
-public enum Proof {
+public enum Proof: Codable {
   case jwt(JWT)
   case cwt(String)
   
@@ -29,6 +29,31 @@ public enum Proof {
       return .jwt
     case .cwt:
       return .cwt
+    }
+  }
+  
+  // MARK: - Codable
+  
+  public init(from decoder: Decoder) throws {
+    let container = try decoder.singleValueContainer()
+    
+    if let jwt = try? container.decode(JWT.self) {
+      self = .jwt(jwt)
+    } else if let cwt = try? container.decode(String.self) {
+      self = .cwt(cwt)
+    } else {
+      throw DecodingError.typeMismatch(Proof.self, DecodingError.Context(codingPath: decoder.codingPath, debugDescription: "Invalid proof type"))
+    }
+  }
+  
+  public func encode(to encoder: Encoder) throws {
+    var container = encoder.singleValueContainer()
+    
+    switch self {
+    case .jwt(let jwt):
+      try container.encode(jwt)
+    case .cwt(let cwt):
+      try container.encode(cwt)
     }
   }
 }
