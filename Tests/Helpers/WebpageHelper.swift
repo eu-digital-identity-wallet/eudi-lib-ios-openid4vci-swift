@@ -84,10 +84,6 @@ class WebpageHelper {
     
     if let htmlString = try await downloadWebPage(url: formUrl).get(),
        let actionUrl = extractAction(from: htmlString) {
-      
-      let username = "babis"
-      let password = "babis"
-      
       return try await submitFormUsingBody(
         username: username,
         password: password,

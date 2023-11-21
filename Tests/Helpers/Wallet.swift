@@ -135,9 +135,11 @@ extension Wallet {
     var pushedAuthorizationRequestEndpoint = ""
     if case let .oidc(metaData) = offer.authorizationServerMetadata {
       pushedAuthorizationRequestEndpoint = metaData.pushedAuthorizationRequestEndpoint
+      
     } else if case let .oauth(metaData) = offer.authorizationServerMetadata {
       pushedAuthorizationRequestEndpoint = metaData.pushedAuthorizationRequestEndpoint
     }
+    
     print("--> Placing PAR to AS server's endpoint \(pushedAuthorizationRequestEndpoint)")
     
     let parPlaced = await issuer.pushAuthorizationCodeRequest(

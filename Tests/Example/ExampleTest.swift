@@ -19,7 +19,9 @@ import JOSESwift
 
 @testable import OpenID4VCI
 
-let CredentialIssuer_URL = "http://localhost:8080"
+//let CredentialIssuer_URL = "http://localhost:8080"
+let CredentialIssuer_URL = "https://eudi.netcompany-intrasoft.com/pid-issuer"
+
 let PID_SdJwtVC_SCOPE = "eu.europa.ec.eudiw.pid_vc_sd_jwt"
 let PID_MsoMdoc_SCOPE = "eu.europa.ec.eudiw.pid_mso_mdoc"
 
@@ -92,8 +94,8 @@ class ExampleTest: XCTestCase {
     )
     
     let user = ActingUser(
-      username: "babis",
-      password: "babis"
+      username: "tneal",
+      password: "password"
     )
     
     let wallet = Wallet(
@@ -110,7 +112,7 @@ private func walletInitiatedIssuanceWithOffer(wallet: Wallet) async throws {
   
   print("[[Scenario: Offer passed to wallet via url]] ")
   
-  let url = "http://localhost:8080/credentialoffer?credential_offer=\(SdJwtVC_CredentialOffer)"
+  let url = "\(CredentialIssuer_URL)/credentialoffer?credential_offer=\(SdJwtVC_CredentialOffer)"
   let credential = try await wallet.issueByCredentialOfferUrl(url: url)
   
   print("--> Issued credential : \(credential)")
