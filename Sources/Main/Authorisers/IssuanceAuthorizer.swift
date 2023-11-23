@@ -185,7 +185,8 @@ public actor IssuanceAuthorizer: IssuanceAuthorizerType {
     
     let response: AccessTokenRequestResponse = try await service.formPost(
       poster: tokenPoster,
-      url: tokenEndpoint,
+      url: tokenEndpoint, 
+      headers: [:],
       parameters: parameters
     )
     
@@ -212,6 +213,7 @@ public actor IssuanceAuthorizer: IssuanceAuthorizerType {
     let response: AccessTokenRequestResponse = try await service.formPost(
       poster: tokenPoster,
       url: authorizationEndpoint,
+      headers: [:],
       parameters: parameters
     )
     

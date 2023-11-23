@@ -27,7 +27,15 @@ public protocol AuthorisationServiceType {
   func formPost<U: Codable>(
     poster: PostingType,
     url: URL,
+    headers: [String: String],
     parameters: [String: String]
+  ) async throws -> U
+  
+  func formPost<U: Codable>(
+    poster: PostingType,
+    url: URL,
+    headers: [String: String],
+    body: [String: Any]
   ) async throws -> U
 }
 
@@ -57,14 +65,37 @@ public actor AuthorisationService: AuthorisationServiceType {
   public func formPost<U: Codable>(
     poster: PostingType,
     url: URL,
+    headers: [String: String] = [:],
     parameters: [String: String]
   ) async throws -> U {
     let post = FormPost(
       additionalHeaders: [
         ContentType.key.rawValue: ContentType.form.rawValue
-      ],
+      ].merging(headers, uniquingKeysWith: { _, new in
+        new
+      }),
       url: url,
       formData: parameters
+    )
+    
+    let result: Result<U, PostError> = await poster.post(request: post.urlRequest)
+    return try result.get()
+  }
+  
+  public func formPost<U: Codable>(
+    poster: PostingType,
+    url: URL,
+    headers: [String: String],
+    body: [String: Any]
+  ) async throws -> U {
+    let post = FormPost(
+      additionalHeaders: [
+        ContentType.key.rawValue: ContentType.json.rawValue
+      ].merging(headers, uniquingKeysWith: { _, new in
+        new
+      }),
+      url: url,
+      formData: body
     )
     
     let result: Result<U, PostError> = await poster.post(request: post.urlRequest)

@@ -15,15 +15,28 @@
  */
 import Foundation
 
-public struct Constants {
-  public static let GRANT_TYPE_PARAM = "grant_type"
-  public static let REDIRECT_URI_PARAM = "redirect_uri"
-  public static let CLIENT_ID_PARAM = "client_id"
-  public static let CODE_VERIFIER_PARAM = "code_verifier"
-  public static let AUTHORIZATION_CODE_PARAM = "code"
-  
-  public static let USER_PIN_PARAM = "user_pin"
-  public static let PRE_AUTHORIZED_CODE_PARAM = "pre_authorized_code"
-  
-  public static let OPENID_SCOPE = "openid"
+public struct JWTClaimNames {
+
+  // RFC 7519 "iss" (Issuer) Claim
+  public static let issuer = "iss"
+
+  // RFC 7519 "sub" (Subject) Claim
+  public static let subject = "sub"
+
+  // RFC 7519 "aud" (Audience) Claim
+  public static let audience = "aud"
+
+  // RFC 7519 "exp" (Expiration Time) Claim
+  public static let expirationTime = "exp"
+
+  // RFC 7519 "nbf" (Not Before) Claim
+  public static let notBefore = "nbf"
+
+  // RFC 7519 "iat" (Issued At) Claim
+  public static let issuedAt = "iat"
+
+  // RFC 7519 "jti" (JWT ID) Claim
+  public static let jwtId = "jti"
+
+  private init() {}
 }

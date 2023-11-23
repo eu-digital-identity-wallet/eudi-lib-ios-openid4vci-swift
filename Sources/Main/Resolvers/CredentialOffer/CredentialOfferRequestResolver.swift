@@ -177,7 +177,7 @@ public actor CredentialOfferRequestResolver {
           }
           
         }) != nil {
-          return .scope(try .init(value: scope))
+          return .scope(try .init(scope))
           
         } else {
           throw ValidationError.error(reason: "Unknown scope \(scope)")

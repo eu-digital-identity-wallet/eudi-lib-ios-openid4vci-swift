@@ -17,6 +17,8 @@ import Foundation
 
 public enum ValidationError: Error {
   case error(reason: String)
+  case todo(reason: String)
   case nonHttpsUrl(String)
   case invalidUrl(String)
+  case response(GenericErrorResponse)
 }

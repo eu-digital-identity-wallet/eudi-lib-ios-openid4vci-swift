@@ -58,8 +58,37 @@ public enum SingleCredential {
 }
 
 public extension SingleCredential {
-  func toDictionary() -> JSON {
-    JSON()
+  func toDictionary() throws -> JSON {
+    switch self {
+    case .msoMdoc:
+      throw ValidationError.todo(reason: "Not yet implemented")
+    case .sdJwtVc(let credential):
+      switch credential.requestedCredentialResponseEncryption {
+      case .notRequested:
+        return [
+          "credential_definition" : [
+            "type": credential.credentialDefinition.type
+          ]
+        ]
+      case .requested(
+        let encryptionJwk,
+        _,
+        let responseEncryptionAlg,
+        let responseEncryptionMethod
+      ):
+        let credentialDefinition = try [
+          "type": credential.credentialDefinition.type
+        ].toDictionary()
+        
+        return [
+          "format": SdJwtVcProfile.FORMAT,
+          "credential_encryption_jwk": try encryptionJwk.toDictionary(),
+          "credential_response_encryption_alg": responseEncryptionAlg.name,
+          "credential_response_encryption_enc": responseEncryptionMethod.name,
+          "credential_definition": credentialDefinition
+        ]
+      }
+    }
   }
   
   func requiresEncryptedResponse() -> Bool {

@@ -18,10 +18,11 @@ import Foundation
 public enum PostError: Error {
   case invalidUrl
   case networkError(Error)
-
+  case response(GenericErrorResponse)
+  
   /**
    Provides a localized description of the post error.
-
+   
    - Returns: A string describing the post error.
    */
   public var localizedDescription: String {
@@ -30,6 +31,8 @@ public enum PostError: Error {
       return "Invalid URL"
     case .networkError(let error):
       return "Network Error: \(error.localizedDescription)"
+    case .response:
+      return "Generic error response"
     }
   }
 }
@@ -40,20 +43,20 @@ public protocol PostingType {
   
   /**
    Performs a POST request with the provided URLRequest.
-
+   
    - Parameters:
-      - request: The URLRequest to be used for the POST request.
-
+   - request: The URLRequest to be used for the POST request.
+   
    - Returns: A Result type with the response data or an error.
    */
   func post<Response: Codable>(request: URLRequest) async -> Result<Response, PostError>
-
+  
   /**
    Performs a POST request with the provided URLRequest.
-
+   
    - Parameters:
-      - request: The URLRequest to be used for the POST request.
-
+   - request: The URLRequest to be used for the POST request.
+   
    - Returns: A Result type with a success boolean (based on status code) or an error.
    */
   func check(request: URLRequest) async -> Result<Bool, PostError>
@@ -69,20 +72,26 @@ public struct Poster: PostingType {
   public init(session: Networking = URLSession.shared) {
     self.session = session
   }
-
+  
   /**
    Performs a POST request with the provided URLRequest.
-
+   
    - Parameters:
-      - request: The URLRequest to be used for the POST request.
-
+   - request: The URLRequest to be used for the POST request.
+   
    - Returns: A Result type with the response data or an error.
    */
   public func post<Response: Codable>(request: URLRequest) async -> Result<Response, PostError> {
     do {
-      let (data, _) = try await self.session.data(for: request)
+      let (data, response) = try await self.session.data(for: request)
+      let statusCode = (response as? HTTPURLResponse)?.statusCode ?? 0
+      
+      if statusCode >= 400 && statusCode < 500 {
+        let object = try JSONDecoder().decode(GenericErrorResponse.self, from: data)
+          return .failure(.response(object))
+      }
       let object = try JSONDecoder().decode(Response.self, from: data)
-
+      
       return .success(object)
     } catch let error as NSError {
       return .failure(.networkError(error))
@@ -90,13 +99,13 @@ public struct Poster: PostingType {
       return .failure(.networkError(error))
     }
   }
-
+  
   /**
    Performs a POST request with the provided URLRequest.
-
+   
    - Parameters:
-      - request: The URLRequest to be used for the POST request.
-
+   - request: The URLRequest to be used for the POST request.
+   
    - Returns: A Result type with a success boolean (based on status code) or an error.
    */
   public func check(request: URLRequest) async -> Result<Bool, PostError> {

@@ -25,7 +25,11 @@ struct Wallet {
 extension Wallet {
   func issueByScope(_ scope: String) async throws -> String {
     let credentialIssuerIdentifier = try CredentialIssuerId(CredentialIssuer_URL)
-    let issuerMetadata = await CredentialIssuerMetadataResolver().resolve(source: .credentialIssuer(credentialIssuerIdentifier))
+    let issuerMetadata = await CredentialIssuerMetadataResolver().resolve(
+      source: .credentialIssuer(
+        credentialIssuerIdentifier
+      )
+    )
     
     switch issuerMetadata {
     case .success(let metaData):
@@ -36,7 +40,10 @@ extension Wallet {
         let offer = try CredentialOffer(
           credentialIssuerIdentifier: credentialIssuerIdentifier,
           credentialIssuerMetadata: metaData,
-          credentials: [.scope(.init(value: scope))],
+          credentials: [
+            .scope(.init(scope)),
+            .scope(.init(Constants.OPENID_SCOPE))
+          ],
           authorizationServerMetadata: try authServerMetadata.get()
         )
         return try await issueOfferedCredentialNoProof(offer: offer)
@@ -190,7 +197,10 @@ extension Wallet {
     case .noProofRequired:
       let requestOutcome = try await issuer.requestSingle(
         noProofRequest: noProofRequiredState,
-        credentialMetadata: offer.credentials.first
+        credentialMetadata: offer.credentials.first, 
+        responseEncryptionSpecProvider: { credentialResponseEncryption in
+          return Issuer.createResponseEncryptionSpec(credentialResponseEncryption)
+        }
       )
       switch requestOutcome {
       case .success(let request):
@@ -231,7 +241,10 @@ extension Wallet {
     let requestOutcome = try await issuer.requestSingle(
       proofRequest: authorized,
       credentialMetadata: offer.credentials.first,
-      bindingKey: bindingKey
+      bindingKey: bindingKey, 
+      responseEncryptionSpecProvider:  { credentialResponseEncryption in
+        return Issuer.createResponseEncryptionSpec(credentialResponseEncryption)
+      }
     )
     
     switch requestOutcome {

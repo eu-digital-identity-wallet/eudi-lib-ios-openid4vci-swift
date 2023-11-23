@@ -18,18 +18,6 @@ import JOSESwift
 
 public struct X509Certificate {}
 
-public enum BindingKey {
-  
-  // JWK Binding Key
-  case jwk(algorithm: JWSAlgorithm, jwk: JWK)
-  
-  // DID Binding Key
-  case did(identity: String)
-  
-  // X509 Binding Key
-  case x509(certificate: X509Certificate)
-}
-
 protocol RequestIssuance {
   
   // Request single issuance without proof

@@ -23,8 +23,7 @@ public struct CredentialIssuerMetadata: Codable, Equatable {
   let credentialEndpoint: CredentialIssuerEndpoint
   let batchCredentialEndpoint: CredentialIssuerEndpoint?
   let deferredCredentialEndpoint: CredentialIssuerEndpoint?
-  let credentialResponseEncryptionAlgorithmsSupported: [JWEAlgorithm]?
-  let credentialResponseEncryptionMethodsSupported: [JOSEEncryptionMethod]?
+  let credentialResponseEncryption: CredentialResponseEncryption
   let requireCredentialResponseEncryption: Bool
   let credentialsSupported: [SupportedCredential]
   let display: [Display]
@@ -48,8 +47,7 @@ public struct CredentialIssuerMetadata: Codable, Equatable {
     credentialEndpoint: CredentialIssuerEndpoint,
     batchCredentialEndpoint: CredentialIssuerEndpoint?,
     deferredCredentialEndpoint: CredentialIssuerEndpoint?,
-    credentialResponseEncryptionAlgorithmsSupported: [JWEAlgorithm]? = nil,
-    credentialResponseEncryptionMethodsSupported: [JOSEEncryptionMethod]? = nil,
+    credentialResponseEncryption: CredentialResponseEncryption = .notRequired,
     requireCredentialResponseEncryption: Bool?,
     credentialsSupported: [SupportedCredential],
     display: [Display]?
@@ -59,8 +57,7 @@ public struct CredentialIssuerMetadata: Codable, Equatable {
     self.credentialEndpoint = credentialEndpoint
     self.batchCredentialEndpoint = batchCredentialEndpoint
     self.deferredCredentialEndpoint = deferredCredentialEndpoint
-    self.credentialResponseEncryptionAlgorithmsSupported = credentialResponseEncryptionAlgorithmsSupported
-    self.credentialResponseEncryptionMethodsSupported = credentialResponseEncryptionMethodsSupported
+    self.credentialResponseEncryption = credentialResponseEncryption
     self.requireCredentialResponseEncryption = requireCredentialResponseEncryption ?? false
     self.credentialsSupported = credentialsSupported
     self.display = display ?? []
@@ -76,8 +73,17 @@ public struct CredentialIssuerMetadata: Codable, Equatable {
     credentialEndpoint = try container.decode(CredentialIssuerEndpoint.self, forKey: .credentialEndpoint)
     batchCredentialEndpoint = try container.decodeIfPresent(CredentialIssuerEndpoint.self, forKey: .batchCredentialEndpoint)
     deferredCredentialEndpoint = try container.decodeIfPresent(CredentialIssuerEndpoint.self, forKey: .deferredCredentialEndpoint)
-    credentialResponseEncryptionAlgorithmsSupported = try container.decodeIfPresent([JWEAlgorithm].self, forKey: .credentialResponseEncryptionAlgorithmsSupported)
-    credentialResponseEncryptionMethodsSupported = try container.decodeIfPresent([JOSEEncryptionMethod].self, forKey: .credentialResponseEncryptionMethodsSupported)
+    
+    if let credentialResponseEncryptionAlgorithmsSupported = try container.decodeIfPresent([JWEAlgorithm].self, forKey: .credentialResponseEncryptionAlgorithmsSupported),
+       let credentialResponseEncryptionMethodsSupported = try container.decodeIfPresent([JOSEEncryptionMethod].self, forKey: .credentialResponseEncryptionMethodsSupported) {
+      credentialResponseEncryption = .required(
+        algorithmsSupported: credentialResponseEncryptionAlgorithmsSupported,
+        encryptionMethodsSupported: credentialResponseEncryptionMethodsSupported
+      )
+    } else {
+      credentialResponseEncryption = .notRequired
+    }
+    
     requireCredentialResponseEncryption = try container.decodeIfPresent(Bool.self, forKey: .requireCredentialResponseEncryption) ?? false
     let credentialsSupportedJSON = try container.decodeIfPresent([JSON].self, forKey: .credentialsSupported) ?? []
     credentialsSupported = try credentialsSupportedJSON.map { json in
@@ -117,8 +123,17 @@ public struct CredentialIssuerMetadata: Codable, Equatable {
     try container.encode(credentialEndpoint, forKey: .credentialEndpoint)
     try container.encode(batchCredentialEndpoint, forKey: .batchCredentialEndpoint)
     try container.encode(deferredCredentialEndpoint, forKey: .deferredCredentialEndpoint)
-    try container.encode(credentialResponseEncryptionAlgorithmsSupported, forKey: .credentialResponseEncryptionAlgorithmsSupported)
-    try container.encode(credentialResponseEncryptionMethodsSupported, forKey: .credentialResponseEncryptionMethodsSupported)
+    
+    switch credentialResponseEncryption {
+    case .notRequired: break
+    case .required(
+      let algorithmsSupported,
+      let encryptionMethodsSupported
+    ):
+      try container.encode(algorithmsSupported, forKey: .credentialResponseEncryptionAlgorithmsSupported)
+      try container.encode(encryptionMethodsSupported, forKey: .credentialResponseEncryptionMethodsSupported)
+    }
+    
     try container.encode(requireCredentialResponseEncryption, forKey: .requireCredentialResponseEncryption)
     try container.encode(credentialsSupported, forKey: .credentialsSupported)
     try container.encode(display, forKey: .display)

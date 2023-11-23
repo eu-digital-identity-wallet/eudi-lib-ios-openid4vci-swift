@@ -14,8 +14,14 @@
  * limitations under the License.
  */
 import Foundation
+import SwiftyJSON
 
 public extension Dictionary where Key == String, Value == Any {
+  
+  func toThrowingJSONData() throws -> Data {
+    return try JSONSerialization.data(withJSONObject: self, options: [])
+  }
+  
   // Creates a dictionary from a JSON file in the specified bundle
   static func from(bundle name: String) -> Result<Self, JSONParseError> {
     let fileType = "json"
@@ -97,6 +103,8 @@ public extension Dictionary where Key == String, Value == Any {
     for (key, value) in self {
       if let stringValue = value as? String {
         stringDictionary[key] = stringValue
+      } else {
+        stringDictionary[key] = JSON(value).stringValue
       }
     }
     

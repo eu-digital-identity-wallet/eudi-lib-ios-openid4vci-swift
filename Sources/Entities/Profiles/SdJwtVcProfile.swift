@@ -39,10 +39,13 @@ public extension SdJwtVcProfile {
   
   struct SdJwtVcSingleCredential: Codable {
     public let proof: Proof?
+    public let format: String = SdJwtVcProfile.FORMAT
     public let credentialEncryptionJwk: JWK?
+    public let credentialEncryptionKey: SecKey?
     public let credentialResponseEncryptionAlg: JWEAlgorithm?
     public let credentialResponseEncryptionMethod: JOSEEncryptionMethod?
     public let credentialDefinition: CredentialDefinition
+    public let requestedCredentialResponseEncryption: RequestedCredentialResponseEncryption
     
     enum CodingKeys: String, CodingKey {
       case proof
@@ -55,23 +58,31 @@ public extension SdJwtVcProfile {
     public init(
       proof: Proof?,
       credentialEncryptionJwk: JWK? = nil,
+      credentialEncryptionKey: SecKey? = nil,
       credentialResponseEncryptionAlg: JWEAlgorithm? = nil,
       credentialResponseEncryptionMethod: JOSEEncryptionMethod? = nil,
       credentialDefinition: CredentialDefinition
-    ) {
+    ) throws {
       self.proof = proof
       self.credentialEncryptionJwk = credentialEncryptionJwk
+      self.credentialEncryptionKey = credentialEncryptionKey
       self.credentialResponseEncryptionAlg = credentialResponseEncryptionAlg
       self.credentialResponseEncryptionMethod = credentialResponseEncryptionMethod
       self.credentialDefinition = .init(
         type: credentialDefinition.type,
         claims: credentialDefinition.claims
       )
+      self.requestedCredentialResponseEncryption = try .init(
+        encryptionJwk: credentialEncryptionJwk,
+        encryptionKey: credentialEncryptionKey,
+        responseEncryptionAlg: credentialResponseEncryptionAlg,
+        responseEncryptionMethod: credentialResponseEncryptionMethod
+      )
     }
     
     public func requiresEncryptedResponse() -> Bool {
       credentialResponseEncryptionAlg != nil &&
-      credentialEncryptionJwk != nil &&
+      (credentialEncryptionJwk != nil || credentialEncryptionKey != nil)  &&
       credentialResponseEncryptionMethod != nil
     }
     
@@ -287,6 +298,7 @@ public extension SdJwtVcProfile {
     }
     
     func toIssuanceRequest(
+      responseEncryptionSpec: IssuanceResponseEncryptionSpec?,
       claimSet: ClaimSet?,
       proof: Proof?
     ) throws -> CredentialIssuanceRequest {
@@ -324,10 +336,14 @@ public extension SdJwtVcProfile {
         }
       }
       
-      return .single(
+      return try .single(
         .sdJwtVc(
           .init(
             proof: proof,
+            credentialEncryptionJwk: responseEncryptionSpec?.jwk,
+            credentialEncryptionKey: responseEncryptionSpec?.privateKey,
+            credentialResponseEncryptionAlg: responseEncryptionSpec?.algorithm,
+            credentialResponseEncryptionMethod: responseEncryptionSpec?.encryptionMethod,
             credentialDefinition: .init(
               type: credentialDefinition.type,
               claims: .sdJwtVc(

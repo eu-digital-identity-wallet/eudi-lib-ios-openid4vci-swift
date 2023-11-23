@@ -19,8 +19,8 @@ import JOSESwift
 
 @testable import OpenID4VCI
 
-//let CredentialIssuer_URL = "http://localhost:8080"
-let CredentialIssuer_URL = "https://eudi.netcompany-intrasoft.com/pid-issuer"
+let CredentialIssuer_URL = "http://localhost:8080"
+//let CredentialIssuer_URL = "https://eudi.netcompany-intrasoft.com/pid-issuer"
 
 let PID_SdJwtVC_SCOPE = "eu.europa.ec.eudiw.pid_vc_sd_jwt"
 let PID_MsoMdoc_SCOPE = "eu.europa.ec.eudiw.pid_mso_mdoc"
@@ -90,7 +90,8 @@ class ExampleTest: XCTestCase {
     
     let bindingKey: BindingKey = .jwk(
       algorithm: alg,
-      jwk: publicKeyJWK
+      jwk: publicKeyJWK, 
+      privateKey: privateKey
     )
     
     let user = ActingUser(
@@ -103,8 +104,8 @@ class ExampleTest: XCTestCase {
       bindingKey: bindingKey
     )
     
-//    try await walletInitiatedIssuanceNoOffer(wallet: wallet)
     try await walletInitiatedIssuanceWithOffer(wallet: wallet)
+    //try await walletInitiatedIssuanceNoOffer(wallet: wallet)
   }
 }
 

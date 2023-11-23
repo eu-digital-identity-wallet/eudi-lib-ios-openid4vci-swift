@@ -26,8 +26,10 @@ public enum SupportedCredential: Codable {
 
 public extension SupportedCredential {
   func toIssuanceRequest(
-      claimSet: ClaimSet?,
-      proof: Proof? = nil
+    requester: IssuanceRequesterType,
+    claimSet: ClaimSet?,
+    proof: Proof? = nil,
+    responseEncryptionSpecProvider: (_ issuerResponseEncryptionMetadata: CredentialResponseEncryption) -> IssuanceResponseEncryptionSpec?
   ) throws -> CredentialIssuanceRequest {
     switch self {
     case .msoMdoc(let credentialSupported):
@@ -46,7 +48,30 @@ public extension SupportedCredential {
          proofTypesSupported.contains(proof.type()) {
         
       }
+      
+      let issuerEncryption = requester.issuerMetadata.credentialResponseEncryption
+      let responseEncryptionSpec = responseEncryptionSpecProvider(issuerEncryption)
+      
+      if let responseEncryptionSpec {
+        switch issuerEncryption {
+        case .notRequired:
+          throw CredentialIssuanceError.issuerDoesNotSupportEncryptedResponses
+        case .required(
+          let algorithmsSupported,
+          let encryptionMethodsSupported
+        ):
+          if !algorithmsSupported.contains(responseEncryptionSpec.algorithm) {
+            throw CredentialIssuanceError.responseEncryptionAlgorithmNotSupportedByIssuer
+          }
+          
+          if !encryptionMethodsSupported.contains(responseEncryptionSpec.encryptionMethod) {
+            throw CredentialIssuanceError.responseEncryptionMethodNotSupportedByIssuer
+          }
+        }
+      }
+     
       return try credentialSupported.toIssuanceRequest(
+        responseEncryptionSpec: responseEncryptionSpec,
         claimSet: claimSet,
         proof: proof
       )

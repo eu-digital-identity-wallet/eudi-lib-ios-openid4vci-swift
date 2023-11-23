@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 import Foundation
+import SwiftyJSON
 
 /// A struct representing a form POST request.
 public struct FormPost: Request {
@@ -33,6 +34,10 @@ public struct FormPost: Request {
    var formDataComponents = URLComponents()
    formDataComponents.queryItems = formData.toQueryItems()
    let formDataString = formDataComponents.query
+   
+   if let formDataString, formDataString.isEmpty {
+     return JSON(formData).rawString()?.data(using: .utf8)
+   }
    return formDataString?.data(using: .utf8)
  }
 
@@ -44,7 +49,12 @@ public struct FormPost: Request {
    var request = URLRequest(url: url)
    request.httpMethod = method.rawValue
    request.httpBody = body
-   request.allHTTPHeaderFields = additionalHeaders
+   
+   // request.allHTTPHeaderFields = additionalHeaders
+   for (key, value) in additionalHeaders {
+     request.addValue(value, forHTTPHeaderField: key)
+   }
+   
    return request
  }
 }
