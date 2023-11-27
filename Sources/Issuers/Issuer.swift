@@ -427,8 +427,7 @@ private extension Issuer {
       return metaData.credentialsSupported.first { supportedCredential in
         switch supportedCredential {
         case .w3CJsonLdDataIntegrity(let credential):
-          return credential.credentialDefinition.context == profile.credentialDefinition.type &&
-          credential.credentialDefinition.context == profile.credentialDefinition.type
+          return credential.credentialDefinition.context == profile.credentialDefinition.type
         default: return false
         }
       }

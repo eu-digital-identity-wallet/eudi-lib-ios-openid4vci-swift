@@ -162,8 +162,8 @@ public actor CredentialOfferRequestResolver {
          let scope = element.string {
         if credentialIssuerMetadata.credentialsSupported.first(where: { supportedCredential in
           switch supportedCredential {
-          case .scope(let scope):
-            return scope.value == scope.value
+          case .scope(let credentialScope):
+            return scope == credentialScope.value
           case .msoMdoc(let profile):
             return profile.scope == scope
           case .w3CSignedJwt(let profile):
