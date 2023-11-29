@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 import Foundation
+import JOSESwift
 
 public protocol IssuerType {
   
@@ -26,11 +27,42 @@ public protocol IssuerType {
     credentials: [CredentialMetadata],
     authorizationCode: IssuanceAuthorization
   ) async -> Result<AuthorizedRequest, Error>
+  
+  func handleAuthorizationCode(
+    parRequested: UnauthorizedRequest,
+    authorizationCode: IssuanceAuthorization
+  ) async -> Result<UnauthorizedRequest, Error>
+  
+  func requestAccessToken(
+    authorizationCode: UnauthorizedRequest
+  ) async -> Result<AuthorizedRequest, Error>
+  
+  func requestSingle(
+    authorizedRequest: AuthorizedRequest,
+    credentialMetadata: CredentialMetadata?,
+    claimSet: ClaimSet?,
+    responseEncryptionSpecProvider: (_ issuerResponseEncryptionMetadata: CredentialResponseEncryption) -> IssuanceResponseEncryptionSpec?
+  ) async throws -> Result<SubmittedRequest, Error>
+  
+  func requestSingle(
+    noProofRequest: AuthorizedRequest,
+    credentialMetadata: CredentialMetadata?,
+    claimSet: ClaimSet?,
+    responseEncryptionSpecProvider: (_ issuerResponseEncryptionMetadata: CredentialResponseEncryption) -> IssuanceResponseEncryptionSpec?
+  ) async throws -> Result<SubmittedRequest, Error>
+  
+  func requestSingle(
+    proofRequest: AuthorizedRequest,
+    credentialMetadata: CredentialMetadata?,
+    bindingKey: BindingKey,
+    claimSet: ClaimSet?,
+    responseEncryptionSpecProvider: (_ issuerResponseEncryptionMetadata: CredentialResponseEncryption) -> IssuanceResponseEncryptionSpec?
+  ) async throws -> Result<SubmittedRequest, Error>
 }
 
 public actor Issuer: IssuerType {
   
-  let authorizationServerMetadata: AuthorizationServerMetadata
+  let authorizationServerMetadata: IdentityAndAccessManagementMetadata
   let issuerMetadata: CredentialIssuerMetadata
   let config: WalletOpenId4VCIConfig
   
@@ -38,20 +70,17 @@ public actor Issuer: IssuerType {
   private let requester: IssuanceRequesterType
   
   public init(
-    authorizationServerMetadata: AuthorizationServerMetadata,
+    authorizationServerMetadata: IdentityAndAccessManagementMetadata,
     issuerMetadata: CredentialIssuerMetadata,
     config: WalletOpenId4VCIConfig
-  ) {
+  ) throws {
     self.authorizationServerMetadata = authorizationServerMetadata
     self.issuerMetadata = issuerMetadata
     self.config = config
     
-    authorizer = IssuanceAuthorizer(
+    authorizer = try IssuanceAuthorizer(
       config: config,
-      parEndpoint: URL(string: "")!,
-      authorizationEndpoint: URL(string: "")!,
-      redirectionURI: URL(string: "")!,
-      clientId: "clientId"
+      authorizationServerMetadata: authorizationServerMetadata
     )
     
     requester = IssuanceRequester(
@@ -61,7 +90,7 @@ public actor Issuer: IssuerType {
   
   public func pushAuthorizationCodeRequest(
     credentials: [CredentialMetadata],
-    issuerState: String?
+    issuerState: String? = nil
   ) async -> Result<UnauthorizedRequest, Error> {
     let scopes: [Scope] = credentials
       .filter {
@@ -74,13 +103,20 @@ public actor Issuer: IssuerType {
         switch metaData {
         case .scope(let scope):
           return scope
-        default:
-          return nil
+        default: return nil
         }
       }
     let state = UUID().uuidString
     do {
-      let result: (verifier: PKCEVerifier, code: GetAuthorizationCodeURL) = try await authorizer.submitPushedAuthorizationRequest(scopes: scopes, state: state, issuerState: issuerState).get()
+      let result: (
+        verifier: PKCEVerifier,
+        code: GetAuthorizationCodeURL
+      ) = try await authorizer.submitPushedAuthorizationRequest(
+        scopes: scopes,
+        state: state,
+        issuerState: issuerState
+      ).get()
+      
       return .success(
         .par(
           .init(
@@ -102,7 +138,9 @@ public actor Issuer: IssuerType {
   ) async -> Result<AuthorizedRequest, Error> {
     switch authorizationCode {
     case .authorizationCode:
-      return .failure(ValidationError.error(reason: "Invalid issuance authorisation, pre authorisation supported only"))
+      return .failure(ValidationError.error(
+        reason: "Invalid issuance authorisation, pre authorisation supported only"
+      ))
       
     case .preAuthorizationCode(let authorisation, let pin):
       do {
@@ -137,7 +175,10 @@ public actor Issuer: IssuerType {
       switch request.authorizationCode {
       case .authorizationCode(authorizationCode: let authorizationCode):
         do {
-          let response: (accessToken: String, nonce: String?) = try await authorizer.requestAccessTokenAuthFlow(
+          let response: (
+            accessToken: String,
+            nonce: String?
+          ) = try await authorizer.requestAccessTokenAuthFlow(
             authorizationCode: authorizationCode,
             codeVerifier: request.pkceVerifier.codeVerifier
           ).get()
@@ -167,7 +208,7 @@ public actor Issuer: IssuerType {
   public func handleAuthorizationCode(
     parRequested: UnauthorizedRequest,
     authorizationCode: IssuanceAuthorization
-  ) async -> Result<UnauthorizedRequest, Error> {
+  ) -> Result<UnauthorizedRequest, Error> {
     switch parRequested {
     case .par(let request):
       switch authorizationCode {
@@ -192,51 +233,367 @@ public actor Issuer: IssuerType {
     }
   }
   
-  func requestSingle(
+  private func accessToken(from request: AuthorizedRequest) -> IssuanceAccessToken {
+    switch request {
+    case .noProofRequired(let token):
+      return token
+    case .proofRequired(let token, _):
+      return token
+    }
+  }
+  
+  public func requestSingle(
     noProofRequest: AuthorizedRequest,
-    credentialMetadata: CredentialMetadata,
-    claimSet: ClaimSet?
-  ) async -> Result<SubmittedRequest, Error> {
+    credentialMetadata: CredentialMetadata?,
+    claimSet: ClaimSet? = nil,
+    responseEncryptionSpecProvider: (_ issuerResponseEncryptionMetadata: CredentialResponseEncryption) -> IssuanceResponseEncryptionSpec?
+  ) async throws -> Result<SubmittedRequest, Error> {
+    
+    guard let credentialMetadata else {
+      throw ValidationError.error(reason: "Invalid credential CredentialMetadata for requestSingle")
+    }
+    
     switch noProofRequest {
     case .noProofRequired(let token):
-      //      requestIssuance(token) {
-      //        credentialMetadata
-      //          .toIssuerSupportedCredential()
-      //          .toIssuanceRequest(claimSet, null)
-      //      }
-      return .failure(ValidationError.error(reason: ""))
+      return try await requestIssuance(token: token) {
+        switch credentialMetadata {
+        case .scope:
+          return try supportedCredentialByScope(
+            metaData: requester.issuerMetadata,
+            scoped: credentialMetadata
+          )?.toIssuanceRequest(
+            requester: requester,
+            claimSet: claimSet,
+            responseEncryptionSpecProvider: responseEncryptionSpecProvider
+          ) ?? {
+            throw ValidationError.error(reason: "Invalid scope \(#function)")
+          }()
+        case .msoMdoc,
+            .w3CSignedJwt,
+            .w3CJsonLdSignedJwt,
+            .w3CJsonLdDataIntegrity,
+            .sdJwtVc:
+          return try supportedCredentialByProfile(
+            metaData: requester.issuerMetadata,
+            profile: credentialMetadata
+          )?.toIssuanceRequest(
+            requester: requester,
+            claimSet: claimSet,
+            responseEncryptionSpecProvider: responseEncryptionSpecProvider
+          ) ?? {
+            throw ValidationError.error(reason: "Invalid scope \(#function)")
+          }()
+        }
+      }
     default: return .failure(ValidationError.error(reason: ".noProofRequired is required"))
+    }
+  }
+  
+  public func requestSingle(
+    authorizedRequest: AuthorizedRequest,
+    credentialMetadata: CredentialMetadata?,
+    claimSet: ClaimSet? = nil,
+    responseEncryptionSpecProvider: (_ issuerResponseEncryptionMetadata: CredentialResponseEncryption) -> IssuanceResponseEncryptionSpec?
+  ) async throws -> Result<SubmittedRequest, Error> {
+    
+    guard let credentialMetadata else {
+      throw ValidationError.error(reason: "Invalid credential CredentialMetadata for requestSingle")
+    }
+    
+    return try await requestIssuance(token: accessToken(from: authorizedRequest)) {
+      switch credentialMetadata {
+      case .scope:
+        return try supportedCredentialByScope(
+          metaData: requester.issuerMetadata,
+          scoped: credentialMetadata
+        )!.toIssuanceRequest(
+          requester: requester,
+          claimSet: claimSet,
+          responseEncryptionSpecProvider: responseEncryptionSpecProvider
+        )
+        
+      case .msoMdoc,
+          .w3CSignedJwt,
+          .w3CJsonLdSignedJwt,
+          .w3CJsonLdDataIntegrity,
+          .sdJwtVc:
+        return try supportedCredentialByProfile(
+          metaData: requester.issuerMetadata,
+          profile: credentialMetadata
+        )?.toIssuanceRequest(
+          requester: requester,
+          claimSet: claimSet,
+          responseEncryptionSpecProvider: responseEncryptionSpecProvider
+        ) ?? {
+          throw ValidationError.error(reason: "Invalid scope \(#function)")
+        }()
+      }
+    }
+  }
+  
+  public func requestSingle(
+    proofRequest: AuthorizedRequest,
+    credentialMetadata: CredentialMetadata?,
+    bindingKey: BindingKey,
+    claimSet: ClaimSet? = nil,
+    responseEncryptionSpecProvider: (_ issuerResponseEncryptionMetadata: CredentialResponseEncryption) -> IssuanceResponseEncryptionSpec?
+  ) async throws -> Result<SubmittedRequest, Error> {
+    
+    guard let credentialMetadata else {
+      throw ValidationError.error(reason: "Invalid credential CredentialMetadata for requestSingle")
+    }
+    
+    return try await requestIssuance(token: accessToken(from: proofRequest)) {
+      switch credentialMetadata {
+      case .scope:
+        switch proofRequest {
+        case .proofRequired(_, let cNonce):
+          let supportedCredentialByScope = try supportedCredentialByScope(
+            metaData: requester.issuerMetadata,
+            scoped: credentialMetadata
+          )!
+          
+          return try supportedCredentialByScope.toIssuanceRequest(
+            requester: requester,
+            claimSet: claimSet,
+            proof: bindingKey.toSupportedProof(
+              issuanceRequester: requester,
+              credentialSpec: supportedCredentialByScope,
+              cNonce: cNonce.value
+            ),
+            responseEncryptionSpecProvider: responseEncryptionSpecProvider
+          )
+        default: throw ValidationError.error(reason: "Proof required for proof request")
+        }
+        
+      case .msoMdoc,
+          .w3CSignedJwt,
+          .w3CJsonLdSignedJwt,
+          .w3CJsonLdDataIntegrity,
+          .sdJwtVc:
+        return try supportedCredentialByProfile(
+          metaData: requester.issuerMetadata,
+          profile: credentialMetadata
+        )?.toIssuanceRequest(
+          requester: requester,
+          claimSet: claimSet,
+          responseEncryptionSpecProvider: responseEncryptionSpecProvider
+        ) ?? {
+          throw ValidationError.error(reason: "Invalid scope \(#function)")
+        }()
+      }
     }
   }
 }
 
 private extension Issuer {
   
-    private func toIssuerSupportedCredential(metaData: CredentialMetadata) throws -> SupportedCredential? {
-      /*
-      switch metaData {
-      case .scope:
-        return try supportedCredentialByScope(metaData: requester.issuerMetadata, scoped: metaData)
-      default:
-        throw ValidationError.error(reason: "")// requester.issuerMetadata.supportedCredentialByProfile(this)
-      }
-       */
-      return nil
-    }
-  
   private func supportedCredentialByScope(
     metaData: CredentialIssuerMetadata,
     scoped: CredentialMetadata
   ) throws -> SupportedCredential? {
-    /*
     switch scoped {
     case .scope(let byScope):
       return try metaData.credentialsSupported.first { element in
-        return element.scope == byScope.value
-      } ?? { throw ValidationError.error(reason: "Issuer does not support issuance of credential scope: \(byScope)") }()
+        switch element {
+        case .sdJwtVc(let credential):
+          return credential.scope  == byScope.value
+        case .msoMdoc(let credential):
+          return credential.scope  == byScope.value
+        default: return false
+        }
+      } ?? {
+        throw ValidationError.error(
+          reason: "Issuer does not support issuance of credential scope: \(byScope)"
+        ) }()
     default: throw ValidationError.error(reason: "")
     }
-     */
-    return nil
+  }
+  
+  private func supportedCredentialByProfile(
+    metaData: CredentialIssuerMetadata,
+    profile: CredentialMetadata
+  ) throws -> SupportedCredential? {
+    switch profile {
+    case .msoMdoc(let profile):
+      return metaData.credentialsSupported.first { supportedCredential in
+        switch supportedCredential {
+        case .msoMdoc(let credential):
+          return credential.docType == profile.docType
+        default: return false
+        }
+      }
+    case .w3CJsonLdDataIntegrity(let profile):
+      return metaData.credentialsSupported.first { supportedCredential in
+        switch supportedCredential {
+        case .w3CJsonLdDataIntegrity(let credential):
+          return credential.credentialDefinition.context == profile.credentialDefinition.type
+        default: return false
+        }
+      }
+    case .w3CJsonLdSignedJwt(let profile):
+      return metaData.credentialsSupported.first { supportedCredential in
+        switch supportedCredential {
+        case .w3CJsonLdDataIntegrity(let credential):
+          return credential.credentialDefinition.context == profile.credentialDefinition.context &&
+          credential.credentialDefinition.type == profile.credentialDefinition.type
+        default: return false
+        }
+      }
+    case .w3CSignedJwt(let profile):
+      return metaData.credentialsSupported.first { supportedCredential in
+        switch supportedCredential {
+        case .w3CJsonLdDataIntegrity(let credential):
+          return credential.credentialDefinition.type == profile.credentialDefinition.type
+        default: return false
+        }
+      }
+    case .sdJwtVc(let profile):
+      return metaData.credentialsSupported.first { supportedCredential in
+        switch supportedCredential {
+        case .sdJwtVc(let credential):
+          return credential.credentialDefinition.type == profile.type
+        default: return false
+        }
+      }
+    default: throw ValidationError.error(reason: "Scope not supported for \(#function)")
+    }
+  }
+  
+  private func requestIssuance(
+    token: IssuanceAccessToken,
+    issuanceRequestSupplier: () throws -> CredentialIssuanceRequest
+  ) async throws -> Result<SubmittedRequest, Error> {
+    let credentialRequest = try issuanceRequestSupplier()
+    switch credentialRequest {
+    case .single(let single):
+      let result = await requester.placeIssuanceRequest(
+        accessToken: token,
+        request: single
+      )
+      switch result {
+      case .success(let response):
+        return .success(.success(response: response))
+      case .failure(let error):
+        return handleIssuanceError(error)
+      }
+    case .batch(let credentials):
+      let result = try await requester.placeBatchIssuanceRequest(
+        accessToken: token,
+        request: credentials
+      )
+      switch result {
+      case .success(let response):
+        return .success(.success(response: response))
+      case .failure(let error):
+        throw ValidationError.error(reason: error.localizedDescription)
+      }
+    }
+  }
+}
+
+private extension Issuer {
+  
+  func handleIssuanceError(_ error: Error) -> Result<SubmittedRequest, Error> {
+    if let issuanceError = error as? CredentialIssuanceError {
+      switch issuanceError {
+      case .invalidProof(
+        let cNonce,
+        let cNonceExpiresIn,
+        let errorDescription
+      ):
+        guard let cNonce = CNonce(value: cNonce, expiresInSeconds: cNonceExpiresIn) else {
+          return .failure(
+            ValidationError.error(
+              reason: error.localizedDescription
+            )
+          )
+        }
+        
+        return .success(
+          .invalidProof(
+            cNonce: cNonce,
+            errorDescription: errorDescription
+          )
+        )
+      default: return .failure(
+        ValidationError.error(
+          reason: error.localizedDescription
+        )
+      )
+      }
+    } else {
+      return .failure(
+        ValidationError.error(
+          reason: error.localizedDescription
+        )
+      )
+    }
+  }
+}
+
+public extension Issuer {
+  
+  static func createResponseEncryptionSpec(_ issuerResponseEncryptionMetadata: CredentialResponseEncryption) -> IssuanceResponseEncryptionSpec? {
+    switch issuerResponseEncryptionMetadata {
+    case .notRequired:
+      return nil
+    case let .required(algorithmsSupported, encryptionMethodsSupported):
+      let firstAsymmetricAlgorithm = algorithmsSupported.first {
+        JWEAlgorithm.Family.parse(.ASYMMETRIC).contains($0)
+      }
+      
+      guard
+        let algorithm = firstAsymmetricAlgorithm
+      else {
+        return nil
+      }
+      
+      let privateKey: SecKey?
+      var jwk: JWK? = nil
+      if JWEAlgorithm.Family.parse(.RSA).contains(algorithm) {
+        privateKey = try? KeyController.generateRSAPrivateKey()
+        if let privateKey,
+           let publicKey = try? KeyController.generateRSAPublicKey(from: privateKey) {
+          jwk = try? RSAPublicKey(
+            publicKey: publicKey,
+            additionalParameters: [
+              "use": "enc",
+              "kid": UUID().uuidString,
+              "alg": algorithm.name
+            ]
+          )
+        }
+      } else if JWEAlgorithm.Family.parse(.ECDH_ES).contains(algorithm) {
+        privateKey = try? KeyController.generateECDHPrivateKey()
+        if let privateKey,
+           let publicKey = try? KeyController.generateECDHPublicKey(from: privateKey) {
+          jwk = try? ECPublicKey(
+            publicKey: publicKey,
+            additionalParameters: [
+              "use": "enc",
+              "kid": UUID().uuidString,
+              "alg": algorithm.name
+            ]
+          )
+        }
+      } else {
+        privateKey = nil
+      }
+      
+      guard
+        let key = privateKey,
+        let encryptionMethodsSupported = encryptionMethodsSupported.first
+      else {
+        return nil
+      }
+      
+      return IssuanceResponseEncryptionSpec(
+        jwk: jwk,
+        privateKey: key,
+        algorithm: algorithm,
+        encryptionMethod: encryptionMethodsSupported
+      )
+    }
   }
 }

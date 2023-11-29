@@ -17,5 +17,5 @@ import Foundation
 
 public enum CodeChallenge: String {
   case plain = "plain"
-  case sha256 = "sha256"
+  case sha256 = "S256"
 }

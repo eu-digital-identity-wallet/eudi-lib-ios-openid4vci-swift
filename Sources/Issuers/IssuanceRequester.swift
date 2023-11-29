@@ -14,8 +14,9 @@
  * limitations under the License.
  */
 import Foundation
+import SwiftyJSON
 
-protocol IssuanceRequesterType {
+public protocol IssuanceRequesterType {
   
   var issuerMetadata: CredentialIssuerMetadata { get }
   
@@ -26,7 +27,7 @@ protocol IssuanceRequesterType {
   
   func placeBatchIssuanceRequest(
     accessToken: IssuanceAccessToken,
-    request: BatchCredentials
+    request: [SingleCredential]
   ) async throws -> Result<CredentialIssuanceResponse, Error>
   
   func placeDeferredCredentialRequest(
@@ -58,14 +59,15 @@ public actor IssuanceRequester: IssuanceRequesterType {
     let endpoint = issuerMetadata.credentialEndpoint.url
     
     do {
-      let authorizationHeader: [String: Any] = accessToken.authorizationHeader
-      let encodedRequest: [String: Any] = try JSONEncoder().encode(request).toDictionary()
-      let merged = authorizationHeader.merging(encodedRequest) { (_, new) in new }
+      let authorizationHeader: [String: String] = accessToken.authorizationHeader
+      let encodedRequest: [String: Any] = try request.toDictionary().dictionaryValue
+      let merged = encodedRequest.convertToDictionaryOfStrings()
       
       let response: SingleIssuanceSuccessResponse = try await service.formPost(
         poster: poster,
-        url: endpoint,
-        parameters: merged.convertToDictionaryOfStrings()
+        url: endpoint, 
+        headers: authorizationHeader,
+        body: encodedRequest
       )
       
       if request.requiresEncryptedResponse() {
@@ -73,14 +75,17 @@ public actor IssuanceRequester: IssuanceRequesterType {
       }
       return .success(try response.toSingleIssuanceResponse())
       
+    } catch PostError.response(let response) {
+      return .failure(response.toIssuanceError())
+      
     } catch {
       return .failure(ValidationError.error(reason: error.localizedDescription))
     }
   }
   
-  func placeBatchIssuanceRequest(
+  public func placeBatchIssuanceRequest(
     accessToken: IssuanceAccessToken,
-    request: BatchCredentials
+    request: [SingleCredential]
   ) async throws -> Result<CredentialIssuanceResponse, Error> {
     guard
       let endpoint = issuerMetadata.batchCredentialEndpoint?.url
@@ -90,12 +95,17 @@ public actor IssuanceRequester: IssuanceRequesterType {
     
     do {
       let authorizationHeader: [String: Any] = accessToken.authorizationHeader
-      let encodedRequest: [String: Any] = try JSONEncoder().encode(request).toDictionary()
+      let encodedRequest: [String: JSON] = try request
+        .map { try $0.toDictionary() }
+        .reduce(into: [:]) { result, dictionary in
+          result.merge(dictionary) { (_, new) in new }
+        }
       let merged = authorizationHeader.merging(encodedRequest) { (_, new) in new }
       
       let response: BatchIssuanceSuccessResponse = try await service.formPost(
         poster: poster,
         url: endpoint,
+        headers: [:],
         parameters: merged.convertToDictionaryOfStrings()
       )
       return .success(try response.toBatchIssuanceResponse())
@@ -105,7 +115,7 @@ public actor IssuanceRequester: IssuanceRequesterType {
     }
   }
   
-  func placeDeferredCredentialRequest(
+  public func placeDeferredCredentialRequest(
     accessToken: IssuanceAccessToken,
     request: DeferredCredentialRequest
   ) async throws -> Result<CredentialIssuanceResponse, Error> {

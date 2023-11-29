@@ -18,7 +18,7 @@ import Foundation
 public struct CredentialIssuerId: Codable, Equatable {
   public let url: URL
   
-  init(string: String) throws {
+  public init(_ string: String) throws {
     if let queryItems = URLComponents(string: string)?.queryItems,
        queryItems.count > 0 {
       throw CredentialError.genericError
@@ -26,7 +26,7 @@ public struct CredentialIssuerId: Codable, Equatable {
     
     guard
       let validURL = URL(string: string),
-      validURL.scheme == "https",
+//      validURL.scheme == "https",
       validURL.fragment == nil
     else {
       throw CredentialError.genericError

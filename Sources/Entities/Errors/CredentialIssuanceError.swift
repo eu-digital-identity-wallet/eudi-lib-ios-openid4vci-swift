@@ -20,4 +20,22 @@ public enum CredentialIssuanceError: Error {
   case accessTokenRequestFailed(error: String, errorDescription: String?)
   case issuerDoesNotSupportBatchIssuance
   case responseUnparsable(String)
+  case invalidIssuanceRequest(String)
+  case cryptographicSuiteNotSupported
+  case cryptographicBindingMethodNotSupported
+  case proofTypeNotSupported
+  case cryptographicAlgorithmNotSupported
+  
+  case issuerDoesNotSupportEncryptedResponses
+  case responseEncryptionAlgorithmNotSupportedByIssuer
+  case responseEncryptionMethodNotSupportedByIssuer
+  
+  case invalidToken
+  case issuanceRequestFailed(error: String, errorDescription: String?)
+  case invalidTransactionId
+  case unsupportedCredentialType
+  case unsupportedCredentialFormat
+  case invalidEncryptionParameters
+  case invalidProof(cNonce: String, cNonceExpiresIn: Int?, errorDescription: String?)
+  case deferredCredentialIssuancePending(interval: Int?)
 }

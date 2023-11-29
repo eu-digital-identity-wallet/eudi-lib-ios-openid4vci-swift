@@ -16,9 +16,67 @@
 import Foundation
 
 public enum SupportedCredential: Codable {
+  case scope(Scope)
   case msoMdoc(MsoMdocProfile.CredentialSupported)
   case w3CSignedJwt(W3CSignedJwtProfile.CredentialSupported)
   case w3CJsonLdSignedJwt(W3CJsonLdSignedJwtProfile.CredentialSupported)
   case w3CJsonLdDataIntegrity(W3CJsonLdDataIntegrityProfile.CredentialSupported)
   case sdJwtVc(SdJwtVcProfile.CredentialSupported)
+}
+
+public extension SupportedCredential {
+  func toIssuanceRequest(
+    requester: IssuanceRequesterType,
+    claimSet: ClaimSet?,
+    proof: Proof? = nil,
+    responseEncryptionSpecProvider: (_ issuerResponseEncryptionMetadata: CredentialResponseEncryption) -> IssuanceResponseEncryptionSpec?
+  ) throws -> CredentialIssuanceRequest {
+    switch self {
+    case .msoMdoc(let credentialSupported):
+      if let proof,
+         let proofTypesSupported = credentialSupported.proofTypesSupported,
+         proofTypesSupported.contains(proof.type()) {
+        
+      }
+      return try credentialSupported.toIssuanceRequest(
+        claimSet: claimSet,
+        proof: proof
+      )
+    case .sdJwtVc(let credentialSupported):
+      if let proof,
+         let proofTypesSupported = credentialSupported.proofTypesSupported,
+         proofTypesSupported.contains(proof.type()) {
+        
+      }
+      
+      let issuerEncryption = requester.issuerMetadata.credentialResponseEncryption
+      let responseEncryptionSpec = responseEncryptionSpecProvider(issuerEncryption)
+      
+      if let responseEncryptionSpec {
+        switch issuerEncryption {
+        case .notRequired:
+          throw CredentialIssuanceError.issuerDoesNotSupportEncryptedResponses
+        case .required(
+          let algorithmsSupported,
+          let encryptionMethodsSupported
+        ):
+          if !algorithmsSupported.contains(responseEncryptionSpec.algorithm) {
+            throw CredentialIssuanceError.responseEncryptionAlgorithmNotSupportedByIssuer
+          }
+          
+          if !encryptionMethodsSupported.contains(responseEncryptionSpec.encryptionMethod) {
+            throw CredentialIssuanceError.responseEncryptionMethodNotSupportedByIssuer
+          }
+        }
+      }
+     
+      return try credentialSupported.toIssuanceRequest(
+        responseEncryptionSpec: responseEncryptionSpec,
+        claimSet: claimSet,
+        proof: proof
+      )
+    default:
+      throw ValidationError.error(reason: "Unsupported profile for issueance request")
+    }
+  }
 }

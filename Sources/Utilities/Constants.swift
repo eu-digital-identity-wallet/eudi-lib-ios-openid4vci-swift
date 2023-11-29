@@ -24,4 +24,6 @@ public struct Constants {
   
   public static let USER_PIN_PARAM = "user_pin"
   public static let PRE_AUTHORIZED_CODE_PARAM = "pre_authorized_code"
+  
+  public static let OPENID_SCOPE = "openid"
 }

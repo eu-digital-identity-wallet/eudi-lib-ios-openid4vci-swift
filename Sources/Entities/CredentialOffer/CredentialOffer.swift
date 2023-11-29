@@ -27,7 +27,7 @@ public struct CredentialOffer {
     credentialIssuerIdentifier: CredentialIssuerId,
     credentialIssuerMetadata: CredentialIssuerMetadata,
     credentials: [CredentialMetadata],
-    grants: Grants?,
+    grants: Grants? = nil,
     authorizationServerMetadata: IdentityAndAccessManagementMetadata
   ) throws {
     self.credentialIssuerIdentifier = credentialIssuerIdentifier

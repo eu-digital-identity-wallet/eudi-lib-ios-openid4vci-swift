@@ -15,13 +15,11 @@
  */
 import Foundation
 
-public protocol AuthorizeIssuance {
+extension Array where Element: Hashable {
   
-  /// Authorized Code Flow transitions
-  func pushAuthorizationCodeRequest(credentials: [CredentialMetadata], issuerState: String?) async throws -> Result<ParRequested, Error>
-  func handleAuthorizationCode(_ authorizationCode: IssuanceAuthorization) async throws -> Result<AuthorizationCodeRetrieved, Error>
-  func requestAccessToken() async throws -> AuthorizedRequest
-  
-  /// Pre-Authorized Code Flow
-  func authorizeWithPreAuthorizationCode(credentials: [CredentialMetadata], authorizationCode: IssuanceAuthorization) async throws -> AuthorizedRequest
+  func containsAll(_ elements: [Element]) -> Bool {
+    let elementSet = Set(elements)
+    let arraySet = Set(self)
+    return elementSet.isSubset(of: arraySet)
+  }
 }

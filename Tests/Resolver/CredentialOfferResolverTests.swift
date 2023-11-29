@@ -66,9 +66,9 @@ class CredentialOfferResolverTests: XCTestCase {
     // Then
     switch result {
     case .success(let result):
-      XCTAssert(result?.credentialIssuerIdentifier.url.absoluteString == "https://credential-issuer.example.com")
-      XCTAssert(result?.credentialIssuerMetadata.batchCredentialEndpoint?.url.absoluteString == "https://credential-issuer.example.com/credentials/batch")
-      XCTAssert(result?.credentialIssuerMetadata.deferredCredentialEndpoint?.url.absoluteString == "https://credential-issuer.example.com/credentials/deferred")
+      XCTAssert(result.credentialIssuerIdentifier.url.absoluteString == "https://credential-issuer.example.com")
+      XCTAssert(result.credentialIssuerMetadata.batchCredentialEndpoint?.url.absoluteString == "https://credential-issuer.example.com/credentials/batch")
+      XCTAssert(result.credentialIssuerMetadata.deferredCredentialEndpoint?.url.absoluteString == "https://credential-issuer.example.com/credentials/deferred")
 
     case .failure(let error):
       XCTAssert(false, error.localizedDescription)
@@ -113,9 +113,9 @@ class CredentialOfferResolverTests: XCTestCase {
     // Then
     switch result {
     case .success(let result):
-      XCTAssert(result?.credentialIssuerIdentifier.url.absoluteString == "https://credential-issuer.example.com")
-      XCTAssert(result?.credentialIssuerMetadata.batchCredentialEndpoint?.url.absoluteString == "https://credential-issuer.example.com/credentials/batch")
-      XCTAssert(result?.credentialIssuerMetadata.deferredCredentialEndpoint?.url.absoluteString == "https://credential-issuer.example.com/credentials/deferred")
+      XCTAssert(result.credentialIssuerIdentifier.url.absoluteString == "https://credential-issuer.example.com")
+      XCTAssert(result.credentialIssuerMetadata.batchCredentialEndpoint?.url.absoluteString == "https://credential-issuer.example.com/credentials/batch")
+      XCTAssert(result.credentialIssuerMetadata.deferredCredentialEndpoint?.url.absoluteString == "https://credential-issuer.example.com/credentials/deferred")
 
     case .failure(let error):
       XCTAssert(false, error.localizedDescription)

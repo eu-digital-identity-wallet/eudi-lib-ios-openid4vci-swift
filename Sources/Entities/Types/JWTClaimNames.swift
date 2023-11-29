@@ -15,23 +15,28 @@
  */
 import Foundation
 
-public protocol Networking {
-  func data(
-    from url: URL
-  ) async throws -> (Data, URLResponse)
-  func data(
-    for request: URLRequest
-  ) async throws -> (Data, URLResponse)
-}
+public struct JWTClaimNames {
 
-public extension Networking {
-  func data(from url: URL) async throws -> (Data, URLResponse) {
-    try await data(from: url)
-  }
-  
-  func data(for request: URLRequest) async throws -> (Data, URLResponse) {
-    try await data(for: request)
-  }
-}
+  // RFC 7519 "iss" (Issuer) Claim
+  public static let issuer = "iss"
 
-extension URLSession: Networking {}
+  // RFC 7519 "sub" (Subject) Claim
+  public static let subject = "sub"
+
+  // RFC 7519 "aud" (Audience) Claim
+  public static let audience = "aud"
+
+  // RFC 7519 "exp" (Expiration Time) Claim
+  public static let expirationTime = "exp"
+
+  // RFC 7519 "nbf" (Not Before) Claim
+  public static let notBefore = "nbf"
+
+  // RFC 7519 "iat" (Issued At) Claim
+  public static let issuedAt = "iat"
+
+  // RFC 7519 "jti" (JWT ID) Claim
+  public static let jwtId = "jti"
+
+  private init() {}
+}

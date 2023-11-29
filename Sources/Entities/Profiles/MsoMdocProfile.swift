@@ -15,6 +15,7 @@
  */
 import Foundation
 import SwiftyJSON
+import JOSESwift
 
 public struct MsoMdocProfile: Profile {
   static let FORMAT = "mso_mdoc"
@@ -34,6 +35,73 @@ public struct MsoMdocProfile: Profile {
 }
 
 public extension MsoMdocProfile {
+  
+  struct MsoMdocSingleCredential: Codable {
+    public let docType: String
+    public let proof: ProofType?
+    public let credentialEncryptionJwk: JWK?
+    public let credentialResponseEncryptionAlg: JWEAlgorithm?
+    public let credentialResponseEncryptionMethod: JOSEEncryptionMethod?
+    public let claimSet: ClaimSet?
+    
+    enum CodingKeys: String, CodingKey {
+      case doctype
+      case proof
+      case credentialEncryptionJwk
+      case credentialResponseEncryptionAlg
+      case credentialResponseEncryptionMethod
+      case claimSet
+    }
+    
+    public init(
+      docType: String,
+      proof: ProofType? = nil,
+      credentialEncryptionJwk: JWK? = nil,
+      credentialResponseEncryptionAlg: JWEAlgorithm? = nil,
+      credentialResponseEncryptionMethod: JOSEEncryptionMethod? = nil,
+      claimSet: ClaimSet? = nil
+    ) {
+      self.docType = docType
+      self.proof = proof
+      self.credentialEncryptionJwk = credentialEncryptionJwk
+      self.credentialResponseEncryptionAlg = credentialResponseEncryptionAlg
+      self.credentialResponseEncryptionMethod = credentialResponseEncryptionMethod
+      self.claimSet = claimSet
+    }
+    
+    public func requiresEncryptedResponse() -> Bool {
+      credentialResponseEncryptionAlg != nil &&
+      credentialEncryptionJwk != nil &&
+      credentialResponseEncryptionMethod != nil
+    }
+    
+    public init(from decoder: Decoder) throws {
+      fatalError("No supported yet")
+    }
+    
+    public func encode(to encoder: Encoder) throws {
+      var container = encoder.container(keyedBy: CodingKeys.self)
+      try container.encode(proof, forKey: .proof)
+      
+      if let credentialEncryptionJwk = credentialEncryptionJwk as? RSAPublicKey {
+        try container.encode(credentialEncryptionJwk, forKey: .credentialEncryptionJwk)
+      } else if let credentialEncryptionJwk = credentialEncryptionJwk as? ECPublicKey {
+        try container.encode(credentialEncryptionJwk, forKey: .credentialEncryptionJwk)
+      }
+      
+      try container.encode(credentialResponseEncryptionAlg, forKey: .credentialResponseEncryptionAlg)
+      try container.encode(credentialResponseEncryptionMethod, forKey: .credentialResponseEncryptionMethod)
+      try container.encode(claimSet, forKey: .claimSet)
+    }
+  }
+  
+  struct MsoMdocClaimSet: Codable {
+    public let claims: MsoMdocClaims
+    
+    public init(claims: MsoMdocClaims) {
+      self.claims = claims
+    }
+  }
   
   struct CredentialSupportedDTO: Codable {
     public let format: String
@@ -212,6 +280,62 @@ public extension MsoMdocProfile {
       self.order = json["order"].arrayValue.map {
         ClaimName($0.stringValue)
       }
+    }
+    
+    func toIssuanceRequest(
+      claimSet: ClaimSet?,
+      proof: Proof?
+    ) throws -> CredentialIssuanceRequest {
+      
+      func validateClaimSet(claimSet: MsoMdocClaimSet) throws -> MsoMdocClaimSet {
+        if claims.isEmpty && claimSet.claims.isEmpty {
+          throw CredentialIssuanceError.invalidIssuanceRequest(
+            "Issuer does not support claims for credential [MsoMdoc-\(docType)]"
+          )
+        }
+        
+        for (key, requestedClaims) in claimSet.claims {
+          if let supportedClaims = claims[key] {
+            let supportedSet = Set(supportedClaims.keys)
+            if !supportedSet.isSuperset(of: Array(requestedClaims.keys)) {
+              throw CredentialIssuanceError.invalidIssuanceRequest("Claim names requested are not supported by issuer")
+            }
+          } else {
+            throw CredentialIssuanceError.invalidIssuanceRequest(
+              "Namespace \(key) not supported by issuer"
+            )
+          }
+        }
+        return claimSet
+      }
+      
+      var validClaimSet: MsoMdocProfile.MsoMdocClaimSet?
+      if let claimSet = claimSet {
+        switch claimSet {
+        case .msoMdoc(let claimSet):
+          guard let claimSet else {
+            throw CredentialIssuanceError.invalidIssuanceRequest(
+              "Invalid Claim Set provided for issuance")
+          }
+          validClaimSet = try validateClaimSet(claimSet: claimSet)
+        default: throw CredentialIssuanceError.invalidIssuanceRequest(
+          "Invalid Claim Set provided for issuance"
+        )
+        }
+      } else {
+        throw CredentialIssuanceError.invalidIssuanceRequest(
+          "Invalid Claim Set provided for issuance"
+        )
+      }
+      
+      return .single(
+        .msoMdoc(
+          .init(
+            docType: docType,
+            claimSet: .msoMdoc(validClaimSet)
+          )
+        )
+      )
     }
   }
 }

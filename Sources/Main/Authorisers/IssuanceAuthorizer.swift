@@ -36,16 +36,16 @@ public protocol IssuanceAuthorizerType {
 
 public actor IssuanceAuthorizer: IssuanceAuthorizerType {
   
-  let config: WalletOpenId4VCIConfig
-  
-  let service: AuthorisationServiceType
-  let poster: PostingType
-  
-  let parEndpoint: URL
-  let authorizationEndpoint: URL
-
-  let redirectionURI: URL
-  let clientId: String
+  public let config: WalletOpenId4VCIConfig
+  public let service: AuthorisationServiceType
+  public let parPoster: PostingType
+  public let tokenPoster: PostingType
+  public let parEndpoint: URL
+  public let authorizationEndpoint: URL
+  public let tokenEndpoint: URL
+  public let redirectionURI: URL
+  public let clientId: String
+  public let authorizationServerMetadata: IdentityAndAccessManagementMetadata
   
   static let responseType = "code"
   static let grantAuthorizationCode = "authorization_code"
@@ -53,20 +53,59 @@ public actor IssuanceAuthorizer: IssuanceAuthorizerType {
   
   public init(
     service: AuthorisationServiceType = AuthorisationService(),
-    poster: PostingType = Poster(),
+    parPoster: PostingType = Poster(),
+    tokenPoster: PostingType = Poster(),
     config: WalletOpenId4VCIConfig,
-    parEndpoint: URL,
-    authorizationEndpoint: URL,
-    redirectionURI: URL,
-    clientId: String
-  ) {
+    authorizationServerMetadata: IdentityAndAccessManagementMetadata
+  ) throws {
     self.service = service
-    self.poster = poster
+    self.parPoster = parPoster
+    self.tokenPoster = tokenPoster
     self.config = config
-    self.parEndpoint = parEndpoint
-    self.authorizationEndpoint = authorizationEndpoint
-    self.redirectionURI = redirectionURI
-    self.clientId = clientId
+    self.authorizationServerMetadata = authorizationServerMetadata
+    self.redirectionURI = config.authFlowRedirectionURI
+    self.clientId = ClientId(config.clientId)
+    
+    switch authorizationServerMetadata {
+    case .oidc(let data):
+      
+      if let url = URL(string: data.tokenEndpoint) {
+        self.tokenEndpoint = url
+      } else {
+        throw ValidationError.error(reason: "Invalid token endpoint")
+      }
+      
+      if let url = URL(string: data.authorizationEndpoint) {
+        self.authorizationEndpoint = url
+      } else {
+        throw ValidationError.error(reason: "In valid authorization endpoint")
+      }
+      
+      if let url = URL(string: data.pushedAuthorizationRequestEndpoint) {
+        self.parEndpoint = url
+      } else {
+        throw ValidationError.error(reason: "In valid authorization endpoint")
+      }
+    case .oauth(let data):
+      
+      if let url = URL(string: data.tokenEndpoint) {
+        self.tokenEndpoint = url
+      } else {
+        throw ValidationError.error(reason: "Invalid token endpoint")
+      }
+      
+      if let url = URL(string: data.pushedAuthorizationRequestEndpoint) {
+        self.authorizationEndpoint = url
+      } else {
+        throw ValidationError.error(reason: "In valid authorization endpoint")
+      }
+      
+      if let url = URL(string: data.pushedAuthorizationRequestEndpoint) {
+        self.parEndpoint = url
+      } else {
+        throw ValidationError.error(reason: "In valid pushed authorization request endpoint")
+      }
+    }
   }
   
   public func submitPushedAuthorizationRequest(
@@ -78,28 +117,27 @@ public actor IssuanceAuthorizer: IssuanceAuthorizerType {
       throw ValidationError.error(reason: "No scopes provided. Cannot submit par with no scopes.")
     }
     
+    let codeVerifier = PKCEGenerator.codeVerifier() ?? ""
     let authzRequest = AuthorizationRequest(
       responseType: Self.responseType,
       clientId: config.clientId,
       redirectUri: config.authFlowRedirectionURI.absoluteString,
-      scope: scopes.map { $0.value }.joined(separator: " "),
+      scope: scopes.map { $0.value }.joined(separator: " ").appending(" openid"),
       state: state,
-      codeChallenge: PKCEGenerator.generateRandomBase64String(),
+      codeChallenge: PKCEGenerator.generateCodeChallenge(codeVerifier: codeVerifier),
+      codeChallengeMethod: CodeChallenge.sha256.rawValue,
       issuerState: issuerState
     )
     
     do {
       let response: PushedAuthorizationRequestResponse = try await service.formPost(
-        poster: poster,
+        poster: parPoster,
         url: parEndpoint,
         request: authzRequest
       )
       
       switch response {
       case .success(requestURI: let requestURI, _):
-        guard let codeVerifier = PKCEGenerator.codeVerifier() else {
-          throw ValidationError.error(reason: "Unable to generate code verifier")
-        }
         
         let verifier = try PKCEVerifier(
           codeVerifier: codeVerifier,
@@ -112,7 +150,7 @@ public actor IssuanceAuthorizer: IssuanceAuthorizerType {
           GetAuthorizationCodeURL.PARAM_REQUEST_URI: requestURI
         ]
         
-        guard let urlWithParams = parEndpoint.appendingQueryParameters(queryParams) else {
+        guard let urlWithParams = authorizationEndpoint.appendingQueryParameters(queryParams) else {
           throw ValidationError.invalidUrl(parEndpoint.absoluteString)
         }
         
@@ -146,8 +184,9 @@ public actor IssuanceAuthorizer: IssuanceAuthorizerType {
     )
     
     let response: AccessTokenRequestResponse = try await service.formPost(
-      poster: poster,
-      url: authorizationEndpoint,
+      poster: tokenPoster,
+      url: tokenEndpoint, 
+      headers: [:],
       parameters: parameters
     )
     
@@ -172,8 +211,9 @@ public actor IssuanceAuthorizer: IssuanceAuthorizerType {
     )
     
     let response: AccessTokenRequestResponse = try await service.formPost(
-      poster: poster,
+      poster: tokenPoster,
       url: authorizationEndpoint,
+      headers: [:],
       parameters: parameters
     )
     
@@ -209,12 +249,19 @@ private extension IssuanceAuthorizer {
   
   func preAuthCodeFlow(
     preAuthorizedCode: String,
-    userPin: String
+    userPin: String?
   ) throws -> [String: String]  {
-    [
-      Constants.GRANT_TYPE_PARAM: try Self.grantPreauthorizationCode.utf8UrlEncoded(),
-      Constants.PRE_AUTHORIZED_CODE_PARAM: preAuthorizedCode,
-      Constants.USER_PIN_PARAM: userPin
-    ]
+    if let userPin {
+      [
+        Constants.GRANT_TYPE_PARAM: try Self.grantPreauthorizationCode.utf8UrlEncoded(),
+        Constants.PRE_AUTHORIZED_CODE_PARAM: preAuthorizedCode,
+        Constants.USER_PIN_PARAM: userPin
+      ]
+    } else {
+      [
+        Constants.GRANT_TYPE_PARAM: try Self.grantPreauthorizationCode.utf8UrlEncoded(),
+        Constants.PRE_AUTHORIZED_CODE_PARAM: preAuthorizedCode
+      ]
+    }
   }
 }

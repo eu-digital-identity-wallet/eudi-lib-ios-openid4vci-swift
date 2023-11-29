@@ -35,7 +35,7 @@ class CredentialIssuerIdTest: XCTestCase {
     
     // When
     do {
-      _ = try CredentialIssuerId(string: urlString)
+      _ = try CredentialIssuerId(urlString)
     } catch {
       
       // Then
@@ -54,7 +54,7 @@ class CredentialIssuerIdTest: XCTestCase {
     
     // When
     do {
-      _ = try CredentialIssuerId(string: urlString)
+      _ = try CredentialIssuerId(urlString)
     } catch {
       
       // Then
@@ -73,7 +73,7 @@ class CredentialIssuerIdTest: XCTestCase {
     
     // When
     do {
-      _ = try CredentialIssuerId(string: urlString)
+      _ = try CredentialIssuerId(urlString)
     } catch {
       
       // Then
@@ -92,7 +92,7 @@ class CredentialIssuerIdTest: XCTestCase {
     
     // When
     do {
-      _ = try CredentialIssuerId(string: urlString)
+      _ = try CredentialIssuerId(urlString)
     } catch {
       
       // Then

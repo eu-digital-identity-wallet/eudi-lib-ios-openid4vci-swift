@@ -16,25 +16,7 @@
 import Foundation
 import JOSESwift
 
-public enum ClaimSet {
-  
-}
-
-public struct X509Certificate {
-  
-}
-
-enum BindingKey {
-  
-  // JWK Binding Key
-  case jwk(algorithm: JWSAlgorithm, jwk: JWK)
-  
-  // DID Binding Key
-  case did(identity: String)
-  
-  // X509 Binding Key
-  case x509(certificate: X509Certificate)
-}
+public struct X509Certificate {}
 
 protocol RequestIssuance {
   

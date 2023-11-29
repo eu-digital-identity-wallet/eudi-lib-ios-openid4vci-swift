@@ -15,7 +15,7 @@
  */
 import Foundation
 
-public enum CryptographicBindingMethod: Codable {
+public enum CryptographicBindingMethod: Codable, Equatable {
   case jwk
   case cose
   case mso

@@ -15,11 +15,72 @@
  */
 import Foundation
 import SwiftyJSON
+import JOSESwift
 
-public struct Scope {
+public typealias JWT = String
+
+public struct IssuanceResponseEncryptionSpec {
+  public let jwk: JWK?
+  public let privateKey: SecKey?
+  public let algorithm: JWEAlgorithm
+  public let encryptionMethod: JOSEEncryptionMethod
+  
+  public init(
+    jwk: JWK? = nil,
+    privateKey: SecKey?,
+    algorithm: JWEAlgorithm,
+    encryptionMethod: JOSEEncryptionMethod
+  ) {
+    self.jwk = jwk
+    self.privateKey = privateKey
+    self.algorithm = algorithm
+    self.encryptionMethod = encryptionMethod
+  }
+}
+
+public enum Proof: Codable {
+  case jwt(JWT)
+  case cwt(String)
+  
+  public func type() -> ProofType {
+    switch self {
+    case .jwt:
+      return .jwt
+    case .cwt:
+      return .cwt
+    }
+  }
+  
+  // MARK: - Codable
+  
+  public init(from decoder: Decoder) throws {
+    let container = try decoder.singleValueContainer()
+    
+    if let jwt = try? container.decode(JWT.self) {
+      self = .jwt(jwt)
+    } else if let cwt = try? container.decode(String.self) {
+      self = .cwt(cwt)
+    } else {
+      throw DecodingError.typeMismatch(Proof.self, DecodingError.Context(codingPath: decoder.codingPath, debugDescription: "Invalid proof type"))
+    }
+  }
+  
+  public func encode(to encoder: Encoder) throws {
+    var container = encoder.singleValueContainer()
+    
+    switch self {
+    case .jwt(let jwt):
+      try container.encode(jwt)
+    case .cwt(let cwt):
+      try container.encode(cwt)
+    }
+  }
+}
+
+public struct Scope: Codable {
   public let value: String
   
-  public init(value: String) throws {
+  public init(_ value: String) throws {
     guard !value.isEmpty else {
       throw ValidationError.error(reason: "Scope cannot be empty")
     }
@@ -30,6 +91,7 @@ public struct Scope {
 public enum ContentType: String {
   case key = "Content-Type"
   case form = "application/x-www-form-urlencoded; charset=UTF-8"
+  case json = "application/json"
 }
 
 public struct CNonce: Codable {
@@ -58,22 +120,6 @@ public struct SingleIssuanceSuccessResponse: Codable {
     self.transactionId = transactionId
     self.cNonce = cNonce
     self.cNonceExpiresInSeconds = cNonceExpiresInSeconds
-  }
-}
-
-public struct GenericErrorResponse: Codable {
-  public let error: String
-  public let errorDescription: String?
-  public let cNonce: String?
-  public let cNonceExpiresInSeconds: Int?
-  public let interval: Int?
-  
-  public init(error: String, errorDescription: String?, cNonce: String?, cNonceExpiresInSeconds: Int?, interval: Int?) {
-    self.error = error
-    self.errorDescription = errorDescription
-    self.cNonce = cNonce
-    self.cNonceExpiresInSeconds = cNonceExpiresInSeconds
-    self.interval = interval
   }
 }
 
