@@ -44,6 +44,7 @@ public extension MsoMdocProfile {
     public let credentialResponseEncryptionAlg: JWEAlgorithm?
     public let credentialResponseEncryptionMethod: JOSEEncryptionMethod?
     public let claimSet: ClaimSet?
+    public let requestedCredentialResponseEncryption: RequestedCredentialResponseEncryption
     
     enum CodingKeys: String, CodingKey {
       case doctype
@@ -62,7 +63,7 @@ public extension MsoMdocProfile {
       credentialResponseEncryptionAlg: JWEAlgorithm? = nil,
       credentialResponseEncryptionMethod: JOSEEncryptionMethod? = nil,
       claimSet: ClaimSet? = nil
-    ) {
+    ) throws {
       self.docType = docType
       self.proof = proof
       self.credentialEncryptionJwk = credentialEncryptionJwk
@@ -70,6 +71,13 @@ public extension MsoMdocProfile {
       self.credentialResponseEncryptionAlg = credentialResponseEncryptionAlg
       self.credentialResponseEncryptionMethod = credentialResponseEncryptionMethod
       self.claimSet = claimSet
+      
+      self.requestedCredentialResponseEncryption = try .init(
+        encryptionJwk: credentialEncryptionJwk,
+        encryptionKey: credentialEncryptionKey,
+        responseEncryptionAlg: credentialResponseEncryptionAlg,
+        responseEncryptionMethod: credentialResponseEncryptionMethod
+      )
     }
     
     public func requiresEncryptedResponse() -> Bool {
@@ -328,7 +336,7 @@ public extension MsoMdocProfile {
         }
       }
       
-      return .single(
+      return try .single(
         .msoMdoc(
           .init(
             docType: docType,

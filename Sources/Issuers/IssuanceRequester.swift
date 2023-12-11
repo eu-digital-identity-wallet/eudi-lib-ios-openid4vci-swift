@@ -81,8 +81,33 @@ public actor IssuanceRequester: IssuanceRequesterType {
     } catch PostError.cannotParse(let string) {
       
       switch request {
-      case .msoMdoc(_):
-        return .failure(ValidationError.todo(reason: ".msoMdoc"))
+      case .msoMdoc(let credential):
+        switch issuerMetadata.credentialResponseEncryption {
+        case .notRequired:
+          return .failure(ValidationError.todo(reason: ".notRequired"))
+        case .required(
+          let algorithmsSupported,
+          let encryptionMethodsSupported
+        ):
+          do {
+            guard let key = credential.credentialEncryptionKey else {
+              return .failure(ValidationError.error(reason: "Invalid private key"))
+            }
+            
+            let jwe = try JWE(compactSerialization: string)
+            let decrypter = Decrypter(
+              keyManagementAlgorithm: .RSAOAEP256,
+              contentEncryptionAlgorithm: .A128CBCHS256,
+              decryptionKey: key
+            )!
+            let payload = try jwe.decrypt(using: decrypter)
+            let response = try JSONDecoder().decode(SingleIssuanceSuccessResponse.self, from: payload.data())
+            return .success(try response.toDomain())
+          } catch {
+            print(error.localizedDescription)
+            return .failure(ValidationError.error(reason: error.localizedDescription))
+          }
+        }
       case .sdJwtVc(let credential):
         switch issuerMetadata.credentialResponseEncryption {
         case .notRequired:

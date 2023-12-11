@@ -68,7 +68,7 @@ public extension BindingKey {
         let header = try JWSHeader(parameters: [
           "typ": "openid4vci-proof+jwt",
           "alg": algorithm.name,
-          "jwk": jwk
+          "jwk": jwk.toDictionary()
         ])
         
         let nonceKey = "nonce"
@@ -98,15 +98,7 @@ public extension BindingKey {
         )
         
         return .jwt(jws.compactSerializedString)
-        
-//      case .scope(_):
-//        <#code#>
-//      case .w3CSignedJwt(_):
-//        <#code#>
-//      case .w3CJsonLdSignedJwt(_):
-//        <#code#>
-//      case .w3CJsonLdDataIntegrity(_):
-//        <#code#>
+
       case .sdJwtVc(let spec):
         let suites = spec.cryptographicSuitesSupported.contains { $0 == algorithm.name }
         let bindings = spec.cryptographicBindingMethodsSupported.contains { $0  == .jwk }

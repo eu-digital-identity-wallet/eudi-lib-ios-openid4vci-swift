@@ -60,8 +60,37 @@ public enum SingleCredential {
 public extension SingleCredential {
   func toDictionary() throws -> JSON {
     switch self {
-    case .msoMdoc:
-      throw ValidationError.todo(reason: "Not yet implemented")
+    case .msoMdoc(let credential):
+      switch credential.requestedCredentialResponseEncryption {
+      case .notRequested:
+        return [:]
+      case .requested(
+        let encryptionJwk,
+        _,
+        let responseEncryptionAlg,
+        let responseEncryptionMethod
+      ):
+        
+        if let proof = credential.proof {
+          return [
+            "format": MsoMdocProfile.FORMAT,
+            "proof": try proof.toDictionary(),
+            "doctype": credential.docType,
+            "credential_encryption_jwk": try encryptionJwk.toDictionary(),
+            "credential_response_encryption_alg": responseEncryptionAlg.name,
+            "credential_response_encryption_enc": responseEncryptionMethod.name
+          ]
+          
+        } else {
+          return [
+            "format": MsoMdocProfile.FORMAT,
+            "doctype": credential.docType,
+            "credential_encryption_jwk": try encryptionJwk.toDictionary(),
+            "credential_response_encryption_alg": responseEncryptionAlg.name,
+            "credential_response_encryption_enc": responseEncryptionMethod.name
+          ]
+        }
+      }
     case .sdJwtVc(let credential):
       switch credential.requestedCredentialResponseEncryption {
       case .notRequested:
