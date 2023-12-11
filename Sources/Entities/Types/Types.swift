@@ -70,9 +70,24 @@ public enum Proof: Codable {
     
     switch self {
     case .jwt(let jwt):
-      try container.encode(jwt)
+      try container.encode([
+        "proof_type": "jwt",
+        "jwt": jwt
+      ])
     case .cwt(let cwt):
       try container.encode(cwt)
+    }
+  }
+  
+  public func toDictionary() throws -> [String: String] {
+    switch self {
+    case .jwt(let jwt):
+      return [
+        "proof_type": "jwt",
+        "jwt": jwt
+      ]
+    case .cwt:
+      throw ValidationError.error(reason: "CWT not supported yet")
     }
   }
 }
@@ -104,22 +119,6 @@ public struct CNonce: Codable {
     
     self.value = value
     self.expiresInSeconds = expiresInSeconds
-  }
-}
-
-public struct SingleIssuanceSuccessResponse: Codable {
-  public let format: String
-  public let credential: String?
-  public let transactionId: String?
-  public let cNonce: String?
-  public let cNonceExpiresInSeconds: Int?
-  
-  public init(format: String, credential: String?, transactionId: String?, cNonce: String?, cNonceExpiresInSeconds: Int?) {
-    self.format = format
-    self.credential = credential
-    self.transactionId = transactionId
-    self.cNonce = cNonce
-    self.cNonceExpiresInSeconds = cNonceExpiresInSeconds
   }
 }
 
@@ -175,5 +174,17 @@ public struct Claim: Codable {
     } else {
       display = nil
     }
+  }
+}
+
+public struct DeferredIssuanceRequestTO: Codable {
+  public let transactionId: String
+  
+  private enum CodingKeys: String, CodingKey {
+    case transactionId = "transaction_id"
+  }
+  
+  public init(transactionId: String) {
+    self.transactionId = transactionId
   }
 }

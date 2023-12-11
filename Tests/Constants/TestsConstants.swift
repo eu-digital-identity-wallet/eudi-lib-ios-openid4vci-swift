@@ -16,6 +16,48 @@
 import Foundation
 @testable import OpenID4VCI
 
+let CredentialIssuer_URL = "http://localhost:8080"
+//let CredentialIssuer_URL = "https://eudi.netcompany-intrasoft.com/pid-issuer"
+
+let PID_SdJwtVC_SCOPE = "eu.europa.ec.eudiw.pid_vc_sd_jwt"
+let PID_MsoMdoc_SCOPE = "eu.europa.ec.eudiw.pid_mso_mdoc"
+
+let SdJwtVC_CredentialOffer = """
+    {
+      "credential_issuer": "\(CredentialIssuer_URL)",
+      "credentials": [ "\(PID_SdJwtVC_SCOPE)" ],
+      "grants": {
+        "authorization_code": {}
+      }
+    }
+"""
+
+let MsoMdoc_CredentialOffer = """
+    {
+      "credential_issuer": "\(CredentialIssuer_URL)",
+      "grants": {
+        "authorization_code": {}
+      },
+      "credentials": [ "\(PID_MsoMdoc_SCOPE)" ]
+    }
+"""
+
+let config: WalletOpenId4VCIConfig = .init(
+  clientId: "wallet-dev",
+  authFlowRedirectionURI: URL(string: "urn:ietf:wg:oauth:2.0:oob")!
+)
+
+public struct ActingUser {
+  public let username: String
+  public let password: String
+  
+  public init(username: String, password: String) {
+    self.username = username
+    self.password = password
+  }
+}
+
+
 struct TestsConstants {
   
   static let CREDENTIAL_ISSUER_PUBLIC_URL = "https://credential-issuer.example.com"
@@ -39,7 +81,7 @@ struct TestsConstants {
     "credentials": ["PID_mso_mdoc", "UniversityDegree"]
   }
   """
-
+  
   static let PRE_AUTH_CODE_GRANT_CREDENTIAL_OFFER = """
   {
     "credential_issuer": "\(Self.CREDENTIAL_ISSUER_PUBLIC_URL)",

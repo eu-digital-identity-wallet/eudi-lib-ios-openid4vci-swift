@@ -33,7 +33,7 @@ extension Wallet {
     
     switch issuerMetadata {
     case .success(let metaData):
-      if let authorizationServer = metaData?.authorizationServer,
+      if let authorizationServer = metaData?.authorizationServers.first,
          let metaData {
         let authServerMetadata = await AuthorizationServerMetadataResolver().resolve(url: authorizationServer)
         
@@ -198,9 +198,7 @@ extension Wallet {
       let requestOutcome = try await issuer.requestSingle(
         noProofRequest: noProofRequiredState,
         credentialMetadata: offer.credentials.first, 
-        responseEncryptionSpecProvider: { credentialResponseEncryption in
-          return Issuer.createResponseEncryptionSpec(credentialResponseEncryption)
-        }
+        responseEncryptionSpecProvider: { Issuer.createResponseEncryptionSpec($0) }
       )
       switch requestOutcome {
       case .success(let request):
@@ -208,18 +206,22 @@ extension Wallet {
         case .success(let response):
           if let result = response.credentialResponses.first {
             switch result {
-            case .complete(_, let credential):
-              return credential
             case .deferred(let transactionId):
-              return transactionId
+              return try await deferredCredentialUseCase(
+                issuer: issuer,
+                authorized: noProofRequiredState,
+                transactionId: transactionId
+              )
+            case .issued(_, let credential):
+              return credential
             }
           } else {
             throw ValidationError.error(reason: "No credential response results available")
           }
-        case .invalidProof:
+        case .invalidProof(let cNonce, _):
           return try await proofRequiredSubmissionUseCase(
             issuer: issuer,
-            authorized: noProofRequiredState,
+            authorized: noProofRequiredState.handleInvalidProof(cNonce: cNonce),
             offer: offer
           )
         case .failed(error: let error):
@@ -242,9 +244,7 @@ extension Wallet {
       proofRequest: authorized,
       credentialMetadata: offer.credentials.first,
       bindingKey: bindingKey, 
-      responseEncryptionSpecProvider:  { credentialResponseEncryption in
-        return Issuer.createResponseEncryptionSpec(credentialResponseEncryption)
-      }
+      responseEncryptionSpecProvider:  { Issuer.createResponseEncryptionSpec($0) }
     )
     
     switch requestOutcome {
@@ -253,10 +253,14 @@ extension Wallet {
       case .success(let response):
         if let result = response.credentialResponses.first {
           switch result {
-          case .complete(_, let credential):
-            return credential
           case .deferred(let transactionId):
-            return transactionId
+            return try await deferredCredentialUseCase(
+              issuer: issuer,
+              authorized: authorized,
+              transactionId: transactionId
+            )
+          case .issued(_, let credential):
+            return credential
           }
         } else {
           throw ValidationError.error(reason: "No credential response results available")
@@ -269,6 +273,33 @@ extension Wallet {
     case .failure(let error): throw ValidationError.error(reason: error.localizedDescription)
     }
   }
+  
+  private func deferredCredentialUseCase(
+    issuer: Issuer,
+    authorized: AuthorizedRequest,
+    transactionId: TransactionId
+  ) async throws -> String {
+    print("--> Got a deferred issuance response from server with transaction_id \(transactionId.value). Retrying issuance...")
+    
+    let deferredRequestResponse = try await issuer.requestDeferredIssuance(
+      proofRequest: authorized,
+      transactionId: transactionId
+    )
+    
+    switch deferredRequestResponse {
+    case .success(let response):
+      switch response {
+      case .issued(_, let credential):
+        return credential
+      case .issuancePending(let transactionId):
+        throw ValidationError.error(reason: "Credential not ready yet. Try after \(transactionId.interval ?? 0)")
+      case .errored(_, let errorDescription):
+        throw ValidationError.error(reason: "\(errorDescription ?? "Something went wrong with your deferred request response")")
+      }
+    case .failure(let error):
+      throw ValidationError.error(reason: error.localizedDescription)
+    }
+  }
 }
 
 extension Wallet {
@@ -276,7 +307,6 @@ extension Wallet {
     getAuthorizationCodeUrl: URL,
     actingUser: ActingUser
   ) async throws -> String? {
-    
     let helper = WebpageHelper()
     return try await helper.submit(
       formUrl: getAuthorizationCodeUrl,

@@ -36,17 +36,45 @@ public extension SupportedCredential {
       if let proof,
          let proofTypesSupported = credentialSupported.proofTypesSupported,
          proofTypesSupported.contains(proof.type()) {
-        
+        if !proofTypesSupported.contains(proof.type()) {
+          throw ValidationError.error(reason: "Provided proof type \(proof.type()) is not one of supported [\(proofTypesSupported)].")
+        }
       }
+      
+      let issuerEncryption = requester.issuerMetadata.credentialResponseEncryption
+      let responseEncryptionSpec = responseEncryptionSpecProvider(issuerEncryption)
+      
+      if let responseEncryptionSpec {
+        switch issuerEncryption {
+        case .notRequired:
+          throw CredentialIssuanceError.issuerDoesNotSupportEncryptedResponses
+        case .required(
+          let algorithmsSupported,
+          let encryptionMethodsSupported
+        ):
+          if !algorithmsSupported.contains(responseEncryptionSpec.algorithm) {
+            throw CredentialIssuanceError.responseEncryptionAlgorithmNotSupportedByIssuer
+          }
+          
+          if !encryptionMethodsSupported.contains(responseEncryptionSpec.encryptionMethod) {
+            throw CredentialIssuanceError.responseEncryptionMethodNotSupportedByIssuer
+          }
+        }
+      }
+     
       return try credentialSupported.toIssuanceRequest(
+        responseEncryptionSpec: responseEncryptionSpec,
         claimSet: claimSet,
         proof: proof
       )
+
     case .sdJwtVc(let credentialSupported):
       if let proof,
          let proofTypesSupported = credentialSupported.proofTypesSupported,
          proofTypesSupported.contains(proof.type()) {
-        
+        if !proofTypesSupported.contains(proof.type()) {
+          throw ValidationError.error(reason: "Provided proof type \(proof.type()) is not one of supported [\(proofTypesSupported)].")
+        }
       }
       
       let issuerEncryption = requester.issuerMetadata.credentialResponseEncryption

@@ -335,7 +335,7 @@ public extension SdJwtVcProfile {
         )
         }
       }
-      
+
       return try .single(
         .sdJwtVc(
           .init(

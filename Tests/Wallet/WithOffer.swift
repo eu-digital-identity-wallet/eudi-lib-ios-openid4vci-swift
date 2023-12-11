@@ -19,43 +19,7 @@ import JOSESwift
 
 @testable import OpenID4VCI
 
-let CredentialIssuer_URL = "http://localhost:8080"
-//let CredentialIssuer_URL = "https://eudi.netcompany-intrasoft.com/pid-issuer"
-
-let PID_SdJwtVC_SCOPE = "eu.europa.ec.eudiw.pid_vc_sd_jwt"
-let PID_MsoMdoc_SCOPE = "eu.europa.ec.eudiw.pid_mso_mdoc"
-
-let SdJwtVC_CredentialOffer = """
-    {
-      "credential_issuer": "\(CredentialIssuer_URL)",
-      "credentials": [ "\(PID_SdJwtVC_SCOPE)" ],
-      "grants": {
-        "authorization_code": {}
-      }
-    }
-"""
-
-let MsoMdoc_CredentialOffer = """
-    {
-      "credential_issuer": "\(CredentialIssuer_URL)",
-      "grants": {
-        "authorization_code": {}
-      },
-      "credentials": [ "\(PID_MsoMdoc_SCOPE)" ]
-    }
-"""
-
-let config: WalletOpenId4VCIConfig = .init(
-  clientId: "wallet-dev",
-  authFlowRedirectionURI: URL(string: "urn:ietf:wg:oauth:2.0:oob")!
-)
-
-struct ActingUser {
-  let username: String
-  let password: String
-}
-
-class ExampleTest: XCTestCase {
+class WithOffer: XCTestCase {
   
   override func setUp() async throws {
     try await super.setUp()
@@ -65,16 +29,7 @@ class ExampleTest: XCTestCase {
     super.tearDown()
   }
   
-  func testWebPageFormSubmission() async throws {
-
-    _ = try await WebpageHelper().submit(
-      formUrl: URL(string: "https://www.w3schools.com/html/html_forms.asp")!,
-      username: "username",
-      password: "password"
-    )
-  }
-  
-  func test() async throws {
+  func testWithOfferSdJWT() async throws {
     
     let privateKey = try KeyController.generateRSAPrivateKey()
     let publicKey = try KeyController.generateRSAPublicKey(from: privateKey)
@@ -90,7 +45,7 @@ class ExampleTest: XCTestCase {
     
     let bindingKey: BindingKey = .jwk(
       algorithm: alg,
-      jwk: publicKeyJWK, 
+      jwk: publicKeyJWK,
       privateKey: privateKey
     )
     
@@ -104,12 +59,44 @@ class ExampleTest: XCTestCase {
       bindingKey: bindingKey
     )
     
-    try await walletInitiatedIssuanceWithOffer(wallet: wallet)
-    //try await walletInitiatedIssuanceNoOffer(wallet: wallet)
+    try await walletInitiatedIssuanceWithOfferSdJWT(wallet: wallet)
+  }
+  
+  func testWithOfferMdoc() async throws {
+    
+    let privateKey = try KeyController.generateRSAPrivateKey()
+    let publicKey = try KeyController.generateRSAPublicKey(from: privateKey)
+    
+    let alg = JWSAlgorithm(.RS256)
+    let publicKeyJWK = try RSAPublicKey(
+      publicKey: publicKey,
+      additionalParameters: [
+        "alg": alg.name,
+        "use": "sig",
+        "kid": UUID().uuidString
+      ])
+    
+    let bindingKey: BindingKey = .jwk(
+      algorithm: alg,
+      jwk: publicKeyJWK,
+      privateKey: privateKey
+    )
+    
+    let user = ActingUser(
+      username: "tneal",
+      password: "password"
+    )
+    
+    let wallet = Wallet(
+      actingUser: user,
+      bindingKey: bindingKey
+    )
+    
+    try await walletInitiatedIssuanceWithOfferMdoc(wallet: wallet)
   }
 }
 
-private func walletInitiatedIssuanceWithOffer(wallet: Wallet) async throws {
+private func walletInitiatedIssuanceWithOfferSdJWT(wallet: Wallet) async throws {
   
   print("[[Scenario: Offer passed to wallet via url]] ")
   
@@ -119,11 +106,12 @@ private func walletInitiatedIssuanceWithOffer(wallet: Wallet) async throws {
   print("--> Issued credential : \(credential)")
 }
 
-private func walletInitiatedIssuanceNoOffer(wallet: Wallet) async throws {
+private func walletInitiatedIssuanceWithOfferMdoc(wallet: Wallet) async throws {
   
-  print("[[Scenario: No offer passed, wallet initiates issuance by credetial scopes]]")
+  print("[[Scenario: Offer passed to wallet via url]] ")
   
-  let credential = try await wallet.issueByScope(PID_SdJwtVC_SCOPE)
+  let url = "\(CredentialIssuer_URL)/credentialoffer?credential_offer=\(MsoMdoc_CredentialOffer)"
+  let credential = try await wallet.issueByCredentialOfferUrl(url: url)
   
   print("--> Issued credential : \(credential)")
 }

@@ -58,6 +58,11 @@ public protocol IssuerType {
     claimSet: ClaimSet?,
     responseEncryptionSpecProvider: (_ issuerResponseEncryptionMetadata: CredentialResponseEncryption) -> IssuanceResponseEncryptionSpec?
   ) async throws -> Result<SubmittedRequest, Error>
+  
+  func requestDeferredIssuance(
+    proofRequest: AuthorizedRequest,
+    transactionId: TransactionId
+  ) async throws -> Result<DeferredCredentialIssuanceResponse, Error>
 }
 
 public actor Issuer: IssuerType {
@@ -348,10 +353,12 @@ public actor Issuer: IssuerType {
       case .scope:
         switch proofRequest {
         case .proofRequired(_, let cNonce):
-          let supportedCredentialByScope = try supportedCredentialByScope(
+          guard let supportedCredentialByScope = try? supportedCredentialByScope(
             metaData: requester.issuerMetadata,
             scoped: credentialMetadata
-          )!
+          ) else {
+            throw ValidationError.error(reason: "Scope not supported")
+          }
           
           return try supportedCredentialByScope.toIssuanceRequest(
             requester: requester,
@@ -595,5 +602,20 @@ public extension Issuer {
         encryptionMethod: encryptionMethodsSupported
       )
     }
+  }
+  
+  func requestDeferredIssuance(
+    proofRequest: AuthorizedRequest,
+    transactionId: TransactionId
+  ) async throws -> Result<DeferredCredentialIssuanceResponse, Error> {
+    
+    guard let token = proofRequest.accessToken else {
+      throw ValidationError.error(reason: "Invalid access token")
+    }
+    
+    return try await requester.placeDeferredCredentialRequest(
+      accessToken: token,
+      transactionId: transactionId
+    )
   }
 }

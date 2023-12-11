@@ -80,13 +80,25 @@ public extension SingleCredential {
           "type": credential.credentialDefinition.type
         ].toDictionary()
         
-        return [
-          "format": SdJwtVcProfile.FORMAT,
-          "credential_encryption_jwk": try encryptionJwk.toDictionary(),
-          "credential_response_encryption_alg": responseEncryptionAlg.name,
-          "credential_response_encryption_enc": responseEncryptionMethod.name,
-          "credential_definition": credentialDefinition
-        ]
+        if let proof = credential.proof {
+          return [
+            "format": SdJwtVcProfile.FORMAT,
+            "proof": try proof.toDictionary(),
+            "credential_encryption_jwk": try encryptionJwk.toDictionary(),
+            "credential_response_encryption_alg": responseEncryptionAlg.name,
+            "credential_response_encryption_enc": responseEncryptionMethod.name,
+            "credential_definition": credentialDefinition
+          ]
+          
+        } else {
+          return [
+            "format": SdJwtVcProfile.FORMAT,
+            "credential_encryption_jwk": try encryptionJwk.toDictionary(),
+            "credential_response_encryption_alg": responseEncryptionAlg.name,
+            "credential_response_encryption_enc": responseEncryptionMethod.name,
+            "credential_definition": credentialDefinition
+          ]
+        }
       }
     }
   }

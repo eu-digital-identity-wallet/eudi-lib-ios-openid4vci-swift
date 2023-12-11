@@ -44,6 +44,7 @@ class CredentialIssuerIdTest: XCTestCase {
       return
     }
     
+    XCTExpectFailure("http for debugging purposes")
     XCTAssert(false)
   }
   

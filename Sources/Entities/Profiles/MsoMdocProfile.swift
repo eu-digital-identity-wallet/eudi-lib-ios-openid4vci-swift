@@ -38,8 +38,9 @@ public extension MsoMdocProfile {
   
   struct MsoMdocSingleCredential: Codable {
     public let docType: String
-    public let proof: ProofType?
+    public let proof: Proof?
     public let credentialEncryptionJwk: JWK?
+    public let credentialEncryptionKey: SecKey?
     public let credentialResponseEncryptionAlg: JWEAlgorithm?
     public let credentialResponseEncryptionMethod: JOSEEncryptionMethod?
     public let claimSet: ClaimSet?
@@ -55,8 +56,9 @@ public extension MsoMdocProfile {
     
     public init(
       docType: String,
-      proof: ProofType? = nil,
+      proof: Proof? = nil,
       credentialEncryptionJwk: JWK? = nil,
+      credentialEncryptionKey: SecKey? = nil,
       credentialResponseEncryptionAlg: JWEAlgorithm? = nil,
       credentialResponseEncryptionMethod: JOSEEncryptionMethod? = nil,
       claimSet: ClaimSet? = nil
@@ -64,6 +66,7 @@ public extension MsoMdocProfile {
       self.docType = docType
       self.proof = proof
       self.credentialEncryptionJwk = credentialEncryptionJwk
+      self.credentialEncryptionKey = credentialEncryptionKey
       self.credentialResponseEncryptionAlg = credentialResponseEncryptionAlg
       self.credentialResponseEncryptionMethod = credentialResponseEncryptionMethod
       self.claimSet = claimSet
@@ -283,6 +286,7 @@ public extension MsoMdocProfile {
     }
     
     func toIssuanceRequest(
+      responseEncryptionSpec: IssuanceResponseEncryptionSpec?,
       claimSet: ClaimSet?,
       proof: Proof?
     ) throws -> CredentialIssuanceRequest {
@@ -322,16 +326,17 @@ public extension MsoMdocProfile {
           "Invalid Claim Set provided for issuance"
         )
         }
-      } else {
-        throw CredentialIssuanceError.invalidIssuanceRequest(
-          "Invalid Claim Set provided for issuance"
-        )
       }
       
       return .single(
         .msoMdoc(
           .init(
             docType: docType,
+            proof: proof,
+            credentialEncryptionJwk: responseEncryptionSpec?.jwk,
+            credentialEncryptionKey: responseEncryptionSpec?.privateKey,
+            credentialResponseEncryptionAlg: responseEncryptionSpec?.algorithm,
+            credentialResponseEncryptionMethod: responseEncryptionSpec?.encryptionMethod,
             claimSet: .msoMdoc(validClaimSet)
           )
         )
