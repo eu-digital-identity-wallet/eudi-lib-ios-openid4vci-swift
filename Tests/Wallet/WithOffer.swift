@@ -64,11 +64,11 @@ class WithOffer: XCTestCase {
   
   func testWithOfferMdoc() async throws {
     
-    let privateKey = try KeyController.generateRSAPrivateKey()
-    let publicKey = try KeyController.generateRSAPublicKey(from: privateKey)
+    let privateKey = try KeyController.generateECDHPrivateKey()
+    let publicKey = try KeyController.generateECDHPublicKey(from: privateKey)
     
-    let alg = JWSAlgorithm(.RS256)
-    let publicKeyJWK = try RSAPublicKey(
+    let alg = JWSAlgorithm(.ES256)
+    let publicKeyJWK = try ECPublicKey(
       publicKey: publicKey,
       additionalParameters: [
         "alg": alg.name,

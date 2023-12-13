@@ -45,10 +45,9 @@ public enum RequestedCredentialResponseEncryption {
   
   // Validate algorithm matches key
   private static func validateKeyAlgorithmMatch(_ encryptionJwk: JWK?, _ responseEncryptionAlg: JWEAlgorithm?) throws {
-//    guard encryptionJwk.keyType == KeyType.forAlgorithm(responseEncryptionAlg) else {
-//      throw ValidationError.error(reason: "Encryption key and encryption algorithm do not match")
-//    }
-    print(encryptionJwk)
+    /*guard encryptionJwk.keyType == KeyType.forAlgorithm(responseEncryptionAlg) else {
+      throw ValidationError.error(reason: "Encryption key and encryption algorithm do not match")
+    }*/
   }
   
   // Validate key is for encryption operation
