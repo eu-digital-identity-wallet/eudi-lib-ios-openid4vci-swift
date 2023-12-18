@@ -16,9 +16,9 @@
 import Foundation
 import SwiftyJSON
 
-public struct W3CJsonLdSignedJwtProfile: Profile {
+public struct W3CJsonLdDataIntegrityFormat: FormatProfile {
   
-  static let FORMAT = "jwt_vc_json-ld"
+  static let FORMAT = "ldp_vc"
   
   public let credentialDefinition: CredentialDefinition
   public let scope: String?
@@ -40,9 +40,9 @@ public struct W3CJsonLdSignedJwtProfile: Profile {
   }
 }
 
-public extension W3CJsonLdSignedJwtProfile {
+public extension W3CJsonLdDataIntegrityFormat {
   
-  struct W3CJsonLdSignedJwtClaimSet: Codable {
+  struct W3CJsonLdDataIntegrityClaimSet: Codable {
     public let claims: [ClaimName: Claim]
     
     public init(claims: [ClaimName : Claim]) {
@@ -101,6 +101,7 @@ public extension W3CJsonLdSignedJwtProfile {
     public let proofTypesSupported: [String]?
     public let display: [Display]?
     public let context: [String]
+    public let type: [String]
     public let credentialDefinition: CredentialDefinitionTO
     public let order: [String]?
     
@@ -112,6 +113,7 @@ public extension W3CJsonLdSignedJwtProfile {
       case proofTypesSupported = "proof_types_supported"
       case display
       case context = "@context"
+      case type
       case credentialDefinition = "credential_definition"
       case order
     }
@@ -124,6 +126,7 @@ public extension W3CJsonLdSignedJwtProfile {
       proofTypesSupported: [String]? = nil,
       display: [Display]? = nil,
       context: [String] = [],
+      type: [String] = [],
       credentialDefinition: CredentialDefinitionTO,
       order: [String]? = nil
     ) {
@@ -134,17 +137,19 @@ public extension W3CJsonLdSignedJwtProfile {
       self.proofTypesSupported = proofTypesSupported
       self.display = display
       self.context = context
+      self.type = type
       self.credentialDefinition = credentialDefinition
       self.order = order
     }
     
-    func toDomain() throws -> W3CJsonLdSignedJwtProfile.CredentialSupported {
+    func toDomain() throws -> W3CJsonLdDataIntegrityFormat.CredentialSupported {
       
       let bindingMethods = try cryptographicBindingMethodsSupported?.compactMap {
         try CryptographicBindingMethod(method: $0)
       } ?? []
       let display: [Display] = self.display ?? []
       let context: [String] = self.context
+      let type: [String] = self.type
       let proofTypesSupported: [ProofType] = try self.proofTypesSupported?.compactMap {
         try ProofType(type: $0)
       } ?? { throw ValidationError.error(reason: "No proof types found")}()
@@ -156,8 +161,9 @@ public extension W3CJsonLdSignedJwtProfile {
         cryptographicBindingMethodsSupported: bindingMethods,
         cryptographicSuitesSupported: cryptographicSuitesSupported,
         proofTypesSupported: proofTypesSupported,
-        display: display, 
+        display: display,
         context: context,
+        type: type,
         credentialDefinition: credentialDefinition,
         order: order ?? []
       )
@@ -171,6 +177,7 @@ public extension W3CJsonLdSignedJwtProfile {
     public let proofTypesSupported: [ProofType]?
     public let display: [Display]
     public let context: [String]
+    public let type: [String]
     public let credentialDefinition: CredentialDefinition
     public let order: [ClaimName]
     
@@ -181,6 +188,7 @@ public extension W3CJsonLdSignedJwtProfile {
       case proofTypesSupported = "proof_types_supported"
       case display
       case context = "@context"
+      case type
       case credentialDefinition = "credential_definition"
       case order
     }
@@ -192,6 +200,7 @@ public extension W3CJsonLdSignedJwtProfile {
       proofTypesSupported: [ProofType]?,
       display: [Display],
       context: [String],
+      type: [String],
       credentialDefinition: CredentialDefinition,
       order: [ClaimName]
     ) {
@@ -201,6 +210,7 @@ public extension W3CJsonLdSignedJwtProfile {
       self.proofTypesSupported = proofTypesSupported
       self.display = display
       self.context = context
+      self.type = type
       self.credentialDefinition = credentialDefinition
       self.order = order
     }
@@ -214,6 +224,7 @@ public extension W3CJsonLdSignedJwtProfile {
       proofTypesSupported = try? container.decode([ProofType].self, forKey: .proofTypesSupported)
       display = try container.decode([Display].self, forKey: .display)
       context = try container.decode([String].self, forKey: .context)
+      type = try container.decode([String].self, forKey: .type)
       credentialDefinition = try container.decode(CredentialDefinition.self, forKey: .credentialDefinition)
       order = try container.decode([ClaimName].self, forKey: .order)
     }
@@ -227,6 +238,7 @@ public extension W3CJsonLdSignedJwtProfile {
       try container.encode(proofTypesSupported, forKey: .proofTypesSupported)
       try container.encode(display, forKey: .display)
       try container.encode(context, forKey: .context)
+      try container.encode(type, forKey: .type)
       try container.encode(credentialDefinition, forKey: .credentialDefinition)
       try container.encode(order, forKey: .order)
     }
@@ -246,6 +258,9 @@ public extension W3CJsonLdSignedJwtProfile {
         Display(json: json)
       }
       self.context = json["@context"].arrayValue.map {
+        $0.stringValue
+      }
+      self.type = json["type"].arrayValue.map {
         $0.stringValue
       }
       self.credentialDefinition = CredentialDefinition(json: json["credential_definition"])
@@ -302,7 +317,7 @@ public extension W3CJsonLdSignedJwtProfile {
   }
 }
 
-public extension W3CJsonLdSignedJwtProfile {
+public extension W3CJsonLdDataIntegrityFormat {
   
   static func matchSupportedAndToDomain(
     json: JSON,
@@ -313,14 +328,14 @@ public extension W3CJsonLdSignedJwtProfile {
     
     if let credentialsSupported = metadata.credentialsSupported.first(where: { credential in
       switch credential {
-      case .w3CJsonLdSignedJwt(let credentialSupported):
+      case .w3CJsonLdDataIntegrity(let credentialSupported):
         return credentialSupported.credentialDefinition.type == credentialDefinition.type
       default: return false
       }
     }) {
       switch credentialsSupported {
-      case .w3CJsonLdSignedJwt(let profile):
-        return .w3CJsonLdSignedJwt(.init(
+      case .w3CJsonLdDataIntegrity(let profile):
+        return .w3CJsonLdDataIntegrity(.init(
           credentialDefinition: profile.credentialDefinition,
           scope: profile.scope,
           content: try credentialDefinition.context.map { string in try URL(string: string) ?? {

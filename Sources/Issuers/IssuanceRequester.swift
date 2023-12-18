@@ -24,7 +24,7 @@ public protocol IssuanceRequesterType {
   func placeIssuanceRequest(
     accessToken: IssuanceAccessToken,
     request: SingleCredential
-  ) async -> Result<CredentialIssuanceResponse, Error>
+  ) async throws -> Result<CredentialIssuanceResponse, Error>
   
   func placeBatchIssuanceRequest(
     accessToken: IssuanceAccessToken,
@@ -56,7 +56,7 @@ public actor IssuanceRequester: IssuanceRequesterType {
   public func placeIssuanceRequest(
     accessToken: IssuanceAccessToken,
     request: SingleCredential
-  ) async -> Result<CredentialIssuanceResponse, Error> {
+  ) async throws -> Result<CredentialIssuanceResponse, Error> {
     let endpoint = issuerMetadata.credentialEndpoint.url
     
     do {
@@ -79,60 +79,94 @@ public actor IssuanceRequester: IssuanceRequesterType {
       return .failure(response.toIssuanceError())
       
     } catch PostError.cannotParse(let string) {
-      
       switch request {
       case .msoMdoc(let credential):
         switch issuerMetadata.credentialResponseEncryption {
         case .notRequired:
-          return .failure(ValidationError.todo(reason: ".notRequired"))
-        case .required(
-          let algorithmsSupported,
-          let encryptionMethodsSupported
-        ):
+          guard let response = SingleIssuanceSuccessResponse.fromJSONString(string) else {
+            return .failure(ValidationError.todo(reason: "Cannot decode .notRequired response"))
+          }
+          return .success(try response.toDomain())
+        case .required:
           do {
             guard let key = credential.credentialEncryptionKey else {
               return .failure(ValidationError.error(reason: "Invalid private key"))
             }
             
-            let jwe = try JWE(compactSerialization: string)
-            let decrypter = Decrypter(
-              keyManagementAlgorithm: .RSAOAEP256,
-              contentEncryptionAlgorithm: .A128CBCHS256,
-              decryptionKey: key
-            )!
-            let payload = try jwe.decrypt(using: decrypter)
-            let response = try JSONDecoder().decode(SingleIssuanceSuccessResponse.self, from: payload.data())
-            return .success(try response.toDomain())
+            switch credential.requestedCredentialResponseEncryption {
+            case .notRequested:
+              throw ValidationError.error(reason: "Issuer expects response encryption")
+            case .requested(
+              _,
+              _,
+              let responseEncryptionAlg,
+              let responseEncryptionMethod
+            ):
+              
+              guard
+                let keyManagementAlgorithm = KeyManagementAlgorithm(algorithm: responseEncryptionAlg),
+                let contentEncryptionAlgorithm = ContentEncryptionAlgorithm(encryptionMethod: responseEncryptionMethod)
+              else {
+                return .failure(ValidationError.error(reason: "Unsupported encryption algorithms"))
+              }
+              
+              let jwe = try JWE(compactSerialization: string)
+              guard let decrypter = Decrypter(
+                keyManagementAlgorithm: keyManagementAlgorithm,
+                contentEncryptionAlgorithm: contentEncryptionAlgorithm,
+                decryptionKey: key
+              ) else {
+                return .failure(ValidationError.error(reason: "Could nit instantiate descypter"))
+              }
+              let payload = try jwe.decrypt(using: decrypter)
+              let response = try JSONDecoder().decode(SingleIssuanceSuccessResponse.self, from: payload.data())
+              return .success(try response.toDomain())
+            }
+            
           } catch {
-            print(error.localizedDescription)
             return .failure(ValidationError.error(reason: error.localizedDescription))
           }
         }
       case .sdJwtVc(let credential):
         switch issuerMetadata.credentialResponseEncryption {
         case .notRequired:
-          return .failure(ValidationError.todo(reason: ".notRequired"))
-        case .required(
-          let algorithmsSupported,
-          let encryptionMethodsSupported
-        ):
-          do {
-            guard let key = credential.credentialEncryptionKey else {
-              return .failure(ValidationError.error(reason: "Invalid private key"))
+          guard let response = SingleIssuanceSuccessResponse.fromJSONString(string) else {
+            return .failure(ValidationError.todo(reason: "Cannot decode .notRequired response"))
+          }
+          return .success(try response.toDomain())
+        case .required:
+          guard let key = credential.credentialEncryptionKey else {
+            return .failure(ValidationError.error(reason: "Invalid private key"))
+          }
+          
+          switch credential.requestedCredentialResponseEncryption {
+          case .notRequested:
+            throw ValidationError.error(reason: "Issuer expects response encryption")
+          case .requested(
+            _,
+            _,
+            let responseEncryptionAlg,
+            let responseEncryptionMethod
+          ):
+            
+            guard
+              let keyManagementAlgorithm = KeyManagementAlgorithm(algorithm: responseEncryptionAlg),
+              let contentEncryptionAlgorithm = ContentEncryptionAlgorithm(encryptionMethod: responseEncryptionMethod)
+            else {
+              return .failure(ValidationError.error(reason: "Unsupported encryption algorithms"))
             }
             
             let jwe = try JWE(compactSerialization: string)
-            let decrypter = Decrypter(
-              keyManagementAlgorithm: .RSAOAEP256,
-              contentEncryptionAlgorithm: .A128CBCHS256,
+            guard let decrypter = Decrypter(
+              keyManagementAlgorithm: keyManagementAlgorithm,
+              contentEncryptionAlgorithm: contentEncryptionAlgorithm,
               decryptionKey: key
-            )!
+            ) else {
+              return .failure(ValidationError.error(reason: "Could nit instantiate descypter"))
+            }
             let payload = try jwe.decrypt(using: decrypter)
             let response = try JSONDecoder().decode(SingleIssuanceSuccessResponse.self, from: payload.data())
             return .success(try response.toDomain())
-          } catch {
-            print(error.localizedDescription)
-            return .failure(ValidationError.error(reason: error.localizedDescription))
           }
         }
       }

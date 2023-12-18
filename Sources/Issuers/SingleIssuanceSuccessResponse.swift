@@ -56,4 +56,17 @@ public extension SingleIssuanceSuccessResponse {
       throw ValidationError.error(reason: "CredentialIssuanceResponse unpareable")
     }
   }
+  
+  static func fromJSONString(_ jsonString: String) -> SingleIssuanceSuccessResponse? {
+    guard let jsonData = jsonString.data(using: .utf8) else {
+      return nil
+    }
+    
+    do {
+      let yourObject = try JSONDecoder().decode(SingleIssuanceSuccessResponse.self, from: jsonData)
+      return yourObject
+    } catch {
+      return nil
+    }
+  }
 }

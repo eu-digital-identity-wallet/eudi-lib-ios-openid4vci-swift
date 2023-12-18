@@ -53,8 +53,8 @@ public struct DeferredCredentialRequest: Codable {
 }
 
 public enum SingleCredential {
-  case msoMdoc(MsoMdocProfile.MsoMdocSingleCredential)
-  case sdJwtVc(SdJwtVcProfile.SdJwtVcSingleCredential)
+  case msoMdoc(MsoMdocFormat.MsoMdocSingleCredential)
+  case sdJwtVc(SdJwtVcFormat.SdJwtVcSingleCredential)
 }
 
 public extension SingleCredential {
@@ -73,7 +73,7 @@ public extension SingleCredential {
         
         if let proof = credential.proof {
           return [
-            "format": MsoMdocProfile.FORMAT,
+            "format": MsoMdocFormat.FORMAT,
             "proof": try proof.toDictionary(),
             "doctype": credential.docType,
             "credential_encryption_jwk": try encryptionJwk.toDictionary(),
@@ -83,7 +83,7 @@ public extension SingleCredential {
           
         } else {
           return [
-            "format": MsoMdocProfile.FORMAT,
+            "format": MsoMdocFormat.FORMAT,
             "doctype": credential.docType,
             "credential_encryption_jwk": try encryptionJwk.toDictionary(),
             "credential_response_encryption_alg": responseEncryptionAlg.name,
@@ -111,7 +111,7 @@ public extension SingleCredential {
         
         if let proof = credential.proof {
           return [
-            "format": SdJwtVcProfile.FORMAT,
+            "format": SdJwtVcFormat.FORMAT,
             "proof": try proof.toDictionary(),
             "credential_encryption_jwk": try encryptionJwk.toDictionary(),
             "credential_response_encryption_alg": responseEncryptionAlg.name,
@@ -121,7 +121,7 @@ public extension SingleCredential {
           
         } else {
           return [
-            "format": SdJwtVcProfile.FORMAT,
+            "format": SdJwtVcFormat.FORMAT,
             "credential_encryption_jwk": try encryptionJwk.toDictionary(),
             "credential_response_encryption_alg": responseEncryptionAlg.name,
             "credential_response_encryption_enc": responseEncryptionMethod.name,

@@ -15,4 +15,4 @@
  */
 import Foundation
 
-public protocol Profile {}
+public protocol FormatProfile {}

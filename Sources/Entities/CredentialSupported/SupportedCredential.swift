@@ -17,11 +17,11 @@ import Foundation
 
 public enum SupportedCredential: Codable {
   case scope(Scope)
-  case msoMdoc(MsoMdocProfile.CredentialSupported)
-  case w3CSignedJwt(W3CSignedJwtProfile.CredentialSupported)
-  case w3CJsonLdSignedJwt(W3CJsonLdSignedJwtProfile.CredentialSupported)
-  case w3CJsonLdDataIntegrity(W3CJsonLdDataIntegrityProfile.CredentialSupported)
-  case sdJwtVc(SdJwtVcProfile.CredentialSupported)
+  case msoMdoc(MsoMdocFormat.CredentialSupported)
+  case w3CSignedJwt(W3CSignedJwtFormat.CredentialSupported)
+  case w3CJsonLdSignedJwt(W3CJsonLdSignedJwtFormat.CredentialSupported)
+  case w3CJsonLdDataIntegrity(W3CJsonLdDataIntegrityFormat.CredentialSupported)
+  case sdJwtVc(SdJwtVcFormat.CredentialSupported)
 }
 
 public extension SupportedCredential {

@@ -17,7 +17,7 @@ import Foundation
 import SwiftyJSON
 import JOSESwift
 
-public struct MsoMdocProfile: Profile {
+public struct MsoMdocFormat: FormatProfile {
   static let FORMAT = "mso_mdoc"
   
   public let docType: String
@@ -34,7 +34,7 @@ public struct MsoMdocProfile: Profile {
   }
 }
 
-public extension MsoMdocProfile {
+public extension MsoMdocFormat {
   
   struct MsoMdocSingleCredential: Codable {
     public let docType: String
@@ -159,7 +159,7 @@ public extension MsoMdocProfile {
       self.order = order
     }
     
-    func toDomain() throws -> MsoMdocProfile.CredentialSupported {
+    func toDomain() throws -> MsoMdocFormat.CredentialSupported {
       
       let bindingMethods = try cryptographicBindingMethodsSupported?.compactMap {
         try CryptographicBindingMethod(method: $0)
@@ -321,7 +321,7 @@ public extension MsoMdocProfile {
         return claimSet
       }
       
-      var validClaimSet: MsoMdocProfile.MsoMdocClaimSet?
+      var validClaimSet: MsoMdocFormat.MsoMdocClaimSet?
       if let claimSet = claimSet {
         switch claimSet {
         case .msoMdoc(let claimSet):
@@ -353,7 +353,7 @@ public extension MsoMdocProfile {
   }
 }
 
-public extension MsoMdocProfile {
+public extension MsoMdocFormat {
   
   static func matchSupportedAndToDomain(
     json: JSON,

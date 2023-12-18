@@ -147,7 +147,7 @@ extension Wallet {
       pushedAuthorizationRequestEndpoint = metaData.pushedAuthorizationRequestEndpoint
     }
     
-    print("--> Placing PAR to AS server's endpoint \(pushedAuthorizationRequestEndpoint)")
+    print("--> [AUTHORIZATION] Placing PAR to AS server's endpoint \(pushedAuthorizationRequestEndpoint)")
     
     let parPlaced = await issuer.pushAuthorizationCodeRequest(
       credentials: offer.credentials
@@ -155,14 +155,14 @@ extension Wallet {
     
     if case let .success(request) = parPlaced,
        case let .par(parRequested) = request {
-      print("--> Placed PAR. Get authorization code URL is: \(parRequested.getAuthorizationCodeURL)")
+      print("--> [AUTHORIZATION] Placed PAR. Get authorization code URL is: \(parRequested.getAuthorizationCodeURL)")
       
       let authorizationCode = try await loginUserAndGetAuthCode(
         getAuthorizationCodeUrl: parRequested.getAuthorizationCodeURL.url,
         actingUser: actingUser
-      ) ?? { throw  ValidationError.error(reason: "Could not retrieve authorization code") } ()
+      ) ?? { throw  ValidationError.error(reason: "Could not retrieve authorization code") }()
       
-      print("--> Authorization code retrieved: \(authorizationCode)")
+      print("--> [AUTHORIZATION] Authorization code retrieved: \(authorizationCode)")
       
       let unAuthorized = await issuer.handleAuthorizationCode(
         parRequested: request,
@@ -175,7 +175,7 @@ extension Wallet {
         
         if case let .success(authorized) = authorizedRequest,
            case let .noProofRequired(token) = authorized {
-          print("--> Authorization code exchanged with access token : \(token.accessToken)")
+          print("--> [AUTHORIZATION] Authorization code exchanged with access token : \(token.accessToken)")
           
           return authorized
         }
@@ -279,7 +279,7 @@ extension Wallet {
     authorized: AuthorizedRequest,
     transactionId: TransactionId
   ) async throws -> String {
-    print("--> Got a deferred issuance response from server with transaction_id \(transactionId.value). Retrying issuance...")
+    print("--> [ISSUANCE] Got a deferred issuance response from server with transaction_id \(transactionId.value). Retrying issuance...")
     
     let deferredRequestResponse = try await issuer.requestDeferredIssuance(
       proofRequest: authorized,

@@ -74,8 +74,8 @@ public struct CredentialIssuerMetadata: Codable, Equatable {
     batchCredentialEndpoint = try container.decodeIfPresent(CredentialIssuerEndpoint.self, forKey: .batchCredentialEndpoint)
     deferredCredentialEndpoint = try container.decodeIfPresent(CredentialIssuerEndpoint.self, forKey: .deferredCredentialEndpoint)
     
-    if let credentialResponseEncryptionAlgorithmsSupported = try container.decodeIfPresent([JWEAlgorithm].self, forKey: .credentialResponseEncryptionAlgorithmsSupported),
-       let credentialResponseEncryptionMethodsSupported = try container.decodeIfPresent([JOSEEncryptionMethod].self, forKey: .credentialResponseEncryptionMethodsSupported) {
+    if let credentialResponseEncryptionAlgorithmsSupported = try? container.decodeIfPresent([JWEAlgorithm].self, forKey: .credentialResponseEncryptionAlgorithmsSupported),
+       let credentialResponseEncryptionMethodsSupported = try? container.decodeIfPresent([JOSEEncryptionMethod].self, forKey: .credentialResponseEncryptionMethodsSupported) {
       credentialResponseEncryption = .required(
         algorithmsSupported: credentialResponseEncryptionAlgorithmsSupported,
         encryptionMethodsSupported: credentialResponseEncryptionMethodsSupported
@@ -98,20 +98,20 @@ public struct CredentialIssuerMetadata: Codable, Equatable {
         }
         
         switch format {
-        case MsoMdocProfile.FORMAT:
-          let profile = try MsoMdocProfile.CredentialSupported(json: credJson)
+        case MsoMdocFormat.FORMAT:
+          let profile = try MsoMdocFormat.CredentialSupported(json: credJson)
           supp[key] = .msoMdoc(profile)
-        case W3CSignedJwtProfile.FORMAT:
-          let profile = try W3CSignedJwtProfile.CredentialSupported(json: credJson)
+        case W3CSignedJwtFormat.FORMAT:
+          let profile = try W3CSignedJwtFormat.CredentialSupported(json: credJson)
           supp[key] = .w3CSignedJwt(profile)
-        case SdJwtVcProfile.FORMAT:
-          let profile = try SdJwtVcProfile.CredentialSupported(json: credJson)
+        case SdJwtVcFormat.FORMAT:
+          let profile = try SdJwtVcFormat.CredentialSupported(json: credJson)
           supp[key] = .sdJwtVc(profile)
-        case W3CJsonLdSignedJwtProfile.FORMAT:
-          let profile = try W3CJsonLdSignedJwtProfile.CredentialSupported(json: credJson)
+        case W3CJsonLdSignedJwtFormat.FORMAT:
+          let profile = try W3CJsonLdSignedJwtFormat.CredentialSupported(json: credJson)
           supp[key] = .w3CJsonLdSignedJwt(profile)
-        case W3CJsonLdDataIntegrityProfile.FORMAT:
-          let profile = try W3CJsonLdDataIntegrityProfile.CredentialSupported(json: credJson)
+        case W3CJsonLdDataIntegrityFormat.FORMAT:
+          let profile = try W3CJsonLdDataIntegrityFormat.CredentialSupported(json: credJson)
           supp[key] = .w3CJsonLdDataIntegrity(profile)
         default: throw ValidationError.error(reason: "Unknow credential format")
         }

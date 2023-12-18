@@ -68,7 +68,16 @@ class NoOffer: XCTestCase {
       bindingKey: bindingKey
     )
     
-    try await walletInitiatedIssuanceNoOfferSdJwt(wallet: wallet)
+    do {
+      try await walletInitiatedIssuanceNoOfferSdJwt(wallet: wallet)
+      
+    } catch {
+      
+      XCTExpectFailure()
+      XCTAssert(false)
+    }
+    
+    XCTAssert(true)
   }
   
   func testNoOfferMdoc() async throws {
@@ -101,7 +110,15 @@ class NoOffer: XCTestCase {
       bindingKey: bindingKey
     )
     
-    try await walletInitiatedIssuanceNoOfferMdoc(wallet: wallet)
+    do {
+      try await walletInitiatedIssuanceNoOfferMdoc(wallet: wallet)
+    } catch {
+      
+      XCTExpectFailure()
+      XCTAssert(false)
+    }
+    
+    XCTAssert(true)
   }
 }
 
@@ -111,7 +128,7 @@ private func walletInitiatedIssuanceNoOfferSdJwt(wallet: Wallet) async throws {
   
   let credential = try await wallet.issueByScope(PID_SdJwtVC_SCOPE)
   
-  print("--> Issued credential : \(credential)")
+  print("--> Issued PID in format \(PID_SdJwtVC_SCOPE): \(credential)")
 }
 
 private func walletInitiatedIssuanceNoOfferMdoc(wallet: Wallet) async throws {
@@ -120,5 +137,5 @@ private func walletInitiatedIssuanceNoOfferMdoc(wallet: Wallet) async throws {
   
   let credential = try await wallet.issueByScope(PID_MsoMdoc_SCOPE)
   
-  print("--> Issued credential : \(credential)")
+  print("--> Issued PID in format \(PID_MsoMdoc_SCOPE): \(credential)")
 }

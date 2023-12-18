@@ -16,8 +16,8 @@
 import Foundation
 @testable import OpenID4VCI
 
-let CredentialIssuer_URL = "http://localhost:8080"
-//let CredentialIssuer_URL = "https://eudi.netcompany-intrasoft.com/pid-issuer"
+//let CredentialIssuer_URL = "http://localhost:8080"
+let CredentialIssuer_URL = "https://eudi.netcompany-intrasoft.com/pid-issuer"
 
 let PID_SdJwtVC_SCOPE = "eu.europa.ec.eudiw.pid_vc_sd_jwt"
 let PID_MsoMdoc_SCOPE = "eu.europa.ec.eudiw.pid_mso_mdoc"

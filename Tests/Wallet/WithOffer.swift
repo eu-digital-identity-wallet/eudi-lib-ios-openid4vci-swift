@@ -59,7 +59,15 @@ class WithOffer: XCTestCase {
       bindingKey: bindingKey
     )
     
-    try await walletInitiatedIssuanceWithOfferSdJWT(wallet: wallet)
+    do {
+      try await walletInitiatedIssuanceWithOfferSdJWT(wallet: wallet)
+    } catch {
+      
+      XCTExpectFailure()
+      XCTAssert(false)
+    }
+    
+    XCTAssert(true)
   }
   
   func testWithOfferMdoc() async throws {
@@ -92,7 +100,15 @@ class WithOffer: XCTestCase {
       bindingKey: bindingKey
     )
     
-    try await walletInitiatedIssuanceWithOfferMdoc(wallet: wallet)
+    do {
+      try await walletInitiatedIssuanceWithOfferMdoc(wallet: wallet)
+    } catch {
+      
+      XCTExpectFailure()
+      XCTAssert(false)
+    }
+    
+    XCTAssert(true)
   }
 }
 
@@ -103,7 +119,7 @@ private func walletInitiatedIssuanceWithOfferSdJWT(wallet: Wallet) async throws 
   let url = "\(CredentialIssuer_URL)/credentialoffer?credential_offer=\(SdJwtVC_CredentialOffer)"
   let credential = try await wallet.issueByCredentialOfferUrl(url: url)
   
-  print("--> Issued credential : \(credential)")
+  print("--> Issued credential: \(credential)")
 }
 
 private func walletInitiatedIssuanceWithOfferMdoc(wallet: Wallet) async throws {

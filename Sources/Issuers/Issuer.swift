@@ -474,7 +474,7 @@ private extension Issuer {
     let credentialRequest = try issuanceRequestSupplier()
     switch credentialRequest {
     case .single(let single):
-      let result = await requester.placeIssuanceRequest(
+      let result = try await requester.placeIssuanceRequest(
         accessToken: token,
         request: single
       )

@@ -189,28 +189,28 @@ public actor CredentialOfferRequestResolver {
         if dictionary["format"]?.type == .string,
            let format = dictionary["format"]?.string {
           switch format {
-          case MsoMdocProfile.FORMAT:
-            return try MsoMdocProfile.matchSupportedAndToDomain(
+          case MsoMdocFormat.FORMAT:
+            return try MsoMdocFormat.matchSupportedAndToDomain(
               json: element,
               metadata: credentialIssuerMetadata
             )
-          case W3CSignedJwtProfile.FORMAT:
-            return try W3CSignedJwtProfile.matchSupportedAndToDomain(
+          case W3CSignedJwtFormat.FORMAT:
+            return try W3CSignedJwtFormat.matchSupportedAndToDomain(
               json: element,
               metadata: credentialIssuerMetadata
             )
-          case SdJwtVcProfile.FORMAT:
-            return try SdJwtVcProfile.matchSupportedAndToDomain(
+          case SdJwtVcFormat.FORMAT:
+            return try SdJwtVcFormat.matchSupportedAndToDomain(
               json: element,
               metadata: credentialIssuerMetadata
             )
-          case W3CJsonLdSignedJwtProfile.FORMAT:
-            return try W3CJsonLdSignedJwtProfile.matchSupportedAndToDomain(
+          case W3CJsonLdSignedJwtFormat.FORMAT:
+            return try W3CJsonLdSignedJwtFormat.matchSupportedAndToDomain(
               json: element,
               metadata: credentialIssuerMetadata
             )
-          case W3CJsonLdDataIntegrityProfile.FORMAT:
-            return try W3CJsonLdDataIntegrityProfile.matchSupportedAndToDomain(
+          case W3CJsonLdDataIntegrityFormat.FORMAT:
+            return try W3CJsonLdDataIntegrityFormat.matchSupportedAndToDomain(
               json: element,
               metadata: credentialIssuerMetadata
             )
