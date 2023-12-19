@@ -87,8 +87,6 @@ extension Wallet {
           credentialIdentifier: credential.key
         )
         resultArray.append(data)
-//        break
-        try await Task.sleep(nanoseconds: 5_000_000)
       }
       return resultArray
       
@@ -102,8 +100,6 @@ extension Wallet {
           credentialIdentifier: credential.key
         )
         resultArray.append(data)
-//        break
-        try await Task.sleep(nanoseconds: 5_000_000)
       }
       return resultArray
     }
@@ -144,6 +140,22 @@ extension Wallet {
 }
 
 extension Wallet {
+  
+  func issueByCredentialOfferUrlMultipleFormats(url: String) async throws -> [String] {
+    let result = await CredentialOfferRequestResolver()
+      .resolve(
+        source: try .init(
+          urlString: url
+        )
+      )
+    
+    switch result {
+    case .success(let offer):
+      return try await arrayIssueOfferedCredentialWithProof(offer: offer)
+    case .failure(let error):
+      throw ValidationError.error(reason: "Unable to resolve credential offer: \(error.localizedDescription)")
+    }
+  }
   
   func issueByCredentialOfferUrl(url: String) async throws -> String {
     let result = await CredentialOfferRequestResolver()

@@ -110,6 +110,47 @@ class WithOffer: XCTestCase {
     
     XCTAssert(true)
   }
+  
+  func testWithOfferMdocAndSdJwt() async throws {
+    
+    let privateKey = try KeyController.generateECDHPrivateKey()
+    let publicKey = try KeyController.generateECDHPublicKey(from: privateKey)
+    
+    let alg = JWSAlgorithm(.ES256)
+    let publicKeyJWK = try ECPublicKey(
+      publicKey: publicKey,
+      additionalParameters: [
+        "alg": alg.name,
+        "use": "sig",
+        "kid": UUID().uuidString
+      ])
+    
+    let bindingKey: BindingKey = .jwk(
+      algorithm: alg,
+      jwk: publicKeyJWK,
+      privateKey: privateKey
+    )
+    
+    let user = ActingUser(
+      username: "tneal",
+      password: "password"
+    )
+    
+    let wallet = Wallet(
+      actingUser: user,
+      bindingKey: bindingKey
+    )
+    
+    do {
+      try await walletInitiatedIssuanceWithOfferArray(wallet: wallet)
+    } catch {
+      
+      XCTExpectFailure()
+      XCTAssert(false)
+    }
+    
+    XCTAssert(true)
+  }
 }
 
 private func walletInitiatedIssuanceWithOfferSdJWT(wallet: Wallet) async throws {
@@ -137,7 +178,7 @@ private func walletInitiatedIssuanceWithOfferArray(wallet: Wallet) async throws 
   print("[[Scenario: Offer passed to wallet via url]] ")
   
   let url = "\(CredentialIssuer_URL)/credentialoffer?credential_offer=\(All_Supported_CredentialOffer)"
-  let credential = try await wallet.issueByCredentialOfferUrl(url: url)
+  let credential = try await wallet.issueByCredentialOfferUrlMultipleFormats(url: url)
   
   print("--> Issued credential : \(credential)")
 }
