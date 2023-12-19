@@ -37,7 +37,7 @@ public extension BindingKey {
   func toSupportedProof(
     issuanceRequester: IssuanceRequesterType,
     credentialSpec: SupportedCredential,
-    cNonce: String
+    cNonce: String?
   ) throws -> Proof {
     switch self {
     case .jwk(

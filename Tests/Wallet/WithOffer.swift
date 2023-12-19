@@ -131,3 +131,13 @@ private func walletInitiatedIssuanceWithOfferMdoc(wallet: Wallet) async throws {
   
   print("--> Issued credential : \(credential)")
 }
+
+private func walletInitiatedIssuanceWithOfferArray(wallet: Wallet) async throws {
+  
+  print("[[Scenario: Offer passed to wallet via url]] ")
+  
+  let url = "\(CredentialIssuer_URL)/credentialoffer?credential_offer=\(All_Supported_CredentialOffer)"
+  let credential = try await wallet.issueByCredentialOfferUrl(url: url)
+  
+  print("--> Issued credential : \(credential)")
+}

@@ -38,24 +38,17 @@ public protocol IssuerType {
   ) async -> Result<AuthorizedRequest, Error>
   
   func requestSingle(
-    authorizedRequest: AuthorizedRequest,
-    credentialMetadata: CredentialMetadata?,
-    claimSet: ClaimSet?,
-    responseEncryptionSpecProvider: (_ issuerResponseEncryptionMetadata: CredentialResponseEncryption) -> IssuanceResponseEncryptionSpec?
-  ) async throws -> Result<SubmittedRequest, Error>
-  
-  func requestSingle(
     noProofRequest: AuthorizedRequest,
-    credentialMetadata: CredentialMetadata?,
     claimSet: ClaimSet?,
+    credentialIdentifier: CredentialIdentifier?,
     responseEncryptionSpecProvider: (_ issuerResponseEncryptionMetadata: CredentialResponseEncryption) -> IssuanceResponseEncryptionSpec?
   ) async throws -> Result<SubmittedRequest, Error>
   
   func requestSingle(
     proofRequest: AuthorizedRequest,
-    credentialMetadata: CredentialMetadata?,
     bindingKey: BindingKey,
     claimSet: ClaimSet?,
+    credentialIdentifier: CredentialIdentifier?,
     responseEncryptionSpecProvider: (_ issuerResponseEncryptionMetadata: CredentialResponseEncryption) -> IssuanceResponseEncryptionSpec?
   ) async throws -> Result<SubmittedRequest, Error>
   
@@ -247,125 +240,83 @@ public actor Issuer: IssuerType {
     }
   }
   
+  private func cNonce(from request: AuthorizedRequest) -> CNonce? {
+    switch request {
+    case .noProofRequired:
+      return nil
+    case .proofRequired(_, let cnonce):
+      return cnonce
+    }
+  }
+  
   public func requestSingle(
     noProofRequest: AuthorizedRequest,
-    credentialMetadata: CredentialMetadata?,
     claimSet: ClaimSet? = nil,
+    credentialIdentifier: CredentialIdentifier?,
     responseEncryptionSpecProvider: (_ issuerResponseEncryptionMetadata: CredentialResponseEncryption) -> IssuanceResponseEncryptionSpec?
   ) async throws -> Result<SubmittedRequest, Error> {
     
-    guard let credentialMetadata else {
-      throw ValidationError.error(reason: "Invalid credential CredentialMetadata for requestSingle")
+    guard let credentialIdentifier else {
+      throw ValidationError.error(reason: "Invalid credential CredentialIdentifier for requestSingle")
+    }
+    
+    guard let supportedCredential = issuerMetadata
+      .credentialsSupportedMap[credentialIdentifier] else {
+      throw ValidationError.error(reason: "Invalid Supported credential for requestSingle")
     }
     
     switch noProofRequest {
     case .noProofRequired(let token):
       return try await requestIssuance(token: token) {
-        switch credentialMetadata {
-        case .scope:
-          return try supportedCredentialByScope(
-            metaData: requester.issuerMetadata,
-            scoped: credentialMetadata
-          )?.toIssuanceRequest(
-            requester: requester,
-            claimSet: claimSet,
-            responseEncryptionSpecProvider: responseEncryptionSpecProvider
-          ) ?? {
-            throw ValidationError.error(reason: "Invalid scope \(#function)")
-          }()
-        case .msoMdoc,
-            .w3CSignedJwt,
-            .w3CJsonLdSignedJwt,
-            .w3CJsonLdDataIntegrity,
-            .sdJwtVc:
-          return try supportedCredentialByProfile(
-            metaData: requester.issuerMetadata,
-            profile: credentialMetadata
-          )?.toIssuanceRequest(
-            requester: requester,
-            claimSet: claimSet,
-            responseEncryptionSpecProvider: responseEncryptionSpecProvider
-          ) ?? {
-            throw ValidationError.error(reason: "Invalid scope \(#function)")
-          }()
-        }
+        return try supportedCredential.toIssuanceRequest(
+          requester: requester,
+          claimSet: claimSet,
+          responseEncryptionSpecProvider: responseEncryptionSpecProvider
+        )
       }
     default: return .failure(ValidationError.error(reason: ".noProofRequired is required"))
     }
   }
   
   public func requestSingle(
-    authorizedRequest: AuthorizedRequest,
-    credentialMetadata: CredentialMetadata?,
-    claimSet: ClaimSet? = nil,
-    responseEncryptionSpecProvider: (_ issuerResponseEncryptionMetadata: CredentialResponseEncryption) -> IssuanceResponseEncryptionSpec?
-  ) async throws -> Result<SubmittedRequest, Error> {
-    
-    guard let credentialMetadata else {
-      throw ValidationError.error(reason: "Invalid credential CredentialMetadata for requestSingle")
-    }
-    
-    return try await requestIssuance(token: accessToken(from: authorizedRequest)) {
-      switch credentialMetadata {
-      case .scope:
-        return try supportedCredentialByScope(
-          metaData: requester.issuerMetadata,
-          scoped: credentialMetadata
-        )!.toIssuanceRequest(
-          requester: requester,
-          claimSet: claimSet,
-          responseEncryptionSpecProvider: responseEncryptionSpecProvider
-        )
-        
-      case .msoMdoc,
-          .w3CSignedJwt,
-          .w3CJsonLdSignedJwt,
-          .w3CJsonLdDataIntegrity,
-          .sdJwtVc:
-        return try supportedCredentialByProfile(
-          metaData: requester.issuerMetadata,
-          profile: credentialMetadata
-        )?.toIssuanceRequest(
-          requester: requester,
-          claimSet: claimSet,
-          responseEncryptionSpecProvider: responseEncryptionSpecProvider
-        ) ?? {
-          throw ValidationError.error(reason: "Invalid scope \(#function)")
-        }()
-      }
-    }
-  }
-  
-  public func requestSingle(
     proofRequest: AuthorizedRequest,
-    credentialMetadata: CredentialMetadata?,
     bindingKey: BindingKey,
     claimSet: ClaimSet? = nil,
+    credentialIdentifier: CredentialIdentifier?,
     responseEncryptionSpecProvider: (_ issuerResponseEncryptionMetadata: CredentialResponseEncryption) -> IssuanceResponseEncryptionSpec?
   ) async throws -> Result<SubmittedRequest, Error> {
     
-    guard let credentialMetadata else {
-      throw ValidationError.error(reason: "Invalid credential CredentialMetadata for requestSingle")
+    guard let credentialIdentifier else {
+      throw ValidationError.error(reason: "Invalid credential CredentialIdentifier for requestSingle")
     }
     
+    guard let supportedCredential = issuerMetadata
+      .credentialsSupportedMap[credentialIdentifier] else {
+      throw ValidationError.error(reason: "Invalid Supported credential for requestSingle")
+    }
+    
+    let cNonce = cNonce(from: proofRequest)
     return try await requestIssuance(token: accessToken(from: proofRequest)) {
-      switch credentialMetadata {
+      return try supportedCredential.toIssuanceRequest(
+        requester: requester,
+        claimSet: claimSet,
+        proof: bindingKey.toSupportedProof(
+          issuanceRequester: requester,
+          credentialSpec: supportedCredential,
+          cNonce: cNonce?.value
+        ),
+        responseEncryptionSpecProvider: responseEncryptionSpecProvider
+      )
+      /*switch credentialMetadata {
       case .scope:
         switch proofRequest {
         case .proofRequired(_, let cNonce):
-          guard let supportedCredentialByScope = try? supportedCredentialByScope(
-            metaData: requester.issuerMetadata,
-            scoped: credentialMetadata
-          ) else {
-            throw ValidationError.error(reason: "Scope not supported")
-          }
-          
-          return try supportedCredentialByScope.toIssuanceRequest(
+          return try supportedCredential.toIssuanceRequest(
             requester: requester,
             claimSet: claimSet,
             proof: bindingKey.toSupportedProof(
               issuanceRequester: requester,
-              credentialSpec: supportedCredentialByScope,
+              credentialSpec: supportedCredential,
               cNonce: cNonce.value
             ),
             responseEncryptionSpecProvider: responseEncryptionSpecProvider
@@ -378,17 +329,12 @@ public actor Issuer: IssuerType {
           .w3CJsonLdSignedJwt,
           .w3CJsonLdDataIntegrity,
           .sdJwtVc:
-        return try supportedCredentialByProfile(
-          metaData: requester.issuerMetadata,
-          profile: credentialMetadata
-        )?.toIssuanceRequest(
+        return try supportedCredential.toIssuanceRequest(
           requester: requester,
           claimSet: claimSet,
           responseEncryptionSpecProvider: responseEncryptionSpecProvider
-        ) ?? {
-          throw ValidationError.error(reason: "Invalid scope \(#function)")
-        }()
-      }
+        )
+      }*/
     }
   }
 }

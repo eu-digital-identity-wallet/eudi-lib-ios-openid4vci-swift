@@ -88,10 +88,10 @@ public struct Poster: PostingType {
     do {
       let (data, response) = try await self.session.data(for: request)
       let statusCode = (response as? HTTPURLResponse)?.statusCode ?? 0
-      
+      print("***statusCode: \(statusCode)")
       if statusCode >= 400 && statusCode < 500 {
         let object = try JSONDecoder().decode(GenericErrorResponse.self, from: data)
-          return .failure(.response(object))
+        return .failure(.response(object))
       }
       
       do {

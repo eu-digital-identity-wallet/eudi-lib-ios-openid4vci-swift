@@ -24,7 +24,9 @@ struct Wallet {
 
 extension Wallet {
   func issueByScope(_ scope: String) async throws -> String {
+    let credentialIdentifier = try CredentialIdentifier(value: scope)
     let credentialIssuerIdentifier = try CredentialIssuerId(CredentialIssuer_URL)
+    
     let issuerMetadata = await CredentialIssuerMetadataResolver().resolve(
       source: .credentialIssuer(
         credentialIssuerIdentifier
@@ -46,7 +48,10 @@ extension Wallet {
           ],
           authorizationServerMetadata: try authServerMetadata.get()
         )
-        return try await issueOfferedCredentialNoProof(offer: offer)
+        return try await issueOfferedCredentialNoProof(
+          offer: offer,
+          credentialIdentifier: credentialIdentifier
+        )
         
       } else {
         throw ValidationError.error(reason: "Invalid authorization server")
@@ -56,7 +61,58 @@ extension Wallet {
     }
   }
   
-  private func issueOfferedCredentialNoProof(offer: CredentialOffer) async throws -> String {
+  private func arrayIssueOfferedCredentialWithProof(offer: CredentialOffer) async throws -> [String] {
+    
+    let issuerMetadata = offer.credentialIssuerMetadata
+    let issuer = try Issuer(
+      authorizationServerMetadata: offer.authorizationServerMetadata,
+      issuerMetadata: issuerMetadata,
+      config: config
+    )
+    
+    let authorized = try await authorizeRequestWithAuthCodeUseCase(
+      issuer: issuer,
+      offer: offer
+    )
+    
+    switch authorized {
+    case .noProofRequired:
+      var resultArray: [String] = []
+      for credential in offer.credentialIssuerMetadata.credentialsSupportedMap {
+        let scope = issuerMetadata.credentialsSupportedMap[credential.key]?.getScope()
+        print(scope)
+        let data = try await noProofRequiredSubmissionUseCase(
+          issuer: issuer,
+          noProofRequiredState: authorized,
+          credentialIdentifier: credential.key
+        )
+        resultArray.append(data)
+//        break
+        try await Task.sleep(nanoseconds: 5_000_000)
+      }
+      return resultArray
+      
+    case .proofRequired:
+      var resultArray: [String] = []
+      for credential in offer.credentialIssuerMetadata.credentialsSupportedMap {
+        let scope = issuerMetadata.credentialsSupportedMap[credential.key]?.getScope()
+        let data = try await proofRequiredSubmissionUseCase(
+          issuer: issuer,
+          authorized: authorized,
+          credentialIdentifier: credential.key
+        )
+        resultArray.append(data)
+//        break
+        try await Task.sleep(nanoseconds: 5_000_000)
+      }
+      return resultArray
+    }
+  }
+  
+  private func issueOfferedCredentialNoProof(
+    offer: CredentialOffer,
+    credentialIdentifier: CredentialIdentifier
+  ) async throws -> String {
     
     let issuer = try Issuer(
       authorizationServerMetadata: offer.authorizationServerMetadata,
@@ -75,13 +131,13 @@ extension Wallet {
       return try await noProofRequiredSubmissionUseCase(
         issuer: issuer,
         noProofRequiredState: authorized,
-        offer: offer
+        credentialIdentifier: credentialIdentifier
       )
     case .proofRequired:
       return try await proofRequiredSubmissionUseCase(
         issuer: issuer,
         authorized: authorized,
-        offer: offer
+        credentialIdentifier: credentialIdentifier
       )
     }
   }
@@ -107,12 +163,18 @@ extension Wallet {
   
   private func issueOfferedCredentialWithProof(offer: CredentialOffer) async throws -> String {
     
+    // "eu.europa.ec.eudiw.pid_vc_sd_jwt", "eu.europa.ec.eudiw.pid_mso_mdoc"
+    let issuerMetadata = offer.credentialIssuerMetadata
+    guard let credentialIdentifier = issuerMetadata.credentialsSupportedMap.keys.first(where: { $0.value == "eu.europa.ec.eudiw.pid_vc_sd_jwt"}) else {
+      throw ValidationError.error(reason: "")
+    }
+    
     let issuer = try Issuer(
       authorizationServerMetadata: offer.authorizationServerMetadata,
       issuerMetadata: offer.credentialIssuerMetadata,
       config: config
     )
-
+    
     let authorized = try await authorizeRequestWithAuthCodeUseCase(
       issuer: issuer,
       offer: offer
@@ -123,13 +185,13 @@ extension Wallet {
       return try await noProofRequiredSubmissionUseCase(
         issuer: issuer,
         noProofRequiredState: authorized,
-        offer: offer
+        credentialIdentifier: credentialIdentifier
       )
     case .proofRequired:
       return try await proofRequiredSubmissionUseCase(
         issuer: issuer,
         authorized: authorized,
-        offer: offer
+        credentialIdentifier: credentialIdentifier
       )
     }
   }
@@ -191,13 +253,13 @@ extension Wallet {
   private func noProofRequiredSubmissionUseCase(
     issuer: Issuer,
     noProofRequiredState: AuthorizedRequest,
-    offer: CredentialOffer
+    credentialIdentifier: CredentialIdentifier
   ) async throws -> String {
     switch noProofRequiredState {
     case .noProofRequired:
       let requestOutcome = try await issuer.requestSingle(
         noProofRequest: noProofRequiredState,
-        credentialMetadata: offer.credentials.first, 
+        credentialIdentifier: credentialIdentifier,
         responseEncryptionSpecProvider: { Issuer.createResponseEncryptionSpec($0) }
       )
       switch requestOutcome {
@@ -222,7 +284,7 @@ extension Wallet {
           return try await proofRequiredSubmissionUseCase(
             issuer: issuer,
             authorized: noProofRequiredState.handleInvalidProof(cNonce: cNonce),
-            offer: offer
+            credentialIdentifier: credentialIdentifier
           )
         case .failed(error: let error):
           throw ValidationError.error(reason: error.localizedDescription)
@@ -238,12 +300,12 @@ extension Wallet {
   private func proofRequiredSubmissionUseCase(
     issuer: Issuer,
     authorized: AuthorizedRequest,
-    offer: CredentialOffer
+    credentialIdentifier: CredentialIdentifier?
   ) async throws -> String {
     let requestOutcome = try await issuer.requestSingle(
       proofRequest: authorized,
-      credentialMetadata: offer.credentials.first,
-      bindingKey: bindingKey, 
+      bindingKey: bindingKey,
+      credentialIdentifier: credentialIdentifier,
       responseEncryptionSpecProvider:  { Issuer.createResponseEncryptionSpec($0) }
     )
     

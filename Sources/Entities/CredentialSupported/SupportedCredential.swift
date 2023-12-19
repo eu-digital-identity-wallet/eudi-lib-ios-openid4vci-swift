@@ -25,6 +25,24 @@ public enum SupportedCredential: Codable {
 }
 
 public extension SupportedCredential {
+  
+  func getScope() -> String? {
+    switch self {
+    case .scope(let scope):
+      return scope.value
+    case .msoMdoc(let credential):
+      return credential.scope
+    case .w3CSignedJwt(let credential):
+      return credential.scope
+    case .w3CJsonLdSignedJwt(let credential):
+      return credential.scope
+    case .w3CJsonLdDataIntegrity(let credential):
+      return credential.scope
+    case .sdJwtVc(let credential):
+      return credential.scope
+    }
+  }
+  
   func toIssuanceRequest(
     requester: IssuanceRequesterType,
     claimSet: ClaimSet?,
