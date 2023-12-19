@@ -307,34 +307,6 @@ public actor Issuer: IssuerType {
         ),
         responseEncryptionSpecProvider: responseEncryptionSpecProvider
       )
-      /*switch credentialMetadata {
-      case .scope:
-        switch proofRequest {
-        case .proofRequired(_, let cNonce):
-          return try supportedCredential.toIssuanceRequest(
-            requester: requester,
-            claimSet: claimSet,
-            proof: bindingKey.toSupportedProof(
-              issuanceRequester: requester,
-              credentialSpec: supportedCredential,
-              cNonce: cNonce.value
-            ),
-            responseEncryptionSpecProvider: responseEncryptionSpecProvider
-          )
-        default: throw ValidationError.error(reason: "Proof required for proof request")
-        }
-        
-      case .msoMdoc,
-          .w3CSignedJwt,
-          .w3CJsonLdSignedJwt,
-          .w3CJsonLdDataIntegrity,
-          .sdJwtVc:
-        return try supportedCredential.toIssuanceRequest(
-          requester: requester,
-          claimSet: claimSet,
-          responseEncryptionSpecProvider: responseEncryptionSpecProvider
-        )
-      }*/
     }
   }
 }

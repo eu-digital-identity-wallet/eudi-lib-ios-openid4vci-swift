@@ -75,36 +75,33 @@ extension Wallet {
       offer: offer
     )
     
-    var resultArray: [(String, String)] = []
     switch authorized {
     case .noProofRequired:
-      for credential in offer.credentialIssuerMetadata.credentialsSupported {
-        let scope = try issuerMetadata.credentialsSupported[credential.key]?.getScope() ?? {
-          throw ValidationError.error(reason: "Cannot find scope for \(credential.key)")
+      return try await offer.credentialIssuerMetadata.credentialsSupported.asyncMap { (credentialIdentifier, supportedCredential) in
+        let scope = try issuerMetadata.credentialsSupported[credentialIdentifier]?.getScope() ?? {
+          throw ValidationError.error(reason: "Cannot find scope for \(credentialIdentifier)")
         }()
-        print(scope)
+
         let data = try await noProofRequiredSubmissionUseCase(
           issuer: issuer,
           noProofRequiredState: authorized,
-          credentialIdentifier: credential.key
+          credentialIdentifier: credentialIdentifier
         )
-        resultArray.append((scope, data))
+        return (scope, data)
       }
-      return resultArray
       
     case .proofRequired:
-      for credential in offer.credentialIssuerMetadata.credentialsSupported {
-        let scope = try issuerMetadata.credentialsSupported[credential.key]?.getScope() ?? {
-          throw ValidationError.error(reason: "Cannot find scope for \(credential.key)")
+      return try await offer.credentialIssuerMetadata.credentialsSupported.asyncMap { (credentialIdentifier, supportedCredential) in
+        let scope = try issuerMetadata.credentialsSupported[credentialIdentifier]?.getScope() ?? {
+          throw ValidationError.error(reason: "Cannot find scope for \(credentialIdentifier)")
         }()
         let data = try await proofRequiredSubmissionUseCase(
           issuer: issuer,
           authorized: authorized,
-          credentialIdentifier: credential.key
+          credentialIdentifier: credentialIdentifier
         )
-        resultArray.append((scope, data))
+        return (scope, data)
       }
-      return resultArray
     }
   }
   
