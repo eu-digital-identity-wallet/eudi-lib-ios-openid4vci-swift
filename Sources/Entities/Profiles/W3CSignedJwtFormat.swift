@@ -273,14 +273,14 @@ public extension W3CSignedJwtFormat {
     
     let credentialDefinition = CredentialDefinitionTO(json: json).toDomain()
     
-    if let credentialsSupported = metadata.credentialsSupported.first(where: { credential in
+    if let credentialsSupported = metadata.credentialsSupported.first(where: { (id, credential) in
       switch credential {
       case .w3CSignedJwt(let credentialSupported):
         return credentialSupported.credentialDefinition.type == credentialDefinition.type
       default: return false
       }
     }) {
-      switch credentialsSupported {
+      switch credentialsSupported.value {
       case .w3CSignedJwt(let profile):
         return .w3CSignedJwt(.init(
           credentialDefinition: credentialDefinition,

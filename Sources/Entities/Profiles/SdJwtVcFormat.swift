@@ -395,14 +395,14 @@ public extension SdJwtVcFormat {
     
     let credentialDefinition = CredentialDefinitionTO(json: json).toDomain()
     
-    if let credentialsSupported = metadata.credentialsSupported.first(where: { credential in
+    if let credentialsSupported = metadata.credentialsSupported.first(where: { (credentialId, credential) in
       switch credential {
       case .sdJwtVc(let credentialSupported):
         return credentialSupported.credentialDefinition.type == credentialDefinition.type
       default: return false
       }
     }) {
-      switch credentialsSupported {
+      switch credentialsSupported.value {
       case .sdJwtVc(let profile):
         return .sdJwtVc(.init(
           type: credentialDefinition.type,

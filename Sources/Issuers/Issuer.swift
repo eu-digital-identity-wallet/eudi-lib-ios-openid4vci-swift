@@ -261,7 +261,7 @@ public actor Issuer: IssuerType {
     }
     
     guard let supportedCredential = issuerMetadata
-      .credentialsSupportedMap[credentialIdentifier] else {
+      .credentialsSupported[credentialIdentifier] else {
       throw ValidationError.error(reason: "Invalid Supported credential for requestSingle")
     }
     
@@ -291,7 +291,7 @@ public actor Issuer: IssuerType {
     }
     
     guard let supportedCredential = issuerMetadata
-      .credentialsSupportedMap[credentialIdentifier] else {
+      .credentialsSupported[credentialIdentifier] else {
       throw ValidationError.error(reason: "Invalid Supported credential for requestSingle")
     }
     
@@ -340,78 +340,6 @@ public actor Issuer: IssuerType {
 }
 
 private extension Issuer {
-  
-  private func supportedCredentialByScope(
-    metaData: CredentialIssuerMetadata,
-    scoped: CredentialMetadata
-  ) throws -> SupportedCredential? {
-    switch scoped {
-    case .scope(let byScope):
-      return try metaData.credentialsSupported.first { element in
-        switch element {
-        case .sdJwtVc(let credential):
-          return credential.scope  == byScope.value
-        case .msoMdoc(let credential):
-          return credential.scope  == byScope.value
-        default: return false
-        }
-      } ?? {
-        throw ValidationError.error(
-          reason: "Issuer does not support issuance of credential scope: \(byScope)"
-        ) }()
-    default: throw ValidationError.error(reason: "")
-    }
-  }
-  
-  private func supportedCredentialByProfile(
-    metaData: CredentialIssuerMetadata,
-    profile: CredentialMetadata
-  ) throws -> SupportedCredential? {
-    switch profile {
-    case .msoMdoc(let profile):
-      return metaData.credentialsSupported.first { supportedCredential in
-        switch supportedCredential {
-        case .msoMdoc(let credential):
-          return credential.docType == profile.docType
-        default: return false
-        }
-      }
-    case .w3CJsonLdDataIntegrity(let profile):
-      return metaData.credentialsSupported.first { supportedCredential in
-        switch supportedCredential {
-        case .w3CJsonLdDataIntegrity(let credential):
-          return credential.credentialDefinition.context == profile.credentialDefinition.type
-        default: return false
-        }
-      }
-    case .w3CJsonLdSignedJwt(let profile):
-      return metaData.credentialsSupported.first { supportedCredential in
-        switch supportedCredential {
-        case .w3CJsonLdDataIntegrity(let credential):
-          return credential.credentialDefinition.context == profile.credentialDefinition.context &&
-          credential.credentialDefinition.type == profile.credentialDefinition.type
-        default: return false
-        }
-      }
-    case .w3CSignedJwt(let profile):
-      return metaData.credentialsSupported.first { supportedCredential in
-        switch supportedCredential {
-        case .w3CJsonLdDataIntegrity(let credential):
-          return credential.credentialDefinition.type == profile.credentialDefinition.type
-        default: return false
-        }
-      }
-    case .sdJwtVc(let profile):
-      return metaData.credentialsSupported.first { supportedCredential in
-        switch supportedCredential {
-        case .sdJwtVc(let credential):
-          return credential.credentialDefinition.type == profile.type
-        default: return false
-        }
-      }
-    default: throw ValidationError.error(reason: "Scope not supported for \(#function)")
-    }
-  }
   
   private func requestIssuance(
     token: IssuanceAccessToken,

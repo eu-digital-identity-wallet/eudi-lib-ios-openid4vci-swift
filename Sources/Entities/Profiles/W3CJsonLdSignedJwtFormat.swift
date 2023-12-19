@@ -311,14 +311,14 @@ public extension W3CJsonLdSignedJwtFormat {
     
     let credentialDefinition = CredentialDefinitionTO(json: json).toDomain()
     
-    if let credentialsSupported = metadata.credentialsSupported.first(where: { credential in
+    if let credentialsSupported = metadata.credentialsSupported.first(where: { (id, credential) in
       switch credential {
       case .w3CJsonLdSignedJwt(let credentialSupported):
         return credentialSupported.credentialDefinition.type == credentialDefinition.type
       default: return false
       }
     }) {
-      switch credentialsSupported {
+      switch credentialsSupported.value {
       case .w3CJsonLdSignedJwt(let profile):
         return .w3CJsonLdSignedJwt(.init(
           credentialDefinition: profile.credentialDefinition,

@@ -128,7 +128,7 @@ private func walletInitiatedIssuanceNoOfferSdJwt(wallet: Wallet) async throws {
   
   let credential = try await wallet.issueByScope(PID_SdJwtVC_SCOPE)
   
-  print("--> Issued PID in format \(PID_SdJwtVC_SCOPE): \(credential)")
+  print("--> [ISSUANCE] Issued PID in format \(PID_SdJwtVC_SCOPE): \(credential)")
 }
 
 private func walletInitiatedIssuanceNoOfferMdoc(wallet: Wallet) async throws {
@@ -137,5 +137,5 @@ private func walletInitiatedIssuanceNoOfferMdoc(wallet: Wallet) async throws {
   
   let credential = try await wallet.issueByScope(PID_MsoMdoc_SCOPE)
   
-  print("--> Issued PID in format \(PID_MsoMdoc_SCOPE): \(credential)")
+  print("--> [ISSUANCE] Issued PID in format \(PID_MsoMdoc_SCOPE): \(credential)")
 }

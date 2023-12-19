@@ -61,7 +61,7 @@ extension Wallet {
     }
   }
   
-  private func arrayIssueOfferedCredentialWithProof(offer: CredentialOffer) async throws -> [String] {
+  private func issueMultipleOfferedCredentialWithProof(offer: CredentialOffer) async throws -> [(String, String)] {
     
     let issuerMetadata = offer.credentialIssuerMetadata
     let issuer = try Issuer(
@@ -75,31 +75,34 @@ extension Wallet {
       offer: offer
     )
     
+    var resultArray: [(String, String)] = []
     switch authorized {
     case .noProofRequired:
-      var resultArray: [String] = []
-      for credential in offer.credentialIssuerMetadata.credentialsSupportedMap {
-        let scope = issuerMetadata.credentialsSupportedMap[credential.key]?.getScope()
+      for credential in offer.credentialIssuerMetadata.credentialsSupported {
+        let scope = try issuerMetadata.credentialsSupported[credential.key]?.getScope() ?? {
+          throw ValidationError.error(reason: "Cannot find scope for \(credential.key)")
+        }()
         print(scope)
         let data = try await noProofRequiredSubmissionUseCase(
           issuer: issuer,
           noProofRequiredState: authorized,
           credentialIdentifier: credential.key
         )
-        resultArray.append(data)
+        resultArray.append((scope, data))
       }
       return resultArray
       
     case .proofRequired:
-      var resultArray: [String] = []
-      for credential in offer.credentialIssuerMetadata.credentialsSupportedMap {
-        let scope = issuerMetadata.credentialsSupportedMap[credential.key]?.getScope()
+      for credential in offer.credentialIssuerMetadata.credentialsSupported {
+        let scope = try issuerMetadata.credentialsSupported[credential.key]?.getScope() ?? {
+          throw ValidationError.error(reason: "Cannot find scope for \(credential.key)")
+        }()
         let data = try await proofRequiredSubmissionUseCase(
           issuer: issuer,
           authorized: authorized,
           credentialIdentifier: credential.key
         )
-        resultArray.append(data)
+        resultArray.append((scope, data))
       }
       return resultArray
     }
@@ -141,7 +144,7 @@ extension Wallet {
 
 extension Wallet {
   
-  func issueByCredentialOfferUrlMultipleFormats(url: String) async throws -> [String] {
+  func issueByCredentialOfferUrlMultipleFormats(url: String) async throws -> [(String, String)] {
     let result = await CredentialOfferRequestResolver()
       .resolve(
         source: try .init(
@@ -151,13 +154,13 @@ extension Wallet {
     
     switch result {
     case .success(let offer):
-      return try await arrayIssueOfferedCredentialWithProof(offer: offer)
+      return try await issueMultipleOfferedCredentialWithProof(offer: offer)
     case .failure(let error):
       throw ValidationError.error(reason: "Unable to resolve credential offer: \(error.localizedDescription)")
     }
   }
   
-  func issueByCredentialOfferUrl(url: String) async throws -> String {
+  func issueByCredentialOfferUrl(url: String, scope: String) async throws -> String {
     let result = await CredentialOfferRequestResolver()
       .resolve(
         source: try .init(
@@ -167,18 +170,17 @@ extension Wallet {
     
     switch result {
     case .success(let offer):
-      return try await issueOfferedCredentialWithProof(offer: offer)
+      return try await issueOfferedCredentialWithProof(offer: offer, scope: scope)
     case .failure(let error):
       throw ValidationError.error(reason: "Unable to resolve credential offer: \(error.localizedDescription)")
     }
   }
   
-  private func issueOfferedCredentialWithProof(offer: CredentialOffer) async throws -> String {
+  private func issueOfferedCredentialWithProof(offer: CredentialOffer, scope: String) async throws -> String {
     
-    // "eu.europa.ec.eudiw.pid_vc_sd_jwt", "eu.europa.ec.eudiw.pid_mso_mdoc"
     let issuerMetadata = offer.credentialIssuerMetadata
-    guard let credentialIdentifier = issuerMetadata.credentialsSupportedMap.keys.first(where: { $0.value == "eu.europa.ec.eudiw.pid_vc_sd_jwt"}) else {
-      throw ValidationError.error(reason: "")
+    guard let credentialIdentifier = issuerMetadata.credentialsSupported.keys.first(where: { $0.value == scope }) else {
+      throw ValidationError.error(reason:  "Cannot find credential identifier for \(scope)")
     }
     
     let issuer = try Issuer(

@@ -162,7 +162,7 @@ public actor CredentialOfferRequestResolver {
     return try credentialOfferRequestObject.credentials.map { element in
       if element.type == .string,
          let scope = element.string {
-        if credentialIssuerMetadata.credentialsSupported.first(where: { supportedCredential in
+        if credentialIssuerMetadata.credentialsSupported.first(where: { (credentialIdentifier, supportedCredential) in
           switch supportedCredential {
           case .scope(let credentialScope):
             return scope == credentialScope.value

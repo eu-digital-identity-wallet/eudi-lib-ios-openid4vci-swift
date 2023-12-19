@@ -25,9 +25,7 @@ public struct CredentialIssuerMetadata: Codable, Equatable {
   let deferredCredentialEndpoint: CredentialIssuerEndpoint?
   let credentialResponseEncryption: CredentialResponseEncryption
   let requireCredentialResponseEncryption: Bool
-  
-  let credentialsSupported: [SupportedCredential]
-  let credentialsSupportedMap: [CredentialIdentifier: SupportedCredential]
+  let credentialsSupported: [CredentialIdentifier: SupportedCredential]
   
   let display: [Display]
   
@@ -52,7 +50,7 @@ public struct CredentialIssuerMetadata: Codable, Equatable {
     deferredCredentialEndpoint: CredentialIssuerEndpoint?,
     credentialResponseEncryption: CredentialResponseEncryption = .notRequired,
     requireCredentialResponseEncryption: Bool?,
-    credentialsSupported: [SupportedCredential],
+    credentialsSupported: [CredentialIdentifier: SupportedCredential],
     display: [Display]?
   ) {
     self.credentialIssuerIdentifier = credentialIssuerIdentifier
@@ -62,10 +60,7 @@ public struct CredentialIssuerMetadata: Codable, Equatable {
     self.deferredCredentialEndpoint = deferredCredentialEndpoint
     self.credentialResponseEncryption = credentialResponseEncryption
     self.requireCredentialResponseEncryption = requireCredentialResponseEncryption ?? false
-    
     self.credentialsSupported = credentialsSupported
-    self.credentialsSupportedMap = [:]
-    
     self.display = display ?? []
   }
   
@@ -93,11 +88,10 @@ public struct CredentialIssuerMetadata: Codable, Equatable {
     requireCredentialResponseEncryption = try container.decodeIfPresent(Bool.self, forKey: .requireCredentialResponseEncryption) ?? false
     
     let json = try container.decodeIfPresent(JSON.self, forKey: .credentialsSupported) ?? []
-    var map: [CredentialIdentifier: SupportedCredential] = [:]
+    var mapIdentifierCredential: [CredentialIdentifier: SupportedCredential] = [:]
     for (key, value): (String, JSON) in json {
-      // Transform the value (for example, convert to uppercase if it's a string)
       if let dictionary = value.dictionary,
-         let credJson = JSON(rawValue: dictionary){
+         let credJson = JSON(rawValue: dictionary) {
         
         let credentialIdentifier: CredentialIdentifier = try .init(value: key)
         guard let format = credJson["format"].string else {
@@ -107,26 +101,25 @@ public struct CredentialIssuerMetadata: Codable, Equatable {
         switch format {
         case MsoMdocFormat.FORMAT:
           let profile = try MsoMdocFormat.CredentialSupported(json: credJson)
-          map[credentialIdentifier] = .msoMdoc(profile)
+          mapIdentifierCredential[credentialIdentifier] = .msoMdoc(profile)
         case W3CSignedJwtFormat.FORMAT:
           let profile = try W3CSignedJwtFormat.CredentialSupported(json: credJson)
-          map[credentialIdentifier] = .w3CSignedJwt(profile)
+          mapIdentifierCredential[credentialIdentifier] = .w3CSignedJwt(profile)
         case SdJwtVcFormat.FORMAT:
           let profile = try SdJwtVcFormat.CredentialSupported(json: credJson)
-          map[credentialIdentifier] = .sdJwtVc(profile)
+          mapIdentifierCredential[credentialIdentifier] = .sdJwtVc(profile)
         case W3CJsonLdSignedJwtFormat.FORMAT:
           let profile = try W3CJsonLdSignedJwtFormat.CredentialSupported(json: credJson)
-          map[credentialIdentifier] = .w3CJsonLdSignedJwt(profile)
+          mapIdentifierCredential[credentialIdentifier] = .w3CJsonLdSignedJwt(profile)
         case W3CJsonLdDataIntegrityFormat.FORMAT:
           let profile = try W3CJsonLdDataIntegrityFormat.CredentialSupported(json: credJson)
-          map[credentialIdentifier] = .w3CJsonLdDataIntegrity(profile)
+          mapIdentifierCredential[credentialIdentifier] = .w3CJsonLdDataIntegrity(profile)
         default: throw ValidationError.error(reason: "Unknow credential format")
         }
       }
     }
     
-    credentialsSupported = Array(map.values)
-    credentialsSupportedMap = map
+    credentialsSupported = mapIdentifierCredential
     
     display = try container.decodeIfPresent([Display].self, forKey: .display) ?? []
   }

@@ -158,9 +158,12 @@ private func walletInitiatedIssuanceWithOfferSdJWT(wallet: Wallet) async throws 
   print("[[Scenario: Offer passed to wallet via url]] ")
   
   let url = "\(CredentialIssuer_URL)/credentialoffer?credential_offer=\(SdJwtVC_CredentialOffer)"
-  let credential = try await wallet.issueByCredentialOfferUrl(url: url)
-  
-  print("--> Issued credential: \(credential)")
+  let credential = try await wallet.issueByCredentialOfferUrl(
+    url: url,
+    scope: "eu.europa.ec.eudiw.pid_vc_sd_jwt"
+  )
+
+  print("--> [ISSUANCE] Issued credential: \(credential)")
 }
 
 private func walletInitiatedIssuanceWithOfferMdoc(wallet: Wallet) async throws {
@@ -168,9 +171,12 @@ private func walletInitiatedIssuanceWithOfferMdoc(wallet: Wallet) async throws {
   print("[[Scenario: Offer passed to wallet via url]] ")
   
   let url = "\(CredentialIssuer_URL)/credentialoffer?credential_offer=\(MsoMdoc_CredentialOffer)"
-  let credential = try await wallet.issueByCredentialOfferUrl(url: url)
+  let credential = try await wallet.issueByCredentialOfferUrl(
+    url: url,
+    scope: "eu.europa.ec.eudiw.pid_mso_mdoc"
+  )
   
-  print("--> Issued credential : \(credential)")
+  print("--> [ISSUANCE] Issued credential : \(credential)")
 }
 
 private func walletInitiatedIssuanceWithOfferArray(wallet: Wallet) async throws {
@@ -178,7 +184,10 @@ private func walletInitiatedIssuanceWithOfferArray(wallet: Wallet) async throws 
   print("[[Scenario: Offer passed to wallet via url]] ")
   
   let url = "\(CredentialIssuer_URL)/credentialoffer?credential_offer=\(All_Supported_CredentialOffer)"
-  let credential = try await wallet.issueByCredentialOfferUrlMultipleFormats(url: url)
+  let credentials = try await wallet.issueByCredentialOfferUrlMultipleFormats(url: url)
   
-  print("--> Issued credential : \(credential)")
+  print("--> [ISSUANCE] Issued credentials:")
+  for credential in credentials {
+    print("\t [\(credential.0)]: \(credential.1)")
+  }
 }

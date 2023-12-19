@@ -363,14 +363,14 @@ public extension MsoMdocFormat {
       throw ValidationError.error(reason: "Missing doctype")
     }
     
-    if let credentialsSupported = metadata.credentialsSupported.first(where: { credential in
+    if let credentialsSupported = metadata.credentialsSupported.first(where: { (credentialId, credential) in
       switch credential {
       case .msoMdoc(let credentialSupported):
         return credentialSupported.docType == docType
       default: return false
       }
     }) {
-      switch credentialsSupported {
+      switch credentialsSupported.value {
       case .msoMdoc(let profile):
         return .msoMdoc(.init(docType: docType, scope: profile.scope))
       default: break
