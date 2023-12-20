@@ -77,10 +77,10 @@ extension Wallet {
     
     switch authorized {
     case .noProofRequired:
-      return try await offer.credentialIssuerMetadata.credentialsSupported.asyncMap { (credentialIdentifier, supportedCredential) in
-        let scope = try issuerMetadata.credentialsSupported[credentialIdentifier]?.getScope() ?? {
+      return try await offer.credentialIssuerMetadata.credentialsSupported.asyncCompactMap { (credentialIdentifier, supportedCredential) in
+        guard let scope = issuerMetadata.credentialsSupported[credentialIdentifier]?.getScope() else {
           throw ValidationError.error(reason: "Cannot find scope for \(credentialIdentifier)")
-        }()
+        }
 
         let data = try await noProofRequiredSubmissionUseCase(
           issuer: issuer,
@@ -91,10 +91,10 @@ extension Wallet {
       }
       
     case .proofRequired:
-      return try await offer.credentialIssuerMetadata.credentialsSupported.asyncMap { (credentialIdentifier, supportedCredential) in
-        let scope = try issuerMetadata.credentialsSupported[credentialIdentifier]?.getScope() ?? {
+      return try await offer.credentialIssuerMetadata.credentialsSupported.asyncCompactMap { (credentialIdentifier, supportedCredential) in
+        guard let scope = issuerMetadata.credentialsSupported[credentialIdentifier]?.getScope() else {
           throw ValidationError.error(reason: "Cannot find scope for \(credentialIdentifier)")
-        }()
+        }
         let data = try await proofRequiredSubmissionUseCase(
           issuer: issuer,
           authorized: authorized,

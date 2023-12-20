@@ -75,7 +75,7 @@ public extension BindingKey {
         let dictionary: [String: Any] = [
           JWTClaimNames.issuedAt: Int(Date().timeIntervalSince1970.rounded()),
           JWTClaimNames.audience: aud,
-          nonceKey: cNonce
+          nonceKey: cNonce ?? ""
         ]
         
         let payload = Payload(try dictionary.toThrowingJSONData())
@@ -128,7 +128,7 @@ public extension BindingKey {
         let dictionary: [String: Any] = [
           JWTClaimNames.issuedAt: Int(Date().timeIntervalSince1970.rounded()),
           JWTClaimNames.audience: aud,
-          nonceKey: cNonce
+          nonceKey: cNonce ?? ""
         ]
         
         let payload = Payload(try dictionary.toThrowingJSONData())

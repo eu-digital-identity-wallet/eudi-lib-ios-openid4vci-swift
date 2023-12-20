@@ -80,12 +80,6 @@ public extension SdJwtVcFormat {
       )
     }
     
-    public func requiresEncryptedResponse() -> Bool {
-      credentialResponseEncryptionAlg != nil &&
-      (credentialEncryptionJwk != nil || credentialEncryptionKey != nil)  &&
-      credentialResponseEncryptionMethod != nil
-    }
-    
     public init(from decoder: Decoder) throws {
       fatalError("No supported yet")
     }

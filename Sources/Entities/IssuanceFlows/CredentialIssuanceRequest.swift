@@ -131,10 +131,6 @@ public extension SingleCredential {
       }
     }
   }
-  
-  func requiresEncryptedResponse() -> Bool {
-    false
-  }
 }
 
 public struct MsoMdocIssuanceRequest {

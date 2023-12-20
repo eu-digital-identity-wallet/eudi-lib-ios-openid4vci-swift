@@ -27,4 +27,18 @@ public extension Sequence {
     
     return values
   }
+  
+  func asyncCompactMap<T>(
+    _ transform: (Element) async throws -> T?
+  ) async rethrows -> [T] {
+    var values = [T]()
+    
+    for element in self {
+      if let value = try await transform(element) {
+        values.append(value)
+      }
+    }
+    
+    return values
+  }
 }

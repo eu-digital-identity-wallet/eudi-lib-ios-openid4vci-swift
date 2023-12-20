@@ -146,7 +146,7 @@ class WithOffer: XCTestCase {
     } catch {
       
       XCTExpectFailure()
-      XCTAssert(false)
+      XCTAssert(false, error.localizedDescription)
     }
     
     XCTAssert(true)

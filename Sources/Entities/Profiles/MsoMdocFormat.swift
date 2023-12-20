@@ -80,12 +80,6 @@ public extension MsoMdocFormat {
       )
     }
     
-    public func requiresEncryptedResponse() -> Bool {
-      credentialResponseEncryptionAlg != nil &&
-      credentialEncryptionJwk != nil &&
-      credentialResponseEncryptionMethod != nil
-    }
-    
     public init(from decoder: Decoder) throws {
       fatalError("No supported yet")
     }

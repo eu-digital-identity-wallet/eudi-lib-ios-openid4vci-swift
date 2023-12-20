@@ -69,10 +69,7 @@ public actor IssuanceRequester: IssuanceRequesterType {
         headers: authorizationHeader,
         body: encodedRequest
       )
-      
-      if request.requiresEncryptedResponse() {
-        return .failure(ValidationError.error(reason: "NOT IMPLEMENTED: Decrypt JWT, extract JWT claims and map them to IssuanceResponse"))
-      }
+
       return .success(try response.toSingleIssuanceResponse())
       
     } catch PostError.response(let response) {
