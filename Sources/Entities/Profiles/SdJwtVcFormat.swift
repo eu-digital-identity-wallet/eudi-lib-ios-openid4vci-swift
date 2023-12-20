@@ -17,7 +17,7 @@ import Foundation
 import SwiftyJSON
 import JOSESwift
 
-public struct SdJwtVcProfile: Profile {
+public struct SdJwtVcFormat: FormatProfile {
   
   static let FORMAT = "vc+sd-jwt"
   
@@ -35,11 +35,11 @@ public struct SdJwtVcProfile: Profile {
   }
 }
 
-public extension SdJwtVcProfile {
+public extension SdJwtVcFormat {
   
   struct SdJwtVcSingleCredential: Codable {
     public let proof: Proof?
-    public let format: String = SdJwtVcProfile.FORMAT
+    public let format: String = SdJwtVcFormat.FORMAT
     public let credentialEncryptionJwk: JWK?
     public let credentialEncryptionKey: SecKey?
     public let credentialResponseEncryptionAlg: JWEAlgorithm?
@@ -78,12 +78,6 @@ public extension SdJwtVcProfile {
         responseEncryptionAlg: credentialResponseEncryptionAlg,
         responseEncryptionMethod: credentialResponseEncryptionMethod
       )
-    }
-    
-    public func requiresEncryptedResponse() -> Bool {
-      credentialResponseEncryptionAlg != nil &&
-      (credentialEncryptionJwk != nil || credentialEncryptionKey != nil)  &&
-      credentialResponseEncryptionMethod != nil
     }
     
     public init(from decoder: Decoder) throws {
@@ -204,7 +198,7 @@ public extension SdJwtVcProfile {
       self.credentialDefinition = credentialDefinition
     }
     
-    func toDomain() throws -> SdJwtVcProfile.CredentialSupported {
+    func toDomain() throws -> SdJwtVcFormat.CredentialSupported {
       
       let bindingMethods = try cryptographicBindingMethodsSupported?.compactMap {
         try CryptographicBindingMethod(method: $0)
@@ -309,19 +303,19 @@ public extension SdJwtVcProfile {
         if credentialDefinition.claims == nil ||
            (((credentialDefinition.claims?.isEmpty) != nil) && claimSet.claims.isEmpty) {
           throw CredentialIssuanceError.invalidIssuanceRequest(
-            "Issuer does not support claims for credential [\(SdJwtVcProfile.FORMAT)-\(credentialDefinition.type)]"
+            "Issuer does not support claims for credential [\(SdJwtVcFormat.FORMAT)-\(credentialDefinition.type)]"
           )
         }
         
         if credentialDefinition.claims == nil || (((credentialDefinition.claims?.isEmpty) != nil) && claimSet.claims.isEmpty) {
           throw CredentialIssuanceError.invalidIssuanceRequest(
-            "Issuer does not support claims for credential [\(SdJwtVcProfile.FORMAT)-\(credentialDefinition.type)]"
+            "Issuer does not support claims for credential [\(SdJwtVcFormat.FORMAT)-\(credentialDefinition.type)]"
           )
         }
         return claimSet
       }
       
-      var validClaimSet: SdJwtVcProfile.SdJwtVcClaimSet?
+      var validClaimSet: SdJwtVcFormat.SdJwtVcClaimSet?
       if let claimSet = claimSet {
         switch claimSet {
         case .sdJwtVc(let claimSet):
@@ -335,7 +329,7 @@ public extension SdJwtVcProfile {
         )
         }
       }
-      
+
       return try .single(
         .sdJwtVc(
           .init(
@@ -386,7 +380,7 @@ public extension SdJwtVcProfile {
   }
 }
 
-public extension SdJwtVcProfile {
+public extension SdJwtVcFormat {
   
   static func matchSupportedAndToDomain(
     json: JSON,
@@ -395,14 +389,14 @@ public extension SdJwtVcProfile {
     
     let credentialDefinition = CredentialDefinitionTO(json: json).toDomain()
     
-    if let credentialsSupported = metadata.credentialsSupported.first(where: { credential in
+    if let credentialsSupported = metadata.credentialsSupported.first(where: { (credentialId, credential) in
       switch credential {
       case .sdJwtVc(let credentialSupported):
         return credentialSupported.credentialDefinition.type == credentialDefinition.type
       default: return false
       }
     }) {
-      switch credentialsSupported {
+      switch credentialsSupported.value {
       case .sdJwtVc(let profile):
         return .sdJwtVc(.init(
           type: credentialDefinition.type,

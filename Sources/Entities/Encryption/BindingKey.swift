@@ -37,7 +37,7 @@ public extension BindingKey {
   func toSupportedProof(
     issuanceRequester: IssuanceRequesterType,
     credentialSpec: SupportedCredential,
-    cNonce: String
+    cNonce: String?
   ) throws -> Proof {
     switch self {
     case .jwk(
@@ -68,14 +68,14 @@ public extension BindingKey {
         let header = try JWSHeader(parameters: [
           "typ": "openid4vci-proof+jwt",
           "alg": algorithm.name,
-          "jwk": jwk
+          "jwk": jwk.toDictionary()
         ])
         
         let nonceKey = "nonce"
         let dictionary: [String: Any] = [
           JWTClaimNames.issuedAt: Int(Date().timeIntervalSince1970.rounded()),
           JWTClaimNames.audience: aud,
-          nonceKey: cNonce
+          nonceKey: cNonce ?? ""
         ]
         
         let payload = Payload(try dictionary.toThrowingJSONData())
@@ -98,17 +98,59 @@ public extension BindingKey {
         )
         
         return .jwt(jws.compactSerializedString)
+
+      case .sdJwtVc(let spec):
+        let suites = spec.cryptographicSuitesSupported.contains { $0 == algorithm.name }
+        let bindings = spec.cryptographicBindingMethodsSupported.contains { $0  == .jwk }
+        let proofs = spec.proofTypesSupported?.contains { $0 == .jwt } ?? false
         
-//      case .scope(_):
-//        <#code#>
-//      case .w3CSignedJwt(_):
-//        <#code#>
-//      case .w3CJsonLdSignedJwt(_):
-//        <#code#>
-//      case .w3CJsonLdDataIntegrity(_):
-//        <#code#>
-//      case .sdJwtVc(_):
-//        <#code#>
+        guard suites else {
+          throw CredentialIssuanceError.cryptographicSuiteNotSupported
+        }
+        
+        guard bindings else {
+          throw CredentialIssuanceError.cryptographicBindingMethodNotSupported
+        }
+        
+        guard proofs else {
+          throw CredentialIssuanceError.proofTypeNotSupported
+        }
+        
+        let aud = issuanceRequester.issuerMetadata.credentialIssuerIdentifier.url.absoluteString
+        
+        let header = try JWSHeader(parameters: [
+          "typ": "openid4vci-proof+jwt",
+          "alg": algorithm.name,
+          "jwk": jwk.toDictionary()
+        ])
+        
+        let nonceKey = "nonce"
+        let dictionary: [String: Any] = [
+          JWTClaimNames.issuedAt: Int(Date().timeIntervalSince1970.rounded()),
+          JWTClaimNames.audience: aud,
+          nonceKey: cNonce ?? ""
+        ]
+        
+        let payload = Payload(try dictionary.toThrowingJSONData())
+        
+        guard let signatureAlgorithm = SignatureAlgorithm(rawValue: algorithm.name) else {
+          throw CredentialIssuanceError.cryptographicAlgorithmNotSupported
+        }
+        
+        guard let signer = Signer(
+          signingAlgorithm: signatureAlgorithm,
+          key: privateKey
+        ) else {
+          throw ValidationError.error(reason: "Unable to create JWS signer")
+        }
+        
+        let jws = try JWS(
+          header: header,
+          payload: payload,
+          signer: signer
+        )
+        
+        return .jwt(jws.compactSerializedString)
       default: break
       }
       break

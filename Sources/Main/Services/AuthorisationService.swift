@@ -88,12 +88,14 @@ public actor AuthorisationService: AuthorisationServiceType {
     headers: [String: String],
     body: [String: Any]
   ) async throws -> U {
+    let headers = [
+      ContentType.key.rawValue: ContentType.json.rawValue
+    ].merging(headers, uniquingKeysWith: { _, new in
+      new
+    })
+    
     let post = FormPost(
-      additionalHeaders: [
-        ContentType.key.rawValue: ContentType.json.rawValue
-      ].merging(headers, uniquingKeysWith: { _, new in
-        new
-      }),
+      additionalHeaders: headers,
       url: url,
       formData: body
     )

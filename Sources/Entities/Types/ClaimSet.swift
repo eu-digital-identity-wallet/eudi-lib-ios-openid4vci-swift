@@ -16,11 +16,11 @@
 import Foundation
 
 public enum ClaimSet: Codable {
-  case w3CJsonLdDataIntegrity(W3CJsonLdDataIntegrityProfile.W3CJsonLdDataIntegrityClaimSet)
-  case w3CJsonLdSignedJwt(W3CJsonLdSignedJwtProfile.W3CJsonLdSignedJwtClaimSet)
-  case w3CSignedJwt(W3CSignedJwtProfile.W3CSignedJwtClaimSet)
-  case msoMdoc(MsoMdocProfile.MsoMdocClaimSet?)
-  case sdJwtVc(SdJwtVcProfile.SdJwtVcClaimSet?)
+  case w3CJsonLdDataIntegrity(W3CJsonLdDataIntegrityFormat.W3CJsonLdDataIntegrityClaimSet)
+  case w3CJsonLdSignedJwt(W3CJsonLdSignedJwtFormat.W3CJsonLdSignedJwtClaimSet)
+  case w3CSignedJwt(W3CSignedJwtFormat.W3CSignedJwtClaimSet)
+  case msoMdoc(MsoMdocFormat.MsoMdocClaimSet?)
+  case sdJwtVc(SdJwtVcFormat.SdJwtVcClaimSet?)
 }
 
 public extension ClaimSet {
@@ -28,15 +28,15 @@ public extension ClaimSet {
   init(from decoder: Decoder) throws {
     let container = try decoder.singleValueContainer()
     
-    if let claimSet = try? container.decode(W3CJsonLdDataIntegrityProfile.W3CJsonLdDataIntegrityClaimSet.self) {
+    if let claimSet = try? container.decode(W3CJsonLdDataIntegrityFormat.W3CJsonLdDataIntegrityClaimSet.self) {
       self = .w3CJsonLdDataIntegrity(claimSet)
-    } else if let claimSet = try? container.decode(W3CJsonLdSignedJwtProfile.W3CJsonLdSignedJwtClaimSet.self) {
+    } else if let claimSet = try? container.decode(W3CJsonLdSignedJwtFormat.W3CJsonLdSignedJwtClaimSet.self) {
       self = .w3CJsonLdSignedJwt(claimSet)
-    } else if let claimSet = try? container.decode(W3CSignedJwtProfile.W3CSignedJwtClaimSet.self) {
+    } else if let claimSet = try? container.decode(W3CSignedJwtFormat.W3CSignedJwtClaimSet.self) {
       self = .w3CSignedJwt(claimSet)
-    } else if let claimSet = try? container.decode(MsoMdocProfile.MsoMdocClaimSet.self) {
+    } else if let claimSet = try? container.decode(MsoMdocFormat.MsoMdocClaimSet.self) {
       self = .msoMdoc(claimSet)
-    } else if let claimSet = try? container.decode(SdJwtVcProfile.SdJwtVcClaimSet.self) {
+    } else if let claimSet = try? container.decode(SdJwtVcFormat.SdJwtVcClaimSet.self) {
       self = .sdJwtVc(claimSet)
     } else {
       throw DecodingError.typeMismatch(ClaimSet.self, DecodingError.Context(codingPath: decoder.codingPath, debugDescription: "Invalid claim set type"))

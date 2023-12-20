@@ -17,9 +17,9 @@ import Foundation
 
 public enum CredentialMetadata {
   case scope(Scope)
-  case msoMdoc(MsoMdocProfile)
-  case w3CSignedJwt(W3CSignedJwtProfile)
-  case w3CJsonLdSignedJwt(W3CJsonLdSignedJwtProfile)
-  case w3CJsonLdDataIntegrity(W3CJsonLdDataIntegrityProfile)
-  case sdJwtVc(SdJwtVcProfile)
+  case msoMdoc(MsoMdocFormat)
+  case w3CSignedJwt(W3CSignedJwtFormat)
+  case w3CJsonLdSignedJwt(W3CJsonLdSignedJwtFormat)
+  case w3CJsonLdDataIntegrity(W3CJsonLdDataIntegrityFormat)
+  case sdJwtVc(SdJwtVcFormat)
 }

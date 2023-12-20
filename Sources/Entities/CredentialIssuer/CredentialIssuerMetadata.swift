@@ -19,18 +19,19 @@ import JOSESwift
 
 public struct CredentialIssuerMetadata: Codable, Equatable {
   let credentialIssuerIdentifier: CredentialIssuerId
-  let authorizationServer: URL
+  let authorizationServers: [URL]
   let credentialEndpoint: CredentialIssuerEndpoint
   let batchCredentialEndpoint: CredentialIssuerEndpoint?
   let deferredCredentialEndpoint: CredentialIssuerEndpoint?
   let credentialResponseEncryption: CredentialResponseEncryption
   let requireCredentialResponseEncryption: Bool
-  let credentialsSupported: [SupportedCredential]
+  let credentialsSupported: [CredentialIdentifier: SupportedCredential]
+  
   let display: [Display]
   
   enum CodingKeys: String, CodingKey {
     case credentialIssuerIdentifier = "credential_issuer"
-    case authorizationServer = "authorization_server"
+    case authorizationServers = "authorization_servers"
     case credentialEndpoint = "credential_endpoint"
     case batchCredentialEndpoint = "batch_credential_endpoint"
     case deferredCredentialEndpoint = "deferred_credential_endpoint"
@@ -43,17 +44,17 @@ public struct CredentialIssuerMetadata: Codable, Equatable {
   
   public init(
     credentialIssuerIdentifier: CredentialIssuerId,
-    authorizationServer: URL,
+    authorizationServers: [URL],
     credentialEndpoint: CredentialIssuerEndpoint,
     batchCredentialEndpoint: CredentialIssuerEndpoint?,
     deferredCredentialEndpoint: CredentialIssuerEndpoint?,
     credentialResponseEncryption: CredentialResponseEncryption = .notRequired,
     requireCredentialResponseEncryption: Bool?,
-    credentialsSupported: [SupportedCredential],
+    credentialsSupported: [CredentialIdentifier: SupportedCredential],
     display: [Display]?
   ) {
     self.credentialIssuerIdentifier = credentialIssuerIdentifier
-    self.authorizationServer = authorizationServer
+    self.authorizationServers = authorizationServers
     self.credentialEndpoint = credentialEndpoint
     self.batchCredentialEndpoint = batchCredentialEndpoint
     self.deferredCredentialEndpoint = deferredCredentialEndpoint
@@ -69,13 +70,13 @@ public struct CredentialIssuerMetadata: Codable, Equatable {
     
     // Decode each property as necessary, handling optionals and conversions.
     credentialIssuerIdentifier = try container.decode(CredentialIssuerId.self, forKey: .credentialIssuerIdentifier)
-    authorizationServer = try container.decode(URL.self, forKey: .authorizationServer)
+    authorizationServers = try container.decode([URL].self, forKey: .authorizationServers)
     credentialEndpoint = try container.decode(CredentialIssuerEndpoint.self, forKey: .credentialEndpoint)
     batchCredentialEndpoint = try container.decodeIfPresent(CredentialIssuerEndpoint.self, forKey: .batchCredentialEndpoint)
     deferredCredentialEndpoint = try container.decodeIfPresent(CredentialIssuerEndpoint.self, forKey: .deferredCredentialEndpoint)
     
-    if let credentialResponseEncryptionAlgorithmsSupported = try container.decodeIfPresent([JWEAlgorithm].self, forKey: .credentialResponseEncryptionAlgorithmsSupported),
-       let credentialResponseEncryptionMethodsSupported = try container.decodeIfPresent([JOSEEncryptionMethod].self, forKey: .credentialResponseEncryptionMethodsSupported) {
+    if let credentialResponseEncryptionAlgorithmsSupported = try? container.decodeIfPresent([JWEAlgorithm].self, forKey: .credentialResponseEncryptionAlgorithmsSupported),
+       let credentialResponseEncryptionMethodsSupported = try? container.decodeIfPresent([JOSEEncryptionMethod].self, forKey: .credentialResponseEncryptionMethodsSupported) {
       credentialResponseEncryption = .required(
         algorithmsSupported: credentialResponseEncryptionAlgorithmsSupported,
         encryptionMethodsSupported: credentialResponseEncryptionMethodsSupported
@@ -85,31 +86,41 @@ public struct CredentialIssuerMetadata: Codable, Equatable {
     }
     
     requireCredentialResponseEncryption = try container.decodeIfPresent(Bool.self, forKey: .requireCredentialResponseEncryption) ?? false
-    let credentialsSupportedJSON = try container.decodeIfPresent([JSON].self, forKey: .credentialsSupported) ?? []
-    credentialsSupported = try credentialsSupportedJSON.map { json in
-      guard let format = json["format"].string else {
-        throw ValidationError.error(reason: "Profile format not found")
-      }
-      
-      switch format {
-      case MsoMdocProfile.FORMAT:
-        let profile = try MsoMdocProfile.CredentialSupported(json: json)
-        return .msoMdoc(profile)
-      case W3CSignedJwtProfile.FORMAT:
-        let profile = try W3CSignedJwtProfile.CredentialSupported(json: json)
-        return .w3CSignedJwt(profile)
-      case SdJwtVcProfile.FORMAT:
-        let profile = try SdJwtVcProfile.CredentialSupported(json: json)
-        return .sdJwtVc(profile)
-      case W3CJsonLdSignedJwtProfile.FORMAT:
-        let profile = try W3CJsonLdSignedJwtProfile.CredentialSupported(json: json)
-        return .w3CJsonLdSignedJwt(profile)
-      case W3CJsonLdDataIntegrityProfile.FORMAT:
-        let profile = try W3CJsonLdDataIntegrityProfile.CredentialSupported(json: json)
-        return .w3CJsonLdDataIntegrity(profile)
-      default: throw ValidationError.error(reason: "Unknow credential format")
+    
+    let json = try container.decodeIfPresent(JSON.self, forKey: .credentialsSupported) ?? []
+    var mapIdentifierCredential: [CredentialIdentifier: SupportedCredential] = [:]
+    for (key, value): (String, JSON) in json {
+      if let dictionary = value.dictionary,
+         let credJson = JSON(rawValue: dictionary) {
+        
+        let credentialIdentifier: CredentialIdentifier = try .init(value: key)
+        guard let format = credJson["format"].string else {
+          throw ValidationError.error(reason: "Profile format not found")
+        }
+        
+        switch format {
+        case MsoMdocFormat.FORMAT:
+          let profile = try MsoMdocFormat.CredentialSupported(json: credJson)
+          mapIdentifierCredential[credentialIdentifier] = .msoMdoc(profile)
+        case W3CSignedJwtFormat.FORMAT:
+          let profile = try W3CSignedJwtFormat.CredentialSupported(json: credJson)
+          mapIdentifierCredential[credentialIdentifier] = .w3CSignedJwt(profile)
+        case SdJwtVcFormat.FORMAT:
+          let profile = try SdJwtVcFormat.CredentialSupported(json: credJson)
+          mapIdentifierCredential[credentialIdentifier] = .sdJwtVc(profile)
+        case W3CJsonLdSignedJwtFormat.FORMAT:
+          let profile = try W3CJsonLdSignedJwtFormat.CredentialSupported(json: credJson)
+          mapIdentifierCredential[credentialIdentifier] = .w3CJsonLdSignedJwt(profile)
+        case W3CJsonLdDataIntegrityFormat.FORMAT:
+          let profile = try W3CJsonLdDataIntegrityFormat.CredentialSupported(json: credJson)
+          mapIdentifierCredential[credentialIdentifier] = .w3CJsonLdDataIntegrity(profile)
+        default: throw ValidationError.error(reason: "Unknow credential format")
+        }
       }
     }
+    
+    credentialsSupported = mapIdentifierCredential
+    
     display = try container.decodeIfPresent([Display].self, forKey: .display) ?? []
   }
   
@@ -119,7 +130,7 @@ public struct CredentialIssuerMetadata: Codable, Equatable {
     
     // Encode each property as necessary, handling optionals and conversions.
     try container.encode(credentialIssuerIdentifier, forKey: .credentialIssuerIdentifier)
-    try container.encode(authorizationServer, forKey: .authorizationServer)
+    try container.encode(authorizationServers, forKey: .authorizationServers)
     try container.encode(credentialEndpoint, forKey: .credentialEndpoint)
     try container.encode(batchCredentialEndpoint, forKey: .batchCredentialEndpoint)
     try container.encode(deferredCredentialEndpoint, forKey: .deferredCredentialEndpoint)

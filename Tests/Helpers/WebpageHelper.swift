@@ -20,9 +20,21 @@ import SwiftSoup
 
 class WebpageHelper {
   
+  func resetURLSession() -> URLSession {
+    // Create a new URLSessionConfiguration with a different URLCache
+    let newCache = URLCache(memoryCapacity: 0, diskCapacity: 0, diskPath: nil)
+    let newConfiguration = URLSessionConfiguration.default
+    newConfiguration.urlCache = newCache
+    
+    // Create a new URLSession with the modified configuration
+    let newSession = URLSession(configuration: newConfiguration)
+    
+    return newSession
+  }
+  
   func downloadWebPage(url: URL) async -> Result<String?, Error> {
     do {
-      let (data, _) = try await URLSession.shared.data(from: url)
+      let (data, _) = try await resetURLSession().data(from: url)
       if let htmlString = String(data: data, encoding: .utf8) {
         return .success(htmlString)
       } else {

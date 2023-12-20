@@ -34,31 +34,34 @@ public enum RequestedCredentialResponseEncryption {
   )
   
   // Validate algorithm provided is for asymmetric encryption
-  private static func validateAlgorithm(_ responseEncryptionAlg: JWEAlgorithm) throws {
-    guard JWEAlgorithm.Family.parse(.ASYMMETRIC).contains(responseEncryptionAlg) else {
+  private static func validateAlgorithm(_ responseEncryptionAlg: JWEAlgorithm?) throws {
+    guard
+      let responseEncryptionAlg = responseEncryptionAlg,
+      JWEAlgorithm.Family.parse(.ASYMMETRIC).contains(responseEncryptionAlg)
+    else {
       throw ValidationError.error(reason: "Provided encryption algorithm is not an asymmetric encryption algorithm")
     }
   }
   
   // Validate algorithm matches key
-  private static func validateKeyAlgorithmMatch(_ encryptionJwk: JWK, _ responseEncryptionAlg: JWEAlgorithm) throws {
-//    guard encryptionJwk.keyType == KeyType.forAlgorithm(responseEncryptionAlg) else {
-//      throw ValidationError.error(reason: "Encryption key and encryption algorithm do not match")
-//    }
+  private static func validateKeyAlgorithmMatch(_ encryptionJwk: JWK?, _ responseEncryptionAlg: JWEAlgorithm?) throws {
+    /*guard encryptionJwk.keyType == KeyType.forAlgorithm(responseEncryptionAlg) else {
+      throw ValidationError.error(reason: "Encryption key and encryption algorithm do not match")
+    }*/
   }
   
   // Validate key is for encryption operation
-  private static func validateKeyUse(_ encryptionJwk: JWK) throws {
-//    guard encryptionJwk.keyUse == KeyUse.encryption else {
-//      throw ValidationError.error(reason: "Provided key use is not encryption")
-//    }
+  private static func validateKeyUse(_ encryptionJwk: JWK?) throws {
+    guard encryptionJwk?.parameters["use"] == "enc" else {
+      throw ValidationError.error(reason: "Provided key use is not encryption")
+    }
   }
   
   // Validate the requested encryption parameters
   private static func validate(
-    encryptionJwk: JWK,
-    responseEncryptionAlg: JWEAlgorithm,
-    responseEncryptionMethod: JOSEEncryptionMethod
+    encryptionJwk: JWK?,
+    responseEncryptionAlg: JWEAlgorithm?,
+    responseEncryptionMethod: JOSEEncryptionMethod?
   ) throws {
     try validateAlgorithm(responseEncryptionAlg)
     try validateKeyAlgorithmMatch(encryptionJwk, responseEncryptionAlg)
@@ -72,7 +75,11 @@ public enum RequestedCredentialResponseEncryption {
     responseEncryptionAlg: JWEAlgorithm?,
     responseEncryptionMethod: JOSEEncryptionMethod?
   ) throws {
-    //try Self.validate(encryptionJwk: encryptionJwk, responseEncryptionAlg: responseEncryptionAlg, responseEncryptionMethod: responseEncryptionMethod)
+    try Self.validate(
+      encryptionJwk: encryptionJwk,
+      responseEncryptionAlg: responseEncryptionAlg,
+      responseEncryptionMethod: responseEncryptionMethod
+    )
     
     guard
       let encryptionJwk,
@@ -92,4 +99,3 @@ public enum RequestedCredentialResponseEncryption {
     )
   }
 }
-

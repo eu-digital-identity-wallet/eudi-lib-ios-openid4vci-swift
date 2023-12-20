@@ -16,7 +16,7 @@
 import Foundation
 import SwiftyJSON
 
-public struct W3CSignedJwtProfile: Profile {
+public struct W3CSignedJwtFormat: FormatProfile {
   
   static let FORMAT = "jwt_vc_json"
   
@@ -34,7 +34,7 @@ public struct W3CSignedJwtProfile: Profile {
   }
 }
 
-public extension W3CSignedJwtProfile {
+public extension W3CSignedJwtFormat {
   
   struct W3CSignedJwtClaimSet: Codable {
     public let claims: [ClaimName: Claim]
@@ -119,7 +119,7 @@ public extension W3CSignedJwtProfile {
       self.order = order
     }
     
-    func toDomain() throws -> W3CSignedJwtProfile.CredentialSupported {
+    func toDomain() throws -> W3CSignedJwtFormat.CredentialSupported {
       
       let bindingMethods = try cryptographicBindingMethodsSupported?.compactMap {
         try CryptographicBindingMethod(method: $0)
@@ -264,7 +264,7 @@ public extension W3CSignedJwtProfile {
   }
 }
 
-public extension W3CSignedJwtProfile {
+public extension W3CSignedJwtFormat {
   
   static func matchSupportedAndToDomain(
     json: JSON,
@@ -273,14 +273,14 @@ public extension W3CSignedJwtProfile {
     
     let credentialDefinition = CredentialDefinitionTO(json: json).toDomain()
     
-    if let credentialsSupported = metadata.credentialsSupported.first(where: { credential in
+    if let credentialsSupported = metadata.credentialsSupported.first(where: { (id, credential) in
       switch credential {
       case .w3CSignedJwt(let credentialSupported):
         return credentialSupported.credentialDefinition.type == credentialDefinition.type
       default: return false
       }
     }) {
-      switch credentialsSupported {
+      switch credentialsSupported.value {
       case .w3CSignedJwt(let profile):
         return .w3CSignedJwt(.init(
           credentialDefinition: credentialDefinition,

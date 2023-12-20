@@ -16,8 +16,6 @@ let package = Package(
     .package(url: "https://github.com/SwiftyJSON/SwiftyJSON.git", from: "4.0.0"),
     .package(url: "https://github.com/niscy-eudiw/JOSESwift.git", from: "2.4.1"),
     .package(url: "https://github.com/scinfu/SwiftSoup.git", from: "2.6.0"),
-    .package(url: "https://github.com/apple/swift-asn1.git", .upToNextMajor(from: "1.0.0")),
-    .package(url: "https://github.com/apple/swift-certificates.git", .upToNextMajor(from: "1.0.0")),
   ],
   targets: [
     .target(

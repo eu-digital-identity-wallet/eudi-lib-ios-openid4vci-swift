@@ -19,43 +19,7 @@ import JOSESwift
 
 @testable import OpenID4VCI
 
-let CredentialIssuer_URL = "http://localhost:8080"
-//let CredentialIssuer_URL = "https://eudi.netcompany-intrasoft.com/pid-issuer"
-
-let PID_SdJwtVC_SCOPE = "eu.europa.ec.eudiw.pid_vc_sd_jwt"
-let PID_MsoMdoc_SCOPE = "eu.europa.ec.eudiw.pid_mso_mdoc"
-
-let SdJwtVC_CredentialOffer = """
-    {
-      "credential_issuer": "\(CredentialIssuer_URL)",
-      "credentials": [ "\(PID_SdJwtVC_SCOPE)" ],
-      "grants": {
-        "authorization_code": {}
-      }
-    }
-"""
-
-let MsoMdoc_CredentialOffer = """
-    {
-      "credential_issuer": "\(CredentialIssuer_URL)",
-      "grants": {
-        "authorization_code": {}
-      },
-      "credentials": [ "\(PID_MsoMdoc_SCOPE)" ]
-    }
-"""
-
-let config: WalletOpenId4VCIConfig = .init(
-  clientId: "wallet-dev",
-  authFlowRedirectionURI: URL(string: "urn:ietf:wg:oauth:2.0:oob")!
-)
-
-struct ActingUser {
-  let username: String
-  let password: String
-}
-
-class ExampleTest: XCTestCase {
+class NoOffer: XCTestCase {
   
   override func setUp() async throws {
     try await super.setUp()
@@ -74,7 +38,7 @@ class ExampleTest: XCTestCase {
     )
   }
   
-  func test() async throws {
+  func testNoOfferSdJWT() async throws {
     
     let privateKey = try KeyController.generateRSAPrivateKey()
     let publicKey = try KeyController.generateRSAPublicKey(from: privateKey)
@@ -90,7 +54,7 @@ class ExampleTest: XCTestCase {
     
     let bindingKey: BindingKey = .jwk(
       algorithm: alg,
-      jwk: publicKeyJWK, 
+      jwk: publicKeyJWK,
       privateKey: privateKey
     )
     
@@ -104,26 +68,74 @@ class ExampleTest: XCTestCase {
       bindingKey: bindingKey
     )
     
-    try await walletInitiatedIssuanceWithOffer(wallet: wallet)
-    //try await walletInitiatedIssuanceNoOffer(wallet: wallet)
+    do {
+      try await walletInitiatedIssuanceNoOfferSdJwt(wallet: wallet)
+      
+    } catch {
+      
+      XCTExpectFailure()
+      XCTAssert(false)
+    }
+    
+    XCTAssert(true)
+  }
+  
+  func testNoOfferMdoc() async throws {
+    
+    let privateKey = try KeyController.generateECDHPrivateKey()
+    let publicKey = try KeyController.generateECDHPublicKey(from: privateKey)
+    
+    let alg = JWSAlgorithm(.ES256)
+    let publicKeyJWK = try ECPublicKey(
+      publicKey: publicKey,
+      additionalParameters: [
+        "alg": alg.name,
+        "use": "sig",
+        "kid": UUID().uuidString
+      ])
+    
+    let bindingKey: BindingKey = .jwk(
+      algorithm: alg,
+      jwk: publicKeyJWK,
+      privateKey: privateKey
+    )
+    
+    let user = ActingUser(
+      username: "tneal",
+      password: "password"
+    )
+    
+    let wallet = Wallet(
+      actingUser: user,
+      bindingKey: bindingKey
+    )
+    
+    do {
+      try await walletInitiatedIssuanceNoOfferMdoc(wallet: wallet)
+    } catch {
+      
+      XCTExpectFailure()
+      XCTAssert(false)
+    }
+    
+    XCTAssert(true)
   }
 }
 
-private func walletInitiatedIssuanceWithOffer(wallet: Wallet) async throws {
-  
-  print("[[Scenario: Offer passed to wallet via url]] ")
-  
-  let url = "\(CredentialIssuer_URL)/credentialoffer?credential_offer=\(SdJwtVC_CredentialOffer)"
-  let credential = try await wallet.issueByCredentialOfferUrl(url: url)
-  
-  print("--> Issued credential : \(credential)")
-}
-
-private func walletInitiatedIssuanceNoOffer(wallet: Wallet) async throws {
+private func walletInitiatedIssuanceNoOfferSdJwt(wallet: Wallet) async throws {
   
   print("[[Scenario: No offer passed, wallet initiates issuance by credetial scopes]]")
   
   let credential = try await wallet.issueByScope(PID_SdJwtVC_SCOPE)
   
-  print("--> Issued credential : \(credential)")
+  print("--> [ISSUANCE] Issued PID in format \(PID_SdJwtVC_SCOPE): \(credential)")
+}
+
+private func walletInitiatedIssuanceNoOfferMdoc(wallet: Wallet) async throws {
+  
+  print("[[Scenario: No offer passed, wallet initiates issuance by credetial scopes]]")
+  
+  let credential = try await wallet.issueByScope(PID_MsoMdoc_SCOPE)
+  
+  print("--> [ISSUANCE] Issued PID in format \(PID_MsoMdoc_SCOPE): \(credential)")
 }

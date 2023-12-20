@@ -15,7 +15,22 @@
  */
 import Foundation
 
-public enum CredentialError: Error {
-  case genericError
-  case issuerDoesNotSupportDeferredIssuance
+public struct TransactionId: Codable {
+  public let value: String
+  public let interval: Int?
+  
+  public init(value: String, interval: Int? = nil) throws {
+    if value.isEmpty {
+      throw ValidationError.error(reason: "Value cannot be empty")
+    }
+    self.value = value
+    self.interval = interval
+  }
+}
+
+public extension TransactionId {
+  
+  func toDeferredRequestTO() -> DeferredIssuanceRequestTO {
+    DeferredIssuanceRequestTO(transactionId: value)
+  }
 }

@@ -53,15 +53,44 @@ public struct DeferredCredentialRequest: Codable {
 }
 
 public enum SingleCredential {
-  case msoMdoc(MsoMdocProfile.MsoMdocSingleCredential)
-  case sdJwtVc(SdJwtVcProfile.SdJwtVcSingleCredential)
+  case msoMdoc(MsoMdocFormat.MsoMdocSingleCredential)
+  case sdJwtVc(SdJwtVcFormat.SdJwtVcSingleCredential)
 }
 
 public extension SingleCredential {
   func toDictionary() throws -> JSON {
     switch self {
-    case .msoMdoc:
-      throw ValidationError.todo(reason: "Not yet implemented")
+    case .msoMdoc(let credential):
+      switch credential.requestedCredentialResponseEncryption {
+      case .notRequested:
+        return [:]
+      case .requested(
+        let encryptionJwk,
+        _,
+        let responseEncryptionAlg,
+        let responseEncryptionMethod
+      ):
+        
+        if let proof = credential.proof {
+          return [
+            "format": MsoMdocFormat.FORMAT,
+            "proof": try proof.toDictionary(),
+            "doctype": credential.docType,
+            "credential_encryption_jwk": try encryptionJwk.toDictionary(),
+            "credential_response_encryption_alg": responseEncryptionAlg.name,
+            "credential_response_encryption_enc": responseEncryptionMethod.name
+          ]
+          
+        } else {
+          return [
+            "format": MsoMdocFormat.FORMAT,
+            "doctype": credential.docType,
+            "credential_encryption_jwk": try encryptionJwk.toDictionary(),
+            "credential_response_encryption_alg": responseEncryptionAlg.name,
+            "credential_response_encryption_enc": responseEncryptionMethod.name
+          ]
+        }
+      }
     case .sdJwtVc(let credential):
       switch credential.requestedCredentialResponseEncryption {
       case .notRequested:
@@ -80,19 +109,27 @@ public extension SingleCredential {
           "type": credential.credentialDefinition.type
         ].toDictionary()
         
-        return [
-          "format": SdJwtVcProfile.FORMAT,
-          "credential_encryption_jwk": try encryptionJwk.toDictionary(),
-          "credential_response_encryption_alg": responseEncryptionAlg.name,
-          "credential_response_encryption_enc": responseEncryptionMethod.name,
-          "credential_definition": credentialDefinition
-        ]
+        if let proof = credential.proof {
+          return [
+            "format": SdJwtVcFormat.FORMAT,
+            "proof": try proof.toDictionary(),
+            "credential_encryption_jwk": try encryptionJwk.toDictionary(),
+            "credential_response_encryption_alg": responseEncryptionAlg.name,
+            "credential_response_encryption_enc": responseEncryptionMethod.name,
+            "credential_definition": credentialDefinition
+          ]
+          
+        } else {
+          return [
+            "format": SdJwtVcFormat.FORMAT,
+            "credential_encryption_jwk": try encryptionJwk.toDictionary(),
+            "credential_response_encryption_alg": responseEncryptionAlg.name,
+            "credential_response_encryption_enc": responseEncryptionMethod.name,
+            "credential_definition": credentialDefinition
+          ]
+        }
       }
     }
-  }
-  
-  func requiresEncryptedResponse() -> Bool {
-    false
   }
 }
 

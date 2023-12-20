@@ -17,7 +17,7 @@ import Foundation
 import SwiftyJSON
 import JOSESwift
 
-public struct MsoMdocProfile: Profile {
+public struct MsoMdocFormat: FormatProfile {
   static let FORMAT = "mso_mdoc"
   
   public let docType: String
@@ -34,15 +34,17 @@ public struct MsoMdocProfile: Profile {
   }
 }
 
-public extension MsoMdocProfile {
+public extension MsoMdocFormat {
   
   struct MsoMdocSingleCredential: Codable {
     public let docType: String
-    public let proof: ProofType?
+    public let proof: Proof?
     public let credentialEncryptionJwk: JWK?
+    public let credentialEncryptionKey: SecKey?
     public let credentialResponseEncryptionAlg: JWEAlgorithm?
     public let credentialResponseEncryptionMethod: JOSEEncryptionMethod?
     public let claimSet: ClaimSet?
+    public let requestedCredentialResponseEncryption: RequestedCredentialResponseEncryption
     
     enum CodingKeys: String, CodingKey {
       case doctype
@@ -55,24 +57,27 @@ public extension MsoMdocProfile {
     
     public init(
       docType: String,
-      proof: ProofType? = nil,
+      proof: Proof? = nil,
       credentialEncryptionJwk: JWK? = nil,
+      credentialEncryptionKey: SecKey? = nil,
       credentialResponseEncryptionAlg: JWEAlgorithm? = nil,
       credentialResponseEncryptionMethod: JOSEEncryptionMethod? = nil,
       claimSet: ClaimSet? = nil
-    ) {
+    ) throws {
       self.docType = docType
       self.proof = proof
       self.credentialEncryptionJwk = credentialEncryptionJwk
+      self.credentialEncryptionKey = credentialEncryptionKey
       self.credentialResponseEncryptionAlg = credentialResponseEncryptionAlg
       self.credentialResponseEncryptionMethod = credentialResponseEncryptionMethod
       self.claimSet = claimSet
-    }
-    
-    public func requiresEncryptedResponse() -> Bool {
-      credentialResponseEncryptionAlg != nil &&
-      credentialEncryptionJwk != nil &&
-      credentialResponseEncryptionMethod != nil
+      
+      self.requestedCredentialResponseEncryption = try .init(
+        encryptionJwk: credentialEncryptionJwk,
+        encryptionKey: credentialEncryptionKey,
+        responseEncryptionAlg: credentialResponseEncryptionAlg,
+        responseEncryptionMethod: credentialResponseEncryptionMethod
+      )
     }
     
     public init(from decoder: Decoder) throws {
@@ -148,7 +153,7 @@ public extension MsoMdocProfile {
       self.order = order
     }
     
-    func toDomain() throws -> MsoMdocProfile.CredentialSupported {
+    func toDomain() throws -> MsoMdocFormat.CredentialSupported {
       
       let bindingMethods = try cryptographicBindingMethodsSupported?.compactMap {
         try CryptographicBindingMethod(method: $0)
@@ -283,6 +288,7 @@ public extension MsoMdocProfile {
     }
     
     func toIssuanceRequest(
+      responseEncryptionSpec: IssuanceResponseEncryptionSpec?,
       claimSet: ClaimSet?,
       proof: Proof?
     ) throws -> CredentialIssuanceRequest {
@@ -309,7 +315,7 @@ public extension MsoMdocProfile {
         return claimSet
       }
       
-      var validClaimSet: MsoMdocProfile.MsoMdocClaimSet?
+      var validClaimSet: MsoMdocFormat.MsoMdocClaimSet?
       if let claimSet = claimSet {
         switch claimSet {
         case .msoMdoc(let claimSet):
@@ -322,16 +328,17 @@ public extension MsoMdocProfile {
           "Invalid Claim Set provided for issuance"
         )
         }
-      } else {
-        throw CredentialIssuanceError.invalidIssuanceRequest(
-          "Invalid Claim Set provided for issuance"
-        )
       }
       
-      return .single(
+      return try .single(
         .msoMdoc(
           .init(
             docType: docType,
+            proof: proof,
+            credentialEncryptionJwk: responseEncryptionSpec?.jwk,
+            credentialEncryptionKey: responseEncryptionSpec?.privateKey,
+            credentialResponseEncryptionAlg: responseEncryptionSpec?.algorithm,
+            credentialResponseEncryptionMethod: responseEncryptionSpec?.encryptionMethod,
             claimSet: .msoMdoc(validClaimSet)
           )
         )
@@ -340,7 +347,7 @@ public extension MsoMdocProfile {
   }
 }
 
-public extension MsoMdocProfile {
+public extension MsoMdocFormat {
   
   static func matchSupportedAndToDomain(
     json: JSON,
@@ -350,14 +357,14 @@ public extension MsoMdocProfile {
       throw ValidationError.error(reason: "Missing doctype")
     }
     
-    if let credentialsSupported = metadata.credentialsSupported.first(where: { credential in
+    if let credentialsSupported = metadata.credentialsSupported.first(where: { (credentialId, credential) in
       switch credential {
       case .msoMdoc(let credentialSupported):
         return credentialSupported.docType == docType
       default: return false
       }
     }) {
-      switch credentialsSupported {
+      switch credentialsSupported.value {
       case .msoMdoc(let profile):
         return .msoMdoc(.init(docType: docType, scope: profile.scope))
       default: break
