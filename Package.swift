@@ -12,16 +12,46 @@ let package = Package(
       targets: ["OpenID4VCI"]
     ),
   ],
+  dependencies: [
+    .package(url: "https://github.com/SwiftyJSON/SwiftyJSON.git", from: "4.0.0"),
+    .package(url: "https://github.com/niscy-eudiw/JOSESwift.git", from: "2.4.1"),
+    .package(url: "https://github.com/scinfu/SwiftSoup.git", from: "2.6.0"),
+  ],
   targets: [
     .target(
       name: "OpenID4VCI",
       dependencies: [
+        .product(
+          name: "SwiftyJSON",
+          package: "SwiftyJSON"
+        ),
+        .product(
+          name: "JOSESwift",
+          package: "JOSESwift"
+        )
       ],
-      path: "Sources"
+      path: "Sources",
+      resources: [
+        .process("Resources")
+      ]
     ),
     .testTarget(
       name: "OpenID4VCITests",
-      dependencies: ["OpenID4VCI"],
+      dependencies: [
+        "OpenID4VCI",
+        .product(
+          name: "SwiftyJSON",
+          package: "SwiftyJSON"
+        ),
+        .product(
+          name: "JOSESwift",
+          package: "JOSESwift"
+        ),
+        .product(
+          name: "SwiftSoup",
+          package: "SwiftSoup"
+        )
+      ],
       path: "Tests"
     ),
   ]
