@@ -15,6 +15,7 @@
  */
 import Foundation
 import Security
+import CryptoKit
 
 public class KeyController {
   
@@ -79,6 +80,41 @@ public class KeyController {
       throw error!.takeRetainedValue() as Error
     }
     return privateKey
+  }
+  
+  public static func generateECDHSecureEnclavePrivateKey() throws -> SecKey {
+    
+    guard Self.hasSecureEnclave() else {
+      return try generateECDHPrivateKey()
+    }
+    
+    let access = SecAccessControlCreateWithFlags(
+      kCFAllocatorDefault,
+      kSecAttrAccessibleWhenUnlockedThisDeviceOnly,
+      .privateKeyUsage,
+      nil
+    )!
+    
+    let attributes: NSDictionary = [
+      kSecAttrKeyType: kSecAttrKeyTypeECSECPrimeRandom,
+      kSecAttrKeySizeInBits: 256,
+      kSecAttrTokenID: kSecAttrTokenIDSecureEnclave,
+      kSecPrivateKeyAttrs: [
+        kSecAttrIsPermanent: true,
+        kSecAttrApplicationTag: UUID().uuidString,
+        kSecAttrAccessControl: access
+      ]
+    ]
+    
+    var error: Unmanaged<CFError>?
+    guard let privateKey = SecKeyCreateRandomKey(attributes as CFDictionary, &error) else {
+      throw error!.takeRetainedValue() as Error
+    }
+    return privateKey
+  }
+  
+  static func hasSecureEnclave() -> Bool {
+    return SecureEnclave.isAvailable
   }
   
   public static func generateECDHPublicKey(from privateKey: SecKey) throws -> SecKey {

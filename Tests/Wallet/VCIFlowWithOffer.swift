@@ -19,7 +19,7 @@ import JOSESwift
 
 @testable import OpenID4VCI
 
-class WithOffer: XCTestCase {
+class VCIFlowWithOffer: XCTestCase {
   
   override func setUp() async throws {
     try await super.setUp()
