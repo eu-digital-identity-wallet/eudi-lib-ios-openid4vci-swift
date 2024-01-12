@@ -18,18 +18,18 @@ import SwiftyJSON
 import JOSESwift
 
 public struct CredentialIssuerMetadata: Codable, Equatable {
-  let credentialIssuerIdentifier: CredentialIssuerId
-  let authorizationServers: [URL]
-  let credentialEndpoint: CredentialIssuerEndpoint
-  let batchCredentialEndpoint: CredentialIssuerEndpoint?
-  let deferredCredentialEndpoint: CredentialIssuerEndpoint?
-  let credentialResponseEncryption: CredentialResponseEncryption
-  let requireCredentialResponseEncryption: Bool
-  let credentialsSupported: [CredentialIdentifier: SupportedCredential]
+  public let credentialIssuerIdentifier: CredentialIssuerId
+  public let authorizationServers: [URL]
+  public let credentialEndpoint: CredentialIssuerEndpoint
+  public let batchCredentialEndpoint: CredentialIssuerEndpoint?
+  public let deferredCredentialEndpoint: CredentialIssuerEndpoint?
+  public let credentialResponseEncryption: CredentialResponseEncryption
+  public let requireCredentialResponseEncryption: Bool
+  public let credentialsSupported: [CredentialIdentifier: SupportedCredential]
   
-  let display: [Display]
+  public let display: [Display]
   
-  enum CodingKeys: String, CodingKey {
+  public enum CodingKeys: String, CodingKey {
     case credentialIssuerIdentifier = "credential_issuer"
     case authorizationServers = "authorization_servers"
     case credentialEndpoint = "credential_endpoint"
