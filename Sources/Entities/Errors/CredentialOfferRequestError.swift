@@ -15,9 +15,11 @@
  */
 import Foundation
 
-public enum CredentialOfferRequestError: Error {
+public enum CredentialOfferRequestError: Error, LocalizedError {
   
   case genericError
+  
+  case emptyCredentialsError
   
   // The Credential Offer Endpoint URL could not be parsed.
   case nonParsableCredentialOfferEndpointUrl(reason: String)
@@ -33,4 +35,23 @@ public enum CredentialOfferRequestError: Error {
   
   // The metadata of the Authorization Server could not be resolved.
   case unableToResolveAuthorizationServerMetadata(reason: String)
+  
+  public var errorDescription: String? {
+    switch self {
+    case .genericError:
+      return "CredentialOfferRequestError:error: genericError"
+    case .emptyCredentialsError:
+      return "CredentialOfferRequestError:error: emptyCredentialsError"
+    case .nonParsableCredentialOfferEndpointUrl(let reason):
+      return "CredentialOfferRequestError:error: \(reason)"
+    case .unableToFetchCredentialOffer(let reason):
+      return "CredentialOfferRequestError:error: \(reason)"
+    case .nonParseableCredentialOffer(let reason):
+      return "CredentialOfferRequestError:error: \(reason)"
+    case .unableToResolveCredentialIssuerMetadata(let reason):
+      return "CredentialOfferRequestError:error: \(reason)"
+    case .unableToResolveAuthorizationServerMetadata(let reason):
+      return "CredentialOfferRequestError:error: \(reason)"
+    }
+  }
 }
