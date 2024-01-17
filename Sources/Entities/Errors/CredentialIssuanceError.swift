@@ -15,7 +15,7 @@
  */
 import Foundation
 
-public enum CredentialIssuanceError: Error {
+public enum CredentialIssuanceError: Error, LocalizedError {
   case pushedAuthorizationRequestFailed(error: String, errorDescription: String?)
   case accessTokenRequestFailed(error: String, errorDescription: String?)
   case issuerDoesNotSupportBatchIssuance
@@ -38,4 +38,50 @@ public enum CredentialIssuanceError: Error {
   case invalidEncryptionParameters
   case invalidProof(cNonce: String, cNonceExpiresIn: Int?, errorDescription: String?)
   case deferredCredentialIssuancePending(interval: Int?)
+  
+  public var errorDescription: String? {
+    switch self {
+    case .pushedAuthorizationRequestFailed(_, let errorDescription),
+        .accessTokenRequestFailed(_, let errorDescription),
+        .issuanceRequestFailed(_, let errorDescription),
+        .invalidProof(_, _, let errorDescription):
+      return errorDescription
+    case .issuerDoesNotSupportBatchIssuance:
+      return "Issuer does not support batch issuance"
+    case .responseUnparsable(let details):
+      return "Response is unparsable. Details: \(details)"
+    case .invalidIssuanceRequest(let details):
+      return "Invalid issuance request. Details: \(details)"
+    case .cryptographicSuiteNotSupported:
+      return "Cryptographic suite not supported."
+    case .cryptographicBindingMethodNotSupported:
+      return "Cryptographic binding method not supported."
+    case .proofTypeNotSupported:
+      return "Proof type not supported"
+    case .cryptographicAlgorithmNotSupported:
+      return "Cryptographic algorithm not supported."
+    case .issuerDoesNotSupportEncryptedResponses:
+      return "Issuer does not support encrypted responses."
+    case .responseEncryptionAlgorithmNotSupportedByIssuer:
+      return "Response encryption algorithm not supported by issuer."
+    case .responseEncryptionMethodNotSupportedByIssuer:
+      return "Response encryption method not supported by issuer."
+    case .invalidToken:
+      return "Invalid token."
+    case .invalidTransactionId:
+      return "Invalid transaction ID."
+    case .unsupportedCredentialType:
+      return "Unsupported credential type."
+    case .unsupportedCredentialFormat:
+      return "Unsupported credential format."
+    case .invalidEncryptionParameters:
+      return "Invalid encryption parameters."
+    case .deferredCredentialIssuancePending(let interval):
+      if let interval = interval {
+        return "Deferred credential issuance pending. Retry in \(interval) seconds."
+      } else {
+        return "Deferred credential issuance pending."
+      }
+    }
+  }
 }
