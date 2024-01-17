@@ -15,10 +15,25 @@
  */
 import Foundation
 
-public enum ValidationError: Error {
+public enum ValidationError: Error, LocalizedError {
   case error(reason: String)
   case todo(reason: String)
   case nonHttpsUrl(String)
   case invalidUrl(String)
   case response(GenericErrorResponse)
+  
+  public var errorDescription: String? {
+    switch self {
+    case .error(let reason):
+      return "ValidationError:error: \(reason)"
+    case .todo(let reason):
+      return "ValidationError:todo: \(reason)"
+    case .nonHttpsUrl(let url):
+      return "ValidationError:nonHttpsUrl: \(url)"
+    case .invalidUrl(let url):
+      return "ValidationError:invalidUrl: \(url)"
+    case .response(let response):
+      return "ValidationError:response: \(response.errorDescription ?? "")"
+    }
+  }
 }
