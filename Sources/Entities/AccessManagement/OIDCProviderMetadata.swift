@@ -16,36 +16,37 @@
 import Foundation
 
 public struct OIDCProviderMetadata: Codable, Equatable {
-  public let issuer, authorizationEndpoint, tokenEndpoint, introspectionEndpoint: String
-  public let userinfoEndpoint, endSessionEndpoint: String
-  public let frontchannelLogoutSessionSupported, frontchannelLogoutSupported: Bool
-  public let jwksURI: String
-  public let checkSessionIframe: String
-  public let grantTypesSupported, acrValuesSupported, responseTypesSupported, subjectTypesSupported: [String]
-  public let idTokenSigningAlgValuesSupported, idTokenEncryptionAlgValuesSupported, idTokenEncryptionEncValuesSupported, userinfoSigningAlgValuesSupported: [String]
-  public let userinfoEncryptionAlgValuesSupported, userinfoEncryptionEncValuesSupported, requestObjectSigningAlgValuesSupported, requestObjectEncryptionAlgValuesSupported: [String]
-  public let requestObjectEncryptionEncValuesSupported, responseModesSupported: [String]
-  public let registrationEndpoint: String
-  public let tokenEndpointAuthMethodsSupported, tokenEndpointAuthSigningAlgValuesSupported, introspectionEndpointAuthMethodsSupported, introspectionEndpointAuthSigningAlgValuesSupported: [String]
-  public let authorizationSigningAlgValuesSupported, authorizationEncryptionAlgValuesSupported, authorizationEncryptionEncValuesSupported, claimsSupported: [String]
-  public let claimTypesSupported: [String]
-  public let claimsParameterSupported: Bool
-  public let scopesSupported: [String]
-  public let requestParameterSupported, requestURIParameterSupported, requireRequestURIRegistration: Bool
-  public let codeChallengeMethodsSupported: [String]
-  public let tlsClientCertificateBoundAccessTokens: Bool
-  public let dpopSigningAlgValuesSupported: [String]
-  public let revocationEndpoint: String
-  public let revocationEndpointAuthMethodsSupported, revocationEndpointAuthSigningAlgValuesSupported: [String]
-  public let backchannelLogoutSupported, backchannelLogoutSessionSupported: Bool
-  public let deviceAuthorizationEndpoint: String
-  public let backchannelTokenDeliveryModesSupported: [String]
-  public let backchannelAuthenticationEndpoint: String
-  public let backchannelAuthenticationRequestSigningAlgValuesSupported: [String]
-  public let requirePushedAuthorizationRequests: Bool
-  public let pushedAuthorizationRequestEndpoint: String
-  public let mtlsEndpointAliases: MtlsEndpointAliases
-  public let authorizationResponseIssParameterSupported: Bool
+  public let issuer, authorizationEndpoint, tokenEndpoint, introspectionEndpoint: String?
+  public let userinfoEndpoint, endSessionEndpoint: String?
+  public let frontchannelLogoutSessionSupported, frontchannelLogoutSupported: Bool?
+  public let jwksURI: String?
+  public let checkSessionIframe: String?
+  public let acrValuesSupported: [String]?
+  public let grantTypesSupported, responseTypesSupported, subjectTypesSupported: [String]?
+  public let idTokenSigningAlgValuesSupported, idTokenEncryptionAlgValuesSupported, idTokenEncryptionEncValuesSupported, userinfoSigningAlgValuesSupported: [String]?
+  public let userinfoEncryptionAlgValuesSupported, userinfoEncryptionEncValuesSupported, requestObjectSigningAlgValuesSupported, requestObjectEncryptionAlgValuesSupported: [String]?
+  public let requestObjectEncryptionEncValuesSupported, responseModesSupported: [String]?
+  public let registrationEndpoint: String?
+  public let tokenEndpointAuthMethodsSupported, tokenEndpointAuthSigningAlgValuesSupported, introspectionEndpointAuthMethodsSupported, introspectionEndpointAuthSigningAlgValuesSupported: [String]?
+  public let authorizationSigningAlgValuesSupported, authorizationEncryptionAlgValuesSupported, authorizationEncryptionEncValuesSupported, claimsSupported: [String]?
+  public let claimTypesSupported: [String]?
+  public let claimsParameterSupported: Bool?
+  public let scopesSupported: [String]?
+  public let requestParameterSupported, requestURIParameterSupported, requireRequestURIRegistration: Bool?
+  public let codeChallengeMethodsSupported: [String]?
+  public let tlsClientCertificateBoundAccessTokens: Bool?
+  public let dpopSigningAlgValuesSupported: [String]?
+  public let revocationEndpoint: String?
+  public let revocationEndpointAuthMethodsSupported, revocationEndpointAuthSigningAlgValuesSupported: [String]?
+  public let backchannelLogoutSupported, backchannelLogoutSessionSupported: Bool?
+  public let deviceAuthorizationEndpoint: String?
+  public let backchannelTokenDeliveryModesSupported: [String]?
+  public let backchannelAuthenticationEndpoint: String?
+  public let backchannelAuthenticationRequestSigningAlgValuesSupported: [String]?
+  public let requirePushedAuthorizationRequests: Bool?
+  public let pushedAuthorizationRequestEndpoint: String?
+  public let mtlsEndpointAliases: MtlsEndpointAliases?
+  public let authorizationResponseIssParameterSupported: Bool?
   
   enum CodingKeys: String, CodingKey {
     case issuer
@@ -105,7 +106,7 @@ public struct OIDCProviderMetadata: Codable, Equatable {
     case authorizationResponseIssParameterSupported = "authorization_response_iss_parameter_supported"
   }
   
-  public init(issuer: String, authorizationEndpoint: String, tokenEndpoint: String, introspectionEndpoint: String, userinfoEndpoint: String, endSessionEndpoint: String, frontchannelLogoutSessionSupported: Bool, frontchannelLogoutSupported: Bool, jwksURI: String, checkSessionIframe: String, grantTypesSupported: [String], acrValuesSupported: [String], responseTypesSupported: [String], subjectTypesSupported: [String], idTokenSigningAlgValuesSupported: [String], idTokenEncryptionAlgValuesSupported: [String], idTokenEncryptionEncValuesSupported: [String], userinfoSigningAlgValuesSupported: [String], userinfoEncryptionAlgValuesSupported: [String], userinfoEncryptionEncValuesSupported: [String], requestObjectSigningAlgValuesSupported: [String], requestObjectEncryptionAlgValuesSupported: [String], requestObjectEncryptionEncValuesSupported: [String], responseModesSupported: [String], registrationEndpoint: String, tokenEndpointAuthMethodsSupported: [String], tokenEndpointAuthSigningAlgValuesSupported: [String], introspectionEndpointAuthMethodsSupported: [String], introspectionEndpointAuthSigningAlgValuesSupported: [String], authorizationSigningAlgValuesSupported: [String], authorizationEncryptionAlgValuesSupported: [String], authorizationEncryptionEncValuesSupported: [String], claimsSupported: [String], claimTypesSupported: [String], claimsParameterSupported: Bool, scopesSupported: [String], requestParameterSupported: Bool, requestURIParameterSupported: Bool, requireRequestURIRegistration: Bool, codeChallengeMethodsSupported: [String], tlsClientCertificateBoundAccessTokens: Bool, dpopSigningAlgValuesSupported: [String], revocationEndpoint: String, revocationEndpointAuthMethodsSupported: [String], revocationEndpointAuthSigningAlgValuesSupported: [String], backchannelLogoutSupported: Bool, backchannelLogoutSessionSupported: Bool, deviceAuthorizationEndpoint: String, backchannelTokenDeliveryModesSupported: [String], backchannelAuthenticationEndpoint: String, backchannelAuthenticationRequestSigningAlgValuesSupported: [String], requirePushedAuthorizationRequests: Bool, pushedAuthorizationRequestEndpoint: String, mtlsEndpointAliases: MtlsEndpointAliases, authorizationResponseIssParameterSupported: Bool) {
+  public init(issuer: String?, authorizationEndpoint: String?, tokenEndpoint: String?, introspectionEndpoint: String?, userinfoEndpoint: String?, endSessionEndpoint: String?, frontchannelLogoutSessionSupported: Bool?, frontchannelLogoutSupported: Bool?, jwksURI: String?, checkSessionIframe: String?, grantTypesSupported: [String]?, acrValuesSupported: [String]?, responseTypesSupported: [String]?, subjectTypesSupported: [String]?, idTokenSigningAlgValuesSupported: [String]?, idTokenEncryptionAlgValuesSupported: [String]?, idTokenEncryptionEncValuesSupported: [String]?, userinfoSigningAlgValuesSupported: [String]?, userinfoEncryptionAlgValuesSupported: [String]?, userinfoEncryptionEncValuesSupported: [String]?, requestObjectSigningAlgValuesSupported: [String]?, requestObjectEncryptionAlgValuesSupported: [String]?, requestObjectEncryptionEncValuesSupported: [String]?, responseModesSupported: [String]?, registrationEndpoint: String?, tokenEndpointAuthMethodsSupported: [String]?, tokenEndpointAuthSigningAlgValuesSupported: [String]?, introspectionEndpointAuthMethodsSupported: [String]?, introspectionEndpointAuthSigningAlgValuesSupported: [String]?, authorizationSigningAlgValuesSupported: [String]?, authorizationEncryptionAlgValuesSupported: [String]?, authorizationEncryptionEncValuesSupported: [String]?, claimsSupported: [String]?, claimTypesSupported: [String]?, claimsParameterSupported: Bool?, scopesSupported: [String]?, requestParameterSupported: Bool?, requestURIParameterSupported: Bool?, requireRequestURIRegistration: Bool?, codeChallengeMethodsSupported: [String]?, tlsClientCertificateBoundAccessTokens: Bool?, dpopSigningAlgValuesSupported: [String]?, revocationEndpoint: String?, revocationEndpointAuthMethodsSupported: [String]?, revocationEndpointAuthSigningAlgValuesSupported: [String]?, backchannelLogoutSupported: Bool?, backchannelLogoutSessionSupported: Bool?, deviceAuthorizationEndpoint: String?, backchannelTokenDeliveryModesSupported: [String]?, backchannelAuthenticationEndpoint: String?, backchannelAuthenticationRequestSigningAlgValuesSupported: [String]?, requirePushedAuthorizationRequests: Bool?, pushedAuthorizationRequestEndpoint: String?, mtlsEndpointAliases: MtlsEndpointAliases?, authorizationResponseIssParameterSupported: Bool?) {
     self.issuer = issuer
     self.authorizationEndpoint = authorizationEndpoint
     self.tokenEndpoint = tokenEndpoint
@@ -169,6 +170,7 @@ public struct OIDCProviderMetadata: Codable, Equatable {
 }
 
 // MARK: - MtlsEndpointAliases
+
 public struct MtlsEndpointAliases: Codable {
   public let tokenEndpoint, revocationEndpoint, introspectionEndpoint, deviceAuthorizationEndpoint: String
   public let registrationEndpoint, userinfoEndpoint, pushedAuthorizationRequestEndpoint, backchannelAuthenticationEndpoint: String
