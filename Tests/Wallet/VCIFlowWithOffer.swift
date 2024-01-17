@@ -64,7 +64,7 @@ class VCIFlowWithOffer: XCTestCase {
     } catch {
       
       XCTExpectFailure()
-      XCTAssert(false)
+      XCTAssert(false, error.localizedDescription)
     }
     
     XCTAssert(true)
@@ -105,7 +105,7 @@ class VCIFlowWithOffer: XCTestCase {
     } catch {
       
       XCTExpectFailure()
-      XCTAssert(false)
+      XCTAssert(false, error.localizedDescription)
     }
     
     XCTAssert(true)
@@ -160,7 +160,7 @@ private func walletInitiatedIssuanceWithOfferSdJWT(wallet: Wallet) async throws 
   let url = "\(CredentialIssuer_URL)/credentialoffer?credential_offer=\(SdJwtVC_CredentialOffer)"
   let credential = try await wallet.issueByCredentialOfferUrl(
     url: url,
-    scope: "eu.europa.ec.eudiw.pid_vc_sd_jwt"
+    scope: PID_SdJwtVC_SCOPE
   )
 
   print("--> [ISSUANCE] Issued credential: \(credential)")
@@ -173,7 +173,7 @@ private func walletInitiatedIssuanceWithOfferMdoc(wallet: Wallet) async throws {
   let url = "\(CredentialIssuer_URL)/credentialoffer?credential_offer=\(MsoMdoc_CredentialOffer)"
   let credential = try await wallet.issueByCredentialOfferUrl(
     url: url,
-    scope: "eu.europa.ec.eudiw.pid_mso_mdoc"
+    scope: PID_MsoMdoc_SCOPE
   )
   
   print("--> [ISSUANCE] Issued credential : \(credential)")
