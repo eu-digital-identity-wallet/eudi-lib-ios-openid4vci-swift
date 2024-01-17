@@ -75,11 +75,6 @@ public enum RequestedCredentialResponseEncryption {
     responseEncryptionAlg: JWEAlgorithm?,
     responseEncryptionMethod: JOSEEncryptionMethod?
   ) throws {
-    try Self.validate(
-      encryptionJwk: encryptionJwk,
-      responseEncryptionAlg: responseEncryptionAlg,
-      responseEncryptionMethod: responseEncryptionMethod
-    )
     
     guard
       let encryptionJwk,
@@ -90,6 +85,12 @@ public enum RequestedCredentialResponseEncryption {
       self = .notRequested
       return
     }
+    
+    try Self.validate(
+      encryptionJwk: encryptionJwk,
+      responseEncryptionAlg: responseEncryptionAlg,
+      responseEncryptionMethod: responseEncryptionMethod
+    )
     
     self = .requested(
       encryptionJwk: encryptionJwk,
