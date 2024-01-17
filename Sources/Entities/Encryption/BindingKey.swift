@@ -71,11 +71,10 @@ public extension BindingKey {
           "jwk": jwk.toDictionary()
         ])
         
-        let nonceKey = "nonce"
         let dictionary: [String: Any] = [
           JWTClaimNames.issuedAt: Int(Date().timeIntervalSince1970.rounded()),
           JWTClaimNames.audience: aud,
-          nonceKey: cNonce ?? ""
+          JWTClaimNames.nonce: cNonce ?? ""
         ]
         
         let payload = Payload(try dictionary.toThrowingJSONData())
@@ -124,11 +123,10 @@ public extension BindingKey {
           "jwk": jwk.toDictionary()
         ])
         
-        let nonceKey = "nonce"
         let dictionary: [String: Any] = [
           JWTClaimNames.issuedAt: Int(Date().timeIntervalSince1970.rounded()),
           JWTClaimNames.audience: aud,
-          nonceKey: cNonce ?? ""
+          JWTClaimNames.nonce: cNonce ?? ""
         ]
         
         let payload = Payload(try dictionary.toThrowingJSONData())
