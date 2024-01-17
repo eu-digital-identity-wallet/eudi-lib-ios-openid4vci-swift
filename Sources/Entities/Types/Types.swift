@@ -95,7 +95,12 @@ public enum Proof: Codable {
 public struct Scope: Codable {
   public let value: String
   
-  public init(_ value: String) throws {
+  public init(_ value: String?) throws {
+    
+    guard let value = value else {
+      throw ValidationError.error(reason: "Scope cannot be nil")
+    }
+    
     guard !value.isEmpty else {
       throw ValidationError.error(reason: "Scope cannot be empty")
     }
