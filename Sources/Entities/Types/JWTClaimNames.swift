@@ -40,3 +40,7 @@ public struct JWTClaimNames {
 
   private init() {}
 }
+
+public extension JWTClaimNames {
+  static let nonce = "nonce"
+}
