@@ -70,7 +70,10 @@ public struct CredentialIssuerMetadata: Codable, Equatable {
     
     // Decode each property as necessary, handling optionals and conversions.
     credentialIssuerIdentifier = try container.decode(CredentialIssuerId.self, forKey: .credentialIssuerIdentifier)
-    authorizationServers = try container.decode([URL].self, forKey: .authorizationServers)
+    
+    let servers = try? container.decode([URL].self, forKey: .authorizationServers)
+    authorizationServers = servers ?? [credentialIssuerIdentifier.url]
+    
     credentialEndpoint = try container.decode(CredentialIssuerEndpoint.self, forKey: .credentialEndpoint)
     batchCredentialEndpoint = try container.decodeIfPresent(CredentialIssuerEndpoint.self, forKey: .batchCredentialEndpoint)
     deferredCredentialEndpoint = try container.decodeIfPresent(CredentialIssuerEndpoint.self, forKey: .deferredCredentialEndpoint)
