@@ -120,7 +120,9 @@ public struct CNonce: Codable {
   
   public init?(value: String?, expiresInSeconds: Int? = 5) {
     guard let value else { return nil }
-    precondition(!value.isEmpty, "Value cannot be empty")
+    if value.isEmpty {
+      return nil
+    }
     
     self.value = value
     self.expiresInSeconds = expiresInSeconds
