@@ -52,7 +52,7 @@ public extension BindingKey {
         let proofs = spec.proofTypesSupported?.contains { $0 == .jwt } ?? false
         
         guard suites else {
-          throw CredentialIssuanceError.cryptographicSuiteNotSupported
+          throw CredentialIssuanceError.cryptographicSuiteNotSupported(algorithm.name)
         }
         
         guard bindings else {
@@ -104,7 +104,7 @@ public extension BindingKey {
         let proofs = spec.proofTypesSupported?.contains { $0 == .jwt } ?? false
         
         guard suites else {
-          throw CredentialIssuanceError.cryptographicSuiteNotSupported
+          throw CredentialIssuanceError.cryptographicSuiteNotSupported(algorithm.name)
         }
         
         guard bindings else {
