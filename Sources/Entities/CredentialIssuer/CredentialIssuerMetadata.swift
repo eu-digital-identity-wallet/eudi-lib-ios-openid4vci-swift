@@ -85,7 +85,11 @@ public struct CredentialIssuerMetadata: Codable, Equatable {
         encryptionMethodsSupported: credentialResponseEncryptionMethodsSupported
       )
     } else {
-      credentialResponseEncryption = .notRequired
+      // credentialResponseEncryption = .notRequired
+      credentialResponseEncryption = .required(
+        algorithmsSupported: [.init(.RSA_OAEP_256)],
+        encryptionMethodsSupported: [.init(.A128CBC_HS256)]
+      )
     }
     
     requireCredentialResponseEncryption = try container.decodeIfPresent(Bool.self, forKey: .requireCredentialResponseEncryption) ?? false
