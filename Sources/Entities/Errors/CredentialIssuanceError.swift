@@ -21,7 +21,7 @@ public enum CredentialIssuanceError: Error, LocalizedError {
   case issuerDoesNotSupportBatchIssuance
   case responseUnparsable(String)
   case invalidIssuanceRequest(String)
-  case cryptographicSuiteNotSupported
+  case cryptographicSuiteNotSupported(String)
   case cryptographicBindingMethodNotSupported
   case proofTypeNotSupported
   case cryptographicAlgorithmNotSupported
@@ -52,8 +52,8 @@ public enum CredentialIssuanceError: Error, LocalizedError {
       return "Response is unparsable. Details: \(details)"
     case .invalidIssuanceRequest(let details):
       return "Invalid issuance request. Details: \(details)"
-    case .cryptographicSuiteNotSupported:
-      return "Cryptographic suite not supported."
+    case .cryptographicSuiteNotSupported(let name):
+      return "Cryptographic suite not supported: \(name)"
     case .cryptographicBindingMethodNotSupported:
       return "Cryptographic binding method not supported."
     case .proofTypeNotSupported:
