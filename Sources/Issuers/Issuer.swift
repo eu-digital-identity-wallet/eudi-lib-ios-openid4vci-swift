@@ -19,12 +19,12 @@ import JOSESwift
 public protocol IssuerType {
   
   func pushAuthorizationCodeRequest(
-    credentials: [CredentialMetadata],
+    credentials: [CredentialIdentifier],
     issuerState: String?
   ) async -> Result<UnauthorizedRequest, Error>
   
   func authorizeWithPreAuthorizationCode(
-    credentials: [CredentialMetadata],
+    credentials: [CredentialIdentifier],
     authorizationCode: IssuanceAuthorization
   ) async -> Result<AuthorizedRequest, Error>
   
@@ -87,23 +87,17 @@ public actor Issuer: IssuerType {
   }
   
   public func pushAuthorizationCodeRequest(
-    credentials: [CredentialMetadata],
+    credentials: [CredentialIdentifier],
     issuerState: String? = nil
   ) async -> Result<UnauthorizedRequest, Error> {
     let scopes: [Scope] = credentials
-      .filter {
-        if case .scope = $0 {
-          return true
-        }
-        return false
+      .map {
+        issuerMetadata.credentialsSupported[$0]
       }
-      .compactMap { metaData in
-        switch metaData {
-        case .scope(let scope):
-          return scope
-        default: return nil
-        }
+      .compactMap {
+        return try? Scope($0?.getScope())
       }
+    
     let state = UUID().uuidString
     do {
       let result: (
@@ -131,7 +125,7 @@ public actor Issuer: IssuerType {
   }
   
   public func authorizeWithPreAuthorizationCode(
-    credentials: [CredentialMetadata],
+    credentials: [CredentialIdentifier],
     authorizationCode: IssuanceAuthorization
   ) async -> Result<AuthorizedRequest, Error> {
     switch authorizationCode {
@@ -200,6 +194,30 @@ public actor Issuer: IssuerType {
         }
       default: return .failure(ValidationError.error(reason: ".authorizationCode case is required"))
       }
+    }
+  }
+  
+  public func handleAuthorizationCode(
+    parRequested: UnauthorizedRequest,
+    code: inout String
+  ) -> Result<UnauthorizedRequest, Error> {
+    switch parRequested {
+    case .par(let request):
+      do {
+        return .success(
+          .authorizationCode(
+            try .init(
+              credentials: request.credentials,
+              authorizationCode: try IssuanceAuthorization(authorizationCode: code),
+              pkceVerifier: request.pkceVerifier
+            )
+          )
+        )
+      } catch {
+        return .failure(ValidationError.error(reason: error.localizedDescription))
+      }
+    case .authorizationCode(_):
+      return .failure(ValidationError.error(reason: ".par is required"))
     }
   }
   
