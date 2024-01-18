@@ -410,62 +410,69 @@ public extension Issuer {
     case .notRequired:
       return nil
     case let .required(algorithmsSupported, encryptionMethodsSupported):
-      let firstAsymmetricAlgorithm = algorithmsSupported.first {
-        JWEAlgorithm.Family.parse(.ASYMMETRIC).contains($0)
-      }
-      
-      guard
-        let algorithm = firstAsymmetricAlgorithm
-      else {
-        return nil
-      }
-      
-      let privateKey: SecKey?
-      var jwk: JWK? = nil
-      if JWEAlgorithm.Family.parse(.RSA).contains(algorithm) {
-        privateKey = try? KeyController.generateRSAPrivateKey()
-        if let privateKey,
-           let publicKey = try? KeyController.generateRSAPublicKey(from: privateKey) {
-          jwk = try? RSAPublicKey(
-            publicKey: publicKey,
-            additionalParameters: [
-              "use": "enc",
-              "kid": UUID().uuidString,
-              "alg": algorithm.name
-            ]
-          )
-        }
-      } else if JWEAlgorithm.Family.parse(.ECDH_ES).contains(algorithm) {
-        privateKey = try? KeyController.generateECDHPrivateKey()
-        if let privateKey,
-           let publicKey = try? KeyController.generateECDHPublicKey(from: privateKey) {
-          jwk = try? ECPublicKey(
-            publicKey: publicKey,
-            additionalParameters: [
-              "use": "enc",
-              "kid": UUID().uuidString,
-              "alg": algorithm.name
-            ]
-          )
-        }
-      } else {
-        privateKey = nil
-      }
-      
-      guard
-        let key = privateKey,
-        let encryptionMethodsSupported = encryptionMethodsSupported.first
-      else {
-        return nil
-      }
-      
-      return IssuanceResponseEncryptionSpec(
-        jwk: jwk,
-        privateKey: key,
-        algorithm: algorithm,
-        encryptionMethod: encryptionMethodsSupported
-      )
+      return Self.createResponseEncryptionSpecFrom(algorithmsSupported: algorithmsSupported, encryptionMethodsSupported: encryptionMethodsSupported)
     }
+  }
+  
+  static func createResponseEncryptionSpecFrom(
+    algorithmsSupported: [JWEAlgorithm],
+    encryptionMethodsSupported: [JOSEEncryptionMethod]
+  ) -> IssuanceResponseEncryptionSpec? {
+    let firstAsymmetricAlgorithm = algorithmsSupported.first {
+      JWEAlgorithm.Family.parse(.ASYMMETRIC).contains($0)
+    }
+    
+    guard
+      let algorithm = firstAsymmetricAlgorithm
+    else {
+      return nil
+    }
+    
+    let privateKey: SecKey?
+    var jwk: JWK? = nil
+    if JWEAlgorithm.Family.parse(.RSA).contains(algorithm) {
+      privateKey = try? KeyController.generateRSAPrivateKey()
+      if let privateKey,
+         let publicKey = try? KeyController.generateRSAPublicKey(from: privateKey) {
+        jwk = try? RSAPublicKey(
+          publicKey: publicKey,
+          additionalParameters: [
+            "use": "enc",
+            "kid": UUID().uuidString,
+            "alg": algorithm.name
+          ]
+        )
+      }
+    } else if JWEAlgorithm.Family.parse(.ECDH_ES).contains(algorithm) {
+      privateKey = try? KeyController.generateECDHPrivateKey()
+      if let privateKey,
+         let publicKey = try? KeyController.generateECDHPublicKey(from: privateKey) {
+        jwk = try? ECPublicKey(
+          publicKey: publicKey,
+          additionalParameters: [
+            "use": "enc",
+            "kid": UUID().uuidString,
+            "alg": algorithm.name
+          ]
+        )
+      }
+    } else {
+      privateKey = nil
+    }
+    
+    guard
+      let key = privateKey,
+      let encryptionMethodsSupported = encryptionMethodsSupported.first
+    else {
+      return nil
+    }
+    
+    return IssuanceResponseEncryptionSpec(
+      jwk: jwk,
+      privateKey: key,
+      algorithm: algorithm,
+      encryptionMethod: encryptionMethodsSupported
+    )
   }
   
   func requestDeferredIssuance(
