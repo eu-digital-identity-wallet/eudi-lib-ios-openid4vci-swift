@@ -22,6 +22,11 @@ struct Wallet {
   let bindingKey: BindingKey
 }
 
+enum WalletMode {
+  case doesNorRequireIntervention
+  case requiresIntervention
+}
+
 extension Wallet {
   func issueByCredentialIdentifier(_ identifier: String) async throws -> String {
     let credentialIdentifier = try CredentialIdentifier(value: identifier)
@@ -239,25 +244,34 @@ extension Wallet {
        case let .par(parRequested) = request {
       print("--> [AUTHORIZATION] Placed PAR. Get authorization code URL is: \(parRequested.getAuthorizationCodeURL)")
       
-//      let authorizationCode = try await loginUserAndGetAuthCode(
-//        getAuthorizationCodeUrl: parRequested.getAuthorizationCodeURL.url,
-//        actingUser: actingUser
-//      ) ?? { throw  ValidationError.error(reason: "Could not retrieve authorization code") }()
-      var authorizationCode = ""
-      print("--> [AUTHORIZATION] Authorization code retrieved: \(authorizationCode)")
+      var unAuthorized: Result<UnauthorizedRequest, Error>
+      var authorizationCode: String
       
-      var issuanceAuthorization: IssuanceAuthorization = .authorizationCode(authorizationCode: authorizationCode)
+      // Depending on the mode selected, changes might be
+      // required on the tests constants file (endpoints, scopes)
+      let walletMode: WalletMode = .requiresIntervention
+      
+      switch walletMode {
+      case .doesNorRequireIntervention:
+        authorizationCode = try await loginUserAndGetAuthCode(
+          getAuthorizationCodeUrl: parRequested.getAuthorizationCodeURL.url,
+          actingUser: actingUser
+        ) ?? { throw  ValidationError.error(reason: "Could not retrieve authorization code") }()
+        let issuanceAuthorization: IssuanceAuthorization = .authorizationCode(authorizationCode: authorizationCode)
+        unAuthorized = await issuer.handleAuthorizationCode(
+          parRequested: request,
+          authorizationCode: issuanceAuthorization
+        )
+        
+      case .requiresIntervention:
+        authorizationCode = ""
+        unAuthorized = await issuer.handleAuthorizationCode(
+          parRequested: request,
+          code: &authorizationCode
+        )
+      }
 
-      let unAuthorized = await issuer.handleAuthorizationCode(
-        parRequested: request,
-        code: &authorizationCode
-      )
-      
-//      let unAuthorized = await issuer.handleAuthorizationCode(
-//        parRequested: request,
-//        authorizationCode: issuanceAuthorization
-//      )
-      
+      print("--> [AUTHORIZATION] Authorization code retrieved: \(authorizationCode)")
       
       switch unAuthorized {
       case .success(let request):
