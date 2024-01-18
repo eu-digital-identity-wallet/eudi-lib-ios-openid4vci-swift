@@ -249,7 +249,7 @@ extension Wallet {
       
       // Depending on the mode selected, changes might be
       // required on the tests constants file (endpoints, scopes)
-      let walletMode: WalletMode = .requiresIntervention
+      let walletMode: WalletMode = .doesNorRequireIntervention
       
       switch walletMode {
       case .doesNorRequireIntervention:

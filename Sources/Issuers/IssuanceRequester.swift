@@ -92,7 +92,6 @@ public actor IssuanceRequester: IssuanceRequesterType {
             
             switch credential.requestedCredentialResponseEncryption {
             case .notRequested:
-              // TODO: Decode SingleIssuanceSuccessResponse
               throw ValidationError.error(reason: "Issuer expects response encryption")
             case .requested(
               _,
