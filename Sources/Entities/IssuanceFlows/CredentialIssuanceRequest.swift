@@ -63,7 +63,10 @@ public extension SingleCredential {
     case .msoMdoc(let credential):
       switch credential.requestedCredentialResponseEncryption {
       case .notRequested:
-        return [:]
+        return [
+          "format": MsoMdocFormat.FORMAT,
+          "doctype": credential.docType,
+        ]
       case .requested(
         let encryptionJwk,
         _,
