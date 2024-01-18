@@ -206,7 +206,7 @@ public extension SdJwtVcFormat {
       let display: [Display] = self.display ?? []
       let proofTypesSupported: [ProofType] = try self.proofTypesSupported?.compactMap {
         try ProofType(type: $0)
-      } ?? { throw ValidationError.error(reason: "No proof types found")}()
+      } ?? [.jwt]
       let cryptographicSuitesSupported: [String] = self.cryptographicSuitesSupported ?? []
       let credentialDefinition = self.credentialDefinition.toDomain()
       
@@ -259,7 +259,10 @@ public extension SdJwtVcFormat {
       scope = try container.decodeIfPresent(String.self, forKey: .scope)
       cryptographicBindingMethodsSupported = try container.decode([CryptographicBindingMethod].self, forKey: .cryptographicBindingMethodsSupported)
       cryptographicSuitesSupported = try container.decode([String].self, forKey: .cryptographicSuitesSupported)
-      proofTypesSupported = try? container.decode([ProofType].self, forKey: .proofTypesSupported)
+      
+      let proofTypes = try? container.decode([ProofType].self, forKey: .proofTypesSupported)
+      proofTypesSupported = proofTypes ?? [.jwt]
+      
       display = try container.decode([Display].self, forKey: .display)
       credentialDefinition = try container.decode(CredentialDefinition.self, forKey: .credentialDefinition)
     }
@@ -282,9 +285,12 @@ public extension SdJwtVcFormat {
       self.cryptographicSuitesSupported = json["cryptographic_suites_supported"].arrayValue.map {
         $0.stringValue
       }
-      self.proofTypesSupported = try json["proof_types_supported"].arrayValue.map {
-        try ProofType(type: $0.stringValue)
-      }
+      
+      let proofTypes = try json["proof_types_supported"].arrayValue.map {
+               try ProofType(type: $0.stringValue)
+             }
+      self.proofTypesSupported = proofTypes.isEmpty ? [.jwt] : proofTypes
+      
       self.display = json["display"].arrayValue.map { json in
         Display(json: json)
       }
