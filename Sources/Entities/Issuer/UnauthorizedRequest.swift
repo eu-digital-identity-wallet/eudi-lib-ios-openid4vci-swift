@@ -17,13 +17,13 @@ import Foundation
 
 /// State denoting that the pushed authorization request has been placed successfully and response processed
 public struct ParRequested {
-  public let credentials: [CredentialMetadata]
+  public let credentials: [CredentialIdentifier]
   public let getAuthorizationCodeURL: GetAuthorizationCodeURL
   public let pkceVerifier: PKCEVerifier
   public let state: String
   
   public init(
-    credentials: [CredentialMetadata],
+    credentials: [CredentialIdentifier],
     getAuthorizationCodeURL: GetAuthorizationCodeURL,
     pkceVerifier: PKCEVerifier,
     state: String
@@ -38,12 +38,12 @@ public struct ParRequested {
 /// State denoting that caller has followed the GetAuthorizationCodeURL URL and response received
 /// from the authorization server and processed successfully.
 public struct AuthorizationCodeRetrieved {
-  public let credentials: [CredentialMetadata]
+  public let credentials: [CredentialIdentifier]
   public let authorizationCode: IssuanceAuthorization
   public let pkceVerifier: PKCEVerifier
   
   public init(
-    credentials: [CredentialMetadata],
+    credentials: [CredentialIdentifier],
     authorizationCode: IssuanceAuthorization,
     pkceVerifier: PKCEVerifier
   ) throws {
