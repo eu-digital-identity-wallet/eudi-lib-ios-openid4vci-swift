@@ -22,11 +22,6 @@ struct Wallet {
   let bindingKey: BindingKey
 }
 
-enum WalletMode {
-  case doesNorRequireIntervention
-  case requiresIntervention
-}
-
 extension Wallet {
   func issueByCredentialIdentifier(_ identifier: String) async throws -> String {
     let credentialIdentifier = try CredentialIdentifier(value: identifier)
@@ -249,10 +244,9 @@ extension Wallet {
       
       // Depending on the mode selected, changes might be
       // required on the tests constants file (endpoints, scopes)
-      let walletMode: WalletMode = .doesNorRequireIntervention
+      let legacyIssuer = true
       
-      switch walletMode {
-      case .doesNorRequireIntervention:
+      if legacyIssuer {
         authorizationCode = try await loginUserAndGetAuthCode(
           getAuthorizationCodeUrl: parRequested.getAuthorizationCodeURL.url,
           actingUser: actingUser
@@ -262,8 +256,8 @@ extension Wallet {
           parRequested: request,
           authorizationCode: issuanceAuthorization
         )
+      } else {
         
-      case .requiresIntervention:
         authorizationCode = ""
         unAuthorized = await issuer.handleAuthorizationCode(
           parRequested: request,
