@@ -23,11 +23,12 @@ struct Wallet {
 }
 
 extension Wallet {
-  func issueByScope(_ scope: String) async throws -> String {
-    let credentialIdentifier = try CredentialIdentifier(value: scope)
+  func issueByCredentialIdentifier(_ identifier: String) async throws -> String {
+    let credentialIdentifier = try CredentialIdentifier(value: identifier)
     let credentialIssuerIdentifier = try CredentialIssuerId(CredentialIssuer_URL)
     
-    let issuerMetadata = await CredentialIssuerMetadataResolver().resolve(
+    let resolver = CredentialIssuerMetadataResolver()
+    let issuerMetadata = await resolver.resolve(
       source: .credentialIssuer(
         credentialIssuerIdentifier
       )
@@ -43,8 +44,8 @@ extension Wallet {
           credentialIssuerIdentifier: credentialIssuerIdentifier,
           credentialIssuerMetadata: metaData,
           credentials: [
-            .scope(.init(scope)),
-            .scope(.init(Constants.OPENID_SCOPE))
+            .init(value: identifier),
+            .init(value: Constants.OPENID_SCOPE)
           ],
           authorizationServerMetadata: try authServerMetadata.get()
         )
@@ -56,8 +57,8 @@ extension Wallet {
       } else {
         throw ValidationError.error(reason: "Invalid authorization server")
       }
-    case .failure:
-      throw ValidationError.error(reason: "Invalid issuer metadata")
+    case .failure(let error):
+      throw ValidationError.error(reason: "Invalid issuer metadata: \(error.localizedDescription)")
     }
   }
   
@@ -214,10 +215,18 @@ extension Wallet {
     
     var pushedAuthorizationRequestEndpoint = ""
     if case let .oidc(metaData) = offer.authorizationServerMetadata {
-      pushedAuthorizationRequestEndpoint = metaData.pushedAuthorizationRequestEndpoint
+      if let endpoint = metaData.pushedAuthorizationRequestEndpoint {
+        pushedAuthorizationRequestEndpoint = endpoint
+      } else {
+        throw ValidationError.error(reason: "pushedAuthorizationRequestEndpoint is nil")
+      }
       
     } else if case let .oauth(metaData) = offer.authorizationServerMetadata {
-      pushedAuthorizationRequestEndpoint = metaData.pushedAuthorizationRequestEndpoint
+      if let endpoint = metaData.pushedAuthorizationRequestEndpoint {
+        pushedAuthorizationRequestEndpoint = endpoint
+      } else {
+        throw ValidationError.error(reason: "pushedAuthorizationRequestEndpoint is nil")
+      }
     }
     
     print("--> [AUTHORIZATION] Placing PAR to AS server's endpoint \(pushedAuthorizationRequestEndpoint)")
@@ -230,17 +239,33 @@ extension Wallet {
        case let .par(parRequested) = request {
       print("--> [AUTHORIZATION] Placed PAR. Get authorization code URL is: \(parRequested.getAuthorizationCodeURL)")
       
-      let authorizationCode = try await loginUserAndGetAuthCode(
-        getAuthorizationCodeUrl: parRequested.getAuthorizationCodeURL.url,
-        actingUser: actingUser
-      ) ?? { throw  ValidationError.error(reason: "Could not retrieve authorization code") }()
+      var unAuthorized: Result<UnauthorizedRequest, Error>
+      var authorizationCode: String
       
+      // Depending on the mode selected, changes might be
+      // required on the tests constants file (endpoints, scopes)
+      let legacyIssuer = true
+      
+      if legacyIssuer {
+        authorizationCode = try await loginUserAndGetAuthCode(
+          getAuthorizationCodeUrl: parRequested.getAuthorizationCodeURL.url,
+          actingUser: actingUser
+        ) ?? { throw  ValidationError.error(reason: "Could not retrieve authorization code") }()
+        let issuanceAuthorization: IssuanceAuthorization = .authorizationCode(authorizationCode: authorizationCode)
+        unAuthorized = await issuer.handleAuthorizationCode(
+          parRequested: request,
+          authorizationCode: issuanceAuthorization
+        )
+      } else {
+        
+        authorizationCode = ""
+        unAuthorized = await issuer.handleAuthorizationCode(
+          parRequested: request,
+          code: &authorizationCode
+        )
+      }
+
       print("--> [AUTHORIZATION] Authorization code retrieved: \(authorizationCode)")
-      
-      let unAuthorized = await issuer.handleAuthorizationCode(
-        parRequested: request,
-        authorizationCode: .authorizationCode(authorizationCode: authorizationCode)
-      )
       
       switch unAuthorized {
       case .success(let request):

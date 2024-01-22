@@ -52,7 +52,7 @@ public extension BindingKey {
         let proofs = spec.proofTypesSupported?.contains { $0 == .jwt } ?? false
         
         guard suites else {
-          throw CredentialIssuanceError.cryptographicSuiteNotSupported
+          throw CredentialIssuanceError.cryptographicSuiteNotSupported(algorithm.name)
         }
         
         guard bindings else {
@@ -71,11 +71,10 @@ public extension BindingKey {
           "jwk": jwk.toDictionary()
         ])
         
-        let nonceKey = "nonce"
         let dictionary: [String: Any] = [
           JWTClaimNames.issuedAt: Int(Date().timeIntervalSince1970.rounded()),
           JWTClaimNames.audience: aud,
-          nonceKey: cNonce ?? ""
+          JWTClaimNames.nonce: cNonce ?? ""
         ]
         
         let payload = Payload(try dictionary.toThrowingJSONData())
@@ -105,7 +104,7 @@ public extension BindingKey {
         let proofs = spec.proofTypesSupported?.contains { $0 == .jwt } ?? false
         
         guard suites else {
-          throw CredentialIssuanceError.cryptographicSuiteNotSupported
+          throw CredentialIssuanceError.cryptographicSuiteNotSupported(algorithm.name)
         }
         
         guard bindings else {
@@ -124,11 +123,10 @@ public extension BindingKey {
           "jwk": jwk.toDictionary()
         ])
         
-        let nonceKey = "nonce"
         let dictionary: [String: Any] = [
           JWTClaimNames.issuedAt: Int(Date().timeIntervalSince1970.rounded()),
           JWTClaimNames.audience: aud,
-          nonceKey: cNonce ?? ""
+          JWTClaimNames.nonce: cNonce ?? ""
         ]
         
         let payload = Payload(try dictionary.toThrowingJSONData())

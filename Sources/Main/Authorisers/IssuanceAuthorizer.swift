@@ -69,38 +69,38 @@ public actor IssuanceAuthorizer: IssuanceAuthorizerType {
     switch authorizationServerMetadata {
     case .oidc(let data):
       
-      if let url = URL(string: data.tokenEndpoint) {
+      if let tokenEndpoint = data.tokenEndpoint, let url = URL(string: tokenEndpoint) {
         self.tokenEndpoint = url
       } else {
         throw ValidationError.error(reason: "Invalid token endpoint")
       }
       
-      if let url = URL(string: data.authorizationEndpoint) {
+      if let authorizationEndpoint = data.authorizationEndpoint, let url = URL(string: authorizationEndpoint) {
         self.authorizationEndpoint = url
       } else {
         throw ValidationError.error(reason: "In valid authorization endpoint")
       }
       
-      if let url = URL(string: data.pushedAuthorizationRequestEndpoint) {
+      if let pushedAuthorizationRequestEndpoint = data.pushedAuthorizationRequestEndpoint, let url = URL(string: pushedAuthorizationRequestEndpoint) {
         self.parEndpoint = url
       } else {
         throw ValidationError.error(reason: "In valid authorization endpoint")
       }
     case .oauth(let data):
       
-      if let url = URL(string: data.tokenEndpoint) {
+      if let tokenEndpoint = data.tokenEndpoint, let url = URL(string: tokenEndpoint) {
         self.tokenEndpoint = url
       } else {
         throw ValidationError.error(reason: "Invalid token endpoint")
       }
       
-      if let url = URL(string: data.pushedAuthorizationRequestEndpoint) {
+      if let pushedAuthorizationRequestEndpoint = data.pushedAuthorizationRequestEndpoint, let url = URL(string: pushedAuthorizationRequestEndpoint) {
         self.authorizationEndpoint = url
       } else {
         throw ValidationError.error(reason: "In valid authorization endpoint")
       }
       
-      if let url = URL(string: data.pushedAuthorizationRequestEndpoint) {
+      if let pushedAuthorizationRequestEndpoint = data.pushedAuthorizationRequestEndpoint, let url = URL(string: pushedAuthorizationRequestEndpoint) {
         self.parEndpoint = url
       } else {
         throw ValidationError.error(reason: "In valid pushed authorization request endpoint")
@@ -122,7 +122,7 @@ public actor IssuanceAuthorizer: IssuanceAuthorizerType {
       responseType: Self.responseType,
       clientId: config.clientId,
       redirectUri: config.authFlowRedirectionURI.absoluteString,
-      scope: scopes.map { $0.value }.joined(separator: " ").appending(" openid"),
+      scope: scopes.map { $0.value }.joined(separator: " ").appending(" ").appending(Constants.OPENID_SCOPE),
       state: state,
       codeChallenge: PKCEGenerator.generateCodeChallenge(codeVerifier: codeVerifier),
       codeChallengeMethod: CodeChallenge.sha256.rawValue,

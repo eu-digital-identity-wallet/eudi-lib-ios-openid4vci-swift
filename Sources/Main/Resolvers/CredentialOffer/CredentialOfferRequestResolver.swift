@@ -138,10 +138,7 @@ public actor CredentialOfferRequestResolver {
     
     do {
       let credentialIssuerId = credentialIssuerMetadata.credentialIssuerIdentifier
-      let credentials: [CredentialMetadata] = try self.computeCredentialMetadata(
-        credentialOfferRequestObject: credentialOfferRequestObject,
-        credentialIssuerMetadata: credentialIssuerMetadata
-      )
+      let credentials: [CredentialIdentifier] = credentialOfferRequestObject.credentials.compactMap { try? CredentialIdentifier(value: $0.stringValue) }
       let grants = try credentialOfferRequestObject.grants?.toDomain()
       return try .init(
         credentialIssuerIdentifier: credentialIssuerId,
@@ -152,78 +149,6 @@ public actor CredentialOfferRequestResolver {
       )
     } catch {
       throw ValidationError.error(reason: error.localizedDescription)
-    }
-  }
-  
-  private func computeCredentialMetadata(
-    credentialOfferRequestObject: CredentialOfferRequestObject,
-    credentialIssuerMetadata: CredentialIssuerMetadata
-  ) throws -> [CredentialMetadata] {
-    return try credentialOfferRequestObject.credentials.map { element in
-      if element.type == .string,
-         let scope = element.string {
-        if credentialIssuerMetadata.credentialsSupported.first(where: { (credentialIdentifier, supportedCredential) in
-          switch supportedCredential {
-          case .scope(let credentialScope):
-            return scope == credentialScope.value
-          case .msoMdoc(let profile):
-            return profile.scope == scope
-          case .w3CSignedJwt(let profile):
-            return profile.scope == scope
-          case .sdJwtVc(let profile):
-            return profile.scope == scope
-          case .w3CJsonLdSignedJwt(let profile):
-            return profile.scope == scope
-          case .w3CJsonLdDataIntegrity(let profile):
-            return profile.scope == scope
-          }
-          
-        }) != nil {
-          return .scope(try .init(scope))
-          
-        } else {
-          throw ValidationError.error(reason: "Unknown scope \(scope)")
-        }
-      } else if element.type == .dictionary,
-             let dictionary = element.dictionary {
-        if dictionary["format"]?.type == .string,
-           let format = dictionary["format"]?.string {
-          switch format {
-          case MsoMdocFormat.FORMAT:
-            return try MsoMdocFormat.matchSupportedAndToDomain(
-              json: element,
-              metadata: credentialIssuerMetadata
-            )
-          case W3CSignedJwtFormat.FORMAT:
-            return try W3CSignedJwtFormat.matchSupportedAndToDomain(
-              json: element,
-              metadata: credentialIssuerMetadata
-            )
-          case SdJwtVcFormat.FORMAT:
-            return try SdJwtVcFormat.matchSupportedAndToDomain(
-              json: element,
-              metadata: credentialIssuerMetadata
-            )
-          case W3CJsonLdSignedJwtFormat.FORMAT:
-            return try W3CJsonLdSignedJwtFormat.matchSupportedAndToDomain(
-              json: element,
-              metadata: credentialIssuerMetadata
-            )
-          case W3CJsonLdDataIntegrityFormat.FORMAT:
-            return try W3CJsonLdDataIntegrityFormat.matchSupportedAndToDomain(
-              json: element,
-              metadata: credentialIssuerMetadata
-            )
-          default:
-            throw ValidationError.error(reason: "Invalid profile")
-          }
-          
-        } else {
-          throw ValidationError.error(reason: "Invalid format")
-        }
-      } else {
-        throw ValidationError.error(reason: "Invalid JsonElement for Credential. Found \(element.type)")
-      }
     }
   }
 }

@@ -95,7 +95,12 @@ public enum Proof: Codable {
 public struct Scope: Codable {
   public let value: String
   
-  public init(_ value: String) throws {
+  public init(_ value: String?) throws {
+    
+    guard let value = value else {
+      throw ValidationError.error(reason: "Scope cannot be nil")
+    }
+    
     guard !value.isEmpty else {
       throw ValidationError.error(reason: "Scope cannot be empty")
     }
@@ -115,7 +120,9 @@ public struct CNonce: Codable {
   
   public init?(value: String?, expiresInSeconds: Int? = 5) {
     guard let value else { return nil }
-    precondition(!value.isEmpty, "Value cannot be empty")
+    if value.isEmpty {
+      return nil
+    }
     
     self.value = value
     self.expiresInSeconds = expiresInSeconds

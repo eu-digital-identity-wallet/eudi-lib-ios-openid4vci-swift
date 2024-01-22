@@ -64,8 +64,7 @@ public extension SupportedCredential {
       
       if let responseEncryptionSpec {
         switch issuerEncryption {
-        case .notRequired:
-          throw CredentialIssuanceError.issuerDoesNotSupportEncryptedResponses
+        case .notRequired: break
         case .required(
           let algorithmsSupported,
           let encryptionMethodsSupported
@@ -100,8 +99,7 @@ public extension SupportedCredential {
       
       if let responseEncryptionSpec {
         switch issuerEncryption {
-        case .notRequired:
-          throw CredentialIssuanceError.issuerDoesNotSupportEncryptedResponses
+        case .notRequired: break
         case .required(
           let algorithmsSupported,
           let encryptionMethodsSupported
