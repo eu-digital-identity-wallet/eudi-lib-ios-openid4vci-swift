@@ -111,6 +111,47 @@ class VCIFlowWithOffer: XCTestCase {
     XCTAssert(true)
   }
   
+  func testWithOfferMDL() async throws {
+    
+    let privateKey = try KeyController.generateECDHPrivateKey()
+    let publicKey = try KeyController.generateECDHPublicKey(from: privateKey)
+    
+    let alg = JWSAlgorithm(.ES256)
+    let publicKeyJWK = try ECPublicKey(
+      publicKey: publicKey,
+      additionalParameters: [
+        "alg": alg.name,
+        "use": "sig",
+        "kid": UUID().uuidString
+      ])
+    
+    let bindingKey: BindingKey = .jwk(
+      algorithm: alg,
+      jwk: publicKeyJWK,
+      privateKey: privateKey
+    )
+    
+    let user = ActingUser(
+      username: "tneal",
+      password: "password"
+    )
+    
+    let wallet = Wallet(
+      actingUser: user,
+      bindingKey: bindingKey
+    )
+    
+    do {
+      try await walletInitiatedIssuanceWithOfferMDL(wallet: wallet)
+    } catch {
+      
+      XCTExpectFailure()
+      XCTAssert(false, error.localizedDescription)
+    }
+    
+    XCTAssert(true)
+  }
+  
   func testWithOfferMdocAndSdJwt() async throws {
     
     let privateKey = try KeyController.generateECDHPrivateKey()
@@ -164,6 +205,19 @@ private func walletInitiatedIssuanceWithOfferSdJWT(wallet: Wallet) async throws 
   )
 
   print("--> [ISSUANCE] Issued credential: \(credential)")
+}
+
+private func walletInitiatedIssuanceWithOfferMDL(wallet: Wallet) async throws {
+  
+  print("[[Scenario: Offer passed to wallet via url]] ")
+  
+  let url = "\(CredentialIssuer_URL)/credentialoffer?credential_offer=\(MDL_CredentialOffer)"
+  let credential = try await wallet.issueByCredentialOfferUrl(
+    url: url,
+    scope: PID_mDL_SCOPE
+  )
+  
+  print("--> [ISSUANCE] Issued credential : \(credential)")
 }
 
 private func walletInitiatedIssuanceWithOfferMdoc(wallet: Wallet) async throws {

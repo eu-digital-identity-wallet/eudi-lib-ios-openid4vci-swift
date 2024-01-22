@@ -22,13 +22,15 @@ let CredentialIssuer_URL = "https://eudi.netcompany-intrasoft.com/pid-issuer"
 
 let PID_SdJwtVC_SCOPE = "eu.europa.ec.eudiw.pid_vc_sd_jwt"
 let PID_MsoMdoc_SCOPE = "eu.europa.ec.eudiw.pid_mso_mdoc"
+let PID_mDL_SCOPE = "org.iso.18013.5.1.mDL"
+
 //let PID_SdJwtVC_SCOPE = "eu.europa.ec.eudiw.pid_jwt_vc_json"
 //let PID_MsoMdoc_SCOPE = "eu.europa.ec.eudiw.pid_mdoc"
 
 let All_Supported_CredentialOffer = """
     {
       "credential_issuer": "\(CredentialIssuer_URL)",
-      "credentials": [ "\(PID_SdJwtVC_SCOPE)", "\(PID_MsoMdoc_SCOPE)" ],
+      "credentials": [ "\(PID_mDL_SCOPE)", "\(PID_SdJwtVC_SCOPE)", "\(PID_MsoMdoc_SCOPE)" ],
       "grants": {
         "authorization_code": {}
       }
@@ -52,6 +54,16 @@ let MsoMdoc_CredentialOffer = """
         "authorization_code": {}
       },
       "credentials": [ "\(PID_MsoMdoc_SCOPE)" ]
+    }
+"""
+
+let MDL_CredentialOffer = """
+    {
+      "credential_issuer": "\(CredentialIssuer_URL)",
+      "grants": {
+        "authorization_code": {}
+      },
+      "credentials": [ "\(PID_mDL_SCOPE)" ]
     }
 """
 
