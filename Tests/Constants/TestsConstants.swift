@@ -17,15 +17,15 @@ import Foundation
 @testable import OpenID4VCI
 
 //let CredentialIssuer_URL = "http://localhost:8080"
-//let CredentialIssuer_URL = "https://preprod.issuer.eudiw.dev/oidc"
 let CredentialIssuer_URL = "https://eudi.netcompany-intrasoft.com/pid-issuer"
-
 let PID_SdJwtVC_SCOPE = "eu.europa.ec.eudiw.pid_vc_sd_jwt"
 let PID_MsoMdoc_SCOPE = "eu.europa.ec.eudiw.pid_mso_mdoc"
 let PID_mDL_SCOPE = "org.iso.18013.5.1.mDL"
 
+//let CredentialIssuer_URL = "https://preprod.issuer.eudiw.dev/oidc"
 //let PID_SdJwtVC_SCOPE = "eu.europa.ec.eudiw.pid_jwt_vc_json"
 //let PID_MsoMdoc_SCOPE = "eu.europa.ec.eudiw.pid_mdoc"
+//let PID_mDL_SCOPE = "eu.europa.ec.eudiw.mdl_mdoc"
 
 let All_Supported_CredentialOffer = """
     {
