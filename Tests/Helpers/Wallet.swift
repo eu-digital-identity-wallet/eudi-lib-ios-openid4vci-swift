@@ -38,7 +38,8 @@ extension Wallet {
     case .success(let metaData):
       if let authorizationServer = metaData?.authorizationServers.first,
          let metaData {
-        let authServerMetadata = await AuthorizationServerMetadataResolver().resolve(url: authorizationServer)
+        let resolver = AuthorizationServerMetadataResolver()
+        let authServerMetadata = await resolver.resolve(url: authorizationServer)
         
         let offer = try CredentialOffer(
           credentialIssuerIdentifier: credentialIssuerIdentifier,
@@ -143,7 +144,8 @@ extension Wallet {
 extension Wallet {
   
   func issueByCredentialOfferUrlMultipleFormats(url: String) async throws -> [(String, String)] {
-    let result = await CredentialOfferRequestResolver()
+    let resolver = CredentialOfferRequestResolver()
+    let result = await resolver
       .resolve(
         source: try .init(
           urlString: url
