@@ -37,8 +37,9 @@ public struct FormPost: Request {
    
    if let formDataString, formDataString.isEmpty {
      return JSON(formData).rawString()?.data(using: .utf8)
+   } else {
+     return formDataString?.data(using: .utf8)
    }
-   return formDataString?.data(using: .utf8)
  }
 
  /// The form data for the request.

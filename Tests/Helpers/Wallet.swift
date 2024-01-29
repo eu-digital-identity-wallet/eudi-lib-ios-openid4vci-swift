@@ -242,28 +242,21 @@ extension Wallet {
       var unAuthorized: Result<UnauthorizedRequest, Error>
       var authorizationCode: String
       
-      // Depending on the mode selected, changes might be
-      // required on the tests constants file (endpoints, scopes)
-      let legacyIssuer = true
-      
-      if legacyIssuer {
-        authorizationCode = try await loginUserAndGetAuthCode(
-          getAuthorizationCodeUrl: parRequested.getAuthorizationCodeURL.url,
-          actingUser: actingUser
-        ) ?? { throw  ValidationError.error(reason: "Could not retrieve authorization code") }()
-        let issuanceAuthorization: IssuanceAuthorization = .authorizationCode(authorizationCode: authorizationCode)
-        unAuthorized = await issuer.handleAuthorizationCode(
-          parRequested: request,
-          authorizationCode: issuanceAuthorization
-        )
-      } else {
+      authorizationCode = try await loginUserAndGetAuthCode(
+        getAuthorizationCodeUrl: parRequested.getAuthorizationCodeURL.url,
+        actingUser: actingUser
+      ) ?? { throw  ValidationError.error(reason: "Could not retrieve authorization code") }()
+      let issuanceAuthorization: IssuanceAuthorization = .authorizationCode(authorizationCode: authorizationCode)
+      unAuthorized = await issuer.handleAuthorizationCode(
+        parRequested: request,
+        authorizationCode: issuanceAuthorization
+      )
         
-        authorizationCode = ""
-        unAuthorized = await issuer.handleAuthorizationCode(
-          parRequested: request,
-          code: &authorizationCode
-        )
-      }
+//        authorizationCode = ""
+//        unAuthorized = await issuer.handleAuthorizationCode(
+//          parRequested: request,
+//          code: &authorizationCode
+//        )
 
       print("--> [AUTHORIZATION] Authorization code retrieved: \(authorizationCode)")
       
