@@ -70,13 +70,17 @@ public actor Issuer: IssuerType {
   public init(
     authorizationServerMetadata: IdentityAndAccessManagementMetadata,
     issuerMetadata: CredentialIssuerMetadata,
-    config: WalletOpenId4VCIConfig
+    config: WalletOpenId4VCIConfig,
+    parPoster: PostingType = Poster(),
+    tokenPoster: PostingType = Poster()
   ) throws {
     self.authorizationServerMetadata = authorizationServerMetadata
     self.issuerMetadata = issuerMetadata
     self.config = config
     
     authorizer = try IssuanceAuthorizer(
+      parPoster: parPoster,
+      tokenPoster: tokenPoster,
       config: config,
       authorizationServerMetadata: authorizationServerMetadata
     )

@@ -41,4 +41,10 @@ class NetworkingMock: Networking {
     let response = HTTPURLResponse(url: .stub(), statusCode: 200, httpVersion: nil, headerFields: [:])
     return try (result.get(), response!)
   }
+  
+  func data(
+    for request: URLRequest
+  ) async throws -> (Data, URLResponse) {
+    return try await data(from: URL(string: "https://www.example.com")!)
+  }
 }

@@ -167,7 +167,7 @@ public actor IssuanceAuthorizer: IssuanceAuthorizerType {
         )
       }
     } catch {
-      return .failure(ValidationError.error(reason: error.localizedDescription))
+      return .failure(error)
     }
   }
   

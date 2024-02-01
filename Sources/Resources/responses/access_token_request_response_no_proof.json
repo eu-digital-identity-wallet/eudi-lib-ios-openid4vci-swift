@@ -1,0 +1,5 @@
+{
+  "access_token": "my.access.toekn",
+  "expires_in": 3600,
+  "scope": "a.b.c"
+}

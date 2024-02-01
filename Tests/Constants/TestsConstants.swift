@@ -119,4 +119,15 @@ struct TestsConstants {
     }
   }
   """
+  
+  static let unAuthorizedRequest: UnauthorizedRequest = .par(
+    .init(
+      credentials: (try? [.init(value: "UniversityDegree_JWT")]) ?? [],
+      getAuthorizationCodeURL: (try? .init(urlString: "https://example.com?client_id=wallet-dev&request_uri=https://request_uri.example.com&state=5A201471-D088-4544-B1E9-5476E5935A95"))!,
+      pkceVerifier: (try? .init(
+        codeVerifier: "GVaOE~J~xQmkE4aCKm4RNYviYW5QaFiFOxVv-8enIDL",
+        codeVerifierMethod: "S256"))!,
+      state: "5A201471-D088-4544-B1E9-5476E5935A95"
+    )
+  )
 }
