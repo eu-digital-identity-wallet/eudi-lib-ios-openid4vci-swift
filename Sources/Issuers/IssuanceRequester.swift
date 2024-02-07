@@ -46,7 +46,7 @@ public actor IssuanceRequester: IssuanceRequesterType {
   public init(
     issuerMetadata: CredentialIssuerMetadata,
     service: AuthorisationServiceType = AuthorisationService(),
-    poster: PostingType = Poster()
+    poster: PostingType
   ) {
     self.issuerMetadata = issuerMetadata
     self.service = service

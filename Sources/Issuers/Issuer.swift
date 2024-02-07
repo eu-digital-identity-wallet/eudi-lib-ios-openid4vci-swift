@@ -72,7 +72,8 @@ public actor Issuer: IssuerType {
     issuerMetadata: CredentialIssuerMetadata,
     config: WalletOpenId4VCIConfig,
     parPoster: PostingType = Poster(),
-    tokenPoster: PostingType = Poster()
+    tokenPoster: PostingType = Poster(),
+    requesterPoster: PostingType = Poster()
   ) throws {
     self.authorizationServerMetadata = authorizationServerMetadata
     self.issuerMetadata = issuerMetadata
@@ -86,7 +87,8 @@ public actor Issuer: IssuerType {
     )
     
     requester = IssuanceRequester(
-      issuerMetadata: issuerMetadata
+      issuerMetadata: issuerMetadata, 
+      poster: requesterPoster
     )
   }
   
