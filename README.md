@@ -207,6 +207,8 @@ switch requestOutcome {
 }
 ```
 
+You can also check the unit tests for more usage examples.
+
 ## Features supported
 
 ### Authorization Endpoint
