@@ -130,15 +130,9 @@ class CredentialOfferRequestTest: XCTestCase {
           }
        }
     }
-    """
+    """.removeWhitespaceAndNewlines()
     
-    let singleLineJSON = value
-        .replacingOccurrences(of: "\n", with: "")
-        .replacingOccurrences(of: "\r", with: "")
-        .replacingOccurrences(of: "\t", with: "")
-        .replacingOccurrences(of: " ", with: "")
-    
-    let urlString = "https://example.com/?credential_offer=\(singleLineJSON)"
+    let urlString = "https://example.com/?credential_offer=\(value)"
     
     // When
     let request = try CredentialOfferRequest(urlString: urlString)
@@ -146,7 +140,7 @@ class CredentialOfferRequestTest: XCTestCase {
     // Then
     switch request {
     case .passByValue(let metaData):
-      XCTAssertEqual(metaData, singleLineJSON)
+      XCTAssertEqual(metaData, value)
       
       if let request = CredentialOfferRequestObject(jsonString: value) {
         XCTAssert(request.credentials.count == 2)

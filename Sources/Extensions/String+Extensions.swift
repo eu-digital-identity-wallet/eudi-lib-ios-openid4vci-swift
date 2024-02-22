@@ -17,6 +17,14 @@ import Foundation
 
 public extension String {
   
+  /// Removes spaces, tabs, newlines, and carriage returns from the string.
+  ///
+  /// - Returns: A new string with spaces, tabs, newlines, and carriage returns removed.
+  func removeWhitespaceAndNewlines() -> String {
+    let characterSet = CharacterSet.whitespacesAndNewlines
+    return self.components(separatedBy: characterSet).joined()
+  }
+  
   /// URL encodes a string using UTF-8 encoding.
   ///
   /// - Returns: The URL-encoded string or nil if encoding fails.

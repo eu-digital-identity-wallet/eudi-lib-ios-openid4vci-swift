@@ -1,0 +1,32 @@
+{
+  "configurations" : [
+    {
+      "id" : "71103F07-F4DF-4158-BF28-C46564F56E9E",
+      "name" : "Test Scheme Action",
+      "options" : {
+
+      }
+    }
+  ],
+  "defaultOptions" : {
+    "codeCoverage" : {
+      "targets" : [
+        {
+          "containerPath" : "container:",
+          "identifier" : "OpenID4VCI",
+          "name" : "OpenID4VCI"
+        }
+      ]
+    }
+  },
+  "testTargets" : [
+    {
+      "target" : {
+        "containerPath" : "container:",
+        "identifier" : "OpenID4VCITests",
+        "name" : "OpenID4VCITests"
+      }
+    }
+  ],
+  "version" : 1
+}
