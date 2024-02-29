@@ -19,7 +19,7 @@ import JOSESwift
 
 @testable import OpenID4VCI
 
-class IssuanceSingleRequestTest: XCTestCase {
+class IssuanceDeferredRequestTest: XCTestCase {
   
   let config: WalletOpenId4VCIConfig = .init(
     clientId: "wallet-dev",
@@ -34,7 +34,7 @@ class IssuanceSingleRequestTest: XCTestCase {
     super.tearDown()
   }
   
-  func testWhenIssuerRespondsSingleCredentialThenTCredentialExists() async throws {
+  func testWhenIssuerRespondsDefferredThenTransactionIdExists() async throws {
     
     // Given
     guard let offer = await TestsConstants.createMockCredentialOfferValidEncryption() else {
@@ -42,7 +42,6 @@ class IssuanceSingleRequestTest: XCTestCase {
       return
     }
     
-    // Given
     let privateKey = try KeyController.generateRSAPrivateKey()
     let publicKey = try KeyController.generateRSAPublicKey(from: privateKey)
     
@@ -81,7 +80,7 @@ class IssuanceSingleRequestTest: XCTestCase {
       ),
       requesterPoster: Poster(
         session: NetworkingMock(
-          path: "single_issuance_success_response_credential",
+          path: "single_issuance_success_response_deffered",
           extension: "json"
         )
       )
@@ -119,20 +118,20 @@ class IssuanceSingleRequestTest: XCTestCase {
             case .success(let response):
               if let result = response.credentialResponses.first {
                 switch result {
-                case .deferred:
-                  XCTAssert(false, "Unexpected deferred")
-                case .issued(_, let credential):
-                  XCTAssert(true, "credential: \(credential)")
+                case .deferred(let transactionId):
+                  XCTAssert(true, "transaction_id: \(transactionId)")
                   return
+                case .issued(_, let credential):
+                  XCTAssert(false, "credential: \(credential)")
                 }
               } else {
-                break
+                XCTAssert(false, "No response")
               }
             case .failed(let error):
-              XCTAssert(false, error.localizedDescription)
+              XCTAssert(false, "failed: \(error.localizedDescription)")
               
-            case .invalidProof(_, let errorDescription):
-              XCTAssert(false, errorDescription!)
+            case .invalidProof:
+              XCTAssert(false, ".invalidProof")
             }
             XCTAssert(false, "Unexpected request")
           case .failure(let error):
@@ -141,14 +140,9 @@ class IssuanceSingleRequestTest: XCTestCase {
         } catch {
           XCTAssert(false, error.localizedDescription)
         }
-        
-        return
       }
-      
     case .failure(let error):
       XCTAssert(false, error.localizedDescription)
     }
-    
-    XCTAssert(false, "Unable to get access token")
   }
 }

@@ -80,6 +80,7 @@ public actor IssuanceRequester: IssuanceRequesterType {
       case .msoMdoc(let credential):
         switch issuerMetadata.credentialResponseEncryption {
         case .notRequired:
+          print(string)
           guard let response = SingleIssuanceSuccessResponse.fromJSONString(string) else {
             return .failure(ValidationError.todo(reason: "Cannot decode .notRequired response"))
           }
@@ -104,7 +105,7 @@ public actor IssuanceRequester: IssuanceRequesterType {
                 let keyManagementAlgorithm = KeyManagementAlgorithm(algorithm: responseEncryptionAlg),
                 let contentEncryptionAlgorithm = ContentEncryptionAlgorithm(encryptionMethod: responseEncryptionMethod)
               else {
-                return .failure(ValidationError.error(reason: "Unsupported encryption algorithms"))
+                return .failure(ValidationError.error(reason: "Unsupported encryption algorithms: \(responseEncryptionAlg.name), \(responseEncryptionMethod.name)"))
               }
               
               let jwe = try JWE(compactSerialization: string)
@@ -121,7 +122,7 @@ public actor IssuanceRequester: IssuanceRequesterType {
             }
             
           } catch {
-            return .failure(ValidationError.error(reason: error.localizedDescription))
+            return .failure(error)
           }
         }
       case .sdJwtVc(let credential):
