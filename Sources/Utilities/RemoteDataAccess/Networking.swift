@@ -15,6 +15,8 @@
  */
 import Foundation
 
+extension URLSession: Networking {}
+
 public protocol Networking {
   func data(
     from url: URL
@@ -33,5 +35,3 @@ public extension Networking {
     try await data(for: request)
   }
 }
-
-extension URLSession: Networking {}

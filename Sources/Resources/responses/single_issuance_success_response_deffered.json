@@ -1,0 +1,6 @@
+{
+  "format": "vc+sd-jwt",
+  "transaction_id": "1234565768122",
+  "c_nonce": "wlbQc6pCJp",
+  "c_nonce_expires_in": 86400
+}

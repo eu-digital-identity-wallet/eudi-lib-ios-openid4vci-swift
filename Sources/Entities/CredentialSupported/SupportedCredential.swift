@@ -120,7 +120,7 @@ public extension SupportedCredential {
         proof: proof
       )
     default:
-      throw ValidationError.error(reason: "Unsupported profile for issueance request")
+      throw ValidationError.error(reason: "Unsupported profile for issuance request")
     }
   }
 }

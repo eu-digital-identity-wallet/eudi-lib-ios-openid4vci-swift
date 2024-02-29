@@ -65,24 +65,38 @@ public actor Issuer: IssuerType {
   let config: WalletOpenId4VCIConfig
   
   private let authorizer: IssuanceAuthorizerType
-  private let requester: IssuanceRequesterType
+  
+  private let issuanceRequester: IssuanceRequesterType
+  private let deferredIssuanceRequester: IssuanceRequesterType
   
   public init(
     authorizationServerMetadata: IdentityAndAccessManagementMetadata,
     issuerMetadata: CredentialIssuerMetadata,
-    config: WalletOpenId4VCIConfig
+    config: WalletOpenId4VCIConfig,
+    parPoster: PostingType = Poster(),
+    tokenPoster: PostingType = Poster(),
+    requesterPoster: PostingType = Poster(),
+    deferredRequesterPoster: PostingType = Poster()
   ) throws {
     self.authorizationServerMetadata = authorizationServerMetadata
     self.issuerMetadata = issuerMetadata
     self.config = config
     
     authorizer = try IssuanceAuthorizer(
+      parPoster: parPoster,
+      tokenPoster: tokenPoster,
       config: config,
       authorizationServerMetadata: authorizationServerMetadata
     )
     
-    requester = IssuanceRequester(
-      issuerMetadata: issuerMetadata
+    issuanceRequester = IssuanceRequester(
+      issuerMetadata: issuerMetadata, 
+      poster: requesterPoster
+    )
+    
+    deferredIssuanceRequester = IssuanceRequester(
+      issuerMetadata: issuerMetadata,
+      poster: deferredRequesterPoster
     )
   }
   
@@ -287,7 +301,7 @@ public actor Issuer: IssuerType {
     case .noProofRequired(let token):
       return try await requestIssuance(token: token) {
         return try supportedCredential.toIssuanceRequest(
-          requester: requester,
+          requester: issuanceRequester,
           claimSet: claimSet,
           responseEncryptionSpecProvider: responseEncryptionSpecProvider
         )
@@ -316,10 +330,10 @@ public actor Issuer: IssuerType {
     let cNonce = cNonce(from: proofRequest)
     return try await requestIssuance(token: accessToken(from: proofRequest)) {
       return try supportedCredential.toIssuanceRequest(
-        requester: requester,
+        requester: issuanceRequester,
         claimSet: claimSet,
         proof: bindingKey.toSupportedProof(
-          issuanceRequester: requester,
+          issuanceRequester: issuanceRequester,
           credentialSpec: supportedCredential,
           cNonce: cNonce?.value
         ),
@@ -338,7 +352,7 @@ private extension Issuer {
     let credentialRequest = try issuanceRequestSupplier()
     switch credentialRequest {
     case .single(let single):
-      let result = try await requester.placeIssuanceRequest(
+      let result = try await issuanceRequester.placeIssuanceRequest(
         accessToken: token,
         request: single
       )
@@ -349,7 +363,7 @@ private extension Issuer {
         return handleIssuanceError(error)
       }
     case .batch(let credentials):
-      let result = try await requester.placeBatchIssuanceRequest(
+      let result = try await issuanceRequester.placeBatchIssuanceRequest(
         accessToken: token,
         request: credentials
       )
@@ -484,7 +498,7 @@ public extension Issuer {
       throw ValidationError.error(reason: "Invalid access token")
     }
     
-    return try await requester.placeDeferredCredentialRequest(
+    return try await deferredIssuanceRequester.placeDeferredCredentialRequest(
       accessToken: token,
       transactionId: transactionId
     )

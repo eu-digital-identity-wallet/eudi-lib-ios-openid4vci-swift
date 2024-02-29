@@ -15,7 +15,7 @@
  */
 import Foundation
 
-public enum PostError: Error {
+public enum PostError: LocalizedError {
   case invalidUrl
   case networkError(Error)
   case response(GenericErrorResponse)
@@ -26,7 +26,7 @@ public enum PostError: Error {
    
    - Returns: A string describing the post error.
    */
-  public var localizedDescription: String {
+  public var errorDescription: String? {
     switch self {
     case .invalidUrl:
       return "Invalid URL"

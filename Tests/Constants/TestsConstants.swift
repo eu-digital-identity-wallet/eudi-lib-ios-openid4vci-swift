@@ -119,4 +119,81 @@ struct TestsConstants {
     }
   }
   """
+  
+  static let unAuthorizedRequest: UnauthorizedRequest = .par(
+    .init(
+      credentials: (try? [.init(value: "UniversityDegree_JWT")]) ?? [],
+      getAuthorizationCodeURL: (try? .init(urlString: "https://example.com?client_id=wallet-dev&request_uri=https://request_uri.example.com&state=5A201471-D088-4544-B1E9-5476E5935A95"))!,
+      pkceVerifier: (try? .init(
+        codeVerifier: "GVaOE~J~xQmkE4aCKm4RNYviYW5QaFiFOxVv-8enIDL",
+        codeVerifierMethod: "S256"))!,
+      state: "5A201471-D088-4544-B1E9-5476E5935A95"
+    )
+  )
+  
+  static func createMockCredentialOffer() async -> CredentialOffer? {
+    let credentialIssuerMetadataResolver = CredentialIssuerMetadataResolver(
+      fetcher: Fetcher<CredentialIssuerMetadata>(session: NetworkingMock(
+        path: "credential_issuer_metadata",
+        extension: "json"
+      )
+    ))
+    
+    let authorizationServerMetadataResolver = AuthorizationServerMetadataResolver(
+      oidcFetcher: Fetcher<OIDCProviderMetadata>(session: NetworkingMock(
+        path: "oidc_authorization_server_metadata",
+        extension: "json"
+      )),
+      oauthFetcher: Fetcher<AuthorizationServerMetadata>(session: NetworkingMock(
+        path: "test",
+        extension: "json"
+      ))
+    )
+    
+    let credentialOfferRequestResolver = CredentialOfferRequestResolver(
+      fetcher: Fetcher<CredentialOfferRequestObject>(session: NetworkingMock(
+        path: "credential_offer_with_blank_pre_authorized_code",
+        extension: "json"
+      )),
+      credentialIssuerMetadataResolver: credentialIssuerMetadataResolver,
+      authorizationServerMetadataResolver: authorizationServerMetadataResolver
+    )
+    
+    return try? await credentialOfferRequestResolver.resolve(
+      source: .fetchByReference(url: .stub())
+    ).get()
+  }
+  
+  static func createMockCredentialOfferValidEncryption() async -> CredentialOffer? {
+    let credentialIssuerMetadataResolver = CredentialIssuerMetadataResolver(
+      fetcher: Fetcher<CredentialIssuerMetadata>(session: NetworkingMock(
+        path: "openid-credential-issuer_no_encryption",
+        extension: "json"
+      )
+    ))
+    
+    let authorizationServerMetadataResolver = AuthorizationServerMetadataResolver(
+      oidcFetcher: Fetcher<OIDCProviderMetadata>(session: NetworkingMock(
+        path: "oidc_authorization_server_metadata",
+        extension: "json"
+      )),
+      oauthFetcher: Fetcher<AuthorizationServerMetadata>(session: NetworkingMock(
+        path: "test",
+        extension: "json"
+      ))
+    )
+    
+    let credentialOfferRequestResolver = CredentialOfferRequestResolver(
+      fetcher: Fetcher<CredentialOfferRequestObject>(session: NetworkingMock(
+        path: "credential_offer_with_blank_pre_authorized_code",
+        extension: "json"
+      )),
+      credentialIssuerMetadataResolver: credentialIssuerMetadataResolver,
+      authorizationServerMetadataResolver: authorizationServerMetadataResolver
+    )
+    
+    return try? await credentialOfferRequestResolver.resolve(
+      source: .fetchByReference(url: .stub())
+    ).get()
+  }
 }
