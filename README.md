@@ -245,10 +245,8 @@ involved, follow the guidelines found in [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ### Third-party component licenses
 
-* OAUTH2 & OIDC Support: [Nimbus OAuth 2.0 SDK with OpenID Connect extensions](https://connect2id.com/products/nimbus-oauth-openid-connect-sdk)
-* URI parsing: [Uri KMP](https://github.com/eygraber/uri-kmp)
-* Http Client: [Ktor](https://ktor.io/)
-* Json : [Kotlinx Serialization](https://github.com/Kotlin/kotlinx.serialization)
+* JOSE Support: [JOSESwift](https://github.com/niscy-eudiw/JOSESwift)
+* JSON Support: [SwiftyJSON](https://github.com/SwiftyJSON/SwiftyJSON)
 
 ### License details
 
