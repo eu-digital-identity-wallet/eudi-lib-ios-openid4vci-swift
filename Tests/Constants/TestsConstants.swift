@@ -30,7 +30,7 @@ let PID_mDL_SCOPE = "org.iso.18013.5.1.mDL"
 let All_Supported_CredentialOffer = """
     {
       "credential_issuer": "\(CredentialIssuer_URL)",
-      "credentials": [ "\(PID_mDL_SCOPE)", "\(PID_SdJwtVC_SCOPE)", "\(PID_MsoMdoc_SCOPE)" ],
+      "credential_configuration_ids": [ "\(PID_mDL_SCOPE)", "\(PID_SdJwtVC_SCOPE)", "\(PID_MsoMdoc_SCOPE)" ],
       "grants": {
         "authorization_code": {}
       }
@@ -40,7 +40,7 @@ let All_Supported_CredentialOffer = """
 let SdJwtVC_CredentialOffer = """
     {
       "credential_issuer": "\(CredentialIssuer_URL)",
-      "credentials": [ "\(PID_SdJwtVC_SCOPE)" ],
+      "credential_configuration_ids": [ "\(PID_SdJwtVC_SCOPE)" ],
       "grants": {
         "authorization_code": {}
       }
@@ -53,7 +53,7 @@ let MsoMdoc_CredentialOffer = """
       "grants": {
         "authorization_code": {}
       },
-      "credentials": [ "\(PID_MsoMdoc_SCOPE)" ]
+      "credential_configuration_ids": [ "\(PID_MsoMdoc_SCOPE)" ]
     }
 """
 
@@ -63,7 +63,7 @@ let MDL_CredentialOffer = """
       "grants": {
         "authorization_code": {}
       },
-      "credentials": [ "\(PID_mDL_SCOPE)" ]
+      "credential_configuration_ids": [ "\(PID_mDL_SCOPE)" ]
     }
 """
 
@@ -91,7 +91,7 @@ struct TestsConstants {
   static let AUTH_CODE_GRANT_CREDENTIAL_OFFER = """
   {
     "credential_issuer": "\(Self.CREDENTIAL_ISSUER_PUBLIC_URL)",
-    "credentials": ["PID_mso_mdoc", "UniversityDegree"],
+    "credential_configuration_ids": ["PID_mso_mdoc", "UniversityDegree"],
     "grants": {
       "authorization_code": {
         "issuer_state": "eyJhbGciOiJSU0EtFYUaBy"
@@ -103,14 +103,14 @@ struct TestsConstants {
   static let AUTH_CODE_GRANT_CREDENTIAL_OFFER_NO_GRANTS = """
   {
     "credential_issuer": "\(Self.CREDENTIAL_ISSUER_PUBLIC_URL)",
-    "credentials": ["PID_mso_mdoc", "UniversityDegree"]
+    "credential_configuration_ids": ["PID_mso_mdoc", "UniversityDegree"]
   }
   """
   
   static let PRE_AUTH_CODE_GRANT_CREDENTIAL_OFFER = """
   {
     "credential_issuer": "\(Self.CREDENTIAL_ISSUER_PUBLIC_URL)",
-    "credentials": ["PID_mso_mdoc", "UniversityDegree"],
+    "credential_configuration_ids": ["PID_mso_mdoc", "UniversityDegree"],
     "grants": {
       "urn:ietf:params:oauth:grant-type:pre-authorized_code": {
         "pre-authorized_code": "eyJhbGciOiJSU0EtFYUaBy",

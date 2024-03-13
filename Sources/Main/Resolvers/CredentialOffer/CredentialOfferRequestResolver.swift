@@ -138,7 +138,7 @@ public actor CredentialOfferRequestResolver {
     
     do {
       let credentialIssuerId = credentialIssuerMetadata.credentialIssuerIdentifier
-      let credentials: [CredentialIdentifier] = credentialOfferRequestObject.credentials.compactMap { try? CredentialIdentifier(value: $0.stringValue) }
+      let credentials: [CredentialIdentifier] = credentialOfferRequestObject.credentialConfigurationIds.compactMap { try? CredentialIdentifier(value: $0.stringValue) }
       let grants = try credentialOfferRequestObject.grants?.toDomain()
       return try .init(
         credentialIssuerIdentifier: credentialIssuerId,

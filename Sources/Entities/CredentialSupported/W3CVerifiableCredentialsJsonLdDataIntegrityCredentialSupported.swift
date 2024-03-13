@@ -20,7 +20,7 @@ public struct W3CVerifiableCredentialsJsonLdDataIntegrityCredentialSupported: Co
   public let format: String
   public let scope: String?
   public let cryptographicBindingMethodsSupported: [String]?
-  public let cryptographicSuitesSupported: [String]?
+  public let credentialSigningAlgValuesSupported: [String]?
   public let proofTypesSupported: [String]?
   public let display: [Display]?
   public let context: [String]
@@ -32,7 +32,7 @@ public struct W3CVerifiableCredentialsJsonLdDataIntegrityCredentialSupported: Co
     case format
     case scope
     case cryptographicBindingMethodsSupported = "cryptographic_binding_methods_supported"
-    case cryptographicSuitesSupported = "cryptographic_suites_supported"
+    case credentialSigningAlgValuesSupported = "credential_signing_alg_values_supported"
     case proofTypesSupported = "proof_types_supported"
     case display
     case context = "@context"
@@ -45,7 +45,7 @@ public struct W3CVerifiableCredentialsJsonLdDataIntegrityCredentialSupported: Co
     format: String,
     scope: String? = nil,
     cryptographicBindingMethodsSupported: [String]? = nil,
-    cryptographicSuitesSupported: [String]? = nil,
+    credentialSigningAlgValuesSupported: [String]? = nil,
     proofTypesSupported: [String]? = nil,
     display: [Display]? = nil,
     context: [String] = [],
@@ -56,7 +56,7 @@ public struct W3CVerifiableCredentialsJsonLdDataIntegrityCredentialSupported: Co
     self.format = format
     self.scope = scope
     self.cryptographicBindingMethodsSupported = cryptographicBindingMethodsSupported
-    self.cryptographicSuitesSupported = cryptographicSuitesSupported
+    self.credentialSigningAlgValuesSupported = credentialSigningAlgValuesSupported
     self.proofTypesSupported = proofTypesSupported
     self.display = display
     self.context = context

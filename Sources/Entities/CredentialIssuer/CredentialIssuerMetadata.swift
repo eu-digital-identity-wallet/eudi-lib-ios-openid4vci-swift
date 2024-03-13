@@ -25,7 +25,7 @@ public struct CredentialIssuerMetadata: Codable, Equatable {
   public let deferredCredentialEndpoint: CredentialIssuerEndpoint?
   public let credentialResponseEncryption: CredentialResponseEncryption
   public let requireCredentialResponseEncryption: Bool
-  public let credentialsSupported: [CredentialIdentifier: SupportedCredential]
+  public let credentialConfigurationsSupported: [CredentialIdentifier: SupportedCredential]
   
   public let display: [Display]
   
@@ -38,7 +38,7 @@ public struct CredentialIssuerMetadata: Codable, Equatable {
     case credentialResponseEncryptionAlgorithmsSupported = "credential_response_encryption_alg_values_supported"
     case credentialResponseEncryptionMethodsSupported = "credential_response_encryption_enc_values_supported"
     case requireCredentialResponseEncryption = "require_credential_response_encryption"
-    case credentialsSupported = "credentials_supported"
+    case credentialsSupported = "credential_configurations_supported"
     case display = "display"
   }
   
@@ -50,7 +50,7 @@ public struct CredentialIssuerMetadata: Codable, Equatable {
     deferredCredentialEndpoint: CredentialIssuerEndpoint?,
     credentialResponseEncryption: CredentialResponseEncryption = .notRequired,
     requireCredentialResponseEncryption: Bool?,
-    credentialsSupported: [CredentialIdentifier: SupportedCredential],
+    credentialConfigurationsSupported: [CredentialIdentifier: SupportedCredential],
     display: [Display]?
   ) {
     self.credentialIssuerIdentifier = credentialIssuerIdentifier
@@ -60,7 +60,7 @@ public struct CredentialIssuerMetadata: Codable, Equatable {
     self.deferredCredentialEndpoint = deferredCredentialEndpoint
     self.credentialResponseEncryption = credentialResponseEncryption
     self.requireCredentialResponseEncryption = requireCredentialResponseEncryption ?? false
-    self.credentialsSupported = credentialsSupported
+    self.credentialConfigurationsSupported = credentialConfigurationsSupported
     self.display = display ?? []
   }
   
@@ -122,7 +122,7 @@ public struct CredentialIssuerMetadata: Codable, Equatable {
       }
     }
     
-    credentialsSupported = mapIdentifierCredential
+    credentialConfigurationsSupported = mapIdentifierCredential
     
     display = try container.decodeIfPresent([Display].self, forKey: .display) ?? []
   }
@@ -149,7 +149,7 @@ public struct CredentialIssuerMetadata: Codable, Equatable {
     }
     
     try container.encode(requireCredentialResponseEncryption, forKey: .requireCredentialResponseEncryption)
-    try container.encode(credentialsSupported, forKey: .credentialsSupported)
+    try container.encode(credentialConfigurationsSupported, forKey: .credentialsSupported)
     try container.encode(display, forKey: .display)
   }
   

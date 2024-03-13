@@ -20,7 +20,7 @@ public struct W3CVerifiableCredentialSignedJwtCredentialSupported: Codable {
   public let format: String
   public let scope: String?
   public let cryptographicBindingMethodsSupported: [CryptographicBindingMethod]?
-  public let cryptographicSuitesSupported: [String]?
+  public let credentialSigningAlgValuesSupported: [String]?
   public let proofTypesSupported: [String]?
   public let display: [Display]?
   public let credentialDefinition: JSON
@@ -30,7 +30,7 @@ public struct W3CVerifiableCredentialSignedJwtCredentialSupported: Codable {
     case format
     case scope
     case cryptographicBindingMethodsSupported = "cryptographic_binding_methods_supported"
-    case cryptographicSuitesSupported = "cryptographic_suites_supported"
+    case credentialSigningAlgValuesSupported = "credential_signing_alg_values_supported"
     case proofTypesSupported = "proof_types_supported"
     case display
     case credentialDefinition = "credential_definition"
@@ -41,7 +41,7 @@ public struct W3CVerifiableCredentialSignedJwtCredentialSupported: Codable {
     format: String,
     scope: String? = nil,
     cryptographicBindingMethodsSupported: [CryptographicBindingMethod] = [],
-    cryptographicSuitesSupported: [String] = [],
+    credentialSigningAlgValuesSupported: [String] = [],
     proofTypesSupported: [String] = [],
     display: [Display] = [],
     credentialDefinition: JSON,
@@ -50,7 +50,7 @@ public struct W3CVerifiableCredentialSignedJwtCredentialSupported: Codable {
     self.format = format
     self.scope = scope
     self.cryptographicBindingMethodsSupported = cryptographicBindingMethodsSupported
-    self.cryptographicSuitesSupported = cryptographicSuitesSupported
+    self.credentialSigningAlgValuesSupported = credentialSigningAlgValuesSupported
     self.proofTypesSupported = proofTypesSupported
     self.display = display
     self.credentialDefinition = credentialDefinition

@@ -106,7 +106,7 @@ public actor Issuer: IssuerType {
   ) async -> Result<UnauthorizedRequest, Error> {
     let scopes: [Scope] = credentials
       .map {
-        issuerMetadata.credentialsSupported[$0]
+        issuerMetadata.credentialConfigurationsSupported[$0]
       }
       .compactMap {
         return try? Scope($0?.getScope())
@@ -293,7 +293,7 @@ public actor Issuer: IssuerType {
     }
     
     guard let supportedCredential = issuerMetadata
-      .credentialsSupported[credentialIdentifier] else {
+      .credentialConfigurationsSupported[credentialIdentifier] else {
       throw ValidationError.error(reason: "Invalid Supported credential for requestSingle")
     }
     
@@ -323,7 +323,7 @@ public actor Issuer: IssuerType {
     }
     
     guard let supportedCredential = issuerMetadata
-      .credentialsSupported[credentialIdentifier] else {
+      .credentialConfigurationsSupported[credentialIdentifier] else {
       throw ValidationError.error(reason: "Invalid Supported credential for requestSingle")
     }
     

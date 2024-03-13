@@ -79,8 +79,8 @@ extension Wallet {
     
     switch authorized {
     case .noProofRequired:
-      return try await offer.credentialIssuerMetadata.credentialsSupported.asyncCompactMap { (credentialIdentifier, supportedCredential) in
-        guard let scope = issuerMetadata.credentialsSupported[credentialIdentifier]?.getScope() else {
+      return try await offer.credentialIssuerMetadata.credentialConfigurationsSupported.asyncCompactMap { (credentialIdentifier, supportedCredential) in
+        guard let scope = issuerMetadata.credentialConfigurationsSupported[credentialIdentifier]?.getScope() else {
           throw ValidationError.error(reason: "Cannot find scope for \(credentialIdentifier)")
         }
 
@@ -93,8 +93,8 @@ extension Wallet {
       }
       
     case .proofRequired:
-      return try await offer.credentialIssuerMetadata.credentialsSupported.asyncCompactMap { (credentialIdentifier, supportedCredential) in
-        guard let scope = issuerMetadata.credentialsSupported[credentialIdentifier]?.getScope() else {
+      return try await offer.credentialIssuerMetadata.credentialConfigurationsSupported.asyncCompactMap { (credentialIdentifier, supportedCredential) in
+        guard let scope = issuerMetadata.credentialConfigurationsSupported[credentialIdentifier]?.getScope() else {
           throw ValidationError.error(reason: "Cannot find scope for \(credentialIdentifier)")
         }
         let data = try await proofRequiredSubmissionUseCase(
@@ -179,7 +179,7 @@ extension Wallet {
   private func issueOfferedCredentialWithProof(offer: CredentialOffer, scope: String) async throws -> String {
     
     let issuerMetadata = offer.credentialIssuerMetadata
-    guard let credentialIdentifier = issuerMetadata.credentialsSupported.keys.first(where: { $0.value == scope }) else {
+    guard let credentialIdentifier = issuerMetadata.credentialConfigurationsSupported.keys.first(where: { $0.value == scope }) else {
       throw ValidationError.error(reason:  "Cannot find credential identifier for \(scope)")
     }
     

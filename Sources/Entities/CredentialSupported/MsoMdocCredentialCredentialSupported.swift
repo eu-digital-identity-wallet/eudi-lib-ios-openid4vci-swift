@@ -20,7 +20,7 @@ public struct MsoMdocCredentialCredentialSupported: Codable {
   public let format: String
   public let scope: String?
   public let cryptographicBindingMethodsSupported: [String]?
-  public let cryptographicSuitesSupported: [String]?
+  public let credentialSigningAlgValuesSupported: [String]?
   public let proofTypesSupported: [String]?
   public let display: [Display]?
   public let docType: String
@@ -31,7 +31,7 @@ public struct MsoMdocCredentialCredentialSupported: Codable {
     case format
     case scope
     case cryptographicBindingMethodsSupported = "cryptographic_binding_methods_supported"
-    case cryptographicSuitesSupported = "cryptographic_suites_supported"
+    case credentialSigningAlgValuesSupported = "credential_signing_alg_values_supported"
     case proofTypesSupported = "proof_types_supported"
     case display
     case docType = "doctype"
@@ -43,7 +43,7 @@ public struct MsoMdocCredentialCredentialSupported: Codable {
     format: String,
     scope: String? = nil,
     cryptographicBindingMethodsSupported: [String]? = nil,
-    cryptographicSuitesSupported: [String]? = nil,
+    credentialSigningAlgValuesSupported: [String]? = nil,
     proofTypesSupported: [String]? = nil,
     display: [Display]? = nil,
     docType: String,
@@ -53,7 +53,7 @@ public struct MsoMdocCredentialCredentialSupported: Codable {
     self.format = format
     self.scope = scope
     self.cryptographicBindingMethodsSupported = cryptographicBindingMethodsSupported
-    self.cryptographicSuitesSupported = cryptographicSuitesSupported
+    self.credentialSigningAlgValuesSupported = credentialSigningAlgValuesSupported
     self.proofTypesSupported = proofTypesSupported
     self.display = display
     self.docType = docType
