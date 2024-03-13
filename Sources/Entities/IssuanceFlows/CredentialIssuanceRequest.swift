@@ -17,6 +17,12 @@ import Foundation
 import JOSESwift
 import SwiftyJSON
 
+public let FORMAT_MSO_MDOC = "mso_mdoc"
+public let FORMAT_SD_JWT_VC = "vc+sd-jwt"
+public let FORMAT_W3C_JSONLD_DATA_INTEGRITY = "ldp_vc"
+public let FORMAT_W3C_JSONLD_SIGNED_JWT = "jwt_vc_json-ld"
+public let FORMAT_W3C_SIGNED_JWT = "jwt_vc_json"
+
 public typealias Namespace = String
 public typealias ClaimName = String
 

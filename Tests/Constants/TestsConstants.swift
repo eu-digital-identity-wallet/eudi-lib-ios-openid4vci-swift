@@ -17,7 +17,7 @@ import Foundation
 @testable import OpenID4VCI
 
 //let CredentialIssuer_URL = "http://localhost:8080"
-let CredentialIssuer_URL = "https://issuer-backend.eudiw.dev"
+let CredentialIssuer_URL = "https://dev.issuer-backend.eudiw.dev"
 let PID_SdJwtVC_SCOPE = "eu.europa.ec.eudiw.pid_vc_sd_jwt"
 let PID_MsoMdoc_SCOPE = "eu.europa.ec.eudiw.pid_mso_mdoc"
 let PID_mDL_SCOPE = "org.iso.18013.5.1.mDL"
