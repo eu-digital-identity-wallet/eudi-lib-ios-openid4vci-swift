@@ -198,10 +198,10 @@ private func walletInitiatedIssuanceWithOfferSdJWT(wallet: Wallet) async throws 
   
   print("[[Scenario: Offer passed to wallet via url]] ")
   
-  let url = "\(CredentialIssuer_URL)/credentialoffer?credential_offer=\(SdJwtVC_CredentialOffer)"
+  let url = "\(CREDENTIAL_ISSUER_PUBLIC_URL)/credentialoffer?credential_offer=\(SdJwtVC_CredentialOffer)"
   let credential = try await wallet.issueByCredentialOfferUrl(
     url: url,
-    scope: PID_SdJwtVC_SCOPE
+    scope: PID_SdJwtVC_config_id
   )
 
   print("--> [ISSUANCE] Issued credential: \(credential)")
@@ -211,10 +211,10 @@ private func walletInitiatedIssuanceWithOfferMDL(wallet: Wallet) async throws {
   
   print("[[Scenario: Offer passed to wallet via url]] ")
   
-  let url = "\(CredentialIssuer_URL)/credentialoffer?credential_offer=\(MDL_CredentialOffer)"
+  let url = "\(CREDENTIAL_ISSUER_PUBLIC_URL)/credentialoffer?credential_offer=\(MDL_CredentialOffer)"
   let credential = try await wallet.issueByCredentialOfferUrl(
     url: url,
-    scope: PID_mDL_SCOPE
+    scope: MDL_config_id
   )
   
   print("--> [ISSUANCE] Issued credential : \(credential)")
@@ -224,10 +224,10 @@ private func walletInitiatedIssuanceWithOfferMdoc(wallet: Wallet) async throws {
   
   print("[[Scenario: Offer passed to wallet via url]] ")
   
-  let url = "\(CredentialIssuer_URL)/credentialoffer?credential_offer=\(MsoMdoc_CredentialOffer)"
+  let url = "\(CREDENTIAL_ISSUER_PUBLIC_URL)/credentialoffer?credential_offer=\(MsoMdoc_CredentialOffer)"
   let credential = try await wallet.issueByCredentialOfferUrl(
     url: url,
-    scope: PID_MsoMdoc_SCOPE
+    scope: PID_MsoMdoc_config_id
   )
   
   print("--> [ISSUANCE] Issued credential : \(credential)")
@@ -237,7 +237,7 @@ private func walletInitiatedIssuanceWithOfferArray(wallet: Wallet) async throws 
   
   print("[[Scenario: Offer passed to wallet via url]] ")
   
-  let url = "\(CredentialIssuer_URL)/credentialoffer?credential_offer=\(All_Supported_CredentialOffer)"
+  let url = "\(CREDENTIAL_ISSUER_PUBLIC_URL)/credentialoffer?credential_offer=\(All_Supported_CredentialOffer)"
   let credentials = try await wallet.issueByCredentialOfferUrlMultipleFormats(url: url)
   
   print("--> [ISSUANCE] Issued credentials:")

@@ -38,6 +38,7 @@ public enum CredentialIssuanceError: Error, LocalizedError {
   case invalidEncryptionParameters
   case invalidProof(cNonce: String, cNonceExpiresIn: Int?, errorDescription: String?)
   case deferredCredentialIssuancePending(interval: Int?)
+  case notificationFailed(reason: String)
   
   public var errorDescription: String? {
     switch self {
@@ -82,6 +83,8 @@ public enum CredentialIssuanceError: Error, LocalizedError {
       } else {
         return "Deferred credential issuance pending."
       }
+    case .notificationFailed(let reason):
+      return "Notification failed: \(reason)"
     }
   }
 }

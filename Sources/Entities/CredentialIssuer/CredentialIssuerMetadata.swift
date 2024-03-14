@@ -23,6 +23,7 @@ public struct CredentialIssuerMetadata: Codable, Equatable {
   public let credentialEndpoint: CredentialIssuerEndpoint
   public let batchCredentialEndpoint: CredentialIssuerEndpoint?
   public let deferredCredentialEndpoint: CredentialIssuerEndpoint?
+  public let notificationEndpoint: CredentialIssuerEndpoint?
   public let credentialResponseEncryption: CredentialResponseEncryption
   public let requireCredentialResponseEncryption: Bool
   public let credentialConfigurationsSupported: [CredentialIdentifier: SupportedCredential]
@@ -35,6 +36,7 @@ public struct CredentialIssuerMetadata: Codable, Equatable {
     case credentialEndpoint = "credential_endpoint"
     case batchCredentialEndpoint = "batch_credential_endpoint"
     case deferredCredentialEndpoint = "deferred_credential_endpoint"
+    case notificationEndpoint = "notification_endpoint"
     case credentialResponseEncryptionAlgorithmsSupported = "credential_response_encryption_alg_values_supported"
     case credentialResponseEncryptionMethodsSupported = "credential_response_encryption_enc_values_supported"
     case requireCredentialResponseEncryption = "require_credential_response_encryption"
@@ -48,6 +50,7 @@ public struct CredentialIssuerMetadata: Codable, Equatable {
     credentialEndpoint: CredentialIssuerEndpoint,
     batchCredentialEndpoint: CredentialIssuerEndpoint?,
     deferredCredentialEndpoint: CredentialIssuerEndpoint?,
+    notificationEndpoint: CredentialIssuerEndpoint?,
     credentialResponseEncryption: CredentialResponseEncryption = .notRequired,
     requireCredentialResponseEncryption: Bool?,
     credentialConfigurationsSupported: [CredentialIdentifier: SupportedCredential],
@@ -55,9 +58,12 @@ public struct CredentialIssuerMetadata: Codable, Equatable {
   ) {
     self.credentialIssuerIdentifier = credentialIssuerIdentifier
     self.authorizationServers = authorizationServers
+    
     self.credentialEndpoint = credentialEndpoint
     self.batchCredentialEndpoint = batchCredentialEndpoint
     self.deferredCredentialEndpoint = deferredCredentialEndpoint
+    self.notificationEndpoint = notificationEndpoint
+    
     self.credentialResponseEncryption = credentialResponseEncryption
     self.requireCredentialResponseEncryption = requireCredentialResponseEncryption ?? false
     self.credentialConfigurationsSupported = credentialConfigurationsSupported
@@ -77,6 +83,7 @@ public struct CredentialIssuerMetadata: Codable, Equatable {
     credentialEndpoint = try container.decode(CredentialIssuerEndpoint.self, forKey: .credentialEndpoint)
     batchCredentialEndpoint = try container.decodeIfPresent(CredentialIssuerEndpoint.self, forKey: .batchCredentialEndpoint)
     deferredCredentialEndpoint = try container.decodeIfPresent(CredentialIssuerEndpoint.self, forKey: .deferredCredentialEndpoint)
+    notificationEndpoint = try container.decodeIfPresent(CredentialIssuerEndpoint.self, forKey: .notificationEndpoint)
     
     if let credentialResponseEncryptionAlgorithmsSupported = try? container.decodeIfPresent([JWEAlgorithm].self, forKey: .credentialResponseEncryptionAlgorithmsSupported),
        let credentialResponseEncryptionMethodsSupported = try? container.decodeIfPresent([JOSEEncryptionMethod].self, forKey: .credentialResponseEncryptionMethodsSupported) {
@@ -134,9 +141,11 @@ public struct CredentialIssuerMetadata: Codable, Equatable {
     // Encode each property as necessary, handling optionals and conversions.
     try container.encode(credentialIssuerIdentifier, forKey: .credentialIssuerIdentifier)
     try container.encode(authorizationServers, forKey: .authorizationServers)
+    
     try container.encode(credentialEndpoint, forKey: .credentialEndpoint)
     try container.encode(batchCredentialEndpoint, forKey: .batchCredentialEndpoint)
     try container.encode(deferredCredentialEndpoint, forKey: .deferredCredentialEndpoint)
+    try container.encode(notificationEndpoint, forKey: .notificationEndpoint)
     
     switch credentialResponseEncryption {
     case .notRequired: break

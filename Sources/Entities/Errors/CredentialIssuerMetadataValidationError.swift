@@ -15,16 +15,50 @@
  */
 import Foundation
 
+/// An enumeration representing errors that can occur during validation of credential issuer metadata.
 public enum CredentialIssuerMetadataValidationError: Error {
+  /// The credential issuer ID is invalid.
+  /// - Parameter reason: The reason for the invalidity.
   case invalidCredentialIssuerId(reason: String)
+  
+  /// The authorization server is invalid.
+  /// - Parameter reason: The reason for the invalidity.
   case invalidAuthorizationServer(reason: String)
+  
+  /// The credential endpoint is invalid.
+  /// - Parameter reason: The reason for the invalidity.
   case invalidCredentialEndpoint(reason: String)
+  
+  /// The batch credential endpoint is invalid.
+  /// - Parameter reason: The reason for the invalidity.
   case invalidBatchCredentialEndpoint(reason: String)
+  
+  /// The deferred credential endpoint is invalid.
+  /// - Parameter reason: The reason for the invalidity.
   case invalidDeferredCredentialEndpoint(reason: String)
+  
+  /// The credential response encryption algorithms supported are invalid.
+  /// - Parameter reason: The reason for the invalidity.
   case invalidCredentialResponseEncryptionAlgorithmsSupported(reason: String)
+  
+  /// The credential response encryption methods supported are invalid.
+  /// - Parameter reason: The reason for the invalidity.
   case invalidCredentialResponseEncryptionMethodsSupported(reason: String)
+  
+  /// The required credential response encryption algorithms are invalid.
   case credentialResponseEncryptionAlgorithmsRequired
+  
+  /// The credentials supported are invalid.
+  /// - Parameter reason: The reason for the invalidity.
   case invalidCredentialsSupported(reason: String)
+  
+  /// The required credentials supported are invalid.
   case credentialsSupportedRequired
+  
+  /// The display value is invalid.
+  /// - Parameter reason: The reason for the invalidity.
   case invalidDisplay(reason: String)
+  
+  /// The URL of the Notification Endpoint is  invalid.
+  case invalidNotificationEndpoint
 }

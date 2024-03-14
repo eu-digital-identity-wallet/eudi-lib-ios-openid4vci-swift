@@ -56,7 +56,7 @@ To obtain the credentials issuer metadata use the ```CredentialIssuerMetadataRes
 import OpenID4VCI
 
 let credentialIdentifier = try CredentialIdentifier(value: "https://....")
-let credentialIssuerIdentifier = try CredentialIssuerId(CredentialIssuer_URL)
+let credentialIssuerIdentifier = try CredentialIssuerId(CREDENTIAL_ISSUER_PUBLIC_URL)
     
 let resolver = CredentialIssuerMetadataResolver()
 let metadata = await resolver.resolve(
@@ -125,7 +125,7 @@ It consists of two components:
 import OpenID4VCI
 
 let credentialIdentifier = try CredentialIdentifier(value: "https://....")
-let credentialIssuerIdentifier = try CredentialIssuerId(CredentialIssuer_URL)
+let credentialIssuerIdentifier = try CredentialIssuerId(CREDENTIAL_ISSUER_PUBLIC_URL)
 let offer: CredentialOffer = ...
 let config: WalletOpenId4VCIConfig = ...
 

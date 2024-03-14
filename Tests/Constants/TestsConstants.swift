@@ -17,10 +17,11 @@ import Foundation
 @testable import OpenID4VCI
 
 //let CredentialIssuer_URL = "http://localhost:8080"
-let CredentialIssuer_URL = "https://dev.issuer-backend.eudiw.dev"
-let PID_SdJwtVC_SCOPE = "eu.europa.ec.eudiw.pid_vc_sd_jwt"
-let PID_MsoMdoc_SCOPE = "eu.europa.ec.eudiw.pid_mso_mdoc"
-let PID_mDL_SCOPE = "org.iso.18013.5.1.mDL"
+//let CREDENTIAL_ISSUER_PUBLIC_URL = "https://trial.authlete.net"
+let CREDENTIAL_ISSUER_PUBLIC_URL = "https://issuer-backend.eudiw.dev"
+let PID_SdJwtVC_config_id = "eu.europa.ec.eudiw.pid_vc_sd_jwt"
+let PID_MsoMdoc_config_id = "eu.europa.ec.eudiw.pid_mso_mdoc"
+let MDL_config_id = "org.iso.18013.5.1.mDL"
 
 //let CredentialIssuer_URL = "https://preprod.issuer.eudiw.dev/oidc"
 //let PID_SdJwtVC_SCOPE = "eu.europa.ec.eudiw.pid_jwt_vc_json"
@@ -29,8 +30,8 @@ let PID_mDL_SCOPE = "org.iso.18013.5.1.mDL"
 
 let All_Supported_CredentialOffer = """
     {
-      "credential_issuer": "\(CredentialIssuer_URL)",
-      "credential_configuration_ids": [ "\(PID_mDL_SCOPE)", "\(PID_SdJwtVC_SCOPE)", "\(PID_MsoMdoc_SCOPE)" ],
+      "credential_issuer": "\(CREDENTIAL_ISSUER_PUBLIC_URL)",
+      "credential_configuration_ids": [ "\(MDL_config_id)", "\(PID_SdJwtVC_config_id)", "\(PID_MsoMdoc_config_id)" ],
       "grants": {
         "authorization_code": {}
       }
@@ -39,8 +40,8 @@ let All_Supported_CredentialOffer = """
 
 let SdJwtVC_CredentialOffer = """
     {
-      "credential_issuer": "\(CredentialIssuer_URL)",
-      "credential_configuration_ids": [ "\(PID_SdJwtVC_SCOPE)" ],
+      "credential_issuer": "\(CREDENTIAL_ISSUER_PUBLIC_URL)",
+      "credential_configuration_ids": [ "\(PID_SdJwtVC_config_id)" ],
       "grants": {
         "authorization_code": {}
       }
@@ -49,21 +50,21 @@ let SdJwtVC_CredentialOffer = """
 
 let MsoMdoc_CredentialOffer = """
     {
-      "credential_issuer": "\(CredentialIssuer_URL)",
+      "credential_issuer": "\(CREDENTIAL_ISSUER_PUBLIC_URL)",
       "grants": {
         "authorization_code": {}
       },
-      "credential_configuration_ids": [ "\(PID_MsoMdoc_SCOPE)" ]
+      "credential_configuration_ids": [ "\(PID_MsoMdoc_config_id)" ]
     }
 """
 
 let MDL_CredentialOffer = """
     {
-      "credential_issuer": "\(CredentialIssuer_URL)",
+      "credential_issuer": "\(CREDENTIAL_ISSUER_PUBLIC_URL)",
       "grants": {
         "authorization_code": {}
       },
-      "credential_configuration_ids": [ "\(PID_mDL_SCOPE)" ]
+      "credential_configuration_ids": [ "\(MDL_config_id)" ]
     }
 """
 
@@ -85,12 +86,11 @@ public struct ActingUser {
 
 struct TestsConstants {
   
-  static let CREDENTIAL_ISSUER_PUBLIC_URL = "https://credential-issuer.example.com"
   static let AUTHORIZATION_SERVER_PUBLIC_URL = "https://as.example.com"
   
   static let AUTH_CODE_GRANT_CREDENTIAL_OFFER = """
   {
-    "credential_issuer": "\(Self.CREDENTIAL_ISSUER_PUBLIC_URL)",
+    "credential_issuer": "\(CREDENTIAL_ISSUER_PUBLIC_URL)",
     "credential_configuration_ids": ["PID_mso_mdoc", "UniversityDegree"],
     "grants": {
       "authorization_code": {
@@ -100,16 +100,16 @@ struct TestsConstants {
   }
   """
   
-  static let AUTH_CODE_GRANT_CREDENTIAL_OFFER_NO_GRANTS = """
+  static let CREDENTIAL_OFFER_NO_GRANTS = """
   {
-    "credential_issuer": "\(Self.CREDENTIAL_ISSUER_PUBLIC_URL)",
+    "credential_issuer": "\(CREDENTIAL_ISSUER_PUBLIC_URL)",
     "credential_configuration_ids": ["PID_mso_mdoc", "UniversityDegree"]
   }
   """
   
   static let PRE_AUTH_CODE_GRANT_CREDENTIAL_OFFER = """
   {
-    "credential_issuer": "\(Self.CREDENTIAL_ISSUER_PUBLIC_URL)",
+    "credential_issuer": "\(CREDENTIAL_ISSUER_PUBLIC_URL)",
     "credential_configuration_ids": ["PID_mso_mdoc", "UniversityDegree"],
     "grants": {
       "urn:ietf:params:oauth:grant-type:pre-authorized_code": {

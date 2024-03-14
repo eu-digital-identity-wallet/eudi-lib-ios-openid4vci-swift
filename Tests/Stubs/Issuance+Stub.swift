@@ -15,23 +15,18 @@
  */
 import Foundation
 
-public struct CredentialIssuanceResponse: Codable {
-  public let credentialResponses: [Result]
-  public let cNonce: CNonce?
-  
-  public enum Result: Codable {
-    case deferred(transactionId: TransactionId)
-    case issued(format: String, credential: String, notificationId: NotificationId?)
-  }
-  
-  public init(credentialResponses: [Result], cNonce: CNonce?) {
-    self.credentialResponses = credentialResponses
-    self.cNonce = cNonce
-  }
-}
+@testable import OpenID4VCI
 
-public enum SubmittedRequest {
-  case success(response: CredentialIssuanceResponse)
-  case failed(error: CredentialIssuanceError)
-  case invalidProof(cNonce: CNonce, errorDescription: String?)
+extension NotificationObject: Stubbable {
+  public var id: ObjectIdentifier {
+    ObjectIdentifier(NSObject())
+  }
+  
+  static func stub() -> NotificationObject {
+    .init(
+      id: try! .init(value: "String"),
+      event: .init(rawValue: "CREDENTIAL_ACCEPTED")!,
+      eventDescription: "String?"
+    )
+  }
 }

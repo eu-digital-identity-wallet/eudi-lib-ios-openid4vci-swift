@@ -131,11 +131,6 @@ class IssuanceEncryptionTest: XCTestCase {
   func testWhenIssuanceRequestEncryptionAlgorithmNotSupportedByIssuerThrowResponseEncryptionMethodNotSupportedByIssuer() async throws {
     
     // Given
-    let privateKey = try KeyController.generateRSAPrivateKey()
-    let publicKey = try KeyController.generateRSAPublicKey(from: privateKey)
-
-    let alg = JWSAlgorithm(.RS256)
-    
     guard let spec = Issuer.createResponseEncryptionSpecFrom(algorithmsSupported: [.init(.RSA_OAEP_256)], encryptionMethodsSupported: [.init(.A128CBC_HS256)]) else {
       XCTAssert(false, "Could not create encryption spec")
       return

@@ -138,11 +138,18 @@ public struct BatchIssuanceSuccessResponse: Codable {
     public let format: String
     public let credential: String?
     public let transactionId: String?
+    public let notificationId: String?
     
-    public init(format: String, credential: String?, transactionId: String?) {
+    public init(
+      format: String,
+      credential: String?,
+      transactionId: String?,
+      notificationId: String?
+    ) {
       self.format = format
       self.credential = credential
       self.transactionId = transactionId
+      self.notificationId = notificationId
     }
   }
   

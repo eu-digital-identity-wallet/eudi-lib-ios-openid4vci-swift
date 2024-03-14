@@ -56,6 +56,11 @@ public protocol IssuerType {
     proofRequest: AuthorizedRequest,
     transactionId: TransactionId
   ) async throws -> Result<DeferredCredentialIssuanceResponse, Error>
+  
+  func notify(
+    authorizedRequest: AuthorizedRequest,
+    notificationId: NotificationObject
+  ) async throws -> Result<Void, Error>
 }
 
 public actor Issuer: IssuerType {
@@ -69,6 +74,8 @@ public actor Issuer: IssuerType {
   private let issuanceRequester: IssuanceRequesterType
   private let deferredIssuanceRequester: IssuanceRequesterType
   
+  private let notifyIssuer: NotifyIssuerType
+  
   public init(
     authorizationServerMetadata: IdentityAndAccessManagementMetadata,
     issuerMetadata: CredentialIssuerMetadata,
@@ -76,7 +83,8 @@ public actor Issuer: IssuerType {
     parPoster: PostingType = Poster(),
     tokenPoster: PostingType = Poster(),
     requesterPoster: PostingType = Poster(),
-    deferredRequesterPoster: PostingType = Poster()
+    deferredRequesterPoster: PostingType = Poster(),
+    notificationPoster: PostingType = Poster()
   ) throws {
     self.authorizationServerMetadata = authorizationServerMetadata
     self.issuerMetadata = issuerMetadata
@@ -97,6 +105,11 @@ public actor Issuer: IssuerType {
     deferredIssuanceRequester = IssuanceRequester(
       issuerMetadata: issuerMetadata,
       poster: deferredRequesterPoster
+    )
+    
+    notifyIssuer = NotifyIssuer(
+      issuerMetadata: issuerMetadata,
+      poster: notificationPoster
     )
   }
   
@@ -501,6 +514,17 @@ public extension Issuer {
     return try await deferredIssuanceRequester.placeDeferredCredentialRequest(
       accessToken: token,
       transactionId: transactionId
+    )
+  }
+  
+  func notify(
+    authorizedRequest: AuthorizedRequest,
+    notificationId: NotificationObject
+  ) async throws -> Result<Void, Error> {
+    
+    return try await notifyIssuer.notify(
+      authorizedRequest: authorizedRequest,
+      notification: notificationId
     )
   }
 }

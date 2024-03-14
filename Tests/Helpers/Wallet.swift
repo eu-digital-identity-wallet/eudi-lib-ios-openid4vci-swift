@@ -25,7 +25,7 @@ struct Wallet {
 extension Wallet {
   func issueByCredentialIdentifier(_ identifier: String) async throws -> String {
     let credentialIdentifier = try CredentialIdentifier(value: identifier)
-    let credentialIssuerIdentifier = try CredentialIssuerId(CredentialIssuer_URL)
+    let credentialIssuerIdentifier = try CredentialIssuerId(CREDENTIAL_ISSUER_PUBLIC_URL)
     
     let resolver = CredentialIssuerMetadataResolver()
     let issuerMetadata = await resolver.resolve(
@@ -305,7 +305,7 @@ extension Wallet {
                 authorized: noProofRequiredState,
                 transactionId: transactionId
               )
-            case .issued(_, let credential):
+            case .issued(_, let credential, _):
               return credential
             }
           } else {
@@ -352,7 +352,7 @@ extension Wallet {
               authorized: authorized,
               transactionId: transactionId
             )
-          case .issued(_, let credential):
+          case .issued(_, let credential, _):
             return credential
           }
         } else {

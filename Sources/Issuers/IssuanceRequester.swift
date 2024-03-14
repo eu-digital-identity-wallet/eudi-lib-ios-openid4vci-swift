@@ -35,6 +35,11 @@ public protocol IssuanceRequesterType {
     accessToken: IssuanceAccessToken,
     transactionId: TransactionId
   ) async throws -> Result<DeferredCredentialIssuanceResponse, Error>
+  
+  func notifyIssuer(
+    accessToken: IssuanceAccessToken?,
+    notification: NotificationObject
+  ) async throws -> Result<Void, Error>
 }
 
 public actor IssuanceRequester: IssuanceRequesterType {
@@ -65,11 +70,11 @@ public actor IssuanceRequester: IssuanceRequesterType {
       
       let response: SingleIssuanceSuccessResponse = try await service.formPost(
         poster: poster,
-        url: endpoint, 
+        url: endpoint,
         headers: authorizationHeader,
         body: encodedRequest
       )
-
+      
       return .success(try response.toSingleIssuanceResponse())
       
     } catch PostError.response(let response) {
@@ -231,6 +236,51 @@ public actor IssuanceRequester: IssuanceRequesterType {
     }
     
   }
+  
+  public func notifyIssuer(
+    accessToken: IssuanceAccessToken?,
+    notification: NotificationObject
+  ) async throws -> Result<Void, Error> {
+    do {
+      
+      guard let accessToken else {
+        throw ValidationError.error(reason: "Missing access token")
+      }
+      
+      guard let notificationEndpoint = issuerMetadata.notificationEndpoint else {
+        throw CredentialIssuerMetadataValidationError.invalidNotificationEndpoint
+      }
+      
+      let authorizationHeader: [String: String] = accessToken.authorizationHeader
+      let url = notificationEndpoint.url
+      let payload = NotificationObject(
+        id: notification.id,
+        event: notification.event,
+        eventDescription: notification.eventDescription
+      )
+      let encodedRequest: [String: Any] = JSON(payload.toDictionary()).dictionaryValue
+      
+      do {
+        let _: EmptyResponse = try await service.formPost(
+          poster: poster,
+          url: url,
+          headers: authorizationHeader,
+          body: encodedRequest
+        )
+        return .success(())
+        
+      } catch PostError.response(let response) {
+        return .failure(response.toIssuanceError())
+        
+      } catch {
+        
+        return .failure(error)
+      }
+      
+    } catch {
+      return .failure(error)
+    }
+  }
 }
 
 private extension SingleIssuanceSuccessResponse {
@@ -243,7 +293,7 @@ private extension SingleIssuanceSuccessResponse {
       
     } else if let credential = credential {
       return CredentialIssuanceResponse(
-        credentialResponses: [.issued(format: format, credential: credential)],
+        credentialResponses: [.issued(format: format, credential: credential, notificationId: nil)],
         cNonce: CNonce(value: cNonce, expiresInSeconds: cNonceExpiresInSeconds)
       )
     }
@@ -258,7 +308,7 @@ private extension BatchIssuanceSuccessResponse {
         if let transactionId = response.transactionId {
           return CredentialIssuanceResponse.Result.deferred(transactionId: try .init(value: transactionId))
         } else if let credential = response.credential {
-          return CredentialIssuanceResponse.Result.issued(format: response.format, credential: credential)
+          return CredentialIssuanceResponse.Result.issued(format: response.format, credential: credential, notificationId: nil)
         } else {
           throw CredentialIssuanceError.responseUnparsable("Got success response for issuance but response misses 'transaction_id' and 'certificate' parameters")
         }
