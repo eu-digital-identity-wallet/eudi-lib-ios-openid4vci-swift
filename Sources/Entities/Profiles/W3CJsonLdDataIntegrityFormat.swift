@@ -93,7 +93,7 @@ public extension W3CJsonLdDataIntegrityFormat {
     }
   }
   
-  struct CredentialSupportedDTO: Codable {
+  struct CredentialConfigurationDTO: Codable {
     public let format: String
     public let scope: String?
     public let cryptographicBindingMethodsSupported: [String]?
@@ -142,7 +142,7 @@ public extension W3CJsonLdDataIntegrityFormat {
       self.order = order
     }
     
-    func toDomain() throws -> W3CJsonLdDataIntegrityFormat.CredentialSupported {
+    func toDomain() throws -> W3CJsonLdDataIntegrityFormat.CredentialConfiguration {
       
       let bindingMethods = try cryptographicBindingMethodsSupported?.compactMap {
         try CryptographicBindingMethod(method: $0)
@@ -170,7 +170,7 @@ public extension W3CJsonLdDataIntegrityFormat {
     }
   }
   
-  struct CredentialSupported: Codable {
+  struct CredentialConfiguration: Codable {
     public let scope: String?
     public let cryptographicBindingMethodsSupported: [CryptographicBindingMethod]
     public let credentialSigningAlgValuesSupported: [String]
@@ -328,8 +328,8 @@ public extension W3CJsonLdDataIntegrityFormat {
     
     if let credentialsSupported = metadata.credentialConfigurationsSupported.first(where: { (id, credential) in
       switch credential {
-      case .w3CJsonLdDataIntegrity(let credentialSupported):
-        return credentialSupported.credentialDefinition.type == credentialDefinition.type
+      case .w3CJsonLdDataIntegrity(let credentialConfiguration):
+        return credentialConfiguration.credentialDefinition.type == credentialDefinition.type
       default: return false
       }
     }) {

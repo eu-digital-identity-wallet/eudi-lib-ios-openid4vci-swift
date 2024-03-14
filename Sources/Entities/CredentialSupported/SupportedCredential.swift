@@ -17,11 +17,11 @@ import Foundation
 
 public enum SupportedCredential: Codable {
   case scope(Scope)
-  case msoMdoc(MsoMdocFormat.CredentialSupported)
-  case w3CSignedJwt(W3CSignedJwtFormat.CredentialSupported)
-  case w3CJsonLdSignedJwt(W3CJsonLdSignedJwtFormat.CredentialSupported)
-  case w3CJsonLdDataIntegrity(W3CJsonLdDataIntegrityFormat.CredentialSupported)
-  case sdJwtVc(SdJwtVcFormat.CredentialSupported)
+  case msoMdoc(MsoMdocFormat.CredentialConfiguration)
+  case w3CSignedJwt(W3CSignedJwtFormat.CredentialConfiguration)
+  case w3CJsonLdSignedJwt(W3CJsonLdSignedJwtFormat.CredentialConfiguration)
+  case w3CJsonLdDataIntegrity(W3CJsonLdDataIntegrityFormat.CredentialConfiguration)
+  case sdJwtVc(SdJwtVcFormat.CredentialConfiguration)
 }
 
 public extension SupportedCredential {
@@ -50,9 +50,9 @@ public extension SupportedCredential {
     responseEncryptionSpecProvider: (_ issuerResponseEncryptionMetadata: CredentialResponseEncryption) -> IssuanceResponseEncryptionSpec?
   ) throws -> CredentialIssuanceRequest {
     switch self {
-    case .msoMdoc(let credentialSupported):
+    case .msoMdoc(let credentialConfiguration):
       if let proof,
-         let proofTypesSupported = credentialSupported.proofTypesSupported,
+         let proofTypesSupported = credentialConfiguration.proofTypesSupported,
          proofTypesSupported.contains(proof.type()) {
         if !proofTypesSupported.contains(proof.type()) {
           throw ValidationError.error(reason: "Provided proof type \(proof.type()) is not one of supported [\(proofTypesSupported)].")
@@ -79,15 +79,15 @@ public extension SupportedCredential {
         }
       }
      
-      return try credentialSupported.toIssuanceRequest(
+      return try credentialConfiguration.toIssuanceRequest(
         responseEncryptionSpec: responseEncryptionSpec,
         claimSet: claimSet,
         proof: proof
       )
 
-    case .sdJwtVc(let credentialSupported):
+    case .sdJwtVc(let credentialConfiguration):
       if let proof,
-         let proofTypesSupported = credentialSupported.proofTypesSupported,
+         let proofTypesSupported = credentialConfiguration.proofTypesSupported,
          proofTypesSupported.contains(proof.type()) {
         if !proofTypesSupported.contains(proof.type()) {
           throw ValidationError.error(reason: "Provided proof type \(proof.type()) is not one of supported [\(proofTypesSupported)].")
@@ -114,7 +114,7 @@ public extension SupportedCredential {
         }
       }
      
-      return try credentialSupported.toIssuanceRequest(
+      return try credentialConfiguration.toIssuanceRequest(
         responseEncryptionSpec: responseEncryptionSpec,
         claimSet: claimSet,
         proof: proof

@@ -161,7 +161,7 @@ public extension SdJwtVcFormat {
     }
   }
   
-  struct CredentialSupportedDTO: Codable {
+  struct CredentialConfigurationDTO: Codable {
     public let format: String
     public let scope: String?
     public let cryptographicBindingMethodsSupported: [String]?
@@ -198,7 +198,7 @@ public extension SdJwtVcFormat {
       self.credentialDefinition = credentialDefinition
     }
     
-    func toDomain() throws -> SdJwtVcFormat.CredentialSupported {
+    func toDomain() throws -> SdJwtVcFormat.CredentialConfiguration {
       
       let bindingMethods = try cryptographicBindingMethodsSupported?.compactMap {
         try CryptographicBindingMethod(method: $0)
@@ -221,7 +221,7 @@ public extension SdJwtVcFormat {
     }
   }
   
-  struct CredentialSupported: Codable {
+  struct CredentialConfiguration: Codable {
     public let scope: String?
     public let cryptographicBindingMethodsSupported: [CryptographicBindingMethod]
     public let credentialSigningAlgValuesSupported: [String]
@@ -397,8 +397,8 @@ public extension SdJwtVcFormat {
     
     if let credentialsSupported = metadata.credentialConfigurationsSupported.first(where: { (credentialId, credential) in
       switch credential {
-      case .sdJwtVc(let credentialSupported):
-        return credentialSupported.credentialDefinition.type == credentialDefinition.type
+      case .sdJwtVc(let credentialConfiguration):
+        return credentialConfiguration.credentialDefinition.type == credentialDefinition.type
       default: return false
       }
     }) {

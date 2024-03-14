@@ -108,7 +108,7 @@ public extension MsoMdocFormat {
     }
   }
   
-  struct CredentialSupportedDTO: Codable {
+  struct CredentialConfigurationDTO: Codable {
     public let format: String
     public let scope: String?
     public let cryptographicBindingMethodsSupported: [String]?
@@ -153,7 +153,7 @@ public extension MsoMdocFormat {
       self.order = order
     }
     
-    func toDomain() throws -> MsoMdocFormat.CredentialSupported {
+    func toDomain() throws -> MsoMdocFormat.CredentialConfiguration {
       
       let bindingMethods = try cryptographicBindingMethodsSupported?.compactMap {
         try CryptographicBindingMethod(method: $0)
@@ -192,7 +192,7 @@ public extension MsoMdocFormat {
     }
   }
   
-  struct CredentialSupported: Codable {
+  struct CredentialConfiguration: Codable {
     public let format: String?
     public let scope: String?
     public let cryptographicBindingMethodsSupported: [CryptographicBindingMethod]
@@ -364,8 +364,8 @@ public extension MsoMdocFormat {
     
     if let credentialsSupported = metadata.credentialConfigurationsSupported.first(where: { (credentialId, credential) in
       switch credential {
-      case .msoMdoc(let credentialSupported):
-        return credentialSupported.docType == docType
+      case .msoMdoc(let credentialConfiguration):
+        return credentialConfiguration.docType == docType
       default: return false
       }
     }) {

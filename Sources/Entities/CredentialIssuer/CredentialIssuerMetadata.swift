@@ -110,19 +110,19 @@ public struct CredentialIssuerMetadata: Codable, Equatable {
         
         switch format {
         case MsoMdocFormat.FORMAT:
-          let profile = try MsoMdocFormat.CredentialSupported(json: credJson)
+          let profile = try MsoMdocFormat.CredentialConfiguration(json: credJson)
           mapIdentifierCredential[credentialIdentifier] = .msoMdoc(profile)
         case W3CSignedJwtFormat.FORMAT:
-          let profile = try W3CSignedJwtFormat.CredentialSupported(json: credJson)
+          let profile = try W3CSignedJwtFormat.CredentialConfiguration(json: credJson)
           mapIdentifierCredential[credentialIdentifier] = .w3CSignedJwt(profile)
         case SdJwtVcFormat.FORMAT:
-          let profile = try SdJwtVcFormat.CredentialSupported(json: credJson)
+          let profile = try SdJwtVcFormat.CredentialConfiguration(json: credJson)
           mapIdentifierCredential[credentialIdentifier] = .sdJwtVc(profile)
         case W3CJsonLdSignedJwtFormat.FORMAT:
-          let profile = try W3CJsonLdSignedJwtFormat.CredentialSupported(json: credJson)
+          let profile = try W3CJsonLdSignedJwtFormat.CredentialConfiguration(json: credJson)
           mapIdentifierCredential[credentialIdentifier] = .w3CJsonLdSignedJwt(profile)
         case W3CJsonLdDataIntegrityFormat.FORMAT:
-          let profile = try W3CJsonLdDataIntegrityFormat.CredentialSupported(json: credJson)
+          let profile = try W3CJsonLdDataIntegrityFormat.CredentialConfiguration(json: credJson)
           mapIdentifierCredential[credentialIdentifier] = .w3CJsonLdDataIntegrity(profile)
         default: throw ValidationError.error(reason: "Unknow credential format")
         }

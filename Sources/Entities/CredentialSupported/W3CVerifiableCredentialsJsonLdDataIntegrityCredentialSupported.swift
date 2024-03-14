@@ -16,7 +16,7 @@
 import Foundation
 import SwiftyJSON
 
-public struct W3CVerifiableCredentialsJsonLdDataIntegrityCredentialSupported: Codable {
+public struct W3CVerifiableCredentialsJsonLdDataIntegrityCredentialConfiguration: Codable {
   public let format: String
   public let scope: String?
   public let cryptographicBindingMethodsSupported: [String]?

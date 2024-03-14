@@ -16,7 +16,7 @@
 import Foundation
 import SwiftyJSON
 
-public struct MsoMdocCredentialCredentialSupported: Codable {
+public struct MsoMdocCredentialCredentialConfiguration: Codable {
   public let format: String
   public let scope: String?
   public let cryptographicBindingMethodsSupported: [String]?

@@ -78,7 +78,7 @@ public extension W3CSignedJwtFormat {
     }
   }
   
-  struct CredentialSupportedDTO: Codable {
+  struct CredentialConfigurationDTO: Codable {
     public let format: String
     public let scope: String?
     public let cryptographicBindingMethodsSupported: [String]?
@@ -119,7 +119,7 @@ public extension W3CSignedJwtFormat {
       self.order = order
     }
     
-    func toDomain() throws -> W3CSignedJwtFormat.CredentialSupported {
+    func toDomain() throws -> W3CSignedJwtFormat.CredentialConfiguration {
       
       let bindingMethods = try cryptographicBindingMethodsSupported?.compactMap {
         try CryptographicBindingMethod(method: $0)
@@ -143,7 +143,7 @@ public extension W3CSignedJwtFormat {
     }
   }
   
-  struct CredentialSupported: Codable {
+  struct CredentialConfiguration: Codable {
     public let scope: String?
     public let cryptographicBindingMethodsSupported: [CryptographicBindingMethod]
     public let credentialSigningAlgValuesSupported: [String]
@@ -275,8 +275,8 @@ public extension W3CSignedJwtFormat {
     
     if let credentialsSupported = metadata.credentialConfigurationsSupported.first(where: { (id, credential) in
       switch credential {
-      case .w3CSignedJwt(let credentialSupported):
-        return credentialSupported.credentialDefinition.type == credentialDefinition.type
+      case .w3CSignedJwt(let credentialConfiguration):
+        return credentialConfiguration.credentialDefinition.type == credentialDefinition.type
       default: return false
       }
     }) {
