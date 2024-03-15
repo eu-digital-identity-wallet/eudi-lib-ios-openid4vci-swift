@@ -202,3 +202,44 @@ public struct DeferredIssuanceRequestTO: Codable {
     self.transactionId = transactionId
   }
 }
+
+public enum TxCodeInputMode: String {
+  case numeric
+  case text
+  
+  public static func of(_ str: String) -> TxCodeInputMode {
+    switch str {
+    case "numeric": return .numeric
+    case "text": return .text
+    default: fatalError("Unsupported tx_code input method")
+    }
+  }
+}
+
+public struct TxCode {
+  public let inputMode: TxCodeInputMode = .numeric
+  public let length: Int?
+  public let description: String?
+  
+  public init(length: Int?, description: String?) {
+    self.length = length
+    self.description = description
+  }
+}
+
+public struct TxCodeTO: Codable {
+  public let inputMode: String?
+  public let length: Int?
+  public let description: String?
+  
+  public init(inputMode: String?, length: Int?, description: String?) {
+    self.inputMode = inputMode
+    self.length = length
+    self.description = description
+  }
+}
+
+public enum InputModeTO: String, Codable {
+  case text = "text"
+  case numeric = "numeric"
+}

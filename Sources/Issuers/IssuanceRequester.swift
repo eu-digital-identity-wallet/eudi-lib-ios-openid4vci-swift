@@ -85,7 +85,6 @@ public actor IssuanceRequester: IssuanceRequesterType {
       case .msoMdoc(let credential):
         switch issuerMetadata.credentialResponseEncryption {
         case .notRequired:
-          print(string)
           guard let response = SingleIssuanceSuccessResponse.fromJSONString(string) else {
             return .failure(ValidationError.todo(reason: "Cannot decode .notRequired response"))
           }
@@ -293,7 +292,7 @@ private extension SingleIssuanceSuccessResponse {
       
     } else if let credential = credential {
       return CredentialIssuanceResponse(
-        credentialResponses: [.issued(format: format, credential: credential, notificationId: nil)],
+        credentialResponses: [.issued(format: format ?? "", credential: credential, notificationId: nil)],
         cNonce: CNonce(value: cNonce, expiresInSeconds: cNonceExpiresInSeconds)
       )
     }

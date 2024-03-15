@@ -18,7 +18,7 @@ import Foundation
 
 //let CredentialIssuer_URL = "http://localhost:8080"
 //let CREDENTIAL_ISSUER_PUBLIC_URL = "https://trial.authlete.net"
-let CREDENTIAL_ISSUER_PUBLIC_URL = "https://issuer-backend.eudiw.dev"
+let CREDENTIAL_ISSUER_PUBLIC_URL = "https://dev.issuer-backend.eudiw.dev"
 let PID_SdJwtVC_config_id = "eu.europa.ec.eudiw.pid_vc_sd_jwt"
 let PID_MsoMdoc_config_id = "eu.europa.ec.eudiw.pid_mso_mdoc"
 let MDL_config_id = "org.iso.18013.5.1.mDL"

@@ -16,7 +16,7 @@
 import Foundation
 
 public struct SingleIssuanceSuccessResponse: Codable {
-  public let format: String
+  public let format: String?
   public let credential: String?
   public let transactionId: String?
   public let notificationId: String?
@@ -33,7 +33,7 @@ public struct SingleIssuanceSuccessResponse: Codable {
   }
   
   public init(
-    format: String,
+    format: String?,
     credential: String?,
     transactionId: String?,
     notificationId: String?,
@@ -59,7 +59,7 @@ public extension SingleIssuanceSuccessResponse {
       )
     } else if let credential = credential {
       return CredentialIssuanceResponse(
-        credentialResponses: [.issued(format: format, credential: credential, notificationId: nil)],
+        credentialResponses: [.issued(format: format ?? "", credential: credential, notificationId: nil)],
         cNonce: CNonce(value: cNonce, expiresInSeconds: cNonceExpiresInSeconds)
       )
     } else {

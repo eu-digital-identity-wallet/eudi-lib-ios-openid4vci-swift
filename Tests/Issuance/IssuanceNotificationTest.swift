@@ -107,7 +107,7 @@ class IssuanceNotificationTest: XCTestCase {
       let authorizedRequest = await issuer.requestAccessToken(authorizationCode: authorizationCode)
       
       if case let .success(authorized) = authorizedRequest,
-         case let .noProofRequired(token) = authorized {
+         case let .noProofRequired(token, _) = authorized {
         XCTAssert(true, "Got access token: \(token)")
         XCTAssert(true, "Is no proof required")
         
@@ -244,7 +244,7 @@ class IssuanceNotificationTest: XCTestCase {
       let authorizedRequest = await issuer.requestAccessToken(authorizationCode: authorizationCode)
       
       if case let .success(authorized) = authorizedRequest,
-         case let .noProofRequired(token) = authorized {
+         case let .noProofRequired(token, _) = authorized {
         XCTAssert(true, "Got access token: \(token)")
         XCTAssert(true, "Is no proof required")
         

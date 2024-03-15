@@ -32,15 +32,28 @@ public enum Grants {
     public let preAuthorizedCode: String?
     public let pinRequired: Bool
     public let interval: TimeInterval
+    public let txCode: TxCode?
     
     public init(
       preAuthorizedCode: String?,
       pinRequired: Bool = false,
-      interval: TimeInterval = 5.0
+      interval: TimeInterval = 5.0,
+      txCode: TxCode? = nil
     ) {
       self.preAuthorizedCode = preAuthorizedCode
       self.pinRequired = pinRequired
       self.interval = interval
+      self.txCode = txCode
+    }
+  }
+  
+  public struct Both {
+    public let authorizationCode: AuthorizationCode
+    public let preAuthorizedCode: PreAuthorizedCode
+    
+    public init(authorizationCode: AuthorizationCode, preAuthorizedCode: PreAuthorizedCode) {
+      self.authorizationCode = authorizationCode
+      self.preAuthorizedCode = preAuthorizedCode
     }
   }
 }

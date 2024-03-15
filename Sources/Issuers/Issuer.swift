@@ -172,9 +172,9 @@ public actor Issuer: IssuerType {
         switch response {
         case .success((let accessToken, let nonce)):
           if let cNonce = CNonce(value: nonce) {
-            return .success(.proofRequired(token: try IssuanceAccessToken(accessToken: accessToken), cNonce: cNonce))
+            return .success(.proofRequired(token: try IssuanceAccessToken(accessToken: accessToken), cNonce: cNonce, credentialIdentifiers: [:]))
           } else {
-            return .success(.noProofRequired(token: try IssuanceAccessToken(accessToken: accessToken)))
+            return .success(.noProofRequired(token: try IssuanceAccessToken(accessToken: accessToken), credentialIdentifiers: [:]))
           }
         case .failure(let error):
           return .failure(ValidationError.error(reason: error.localizedDescription))
@@ -206,13 +206,15 @@ public actor Issuer: IssuerType {
             return .success(
               .proofRequired(
                 token: try IssuanceAccessToken(accessToken: response.accessToken),
-                cNonce: cNonce
+                cNonce: cNonce,
+                credentialIdentifiers: [:]
               )
             )
           } else {
             return .success(
               .noProofRequired(
-                token: try IssuanceAccessToken(accessToken: response.accessToken)
+                token: try IssuanceAccessToken(accessToken: response.accessToken),
+                credentialIdentifiers: [:]
               )
             )
           }
@@ -278,9 +280,9 @@ public actor Issuer: IssuerType {
   
   private func accessToken(from request: AuthorizedRequest) -> IssuanceAccessToken {
     switch request {
-    case .noProofRequired(let token):
+    case .noProofRequired(let token, _):
       return token
-    case .proofRequired(let token, _):
+    case .proofRequired(let token, _, _):
       return token
     }
   }
@@ -289,7 +291,7 @@ public actor Issuer: IssuerType {
     switch request {
     case .noProofRequired:
       return nil
-    case .proofRequired(_, let cnonce):
+    case .proofRequired(_, let cnonce, _):
       return cnonce
     }
   }
@@ -311,7 +313,7 @@ public actor Issuer: IssuerType {
     }
     
     switch noProofRequest {
-    case .noProofRequired(let token):
+    case .noProofRequired(let token, _):
       return try await requestIssuance(token: token) {
         return try supportedCredential.toIssuanceRequest(
           requester: issuanceRequester,

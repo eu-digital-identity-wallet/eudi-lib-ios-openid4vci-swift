@@ -143,12 +143,12 @@ extension Wallet {
 
 extension Wallet {
   
-  func issueByCredentialOfferUrlMultipleFormats(url: String) async throws -> [(String, String)] {
+  func issueByCredentialOfferUrlMultipleFormats(offerUri: String) async throws -> [(String, String)] {
     let resolver = CredentialOfferRequestResolver()
     let result = await resolver
       .resolve(
         source: try .init(
-          urlString: url
+          urlString: offerUri
         )
       )
     
@@ -160,11 +160,11 @@ extension Wallet {
     }
   }
   
-  func issueByCredentialOfferUrl(url: String, scope: String) async throws -> String {
+  func issueByCredentialOfferUrl(offerUri: String, scope: String) async throws -> String {
     let result = await CredentialOfferRequestResolver()
       .resolve(
         source: try .init(
-          urlString: url
+          urlString: offerUri
         )
       )
     
@@ -267,7 +267,7 @@ extension Wallet {
         let authorizedRequest = await issuer.requestAccessToken(authorizationCode: request)
         
         if case let .success(authorized) = authorizedRequest,
-           case let .noProofRequired(token) = authorized {
+           case let .noProofRequired(token, _) = authorized {
           print("--> [AUTHORIZATION] Authorization code exchanged with access token : \(token.accessToken)")
           
           return authorized

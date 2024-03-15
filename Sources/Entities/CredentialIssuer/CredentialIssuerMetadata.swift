@@ -40,7 +40,7 @@ public struct CredentialIssuerMetadata: Codable, Equatable {
     case credentialResponseEncryptionAlgorithmsSupported = "credential_response_encryption_alg_values_supported"
     case credentialResponseEncryptionMethodsSupported = "credential_response_encryption_enc_values_supported"
     case requireCredentialResponseEncryption = "require_credential_response_encryption"
-    case credentialsSupported = "credential_configurations_supported"
+    case credentialConfigurationsSupported = "credential_configurations_supported"
     case display = "display"
   }
   
@@ -97,7 +97,7 @@ public struct CredentialIssuerMetadata: Codable, Equatable {
     
     requireCredentialResponseEncryption = try container.decodeIfPresent(Bool.self, forKey: .requireCredentialResponseEncryption) ?? false
     
-    let json = try container.decodeIfPresent(JSON.self, forKey: .credentialsSupported) ?? []
+    let json = try container.decodeIfPresent(JSON.self, forKey: .credentialConfigurationsSupported) ?? []
     var mapIdentifierCredential: [CredentialIdentifier: SupportedCredential] = [:]
     for (key, value): (String, JSON) in json {
       if let dictionary = value.dictionary,
@@ -158,7 +158,7 @@ public struct CredentialIssuerMetadata: Codable, Equatable {
     }
     
     try container.encode(requireCredentialResponseEncryption, forKey: .requireCredentialResponseEncryption)
-    try container.encode(credentialConfigurationsSupported, forKey: .credentialsSupported)
+    try container.encode(credentialConfigurationsSupported, forKey: .credentialConfigurationsSupported)
     try container.encode(display, forKey: .display)
   }
   
