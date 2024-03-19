@@ -282,6 +282,15 @@ public extension MsoMdocFormat {
         try ProofType(type: $0.stringValue)
       }
       self.proofTypesSupported = proofTypes.isEmpty ? [.jwt] : proofTypes
+      
+      let proofTypesSupported: [String: ProofSigningAlgorithmsSupported]? = json["proof_types_supported"].dictionaryObject?.compactMapValues { values in
+        if let types = values as? [String: Any],
+           let algorithms = types["proof_signing_alg_values_supported"] as? [String] {
+          return ProofSigningAlgorithmsSupported(algorithms: algorithms)
+        }
+        return nil
+      }
+      
       self.display = json["display"].arrayValue.map { json in
         Display(json: json)
       }
