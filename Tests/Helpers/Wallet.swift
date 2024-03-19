@@ -44,7 +44,7 @@ extension Wallet {
         let offer = try CredentialOffer(
           credentialIssuerIdentifier: credentialIssuerIdentifier,
           credentialIssuerMetadata: metaData,
-          credentials: [
+          credentialConfigurationIdentifiers: [
             .init(value: identifier),
             .init(value: Constants.OPENID_SCOPE)
           ],
@@ -234,7 +234,7 @@ extension Wallet {
     print("--> [AUTHORIZATION] Placing PAR to AS server's endpoint \(pushedAuthorizationRequestEndpoint)")
     
     let parPlaced = await issuer.pushAuthorizationCodeRequest(
-      credentials: offer.credentials
+      credentials: offer.credentialConfigurationIdentifiers
     )
     
     if case let .success(request) = parPlaced,

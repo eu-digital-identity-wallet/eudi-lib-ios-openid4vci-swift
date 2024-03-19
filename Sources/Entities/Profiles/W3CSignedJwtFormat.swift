@@ -83,7 +83,7 @@ public extension W3CSignedJwtFormat {
     public let scope: String?
     public let cryptographicBindingMethodsSupported: [String]?
     public let credentialSigningAlgValuesSupported: [String]?
-    public let proofTypesSupported: [String]?
+    public let proofTypesSupported: [String: ProofSigningAlgorithmsSupported]?
     public let display: [Display]?
     public let credentialDefinition: CredentialDefinitionTO
     public let order: [String]?
@@ -104,7 +104,7 @@ public extension W3CSignedJwtFormat {
       scope: String? = nil,
       cryptographicBindingMethodsSupported: [String]? = nil,
       credentialSigningAlgValuesSupported: [String]? = nil,
-      proofTypesSupported: [String]? = nil,
+      proofTypesSupported: [String: ProofSigningAlgorithmsSupported]? = nil,
       display: [Display]? = nil,
       credentialDefinition: CredentialDefinitionTO,
       order: [String]? = nil
@@ -125,9 +125,7 @@ public extension W3CSignedJwtFormat {
         try CryptographicBindingMethod(method: $0)
       } ?? []
       let display: [Display] = self.display ?? []
-      let proofTypesSupported: [ProofType] = try self.proofTypesSupported?.compactMap {
-        try ProofType(type: $0)
-      } ?? { throw ValidationError.error(reason: "No proof types found")}()
+      
       let credentialSigningAlgValuesSupported: [String] = self.credentialSigningAlgValuesSupported ?? []
       let credentialDefinition = self.credentialDefinition.toDomain()
       
@@ -147,7 +145,7 @@ public extension W3CSignedJwtFormat {
     public let scope: String?
     public let cryptographicBindingMethodsSupported: [CryptographicBindingMethod]
     public let credentialSigningAlgValuesSupported: [String]
-    public let proofTypesSupported: [ProofType]?
+    public let proofTypesSupported: [String: ProofSigningAlgorithmsSupported]?
     public let display: [Display]
     public let credentialDefinition: CredentialDefinition
     public let order: [ClaimName]
@@ -166,7 +164,7 @@ public extension W3CSignedJwtFormat {
       scope: String?,
       cryptographicBindingMethodsSupported: [CryptographicBindingMethod],
       credentialSigningAlgValuesSupported: [String],
-      proofTypesSupported: [ProofType]?,
+      proofTypesSupported: [String: ProofSigningAlgorithmsSupported]?,
       display: [Display],
       credentialDefinition: CredentialDefinition,
       order: [ClaimName]
@@ -186,7 +184,7 @@ public extension W3CSignedJwtFormat {
       scope = try container.decodeIfPresent(String.self, forKey: .scope)
       cryptographicBindingMethodsSupported = try container.decode([CryptographicBindingMethod].self, forKey: .cryptographicBindingMethodsSupported)
       credentialSigningAlgValuesSupported = try container.decode([String].self, forKey: .credentialSigningAlgValuesSupported)
-      proofTypesSupported = try? container.decode([ProofType].self, forKey: .proofTypesSupported)
+      proofTypesSupported = try? container.decode([String: ProofSigningAlgorithmsSupported].self, forKey: .proofTypesSupported)
       display = try container.decode([Display].self, forKey: .display)
       credentialDefinition = try container.decode(CredentialDefinition.self, forKey: .credentialDefinition)
       order = try container.decode([ClaimName].self, forKey: .order)
@@ -212,8 +210,12 @@ public extension W3CSignedJwtFormat {
       self.credentialSigningAlgValuesSupported = json["credential_signing_alg_values_supported"].arrayValue.map {
         $0.stringValue
       }
-      self.proofTypesSupported = try json["proof_types_supported"].arrayValue.map {
-        try ProofType(type: $0.stringValue)
+      self.proofTypesSupported = json["proof_types_supported"].dictionaryObject?.compactMapValues { values in
+        if let types = values as? [String: Any],
+           let algorithms = types["proof_signing_alg_values_supported"] as? [String] {
+          return ProofSigningAlgorithmsSupported(algorithms: algorithms)
+        }
+        return nil
       }
       self.display = json["display"].arrayValue.map { json in
         Display(json: json)
@@ -273,14 +275,14 @@ public extension W3CSignedJwtFormat {
     
     let credentialDefinition = CredentialDefinitionTO(json: json).toDomain()
     
-    if let credentialsSupported = metadata.credentialConfigurationsSupported.first(where: { (id, credential) in
+    if let credentialConfigurationsSupported = metadata.credentialConfigurationsSupported.first(where: { (id, credential) in
       switch credential {
       case .w3CSignedJwt(let credentialConfiguration):
         return credentialConfiguration.credentialDefinition.type == credentialDefinition.type
       default: return false
       }
     }) {
-      switch credentialsSupported.value {
+      switch credentialConfigurationsSupported.value {
       case .w3CSignedJwt(let profile):
         return .w3CSignedJwt(.init(
           credentialDefinition: credentialDefinition,

@@ -89,6 +89,8 @@ public struct Poster: PostingType {
       let (data, response) = try await self.session.data(for: request)
       let statusCode = (response as? HTTPURLResponse)?.statusCode ?? 0
       
+      print(NSString(string: String(data: data, encoding: .utf8) ?? ""))
+      
       if statusCode >= 400 && statusCode < 500 {
         let object = try JSONDecoder().decode(GenericErrorResponse.self, from: data)
         return .failure(.response(object))

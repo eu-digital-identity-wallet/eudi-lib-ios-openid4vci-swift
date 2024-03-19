@@ -17,7 +17,7 @@ import Foundation
 import SwiftyJSON
 import JOSESwift
 
-public struct CredentialIssuerMetadata: Codable, Equatable {
+public struct CredentialIssuerMetadata: Decodable, Equatable {
   public let credentialIssuerIdentifier: CredentialIssuerId
   public let authorizationServers: [URL]
   public let credentialEndpoint: CredentialIssuerEndpoint
@@ -25,7 +25,6 @@ public struct CredentialIssuerMetadata: Codable, Equatable {
   public let deferredCredentialEndpoint: CredentialIssuerEndpoint?
   public let notificationEndpoint: CredentialIssuerEndpoint?
   public let credentialResponseEncryption: CredentialResponseEncryption
-  public let requireCredentialResponseEncryption: Bool
   public let credentialConfigurationsSupported: [CredentialIdentifier: SupportedCredential]
   
   public let display: [Display]
@@ -42,6 +41,7 @@ public struct CredentialIssuerMetadata: Codable, Equatable {
     case requireCredentialResponseEncryption = "require_credential_response_encryption"
     case credentialConfigurationsSupported = "credential_configurations_supported"
     case display = "display"
+    case credentialResponseEncryption = "credential_response_encryption"
   }
   
   public init(
@@ -52,7 +52,6 @@ public struct CredentialIssuerMetadata: Codable, Equatable {
     deferredCredentialEndpoint: CredentialIssuerEndpoint?,
     notificationEndpoint: CredentialIssuerEndpoint?,
     credentialResponseEncryption: CredentialResponseEncryption = .notRequired,
-    requireCredentialResponseEncryption: Bool?,
     credentialConfigurationsSupported: [CredentialIdentifier: SupportedCredential],
     display: [Display]?
   ) {
@@ -65,7 +64,6 @@ public struct CredentialIssuerMetadata: Codable, Equatable {
     self.notificationEndpoint = notificationEndpoint
     
     self.credentialResponseEncryption = credentialResponseEncryption
-    self.requireCredentialResponseEncryption = requireCredentialResponseEncryption ?? false
     self.credentialConfigurationsSupported = credentialConfigurationsSupported
     self.display = display ?? []
   }
@@ -85,17 +83,7 @@ public struct CredentialIssuerMetadata: Codable, Equatable {
     deferredCredentialEndpoint = try container.decodeIfPresent(CredentialIssuerEndpoint.self, forKey: .deferredCredentialEndpoint)
     notificationEndpoint = try container.decodeIfPresent(CredentialIssuerEndpoint.self, forKey: .notificationEndpoint)
     
-    if let credentialResponseEncryptionAlgorithmsSupported = try? container.decodeIfPresent([JWEAlgorithm].self, forKey: .credentialResponseEncryptionAlgorithmsSupported),
-       let credentialResponseEncryptionMethodsSupported = try? container.decodeIfPresent([JOSEEncryptionMethod].self, forKey: .credentialResponseEncryptionMethodsSupported) {
-      credentialResponseEncryption = .required(
-        algorithmsSupported: credentialResponseEncryptionAlgorithmsSupported,
-        encryptionMethodsSupported: credentialResponseEncryptionMethodsSupported
-      )
-    } else {
-      credentialResponseEncryption = .notRequired
-    }
-    
-    requireCredentialResponseEncryption = try container.decodeIfPresent(Bool.self, forKey: .requireCredentialResponseEncryption) ?? false
+    credentialResponseEncryption = try container.decode(CredentialResponseEncryption.self, forKey: .credentialResponseEncryption)
     
     let json = try container.decodeIfPresent(JSON.self, forKey: .credentialConfigurationsSupported) ?? []
     var mapIdentifierCredential: [CredentialIdentifier: SupportedCredential] = [:]
@@ -132,34 +120,6 @@ public struct CredentialIssuerMetadata: Codable, Equatable {
     credentialConfigurationsSupported = mapIdentifierCredential
     
     display = try container.decodeIfPresent([Display].self, forKey: .display) ?? []
-  }
-  
-  // Implement an encode(to:) method to handle encoding.
-  public func encode(to encoder: Encoder) throws {
-    var container = encoder.container(keyedBy: CodingKeys.self)
-    
-    // Encode each property as necessary, handling optionals and conversions.
-    try container.encode(credentialIssuerIdentifier, forKey: .credentialIssuerIdentifier)
-    try container.encode(authorizationServers, forKey: .authorizationServers)
-    
-    try container.encode(credentialEndpoint, forKey: .credentialEndpoint)
-    try container.encode(batchCredentialEndpoint, forKey: .batchCredentialEndpoint)
-    try container.encode(deferredCredentialEndpoint, forKey: .deferredCredentialEndpoint)
-    try container.encode(notificationEndpoint, forKey: .notificationEndpoint)
-    
-    switch credentialResponseEncryption {
-    case .notRequired: break
-    case .required(
-      let algorithmsSupported,
-      let encryptionMethodsSupported
-    ):
-      try container.encode(algorithmsSupported, forKey: .credentialResponseEncryptionAlgorithmsSupported)
-      try container.encode(encryptionMethodsSupported, forKey: .credentialResponseEncryptionMethodsSupported)
-    }
-    
-    try container.encode(requireCredentialResponseEncryption, forKey: .requireCredentialResponseEncryption)
-    try container.encode(credentialConfigurationsSupported, forKey: .credentialConfigurationsSupported)
-    try container.encode(display, forKey: .display)
   }
   
   public static func == (lhs: CredentialIssuerMetadata, rhs: CredentialIssuerMetadata) -> Bool {

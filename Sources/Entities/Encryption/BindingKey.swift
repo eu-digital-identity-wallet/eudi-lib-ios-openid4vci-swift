@@ -47,17 +47,17 @@ public extension BindingKey {
     ):
       switch credentialSpec {
       case .msoMdoc(let spec):
-        let suites = spec.credentialSigningAlgValuesSupported.contains { $0 == algorithm.name }
+        let suites = spec.proofTypesSupported?["jwt"]?.algorithms.contains { $0 == algorithm.name } ??  false
         let bindings = spec.cryptographicBindingMethodsSupported.contains { $0  == .jwk }
-        let proofs = spec.proofTypesSupported?.contains { $0 == .jwt } ?? false
+        let proofs = spec.proofTypesSupported?.keys.contains { $0 == "jwt" } ?? false
         
         guard suites else {
           throw CredentialIssuanceError.cryptographicSuiteNotSupported(algorithm.name)
         }
         
-        guard bindings else {
-          throw CredentialIssuanceError.cryptographicBindingMethodNotSupported
-        }
+//        guard bindings else {
+//          throw CredentialIssuanceError.cryptographicBindingMethodNotSupported
+//        }
         
         guard proofs else {
           throw CredentialIssuanceError.proofTypeNotSupported
@@ -99,17 +99,17 @@ public extension BindingKey {
         return .jwt(jws.compactSerializedString)
 
       case .sdJwtVc(let spec):
-        let suites = spec.credentialSigningAlgValuesSupported.contains { $0 == algorithm.name }
+        let suites = spec.proofTypesSupported?["jwt"]?.algorithms.contains { $0 == algorithm.name } ??  false
         let bindings = spec.cryptographicBindingMethodsSupported.contains { $0  == .jwk }
-        let proofs = spec.proofTypesSupported?.contains { $0 == .jwt } ?? false
+        let proofs = spec.proofTypesSupported?.keys.contains { $0 == "jwt" } ?? false
         
         guard suites else {
           throw CredentialIssuanceError.cryptographicSuiteNotSupported(algorithm.name)
         }
         
-        guard bindings else {
-          throw CredentialIssuanceError.cryptographicBindingMethodNotSupported
-        }
+//        guard bindings else {
+//          throw CredentialIssuanceError.cryptographicBindingMethodNotSupported
+//        }
         
         guard proofs else {
           throw CredentialIssuanceError.proofTypeNotSupported

@@ -85,18 +85,22 @@ public extension SingleCredential {
             "format": MsoMdocFormat.FORMAT,
             "proof": try proof.toDictionary(),
             "doctype": credential.docType,
-            "credential_encryption_jwk": try encryptionJwk.toDictionary(),
-            "credential_response_encryption_alg": responseEncryptionAlg.name,
-            "credential_response_encryption_enc": responseEncryptionMethod.name
+            "credential_response_encryption": [
+              "jwk": try encryptionJwk.toDictionary(),
+              "alg": responseEncryptionAlg.name,
+              "enc": responseEncryptionMethod.name
+            ]
           ]
           
         } else {
           return [
             "format": MsoMdocFormat.FORMAT,
             "doctype": credential.docType,
-            "credential_encryption_jwk": try encryptionJwk.toDictionary(),
-            "credential_response_encryption_alg": responseEncryptionAlg.name,
-            "credential_response_encryption_enc": responseEncryptionMethod.name
+            "credential_response_encryption": [
+              "jwk": try encryptionJwk.toDictionary(),
+              "alg": responseEncryptionAlg.name,
+              "enc": responseEncryptionMethod.name
+            ]
           ]
         }
       }
@@ -122,18 +126,22 @@ public extension SingleCredential {
           return [
             "format": SdJwtVcFormat.FORMAT,
             "proof": try proof.toDictionary(),
-            "credential_encryption_jwk": try encryptionJwk.toDictionary(),
-            "credential_response_encryption_alg": responseEncryptionAlg.name,
-            "credential_response_encryption_enc": responseEncryptionMethod.name,
+            "credential_response_encryption": [
+              "jwk": try encryptionJwk.toDictionary(),
+              "alg": responseEncryptionAlg.name,
+              "enc": responseEncryptionMethod.name
+            ],
             "credential_definition": credentialDefinition
           ]
           
         } else {
           return [
             "format": SdJwtVcFormat.FORMAT,
-            "credential_encryption_jwk": try encryptionJwk.toDictionary(),
-            "credential_response_encryption_alg": responseEncryptionAlg.name,
-            "credential_response_encryption_enc": responseEncryptionMethod.name,
+            "credential_response_encryption": [
+              "jwk": try encryptionJwk.toDictionary(),
+              "alg": responseEncryptionAlg.name,
+              "enc": responseEncryptionMethod.name
+            ],
             "credential_definition": credentialDefinition
           ]
         }

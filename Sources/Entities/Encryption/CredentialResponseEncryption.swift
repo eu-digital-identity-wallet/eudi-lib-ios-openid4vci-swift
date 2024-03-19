@@ -15,7 +15,7 @@
  */
 import Foundation
 
-public enum CredentialResponseEncryption: Codable {
+public enum CredentialResponseEncryption: Decodable {
   case notRequired
   case required(
     algorithmsSupported: [JWEAlgorithm],
@@ -23,37 +23,21 @@ public enum CredentialResponseEncryption: Codable {
   )
   
   private enum CodingKeys: String, CodingKey {
-    case type
-    case algorithmsSupported
-    case encryptionMethodsSupported
+    case encryptionRequired = "encryption_required"
+    case algorithmsSupported = "alg_values_supported"
+    case encryptionMethodsSupported = "enc_values_supported"
   }
   
   public init(from decoder: Decoder) throws {
     let container = try decoder.container(keyedBy: CodingKeys.self)
-    let type = try container.decode(String.self, forKey: .type)
+    let encryptionRequired = try container.decode(Bool.self, forKey: .encryptionRequired)
     
-    switch type {
-    case "notRequired":
+    if !encryptionRequired {
       self = .notRequired
-    case "required":
+    } else {
       let algorithmsSupported = try container.decode([JWEAlgorithm].self, forKey: .algorithmsSupported)
       let encryptionMethodsSupported = try container.decode([JOSEEncryptionMethod].self, forKey: .encryptionMethodsSupported)
       self = .required(algorithmsSupported: algorithmsSupported, encryptionMethodsSupported: encryptionMethodsSupported)
-    default:
-      throw DecodingError.dataCorruptedError(forKey: .type, in: container, debugDescription: "Unknown type")
-    }
-  }
-  
-  public func encode(to encoder: Encoder) throws {
-    var container = encoder.container(keyedBy: CodingKeys.self)
-    
-    switch self {
-    case .notRequired:
-      try container.encode("not_required", forKey: .type)
-    case let .required(algorithmsSupported, encryptionMethodsSupported):
-      try container.encode("required", forKey: .type)
-      try container.encode(algorithmsSupported, forKey: .algorithmsSupported)
-      try container.encode(encryptionMethodsSupported, forKey: .encryptionMethodsSupported)
     }
   }
 }

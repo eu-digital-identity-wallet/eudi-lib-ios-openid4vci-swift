@@ -232,10 +232,23 @@ public struct TxCodeTO: Codable {
   public let length: Int?
   public let description: String?
   
+  public enum CodingKeys: String, CodingKey {
+    case inputMode = "input_mode"
+    case length
+    case description
+  }
+  
   public init(inputMode: String?, length: Int?, description: String?) {
     self.inputMode = inputMode
     self.length = length
     self.description = description
+  }
+  
+  public init(from decoder: Decoder) throws {
+    let container = try decoder.container(keyedBy: CodingKeys.self)
+    inputMode = try container.decodeIfPresent(String.self, forKey: .inputMode) ?? "numeric"
+    length = try container.decodeIfPresent(Int.self, forKey: .length)
+    description = try container.decodeIfPresent(String.self, forKey: .description)
   }
 }
 

@@ -51,14 +51,6 @@ public extension SupportedCredential {
   ) throws -> CredentialIssuanceRequest {
     switch self {
     case .msoMdoc(let credentialConfiguration):
-      if let proof,
-         let proofTypesSupported = credentialConfiguration.proofTypesSupported,
-         proofTypesSupported.contains(proof.type()) {
-        if !proofTypesSupported.contains(proof.type()) {
-          throw ValidationError.error(reason: "Provided proof type \(proof.type()) is not one of supported [\(proofTypesSupported)].")
-        }
-      }
-      
       let issuerEncryption = requester.issuerMetadata.credentialResponseEncryption
       let responseEncryptionSpec = responseEncryptionSpecProvider(issuerEncryption)
       
@@ -86,14 +78,6 @@ public extension SupportedCredential {
       )
 
     case .sdJwtVc(let credentialConfiguration):
-      if let proof,
-         let proofTypesSupported = credentialConfiguration.proofTypesSupported,
-         proofTypesSupported.contains(proof.type()) {
-        if !proofTypesSupported.contains(proof.type()) {
-          throw ValidationError.error(reason: "Provided proof type \(proof.type()) is not one of supported [\(proofTypesSupported)].")
-        }
-      }
-      
       let issuerEncryption = requester.issuerMetadata.credentialResponseEncryption
       let responseEncryptionSpec = responseEncryptionSpecProvider(issuerEncryption)
       
