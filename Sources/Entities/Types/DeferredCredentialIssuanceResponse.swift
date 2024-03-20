@@ -16,7 +16,7 @@
 import Foundation
 
 public enum DeferredCredentialIssuanceResponse: Codable {
-  case issued(format: String, credential: String)
+  case issued(format: String?, credential: String)
   case issuancePending(transactionId: TransactionId)
   case errored(error: String?, errorDescription: String?)
   
@@ -38,7 +38,13 @@ public enum DeferredCredentialIssuanceResponse: Codable {
     } else if let transactionId = try? container.decode(String.self, forKey: .transactionId) {
       self = .issuancePending(transactionId: try .init(value: transactionId))
       
-    } else {
+    } else if let credential = try? container.decode(String.self, forKey: .credential) {
+       self = .issued(
+        format: nil,
+        credential: credential
+       )
+       
+     } else {
       self = .errored(
         error: try? container.decode(String.self, forKey: .error),
         errorDescription: try? container.decodeIfPresent(String.self, forKey: .errorDescription)

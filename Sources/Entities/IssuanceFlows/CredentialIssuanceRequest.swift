@@ -118,31 +118,28 @@ public extension SingleCredential {
         let responseEncryptionAlg,
         let responseEncryptionMethod
       ):
-        let credentialDefinition = try [
-          "type": credential.credentialDefinition.type
-        ].toDictionary()
         
         if let proof = credential.proof {
           return [
+            "vct": credential.credentialDefinition.type,
             "format": SdJwtVcFormat.FORMAT,
             "proof": try proof.toDictionary(),
             "credential_response_encryption": [
               "jwk": try encryptionJwk.toDictionary(),
               "alg": responseEncryptionAlg.name,
               "enc": responseEncryptionMethod.name
-            ],
-            "credential_definition": credentialDefinition
+            ]
           ]
           
         } else {
           return [
+            "vct": SdJwtVcFormat.FORMAT,
             "format": SdJwtVcFormat.FORMAT,
             "credential_response_encryption": [
               "jwk": try encryptionJwk.toDictionary(),
               "alg": responseEncryptionAlg.name,
               "enc": responseEncryptionMethod.name
-            ],
-            "credential_definition": credentialDefinition
+            ]
           ]
         }
       }

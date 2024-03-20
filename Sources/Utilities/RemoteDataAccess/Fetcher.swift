@@ -82,8 +82,6 @@ public struct Fetcher<Element: Decodable>: Fetching {
     do {
       let (data, response) = try await self.session.data(from: url)
       
-      print(NSString(string: String(data: data, encoding: .utf8) ?? ""))
-      
       let statusCode = (response as? HTTPURLResponse)?.statusCode ?? 0
       if !statusCode.isWithinRange(200...299) {
         throw FetchError.invalidStatusCode(url, statusCode)
