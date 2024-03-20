@@ -26,7 +26,7 @@ public struct CredentialIssuerMetadata: Decodable, Equatable {
   public let notificationEndpoint: CredentialIssuerEndpoint?
   public let credentialResponseEncryption: CredentialResponseEncryption
   public let credentialConfigurationsSupported: [CredentialIdentifier: SupportedCredential]
-  
+  public let signedMetadata: String?
   public let display: [Display]
   
   public enum CodingKeys: String, CodingKey {
@@ -42,6 +42,7 @@ public struct CredentialIssuerMetadata: Decodable, Equatable {
     case credentialConfigurationsSupported = "credential_configurations_supported"
     case display = "display"
     case credentialResponseEncryption = "credential_response_encryption"
+    case signedMetadata = "signed_metadata"
   }
   
   public init(
@@ -53,6 +54,7 @@ public struct CredentialIssuerMetadata: Decodable, Equatable {
     notificationEndpoint: CredentialIssuerEndpoint?,
     credentialResponseEncryption: CredentialResponseEncryption = .notRequired,
     credentialConfigurationsSupported: [CredentialIdentifier: SupportedCredential],
+    signedMetadata: String?,
     display: [Display]?
   ) {
     self.credentialIssuerIdentifier = credentialIssuerIdentifier
@@ -65,6 +67,8 @@ public struct CredentialIssuerMetadata: Decodable, Equatable {
     
     self.credentialResponseEncryption = credentialResponseEncryption
     self.credentialConfigurationsSupported = credentialConfigurationsSupported
+    
+    self.signedMetadata = signedMetadata
     self.display = display ?? []
   }
   
@@ -120,6 +124,8 @@ public struct CredentialIssuerMetadata: Decodable, Equatable {
     credentialConfigurationsSupported = mapIdentifierCredential
     
     display = try container.decodeIfPresent([Display].self, forKey: .display) ?? []
+    
+    signedMetadata = try? container.decodeIfPresent(String.self, forKey: .signedMetadata)
   }
   
   public static func == (lhs: CredentialIssuerMetadata, rhs: CredentialIssuerMetadata) -> Bool {
