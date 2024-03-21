@@ -18,4 +18,22 @@ import Foundation
 public enum IdentityAndAccessManagementMetadata {
   case oidc(OIDCProviderMetadata)
   case oauth(AuthorizationServerMetadata)
+  
+  var authorizationServerSupportsPar: Bool {
+    switch self {
+    case .oidc(let metaData):
+      return metaData.pushedAuthorizationRequestEndpoint != nil
+    case .oauth(let metaData):
+      return metaData.pushedAuthorizationRequestEndpoint != nil
+    }
+  }
+  
+  var pushedAuthorizationRequestEndpointURI: URL? {
+    switch self {
+    case .oidc(let metaData):
+      return URL(string: metaData.pushedAuthorizationRequestEndpoint ?? "")
+    case .oauth(let metaData):
+      return URL(string: metaData.pushedAuthorizationRequestEndpoint ?? "")
+    }
+  }
 }

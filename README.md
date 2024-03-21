@@ -144,7 +144,7 @@ Given an ```Issuer``` use [Authorization Code Flow](https://openid.github.io/Ope
 import OpenID4VCI
 
 let parPlaced = await issuer.pushAuthorizationCodeRequest(
-    credentials: offer.credentials
+  credentialOffer: offer
 )
 
 if case let .success(request) = parPlaced,

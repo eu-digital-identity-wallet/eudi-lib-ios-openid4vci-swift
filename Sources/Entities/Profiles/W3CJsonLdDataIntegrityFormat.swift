@@ -327,7 +327,7 @@ public extension W3CJsonLdDataIntegrityFormat {
     
     let credentialDefinition = CredentialDefinitionTO(json: json).toDomain()
     
-    if let credentialConfigurationsSupported = metadata.credentialConfigurationsSupported.first(where: { (id, credential) in
+    if let credentialConfigurationsSupported = metadata.credentialsSupported.first(where: { (id, credential) in
       switch credential {
       case .w3CJsonLdDataIntegrity(let credentialConfiguration):
         return credentialConfiguration.credentialDefinition.type == credentialDefinition.type

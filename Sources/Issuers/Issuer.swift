@@ -19,8 +19,7 @@ import JOSESwift
 public protocol IssuerType {
   
   func pushAuthorizationCodeRequest(
-    credentials: [CredentialIdentifier],
-    issuerState: String?
+    credentialOffer: CredentialOffer
   ) async -> Result<UnauthorizedRequest, Error>
   
   func authorizeWithPreAuthorizationCode(
@@ -114,40 +113,59 @@ public actor Issuer: IssuerType {
   }
   
   public func pushAuthorizationCodeRequest(
-    credentials: [CredentialIdentifier],
-    issuerState: String? = nil
+    credentialOffer: CredentialOffer
   ) async -> Result<UnauthorizedRequest, Error> {
-    let scopes: [Scope] = credentials
-      .map {
-        issuerMetadata.credentialConfigurationsSupported[$0]
-      }
-      .compactMap {
-        return try? Scope($0?.getScope())
-      }
+    let credentials = credentialOffer.credentialConfigurationIdentifiers
+    let issuerState: String? = switch credentialOffer.grants {
+    case .authorizationCode(let code), .both(let code, _):
+      code.issuerState
+    default:
+      nil
+    }
+
+    var authorizationDetails: [OidCredentialAuthorizationDetail] = []
+    var scopes: [Scope] = []
     
-    let state = UUID().uuidString
-    do {
-      let result: (
-        verifier: PKCEVerifier,
-        code: GetAuthorizationCodeURL
-      ) = try await authorizer.submitPushedAuthorizationRequest(
-        scopes: scopes,
-        state: state,
-        issuerState: issuerState
-      ).get()
-      
-      return .success(
-        .par(
-          .init(
-            credentials: credentials,
-            getAuthorizationCodeURL: result.code,
-            pkceVerifier: result.verifier,
-            state: state
+    credentialOffer.credentialConfigurationIdentifiers.forEach { credentialConfigurationId in
+      if let credentialIdentifier = try? CredentialIdentifier(value: credentialConfigurationId.value),
+         let supportedCredential = issuerMetadata.credentialsSupported[credentialIdentifier],
+           let scope = try? Scope(supportedCredential.getScope()) {
+          scopes.append(scope)
+        } else {
+          authorizationDetails.append(ByCredentialConfiguration(credentialConfigurationId: credentialConfigurationId))
+        }
+    }
+    
+    let authorizationServerSupportsPar = credentialOffer.authorizationServerMetadata.authorizationServerSupportsPar
+
+    let state = String.randomBase64URLString(length: 32)
+    
+    if authorizationServerSupportsPar {
+      do {
+        let result: (
+          verifier: PKCEVerifier,
+          code: GetAuthorizationCodeURL
+        ) = try await authorizer.submitPushedAuthorizationRequest(
+          scopes: scopes,
+          state: state,
+          issuerState: issuerState
+        ).get()
+        
+        return .success(
+          .par(
+            .init(
+              credentials: try credentials.map { try CredentialIdentifier(value: $0.value) },
+              getAuthorizationCodeURL: result.code,
+              pkceVerifier: result.verifier,
+              state: state
+            )
           )
         )
-      )
-    } catch {
-      return .failure(ValidationError.error(reason: error.localizedDescription))
+      } catch {
+        return .failure(ValidationError.error(reason: error.localizedDescription))
+      }
+    } else {
+      return .failure(ValidationError.error(reason: "Authorization server does not support PAR"))
     }
   }
   
@@ -308,7 +326,7 @@ public actor Issuer: IssuerType {
     }
     
     guard let supportedCredential = issuerMetadata
-      .credentialConfigurationsSupported[credentialIdentifier] else {
+      .credentialsSupported[credentialIdentifier] else {
       throw ValidationError.error(reason: "Invalid Supported credential for requestSingle")
     }
     
@@ -338,7 +356,7 @@ public actor Issuer: IssuerType {
     }
     
     guard let supportedCredential = issuerMetadata
-      .credentialConfigurationsSupported[credentialIdentifier] else {
+      .credentialsSupported[credentialIdentifier] else {
       throw ValidationError.error(reason: "Invalid Supported credential for requestSingle")
     }
     

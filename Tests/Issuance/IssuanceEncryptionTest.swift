@@ -191,7 +191,7 @@ extension IssuanceEncryptionTest {
       )
     )
 
-    guard let parRequested = try? await issuer.pushAuthorizationCodeRequest(credentials: offer.credentialConfigurationIdentifiers).get() else {
+    guard let parRequested = try? await issuer.pushAuthorizationCodeRequest(credentialOffer: offer).get() else {
       XCTAssert(false, "Unable to create request")
       return nil
     }
@@ -251,7 +251,7 @@ extension IssuanceEncryptionTest {
       )
     )
 
-    guard let parRequested = try? await issuer.pushAuthorizationCodeRequest(credentials: offer.credentialConfigurationIdentifiers).get() else {
+    guard let parRequested = try? await issuer.pushAuthorizationCodeRequest(credentialOffer: offer).get() else {
       XCTAssert(false, "Unable to create request")
       return nil
     }

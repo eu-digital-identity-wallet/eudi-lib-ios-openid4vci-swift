@@ -364,7 +364,7 @@ public extension MsoMdocFormat {
       throw ValidationError.error(reason: "Missing doctype")
     }
     
-    if let credentialConfigurationsSupported = metadata.credentialConfigurationsSupported.first(where: { (credentialId, credential) in
+    if let credentialConfigurationsSupported = metadata.credentialsSupported.first(where: { (credentialId, credential) in
       switch credential {
       case .msoMdoc(let credentialConfiguration):
         return credentialConfiguration.docType == docType

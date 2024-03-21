@@ -396,7 +396,7 @@ public extension SdJwtVcFormat {
     
     let credentialDefinition = CredentialDefinitionTO(json: json).toDomain()
     
-    if let credentialConfigurationsSupported = metadata.credentialConfigurationsSupported.first(where: { (credentialId, credential) in
+    if let credentialConfigurationsSupported = metadata.credentialsSupported.first(where: { (credentialId, credential) in
       switch credential {
       case .sdJwtVc(let credentialConfiguration):
         return credentialConfiguration.credentialDefinition.type == credentialDefinition.type

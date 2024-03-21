@@ -44,13 +44,18 @@ public extension GrantsDTO {
     // Property representing issuer state.
     let issuerState: String?
     
+    // Property representing authorization url.
+    let authorizationServer: String?
+    
     // CodingKeys enumeration to map JSON keys to struct properties.
     enum CodingKeys: String, CodingKey {
       case issuerState = "issuer_state"
+      case authorizationServer = "authorization_server"
     }
     
-    public init(issuerState: String) {
+    public init(issuerState: String, authorizationServer: String) {
       self.issuerState = issuerState
+      self.authorizationServer = authorizationServer
     }
   }
   

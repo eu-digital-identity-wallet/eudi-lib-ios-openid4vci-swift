@@ -25,7 +25,8 @@ public struct CredentialIssuerMetadata: Decodable, Equatable {
   public let deferredCredentialEndpoint: CredentialIssuerEndpoint?
   public let notificationEndpoint: CredentialIssuerEndpoint?
   public let credentialResponseEncryption: CredentialResponseEncryption
-  public let credentialConfigurationsSupported: [CredentialIdentifier: SupportedCredential]
+  public let credentialsSupported: [CredentialIdentifier: SupportedCredential]
+  public let credentialIdentifiersSupported: Bool?
   public let signedMetadata: String?
   public let display: [Display]
   
@@ -43,6 +44,7 @@ public struct CredentialIssuerMetadata: Decodable, Equatable {
     case display = "display"
     case credentialResponseEncryption = "credential_response_encryption"
     case signedMetadata = "signed_metadata"
+    case credentialIdentifiersSupported = "credential_identifiers_supported"
   }
   
   public init(
@@ -55,7 +57,8 @@ public struct CredentialIssuerMetadata: Decodable, Equatable {
     credentialResponseEncryption: CredentialResponseEncryption = .notRequired,
     credentialConfigurationsSupported: [CredentialIdentifier: SupportedCredential],
     signedMetadata: String?,
-    display: [Display]?
+    display: [Display]?,
+    credentialIdentifiersSupported: Bool? = nil
   ) {
     self.credentialIssuerIdentifier = credentialIssuerIdentifier
     self.authorizationServers = authorizationServers
@@ -66,10 +69,12 @@ public struct CredentialIssuerMetadata: Decodable, Equatable {
     self.notificationEndpoint = notificationEndpoint
     
     self.credentialResponseEncryption = credentialResponseEncryption
-    self.credentialConfigurationsSupported = credentialConfigurationsSupported
+    self.credentialsSupported = credentialConfigurationsSupported
     
     self.signedMetadata = signedMetadata
     self.display = display ?? []
+    
+    self.credentialIdentifiersSupported = credentialIdentifiersSupported
   }
   
   // Implement a custom init(from decoder:) method to handle decoding.
@@ -121,11 +126,13 @@ public struct CredentialIssuerMetadata: Decodable, Equatable {
       }
     }
     
-    credentialConfigurationsSupported = mapIdentifierCredential
+    credentialsSupported = mapIdentifierCredential
     
     display = try container.decodeIfPresent([Display].self, forKey: .display) ?? []
     
     signedMetadata = try? container.decodeIfPresent(String.self, forKey: .signedMetadata)
+    
+    credentialIdentifiersSupported = try? container.decodeIfPresent(Bool.self, forKey: .credentialIdentifiersSupported) ?? false
   }
   
   public static func == (lhs: CredentialIssuerMetadata, rhs: CredentialIssuerMetadata) -> Bool {
