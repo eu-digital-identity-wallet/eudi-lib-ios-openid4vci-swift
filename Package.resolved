@@ -5,8 +5,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/niscy-eudiw/JOSESwift.git",
       "state" : {
-        "revision" : "ef86488a729fb1eb85edc3b174f528ac212c5ce6",
-        "version" : "2.4.1"
+        "revision" : "518cedba79ef18867191811b161471298b6cb7c8",
+        "version" : "2.4.1-gcm"
       }
     },
     {

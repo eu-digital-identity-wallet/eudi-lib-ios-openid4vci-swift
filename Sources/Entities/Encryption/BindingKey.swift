@@ -48,7 +48,7 @@ public extension BindingKey {
       switch credentialSpec {
       case .msoMdoc(let spec):
         let suites = spec.proofTypesSupported?["jwt"]?.algorithms.contains { $0 == algorithm.name } ??  false
-        let bindings = spec.cryptographicBindingMethodsSupported.contains { $0  == .jwk }
+//        let bindings = spec.cryptographicBindingMethodsSupported.contains { $0  == .jwk }
         let proofs = spec.proofTypesSupported?.keys.contains { $0 == "jwt" } ?? false
         
         guard suites else {
@@ -100,7 +100,7 @@ public extension BindingKey {
 
       case .sdJwtVc(let spec):
         let suites = spec.proofTypesSupported?["jwt"]?.algorithms.contains { $0 == algorithm.name } ??  false
-        let bindings = spec.cryptographicBindingMethodsSupported.contains { $0  == .jwk }
+//        let bindings = spec.cryptographicBindingMethodsSupported.contains { $0  == .jwk }
         let proofs = spec.proofTypesSupported?.keys.contains { $0 == "jwt" } ?? false
         
         guard suites else {
