@@ -154,7 +154,7 @@ public struct MsoMdocIssuanceRequest {
   public let credentialResponseEncryptionAlg: JWEAlgorithm?
   public let credentialResponseEncryptionMethod: JOSEEncryptionMethod?
   public let doctype: String
-  public let claims: [Namespace: [ClaimName: SupportedCredential]]
+  public let claims: [Namespace: [ClaimName: CredentialSupported]]
   
   public init(
     format: String,
@@ -163,7 +163,7 @@ public struct MsoMdocIssuanceRequest {
     credentialResponseEncryptionAlg: JWEAlgorithm?,
     credentialResponseEncryptionMethod: JOSEEncryptionMethod?,
     doctype: String,
-    claims: [Namespace: [ClaimName: SupportedCredential]]
+    claims: [Namespace: [ClaimName: CredentialSupported]]
   ) {
     self.format = format
     self.proof = proof
@@ -180,7 +180,7 @@ public struct MsoMdocIssuanceRequest {
     credentialResponseEncryptionAlg: JWEAlgorithm?,
     credentialResponseEncryptionMethod: JOSEEncryptionMethod?,
     doctype: String,
-    claims: [Namespace: [ClaimName: SupportedCredential]]
+    claims: [Namespace: [ClaimName: CredentialSupported]]
   ) -> MsoMdocIssuanceRequest {
     var encryptionMethod = credentialResponseEncryptionMethod
     if credentialResponseEncryptionAlg != nil && credentialResponseEncryptionMethod == nil {

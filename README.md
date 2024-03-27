@@ -199,7 +199,7 @@ import eu.europa.ec.eudi.openid4vci.*
 let requestOutcome = try await issuer.requestSingle(
     proofRequest: ...,
     bindingKey: ...,
-    credentialIdentifier: ...,
+    requestCredentialIdentifier: ...,
     responseEncryptionSpecProvider:  { 
         Issuer.createResponseEncryptionSpec($0) 
     }

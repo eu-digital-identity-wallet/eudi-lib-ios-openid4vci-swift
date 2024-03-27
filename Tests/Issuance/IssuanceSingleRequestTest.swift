@@ -108,7 +108,7 @@ class IssuanceSingleRequestTest: XCTestCase {
         do {
           let result = try await issuer.requestSingle(
             noProofRequest: authorized,
-            credentialIdentifier: .init(value: "eu.europa.ec.eudiw.pid_mso_mdoc"),
+            requestCredentialIdentifier: (.init(value: "eu.europa.ec.eudiw.pid_mso_mdoc"), nil),
             responseEncryptionSpecProvider: { _ in
               spec
             })

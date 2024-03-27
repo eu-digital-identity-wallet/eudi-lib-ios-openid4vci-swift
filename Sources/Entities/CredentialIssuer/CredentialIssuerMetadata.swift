@@ -25,7 +25,7 @@ public struct CredentialIssuerMetadata: Decodable, Equatable {
   public let deferredCredentialEndpoint: CredentialIssuerEndpoint?
   public let notificationEndpoint: CredentialIssuerEndpoint?
   public let credentialResponseEncryption: CredentialResponseEncryption
-  public let credentialsSupported: [CredentialIdentifier: SupportedCredential]
+  public let credentialsSupported: [CredentialConfigurationIdentifier: CredentialSupported]
   public let credentialIdentifiersSupported: Bool?
   public let signedMetadata: String?
   public let display: [Display]
@@ -55,7 +55,7 @@ public struct CredentialIssuerMetadata: Decodable, Equatable {
     deferredCredentialEndpoint: CredentialIssuerEndpoint?,
     notificationEndpoint: CredentialIssuerEndpoint?,
     credentialResponseEncryption: CredentialResponseEncryption = .notRequired,
-    credentialConfigurationsSupported: [CredentialIdentifier: SupportedCredential],
+    credentialConfigurationsSupported: [CredentialConfigurationIdentifier: CredentialSupported],
     signedMetadata: String?,
     display: [Display]?,
     credentialIdentifiersSupported: Bool? = nil
@@ -95,12 +95,12 @@ public struct CredentialIssuerMetadata: Decodable, Equatable {
     credentialResponseEncryption = try container.decode(CredentialResponseEncryption.self, forKey: .credentialResponseEncryption)
     
     let json = try container.decodeIfPresent(JSON.self, forKey: .credentialConfigurationsSupported) ?? []
-    var mapIdentifierCredential: [CredentialIdentifier: SupportedCredential] = [:]
+    var mapIdentifierCredential: [CredentialConfigurationIdentifier: CredentialSupported] = [:]
     for (key, value): (String, JSON) in json {
       if let dictionary = value.dictionary,
          let credJson = JSON(rawValue: dictionary) {
         
-        let credentialIdentifier: CredentialIdentifier = try .init(value: key)
+        let credentialIdentifier: CredentialConfigurationIdentifier = try .init(value: key)
         guard let format = credJson["format"].string else {
           throw ValidationError.error(reason: "Profile format not found")
         }

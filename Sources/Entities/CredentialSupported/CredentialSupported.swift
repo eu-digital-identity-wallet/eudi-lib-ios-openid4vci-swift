@@ -15,7 +15,7 @@
  */
 import Foundation
 
-public enum SupportedCredential: Codable {
+public enum CredentialSupported: Codable {
   case scope(Scope)
   case msoMdoc(MsoMdocFormat.CredentialConfiguration)
   case w3CSignedJwt(W3CSignedJwtFormat.CredentialConfiguration)
@@ -24,7 +24,7 @@ public enum SupportedCredential: Codable {
   case sdJwtVc(SdJwtVcFormat.CredentialConfiguration)
 }
 
-public extension SupportedCredential {
+public extension CredentialSupported {
   
   func getScope() -> String? {
     switch self {

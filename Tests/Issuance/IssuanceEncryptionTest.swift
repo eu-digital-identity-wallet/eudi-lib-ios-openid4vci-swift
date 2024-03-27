@@ -66,7 +66,10 @@ class IssuanceEncryptionTest: XCTestCase {
     do {
       _ = try await issuer.requestSingle(
         noProofRequest: authorizedRequest,
-        credentialIdentifier: .init(value: "MobileDrivingLicense_msoMdoc"),
+        requestCredentialIdentifier: (
+          .init(value: "MobileDrivingLicense_msoMdoc"),
+          nil
+        ),
         responseEncryptionSpecProvider: { _ in
           return spec
         }
@@ -113,7 +116,10 @@ class IssuanceEncryptionTest: XCTestCase {
     do {
       _ = try await issuer.requestSingle(
         noProofRequest: authorizedRequest,
-        credentialIdentifier: .init(value: "MobileDrivingLicense_msoMdoc"),
+        requestCredentialIdentifier: (
+          .init(value: "MobileDrivingLicense_msoMdoc"),
+          nil
+        ),
         responseEncryptionSpecProvider: { _ in
           return spec
         }
@@ -146,7 +152,10 @@ class IssuanceEncryptionTest: XCTestCase {
     do {
       _ = try await issuer.requestSingle(
         noProofRequest: authorizedRequest,
-        credentialIdentifier: .init(value: "MobileDrivingLicense_msoMdoc"),
+        requestCredentialIdentifier: (
+          .init(value: "MobileDrivingLicense_msoMdoc"),
+          nil
+        ),
         responseEncryptionSpecProvider: { _ in
           return spec
         }

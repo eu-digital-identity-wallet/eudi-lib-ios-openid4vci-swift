@@ -24,7 +24,7 @@ struct Wallet {
 
 extension Wallet {
   func issueByCredentialIdentifier(_ identifier: String) async throws -> String {
-    let credentialIdentifier = try CredentialIdentifier(value: identifier)
+    let credentialConfigurationIdentifier = try CredentialConfigurationIdentifier(value: identifier)
     let credentialIssuerIdentifier = try CredentialIssuerId(CREDENTIAL_ISSUER_PUBLIC_URL)
     
     let resolver = CredentialIssuerMetadataResolver()
@@ -53,7 +53,7 @@ extension Wallet {
         )
         return try await issueOfferedCredentialNoProof(
           offer: offer,
-          credentialIdentifier: credentialIdentifier
+          credentialConfigurationIdentifier: credentialConfigurationIdentifier
         )
         
       } else {
@@ -80,28 +80,28 @@ extension Wallet {
     
     switch authorized {
     case .noProofRequired:
-      return try await offer.credentialIssuerMetadata.credentialsSupported.asyncCompactMap { (credentialIdentifier, supportedCredential) in
-        guard let scope = issuerMetadata.credentialsSupported[credentialIdentifier]?.getScope() else {
-          throw ValidationError.error(reason: "Cannot find scope for \(credentialIdentifier)")
+      return try await offer.credentialIssuerMetadata.credentialsSupported.asyncCompactMap { (credentialConfigurationIdentifier, supportedCredential) in
+        guard let scope = issuerMetadata.credentialsSupported[credentialConfigurationIdentifier]?.getScope() else {
+          throw ValidationError.error(reason: "Cannot find scope for \(credentialConfigurationIdentifier)")
         }
 
         let data = try await noProofRequiredSubmissionUseCase(
           issuer: issuer,
           noProofRequiredState: authorized,
-          credentialIdentifier: credentialIdentifier
+          credentialConfigurationIdentifier: credentialConfigurationIdentifier
         )
         return (scope, data)
       }
       
     case .proofRequired:
-      return try await offer.credentialIssuerMetadata.credentialsSupported.asyncCompactMap { (credentialIdentifier, supportedCredential) in
-        guard let scope = issuerMetadata.credentialsSupported[credentialIdentifier]?.getScope() else {
-          throw ValidationError.error(reason: "Cannot find scope for \(credentialIdentifier)")
+      return try await offer.credentialIssuerMetadata.credentialsSupported.asyncCompactMap { (credentialConfigurationIdentifier, supportedCredential) in
+        guard let scope = issuerMetadata.credentialsSupported[credentialConfigurationIdentifier]?.getScope() else {
+          throw ValidationError.error(reason: "Cannot find scope for \(credentialConfigurationIdentifier)")
         }
         let data = try await proofRequiredSubmissionUseCase(
           issuer: issuer,
           authorized: authorized,
-          credentialIdentifier: credentialIdentifier
+          credentialConfigurationIdentifier: credentialConfigurationIdentifier
         )
         return (scope, data)
       }
@@ -110,7 +110,7 @@ extension Wallet {
   
   private func issueOfferedCredentialNoProof(
     offer: CredentialOffer,
-    credentialIdentifier: CredentialIdentifier
+    credentialConfigurationIdentifier: CredentialConfigurationIdentifier
   ) async throws -> String {
     
     let issuer = try Issuer(
@@ -130,13 +130,13 @@ extension Wallet {
       return try await noProofRequiredSubmissionUseCase(
         issuer: issuer,
         noProofRequiredState: authorized,
-        credentialIdentifier: credentialIdentifier
+        credentialConfigurationIdentifier: credentialConfigurationIdentifier
       )
     case .proofRequired:
       return try await proofRequiredSubmissionUseCase(
         issuer: issuer,
         authorized: authorized,
-        credentialIdentifier: credentialIdentifier
+        credentialConfigurationIdentifier: credentialConfigurationIdentifier
       )
     }
   }
@@ -180,7 +180,7 @@ extension Wallet {
   private func issueOfferedCredentialWithProof(offer: CredentialOffer, scope: String) async throws -> String {
     
     let issuerMetadata = offer.credentialIssuerMetadata
-    guard let credentialIdentifier = issuerMetadata.credentialsSupported.keys.first(where: { $0.value == scope }) else {
+    guard let credentialConfigurationIdentifier = issuerMetadata.credentialsSupported.keys.first(where: { $0.value == scope }) else {
       throw ValidationError.error(reason:  "Cannot find credential identifier for \(scope)")
     }
     
@@ -200,13 +200,13 @@ extension Wallet {
       return try await noProofRequiredSubmissionUseCase(
         issuer: issuer,
         noProofRequiredState: authorized,
-        credentialIdentifier: credentialIdentifier
+        credentialConfigurationIdentifier: credentialConfigurationIdentifier
       )
     case .proofRequired:
       return try await proofRequiredSubmissionUseCase(
         issuer: issuer,
         authorized: authorized,
-        credentialIdentifier: credentialIdentifier
+        credentialConfigurationIdentifier: credentialConfigurationIdentifier
       )
     }
   }
@@ -234,7 +234,7 @@ extension Wallet {
     
     print("--> [AUTHORIZATION] Placing PAR to AS server's endpoint \(pushedAuthorizationRequestEndpoint)")
     
-    let parPlaced = try await issuer.pushAuthorizationCodeRequest(
+    let parPlaced = await issuer.pushAuthorizationCodeRequest(
       credentialOffer: offer
     )
     
@@ -285,13 +285,13 @@ extension Wallet {
   private func noProofRequiredSubmissionUseCase(
     issuer: Issuer,
     noProofRequiredState: AuthorizedRequest,
-    credentialIdentifier: CredentialIdentifier
+    credentialConfigurationIdentifier: CredentialConfigurationIdentifier
   ) async throws -> String {
     switch noProofRequiredState {
     case .noProofRequired:
       let requestOutcome = try await issuer.requestSingle(
         noProofRequest: noProofRequiredState,
-        credentialIdentifier: credentialIdentifier,
+        requestCredentialIdentifier: (credentialConfigurationIdentifier, nil),
         responseEncryptionSpecProvider: { Issuer.createResponseEncryptionSpec($0) }
       )
       switch requestOutcome {
@@ -316,7 +316,7 @@ extension Wallet {
           return try await proofRequiredSubmissionUseCase(
             issuer: issuer,
             authorized: noProofRequiredState.handleInvalidProof(cNonce: cNonce),
-            credentialIdentifier: credentialIdentifier
+            credentialConfigurationIdentifier: credentialConfigurationIdentifier
           )
         case .failed(error: let error):
           throw ValidationError.error(reason: error.localizedDescription)
@@ -332,12 +332,16 @@ extension Wallet {
   private func proofRequiredSubmissionUseCase(
     issuer: Issuer,
     authorized: AuthorizedRequest,
-    credentialIdentifier: CredentialIdentifier?
+    credentialConfigurationIdentifier: CredentialConfigurationIdentifier?
   ) async throws -> String {
+    
+    guard let credentialConfigurationIdentifier else {
+      throw ValidationError.error(reason: "Credential configuration identifier not found")
+    }
     let requestOutcome = try await issuer.requestSingle(
       proofRequest: authorized,
       bindingKey: bindingKey,
-      credentialIdentifier: credentialIdentifier,
+      requestCredentialIdentifier: (credentialConfigurationIdentifier, nil),
       responseEncryptionSpecProvider:  { Issuer.createResponseEncryptionSpec($0) }
     )
     

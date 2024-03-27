@@ -39,7 +39,7 @@ public protocol IssuerType {
   func requestSingle(
     noProofRequest: AuthorizedRequest,
     claimSet: ClaimSet?,
-    credentialIdentifier: CredentialIdentifier?,
+    requestCredentialIdentifier: IssuanceRequestCredentialIdentifier,
     responseEncryptionSpecProvider: (_ issuerResponseEncryptionMetadata: CredentialResponseEncryption) -> IssuanceResponseEncryptionSpec?
   ) async throws -> Result<SubmittedRequest, Error>
   
@@ -47,7 +47,7 @@ public protocol IssuerType {
     proofRequest: AuthorizedRequest,
     bindingKey: BindingKey,
     claimSet: ClaimSet?,
-    credentialIdentifier: CredentialIdentifier?,
+    requestCredentialIdentifier: IssuanceRequestCredentialIdentifier,
     responseEncryptionSpecProvider: (_ issuerResponseEncryptionMetadata: CredentialResponseEncryption) -> IssuanceResponseEncryptionSpec?
   ) async throws -> Result<SubmittedRequest, Error>
   
@@ -127,8 +127,8 @@ public actor Issuer: IssuerType {
     var scopes: [Scope] = []
     
     credentialOffer.credentialConfigurationIdentifiers.forEach { credentialConfigurationId in
-      if let credentialIdentifier = try? CredentialIdentifier(value: credentialConfigurationId.value),
-         let supportedCredential = issuerMetadata.credentialsSupported[credentialIdentifier],
+      if let credentialConfigurationIdentifier = try? CredentialConfigurationIdentifier(value: credentialConfigurationId.value),
+         let supportedCredential = issuerMetadata.credentialsSupported[credentialConfigurationIdentifier],
            let scope = try? Scope(supportedCredential.getScope()) {
           scopes.append(scope)
         } else {
@@ -317,16 +317,12 @@ public actor Issuer: IssuerType {
   public func requestSingle(
     noProofRequest: AuthorizedRequest,
     claimSet: ClaimSet? = nil,
-    credentialIdentifier: CredentialIdentifier?,
+    requestCredentialIdentifier: IssuanceRequestCredentialIdentifier,
     responseEncryptionSpecProvider: (_ issuerResponseEncryptionMetadata: CredentialResponseEncryption) -> IssuanceResponseEncryptionSpec?
   ) async throws -> Result<SubmittedRequest, Error> {
     
-    guard let credentialIdentifier else {
-      throw ValidationError.error(reason: "Invalid credential CredentialIdentifier for requestSingle")
-    }
-    
     guard let supportedCredential = issuerMetadata
-      .credentialsSupported[credentialIdentifier] else {
+      .credentialsSupported[requestCredentialIdentifier.0] else {
       throw ValidationError.error(reason: "Invalid Supported credential for requestSingle")
     }
     
@@ -347,16 +343,12 @@ public actor Issuer: IssuerType {
     proofRequest: AuthorizedRequest,
     bindingKey: BindingKey,
     claimSet: ClaimSet? = nil,
-    credentialIdentifier: CredentialIdentifier?,
+    requestCredentialIdentifier: IssuanceRequestCredentialIdentifier,
     responseEncryptionSpecProvider: (_ issuerResponseEncryptionMetadata: CredentialResponseEncryption) -> IssuanceResponseEncryptionSpec?
   ) async throws -> Result<SubmittedRequest, Error> {
     
-    guard let credentialIdentifier else {
-      throw ValidationError.error(reason: "Invalid credential CredentialIdentifier for requestSingle")
-    }
-    
     guard let supportedCredential = issuerMetadata
-      .credentialsSupported[credentialIdentifier] else {
+      .credentialsSupported[requestCredentialIdentifier.0] else {
       throw ValidationError.error(reason: "Invalid Supported credential for requestSingle")
     }
     
