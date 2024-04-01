@@ -15,15 +15,20 @@
  */
 import Foundation
 
-public typealias IssuanceRequestCredentialIdentifier = (CredentialConfigurationIdentifier, CredentialIdentifier?)
-
-public struct CredentialIdentifier: Codable, Hashable {
-  public let value: String
+public struct NotificationTO: Codable {
+  public let notificationId: String
+  public let event: String
+  public let eventDescription: String?
   
-  public init(value: String) throws {
-    if value.isEmpty {
-      throw ValidationError.error(reason: "Value cannot be empty")
-    }
-    self.value = value
+  public enum CodingKeys: String, CodingKey {
+    case notificationId = "notification_id"
+    case event
+    case eventDescription = "event_description"
+  }
+  
+  public init(notificationId: String, event: String, eventDescription: String? = nil) {
+    self.notificationId = notificationId
+    self.event = event
+    self.eventDescription = eventDescription
   }
 }

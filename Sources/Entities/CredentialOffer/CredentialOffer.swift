@@ -19,24 +19,24 @@ import SwiftyJSON
 public struct CredentialOffer {
   public let credentialIssuerIdentifier: CredentialIssuerId
   public let credentialIssuerMetadata: CredentialIssuerMetadata
-  public let credentials: [CredentialIdentifier]
+  public let credentialConfigurationIdentifiers: [CredentialConfigurationIdentifier]
   public let grants: Grants?
   public let authorizationServerMetadata: IdentityAndAccessManagementMetadata
   
   public init(
     credentialIssuerIdentifier: CredentialIssuerId,
     credentialIssuerMetadata: CredentialIssuerMetadata,
-    credentials: [CredentialIdentifier],
+    credentialConfigurationIdentifiers: [CredentialConfigurationIdentifier],
     grants: Grants? = nil,
     authorizationServerMetadata: IdentityAndAccessManagementMetadata
   ) throws {
     self.credentialIssuerIdentifier = credentialIssuerIdentifier
     self.credentialIssuerMetadata = credentialIssuerMetadata
-    self.credentials = credentials
+    self.credentialConfigurationIdentifiers = credentialConfigurationIdentifiers
     self.grants = grants
     self.authorizationServerMetadata = authorizationServerMetadata
     
-    if credentials.isEmpty {
+    if credentialConfigurationIdentifiers.isEmpty {
       throw CredentialOfferRequestError.emptyCredentialsError
     }
   }

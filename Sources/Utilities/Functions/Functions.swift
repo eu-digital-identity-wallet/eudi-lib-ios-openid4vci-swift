@@ -15,15 +15,13 @@
  */
 import Foundation
 
-public typealias IssuanceRequestCredentialIdentifier = (CredentialConfigurationIdentifier, CredentialIdentifier?)
-
-public struct CredentialIdentifier: Codable, Hashable {
-  public let value: String
-  
-  public init(value: String) throws {
-    if value.isEmpty {
-      throw ValidationError.error(reason: "Value cannot be empty")
-    }
-    self.value = value
+public func convertToJsonString(dictionary: [String: Any]) -> String? {
+  do {
+    let jsonData = try JSONSerialization.data(withJSONObject: dictionary, options: [])
+    let jsonString = String(data: jsonData, encoding: .utf8)
+    return jsonString
+  } catch {
+    print("Error converting dictionary to JSON string: \(error)")
+    return nil
   }
 }

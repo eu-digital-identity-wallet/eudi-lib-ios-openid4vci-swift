@@ -14,16 +14,26 @@
  * limitations under the License.
  */
 import Foundation
+import SwiftyJSON
 
-public typealias IssuanceRequestCredentialIdentifier = (CredentialConfigurationIdentifier, CredentialIdentifier?)
-
-public struct CredentialIdentifier: Codable, Hashable {
-  public let value: String
+public struct CredentialResponseEncryptionSpecTO: Codable {
+  public let jwk: JSON
+  public let encryptionAlgorithm: String
+  public let encryptionMethod: String
   
-  public init(value: String) throws {
-    if value.isEmpty {
-      throw ValidationError.error(reason: "Value cannot be empty")
-    }
-    self.value = value
+  public init(
+    jwk: JSON,
+    encryptionAlgorithm: String,
+    encryptionMethod: String
+  ) {
+    self.jwk = jwk
+    self.encryptionAlgorithm = encryptionAlgorithm
+    self.encryptionMethod = encryptionMethod
+  }
+  
+  private enum CodingKeys: String, CodingKey {
+    case jwk
+    case encryptionAlgorithm = "alg"
+    case encryptionMethod = "enc"
   }
 }

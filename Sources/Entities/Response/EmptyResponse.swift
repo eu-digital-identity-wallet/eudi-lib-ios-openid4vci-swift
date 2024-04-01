@@ -15,15 +15,6 @@
  */
 import Foundation
 
-public typealias IssuanceRequestCredentialIdentifier = (CredentialConfigurationIdentifier, CredentialIdentifier?)
-
-public struct CredentialIdentifier: Codable, Hashable {
-  public let value: String
-  
-  public init(value: String) throws {
-    if value.isEmpty {
-      throw ValidationError.error(reason: "Value cannot be empty")
-    }
-    self.value = value
-  }
+public struct EmptyResponse: Codable {
+  public init() {}
 }

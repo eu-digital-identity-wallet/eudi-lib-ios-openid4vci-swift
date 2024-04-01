@@ -66,7 +66,10 @@ class IssuanceEncryptionTest: XCTestCase {
     do {
       _ = try await issuer.requestSingle(
         noProofRequest: authorizedRequest,
-        credentialIdentifier: .init(value: "MobileDrivingLicense_msoMdoc"),
+        requestCredentialIdentifier: (
+          .init(value: "MobileDrivingLicense_msoMdoc"),
+          nil
+        ),
         responseEncryptionSpecProvider: { _ in
           return spec
         }
@@ -113,7 +116,10 @@ class IssuanceEncryptionTest: XCTestCase {
     do {
       _ = try await issuer.requestSingle(
         noProofRequest: authorizedRequest,
-        credentialIdentifier: .init(value: "MobileDrivingLicense_msoMdoc"),
+        requestCredentialIdentifier: (
+          .init(value: "MobileDrivingLicense_msoMdoc"),
+          nil
+        ),
         responseEncryptionSpecProvider: { _ in
           return spec
         }
@@ -131,11 +137,6 @@ class IssuanceEncryptionTest: XCTestCase {
   func testWhenIssuanceRequestEncryptionAlgorithmNotSupportedByIssuerThrowResponseEncryptionMethodNotSupportedByIssuer() async throws {
     
     // Given
-    let privateKey = try KeyController.generateRSAPrivateKey()
-    let publicKey = try KeyController.generateRSAPublicKey(from: privateKey)
-
-    let alg = JWSAlgorithm(.RS256)
-    
     guard let spec = Issuer.createResponseEncryptionSpecFrom(algorithmsSupported: [.init(.RSA_OAEP_256)], encryptionMethodsSupported: [.init(.A128CBC_HS256)]) else {
       XCTAssert(false, "Could not create encryption spec")
       return
@@ -151,7 +152,10 @@ class IssuanceEncryptionTest: XCTestCase {
     do {
       _ = try await issuer.requestSingle(
         noProofRequest: authorizedRequest,
-        credentialIdentifier: .init(value: "MobileDrivingLicense_msoMdoc"),
+        requestCredentialIdentifier: (
+          .init(value: "MobileDrivingLicense_msoMdoc"),
+          nil
+        ),
         responseEncryptionSpecProvider: { _ in
           return spec
         }
@@ -196,7 +200,7 @@ extension IssuanceEncryptionTest {
       )
     )
 
-    guard let parRequested = try? await issuer.pushAuthorizationCodeRequest(credentials: offer.credentials).get() else {
+    guard let parRequested = try? await issuer.pushAuthorizationCodeRequest(credentialOffer: offer).get() else {
       XCTAssert(false, "Unable to create request")
       return nil
     }
@@ -256,7 +260,7 @@ extension IssuanceEncryptionTest {
       )
     )
 
-    guard let parRequested = try? await issuer.pushAuthorizationCodeRequest(credentials: offer.credentials).get() else {
+    guard let parRequested = try? await issuer.pushAuthorizationCodeRequest(credentialOffer: offer).get() else {
       XCTAssert(false, "Unable to create request")
       return nil
     }

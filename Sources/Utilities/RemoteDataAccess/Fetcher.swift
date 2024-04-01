@@ -45,7 +45,7 @@ public enum FetchError: LocalizedError {
 
 public protocol Fetching {
   var session: Networking { get set }
-  associatedtype Element: Codable
+  associatedtype Element: Decodable
 
   /**
     Fetches data from the provided URL.
@@ -59,7 +59,7 @@ public protocol Fetching {
   func fetch(url: URL) async -> Result<Element, FetchError>
 }
 
-public struct Fetcher<Element: Codable>: Fetching {
+public struct Fetcher<Element: Decodable>: Fetching {
 
   public var session: Networking
   
@@ -81,6 +81,7 @@ public struct Fetcher<Element: Codable>: Fetching {
   public func fetch(url: URL) async -> Result<Element, FetchError> {
     do {
       let (data, response) = try await self.session.data(from: url)
+      
       let statusCode = (response as? HTTPURLResponse)?.statusCode ?? 0
       if !statusCode.isWithinRange(200...299) {
         throw FetchError.invalidStatusCode(url, statusCode)

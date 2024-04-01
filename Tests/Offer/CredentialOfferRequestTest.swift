@@ -113,7 +113,7 @@ class CredentialOfferRequestTest: XCTestCase {
     let value = """
     {
        "credential_issuer": "https://credential-issuer.example.com",
-       "credentials": [
+       "credential_configuration_ids": [
           "UniversityDegree_JWT",
           {
              "format": "mso_mdoc",
@@ -143,7 +143,7 @@ class CredentialOfferRequestTest: XCTestCase {
       XCTAssertEqual(metaData, value)
       
       if let request = CredentialOfferRequestObject(jsonString: value) {
-        XCTAssert(request.credentials.count == 2)
+        XCTAssert(request.credentialConfigurationIds.count == 2)
         XCTAssert(request.grants?.authorizationCode?.issuerState == "eyJhbGciOiJSU0Et...FYUaBy")
         
       } else {

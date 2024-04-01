@@ -15,16 +15,16 @@
  */
 import Foundation
 
-public enum SupportedCredential: Codable {
+public enum CredentialSupported: Codable {
   case scope(Scope)
-  case msoMdoc(MsoMdocFormat.CredentialSupported)
-  case w3CSignedJwt(W3CSignedJwtFormat.CredentialSupported)
-  case w3CJsonLdSignedJwt(W3CJsonLdSignedJwtFormat.CredentialSupported)
-  case w3CJsonLdDataIntegrity(W3CJsonLdDataIntegrityFormat.CredentialSupported)
-  case sdJwtVc(SdJwtVcFormat.CredentialSupported)
+  case msoMdoc(MsoMdocFormat.CredentialConfiguration)
+  case w3CSignedJwt(W3CSignedJwtFormat.CredentialConfiguration)
+  case w3CJsonLdSignedJwt(W3CJsonLdSignedJwtFormat.CredentialConfiguration)
+  case w3CJsonLdDataIntegrity(W3CJsonLdDataIntegrityFormat.CredentialConfiguration)
+  case sdJwtVc(SdJwtVcFormat.CredentialConfiguration)
 }
 
-public extension SupportedCredential {
+public extension CredentialSupported {
   
   func getScope() -> String? {
     switch self {
@@ -50,15 +50,7 @@ public extension SupportedCredential {
     responseEncryptionSpecProvider: (_ issuerResponseEncryptionMetadata: CredentialResponseEncryption) -> IssuanceResponseEncryptionSpec?
   ) throws -> CredentialIssuanceRequest {
     switch self {
-    case .msoMdoc(let credentialSupported):
-      if let proof,
-         let proofTypesSupported = credentialSupported.proofTypesSupported,
-         proofTypesSupported.contains(proof.type()) {
-        if !proofTypesSupported.contains(proof.type()) {
-          throw ValidationError.error(reason: "Provided proof type \(proof.type()) is not one of supported [\(proofTypesSupported)].")
-        }
-      }
-      
+    case .msoMdoc(let credentialConfiguration):
       let issuerEncryption = requester.issuerMetadata.credentialResponseEncryption
       let responseEncryptionSpec = responseEncryptionSpecProvider(issuerEncryption)
       
@@ -79,21 +71,13 @@ public extension SupportedCredential {
         }
       }
      
-      return try credentialSupported.toIssuanceRequest(
+      return try credentialConfiguration.toIssuanceRequest(
         responseEncryptionSpec: responseEncryptionSpec,
         claimSet: claimSet,
         proof: proof
       )
 
-    case .sdJwtVc(let credentialSupported):
-      if let proof,
-         let proofTypesSupported = credentialSupported.proofTypesSupported,
-         proofTypesSupported.contains(proof.type()) {
-        if !proofTypesSupported.contains(proof.type()) {
-          throw ValidationError.error(reason: "Provided proof type \(proof.type()) is not one of supported [\(proofTypesSupported)].")
-        }
-      }
-      
+    case .sdJwtVc(let credentialConfiguration):
       let issuerEncryption = requester.issuerMetadata.credentialResponseEncryption
       let responseEncryptionSpec = responseEncryptionSpecProvider(issuerEncryption)
       
@@ -114,7 +98,7 @@ public extension SupportedCredential {
         }
       }
      
-      return try credentialSupported.toIssuanceRequest(
+      return try credentialConfiguration.toIssuanceRequest(
         responseEncryptionSpec: responseEncryptionSpec,
         claimSet: claimSet,
         proof: proof

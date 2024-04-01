@@ -15,15 +15,18 @@
  */
 import Foundation
 
-public typealias IssuanceRequestCredentialIdentifier = (CredentialConfigurationIdentifier, CredentialIdentifier?)
+@testable import OpenID4VCI
 
-public struct CredentialIdentifier: Codable, Hashable {
-  public let value: String
+extension NotificationObject: Stubbable {
+  public var id: ObjectIdentifier {
+    ObjectIdentifier(NSObject())
+  }
   
-  public init(value: String) throws {
-    if value.isEmpty {
-      throw ValidationError.error(reason: "Value cannot be empty")
-    }
-    self.value = value
+  static func stub() -> NotificationObject {
+    .init(
+      id: try! .init(value: "String"),
+      event: .init(rawValue: "CREDENTIAL_ACCEPTED")!,
+      eventDescription: "String?"
+    )
   }
 }

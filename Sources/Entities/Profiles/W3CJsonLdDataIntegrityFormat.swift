@@ -93,12 +93,12 @@ public extension W3CJsonLdDataIntegrityFormat {
     }
   }
   
-  struct CredentialSupportedDTO: Codable {
+  struct CredentialConfigurationDTO: Codable {
     public let format: String
     public let scope: String?
     public let cryptographicBindingMethodsSupported: [String]?
-    public let cryptographicSuitesSupported: [String]?
-    public let proofTypesSupported: [String]?
+    public let credentialSigningAlgValuesSupported: [String]?
+    public let proofTypesSupported: [String: ProofSigningAlgorithmsSupported]?
     public let display: [Display]?
     public let context: [String]
     public let type: [String]
@@ -109,7 +109,7 @@ public extension W3CJsonLdDataIntegrityFormat {
       case format
       case scope
       case cryptographicBindingMethodsSupported = "cryptographic_binding_methods_supported"
-      case cryptographicSuitesSupported = "cryptographic_suites_supported"
+      case credentialSigningAlgValuesSupported = "credential_signing_alg_values_supported"
       case proofTypesSupported = "proof_types_supported"
       case display
       case context = "@context"
@@ -122,8 +122,8 @@ public extension W3CJsonLdDataIntegrityFormat {
       format: String,
       scope: String? = nil,
       cryptographicBindingMethodsSupported: [String]? = nil,
-      cryptographicSuitesSupported: [String]? = nil,
-      proofTypesSupported: [String]? = nil,
+      credentialSigningAlgValuesSupported: [String]? = nil,
+      proofTypesSupported: [String: ProofSigningAlgorithmsSupported]? = nil,
       display: [Display]? = nil,
       context: [String] = [],
       type: [String] = [],
@@ -133,7 +133,7 @@ public extension W3CJsonLdDataIntegrityFormat {
       self.format = format
       self.scope = scope
       self.cryptographicBindingMethodsSupported = cryptographicBindingMethodsSupported
-      self.cryptographicSuitesSupported = cryptographicSuitesSupported
+      self.credentialSigningAlgValuesSupported = credentialSigningAlgValuesSupported
       self.proofTypesSupported = proofTypesSupported
       self.display = display
       self.context = context
@@ -142,7 +142,7 @@ public extension W3CJsonLdDataIntegrityFormat {
       self.order = order
     }
     
-    func toDomain() throws -> W3CJsonLdDataIntegrityFormat.CredentialSupported {
+    func toDomain() throws -> W3CJsonLdDataIntegrityFormat.CredentialConfiguration {
       
       let bindingMethods = try cryptographicBindingMethodsSupported?.compactMap {
         try CryptographicBindingMethod(method: $0)
@@ -150,16 +150,13 @@ public extension W3CJsonLdDataIntegrityFormat {
       let display: [Display] = self.display ?? []
       let context: [String] = self.context
       let type: [String] = self.type
-      let proofTypesSupported: [ProofType] = try self.proofTypesSupported?.compactMap {
-        try ProofType(type: $0)
-      } ?? { throw ValidationError.error(reason: "No proof types found")}()
-      let cryptographicSuitesSupported: [String] = self.cryptographicSuitesSupported ?? []
+      let credentialSigningAlgValuesSupported: [String] = self.credentialSigningAlgValuesSupported ?? []
       let credentialDefinition = self.credentialDefinition.toDomain()
       
       return .init(
         scope: scope,
         cryptographicBindingMethodsSupported: bindingMethods,
-        cryptographicSuitesSupported: cryptographicSuitesSupported,
+        credentialSigningAlgValuesSupported: credentialSigningAlgValuesSupported,
         proofTypesSupported: proofTypesSupported,
         display: display,
         context: context,
@@ -170,11 +167,11 @@ public extension W3CJsonLdDataIntegrityFormat {
     }
   }
   
-  struct CredentialSupported: Codable {
+  struct CredentialConfiguration: Codable {
     public let scope: String?
     public let cryptographicBindingMethodsSupported: [CryptographicBindingMethod]
-    public let cryptographicSuitesSupported: [String]
-    public let proofTypesSupported: [ProofType]?
+    public let credentialSigningAlgValuesSupported: [String]
+    public let proofTypesSupported: [String: ProofSigningAlgorithmsSupported]??
     public let display: [Display]
     public let context: [String]
     public let type: [String]
@@ -184,7 +181,7 @@ public extension W3CJsonLdDataIntegrityFormat {
     enum CodingKeys: String, CodingKey {
       case scope
       case cryptographicBindingMethodsSupported = "cryptographic_binding_methods_supported"
-      case cryptographicSuitesSupported = "cryptographic_suites_supported"
+      case credentialSigningAlgValuesSupported = "credential_signing_alg_values_supported"
       case proofTypesSupported = "proof_types_supported"
       case display
       case context = "@context"
@@ -196,8 +193,8 @@ public extension W3CJsonLdDataIntegrityFormat {
     public init(
       scope: String?,
       cryptographicBindingMethodsSupported: [CryptographicBindingMethod],
-      cryptographicSuitesSupported: [String],
-      proofTypesSupported: [ProofType]?,
+      credentialSigningAlgValuesSupported: [String],
+      proofTypesSupported: [String: ProofSigningAlgorithmsSupported]?,
       display: [Display],
       context: [String],
       type: [String],
@@ -206,7 +203,7 @@ public extension W3CJsonLdDataIntegrityFormat {
     ) {
       self.scope = scope
       self.cryptographicBindingMethodsSupported = cryptographicBindingMethodsSupported
-      self.cryptographicSuitesSupported = cryptographicSuitesSupported
+      self.credentialSigningAlgValuesSupported = credentialSigningAlgValuesSupported
       self.proofTypesSupported = proofTypesSupported
       self.display = display
       self.context = context
@@ -220,8 +217,8 @@ public extension W3CJsonLdDataIntegrityFormat {
       
       scope = try container.decodeIfPresent(String.self, forKey: .scope)
       cryptographicBindingMethodsSupported = try container.decode([CryptographicBindingMethod].self, forKey: .cryptographicBindingMethodsSupported)
-      cryptographicSuitesSupported = try container.decode([String].self, forKey: .cryptographicSuitesSupported)
-      proofTypesSupported = try? container.decode([ProofType].self, forKey: .proofTypesSupported)
+      credentialSigningAlgValuesSupported = try container.decode([String].self, forKey: .credentialSigningAlgValuesSupported)
+      proofTypesSupported = try? container.decode([String: ProofSigningAlgorithmsSupported].self, forKey: .proofTypesSupported)
       display = try container.decode([Display].self, forKey: .display)
       context = try container.decode([String].self, forKey: .context)
       type = try container.decode([String].self, forKey: .type)
@@ -234,7 +231,7 @@ public extension W3CJsonLdDataIntegrityFormat {
       
       try container.encode(scope, forKey: .scope)
       try container.encode(cryptographicBindingMethodsSupported, forKey: .cryptographicBindingMethodsSupported)
-      try container.encode(cryptographicSuitesSupported, forKey: .cryptographicSuitesSupported)
+      try container.encode(credentialSigningAlgValuesSupported, forKey: .credentialSigningAlgValuesSupported)
       try container.encode(proofTypesSupported, forKey: .proofTypesSupported)
       try container.encode(display, forKey: .display)
       try container.encode(context, forKey: .context)
@@ -248,11 +245,15 @@ public extension W3CJsonLdDataIntegrityFormat {
       self.cryptographicBindingMethodsSupported = try json["cryptographic_binding_methods_supported"].arrayValue.map {
         try CryptographicBindingMethod(method: $0.stringValue)
       }
-      self.cryptographicSuitesSupported = json["cryptographic_suites_supported"].arrayValue.map {
+      self.credentialSigningAlgValuesSupported = json["credential_signing_alg_values_supported"].arrayValue.map {
         $0.stringValue
       }
-      self.proofTypesSupported = try json["proof_types_supported"].arrayValue.map {
-        try ProofType(type: $0.stringValue)
+      self.proofTypesSupported = json["proof_types_supported"].dictionaryObject?.compactMapValues { values in
+        if let types = values as? [String: Any],
+           let algorithms = types["proof_signing_alg_values_supported"] as? [String] {
+          return ProofSigningAlgorithmsSupported(algorithms: algorithms)
+        }
+        return nil
       }
       self.display = json["display"].arrayValue.map { json in
         Display(json: json)
@@ -326,14 +327,14 @@ public extension W3CJsonLdDataIntegrityFormat {
     
     let credentialDefinition = CredentialDefinitionTO(json: json).toDomain()
     
-    if let credentialsSupported = metadata.credentialsSupported.first(where: { (id, credential) in
+    if let credentialConfigurationsSupported = metadata.credentialsSupported.first(where: { (id, credential) in
       switch credential {
-      case .w3CJsonLdDataIntegrity(let credentialSupported):
-        return credentialSupported.credentialDefinition.type == credentialDefinition.type
+      case .w3CJsonLdDataIntegrity(let credentialConfiguration):
+        return credentialConfiguration.credentialDefinition.type == credentialDefinition.type
       default: return false
       }
     }) {
-      switch credentialsSupported.value {
+      switch credentialConfigurationsSupported.value {
       case .w3CJsonLdDataIntegrity(let profile):
         return .w3CJsonLdDataIntegrity(.init(
           credentialDefinition: profile.credentialDefinition,

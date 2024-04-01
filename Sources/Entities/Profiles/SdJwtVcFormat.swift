@@ -161,12 +161,12 @@ public extension SdJwtVcFormat {
     }
   }
   
-  struct CredentialSupportedDTO: Codable {
+  struct CredentialConfigurationDTO: Codable {
     public let format: String
     public let scope: String?
     public let cryptographicBindingMethodsSupported: [String]?
-    public let cryptographicSuitesSupported: [String]?
-    public let proofTypesSupported: [String]?
+    public let credentialSigningAlgValuesSupported: [String]?
+    public let proofTypesSupported: [String: ProofSigningAlgorithmsSupported]?
     public let display: [Display]?
     public let credentialDefinition: CredentialDefinitionTO
     
@@ -174,7 +174,7 @@ public extension SdJwtVcFormat {
       case format
       case scope
       case cryptographicBindingMethodsSupported = "cryptographic_binding_methods_supported"
-      case cryptographicSuitesSupported = "cryptographic_suites_supported"
+      case credentialSigningAlgValuesSupported = "credential_signing_alg_values_supported"
       case proofTypesSupported = "proof_types_supported"
       case display
       case credentialDefinition = "credential_definition"
@@ -184,55 +184,53 @@ public extension SdJwtVcFormat {
       format: String,
       scope: String? = nil,
       cryptographicBindingMethodsSupported: [String]? = nil,
-      cryptographicSuitesSupported: [String]? = nil,
-      proofTypesSupported: [String]? = nil,
+      credentialSigningAlgValuesSupported: [String]? = nil,
+      proofTypesSupported: [String: ProofSigningAlgorithmsSupported]? = nil,
       display: [Display]? = nil,
       credentialDefinition: CredentialDefinitionTO
     ) {
       self.format = format
       self.scope = scope
       self.cryptographicBindingMethodsSupported = cryptographicBindingMethodsSupported
-      self.cryptographicSuitesSupported = cryptographicSuitesSupported
+      self.credentialSigningAlgValuesSupported = credentialSigningAlgValuesSupported
       self.proofTypesSupported = proofTypesSupported
       self.display = display
       self.credentialDefinition = credentialDefinition
     }
     
-    func toDomain() throws -> SdJwtVcFormat.CredentialSupported {
+    func toDomain() throws -> SdJwtVcFormat.CredentialConfiguration {
       
       let bindingMethods = try cryptographicBindingMethodsSupported?.compactMap {
         try CryptographicBindingMethod(method: $0)
       } ?? []
       let display: [Display] = self.display ?? []
-      let proofTypesSupported: [ProofType] = try self.proofTypesSupported?.compactMap {
-        try ProofType(type: $0)
-      } ?? [.jwt]
-      let cryptographicSuitesSupported: [String] = self.cryptographicSuitesSupported ?? []
+
+      let credentialSigningAlgValuesSupported: [String] = self.credentialSigningAlgValuesSupported ?? []
       let credentialDefinition = self.credentialDefinition.toDomain()
       
       return .init(
         scope: scope,
         cryptographicBindingMethodsSupported: bindingMethods,
-        cryptographicSuitesSupported: cryptographicSuitesSupported,
-        proofTypesSupported: proofTypesSupported,
+        credentialSigningAlgValuesSupported: credentialSigningAlgValuesSupported,
+        proofTypesSupported: self.proofTypesSupported,
         display: display,
         credentialDefinition: credentialDefinition
       )
     }
   }
   
-  struct CredentialSupported: Codable {
+  struct CredentialConfiguration: Codable {
     public let scope: String?
     public let cryptographicBindingMethodsSupported: [CryptographicBindingMethod]
-    public let cryptographicSuitesSupported: [String]
-    public let proofTypesSupported: [ProofType]?
+    public let credentialSigningAlgValuesSupported: [String]
+    public let proofTypesSupported: [String: ProofSigningAlgorithmsSupported]?
     public let display: [Display]
     public let credentialDefinition: CredentialDefinition
     
     enum CodingKeys: String, CodingKey {
       case scope
       case cryptographicBindingMethodsSupported = "cryptographic_binding_methods_supported"
-      case cryptographicSuitesSupported = "cryptographic_suites_supported"
+      case credentialSigningAlgValuesSupported = "credential_signing_alg_values_supported"
       case proofTypesSupported = "proof_types_supported"
       case display
       case credentialDefinition = "credential_definition"
@@ -241,14 +239,14 @@ public extension SdJwtVcFormat {
     public init(
       scope: String?,
       cryptographicBindingMethodsSupported: [CryptographicBindingMethod],
-      cryptographicSuitesSupported: [String],
-      proofTypesSupported: [ProofType]?,
+      credentialSigningAlgValuesSupported: [String],
+      proofTypesSupported: [String: ProofSigningAlgorithmsSupported]?,
       display: [Display],
       credentialDefinition: CredentialDefinition
     ) {
       self.scope = scope
       self.cryptographicBindingMethodsSupported = cryptographicBindingMethodsSupported
-      self.cryptographicSuitesSupported = cryptographicSuitesSupported
+      self.credentialSigningAlgValuesSupported = credentialSigningAlgValuesSupported
       self.proofTypesSupported = proofTypesSupported
       self.display = display
       self.credentialDefinition = credentialDefinition
@@ -258,10 +256,10 @@ public extension SdJwtVcFormat {
       let container = try decoder.container(keyedBy: CodingKeys.self)
       scope = try container.decodeIfPresent(String.self, forKey: .scope)
       cryptographicBindingMethodsSupported = try container.decode([CryptographicBindingMethod].self, forKey: .cryptographicBindingMethodsSupported)
-      cryptographicSuitesSupported = try container.decode([String].self, forKey: .cryptographicSuitesSupported)
+      credentialSigningAlgValuesSupported = try container.decode([String].self, forKey: .credentialSigningAlgValuesSupported)
       
-      let proofTypes = try? container.decode([ProofType].self, forKey: .proofTypesSupported)
-      proofTypesSupported = proofTypes ?? [.jwt]
+      let proofTypes = try? container.decode([String: ProofSigningAlgorithmsSupported].self, forKey: .proofTypesSupported)
+      proofTypesSupported = proofTypes
       
       display = try container.decode([Display].self, forKey: .display)
       credentialDefinition = try container.decode(CredentialDefinition.self, forKey: .credentialDefinition)
@@ -271,7 +269,7 @@ public extension SdJwtVcFormat {
       var container = encoder.container(keyedBy: CodingKeys.self)
       try container.encode(scope, forKey: .scope)
       try container.encode(cryptographicBindingMethodsSupported, forKey: .cryptographicBindingMethodsSupported)
-      try container.encode(cryptographicSuitesSupported, forKey: .cryptographicSuitesSupported)
+      try container.encode(credentialSigningAlgValuesSupported, forKey: .credentialSigningAlgValuesSupported)
       try container.encode(proofTypesSupported, forKey: .proofTypesSupported)
       try container.encode(display, forKey: .display)
       try container.encode(credentialDefinition, forKey: .credentialDefinition)
@@ -282,14 +280,17 @@ public extension SdJwtVcFormat {
       self.cryptographicBindingMethodsSupported = try json["cryptographic_binding_methods_supported"].arrayValue.map {
         try CryptographicBindingMethod(method: $0.stringValue)
       }
-      self.cryptographicSuitesSupported = json["cryptographic_suites_supported"].arrayValue.map {
+      self.credentialSigningAlgValuesSupported = json["credential_signing_alg_values_supported"].arrayValue.map {
         $0.stringValue
       }
       
-      let proofTypes = try json["proof_types_supported"].arrayValue.map {
-               try ProofType(type: $0.stringValue)
-             }
-      self.proofTypesSupported = proofTypes.isEmpty ? [.jwt] : proofTypes
+      self.proofTypesSupported = json["proof_types_supported"].dictionaryObject?.compactMapValues { values in
+        if let types = values as? [String: Any],
+           let algorithms = types["proof_signing_alg_values_supported"] as? [String] {
+          return ProofSigningAlgorithmsSupported(algorithms: algorithms)
+        }
+        return nil
+      }
       
       self.display = json["display"].arrayValue.map { json in
         Display(json: json)
@@ -395,14 +396,14 @@ public extension SdJwtVcFormat {
     
     let credentialDefinition = CredentialDefinitionTO(json: json).toDomain()
     
-    if let credentialsSupported = metadata.credentialsSupported.first(where: { (credentialId, credential) in
+    if let credentialConfigurationsSupported = metadata.credentialsSupported.first(where: { (credentialId, credential) in
       switch credential {
-      case .sdJwtVc(let credentialSupported):
-        return credentialSupported.credentialDefinition.type == credentialDefinition.type
+      case .sdJwtVc(let credentialConfiguration):
+        return credentialConfiguration.credentialDefinition.type == credentialDefinition.type
       default: return false
       }
     }) {
-      switch credentialsSupported.value {
+      switch credentialConfigurationsSupported.value {
       case .sdJwtVc(let profile):
         return .sdJwtVc(.init(
           type: credentialDefinition.type,

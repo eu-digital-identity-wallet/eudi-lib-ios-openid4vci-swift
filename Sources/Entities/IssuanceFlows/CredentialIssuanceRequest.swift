@@ -17,6 +17,12 @@ import Foundation
 import JOSESwift
 import SwiftyJSON
 
+public let FORMAT_MSO_MDOC = "mso_mdoc"
+public let FORMAT_SD_JWT_VC = "vc+sd-jwt"
+public let FORMAT_W3C_JSONLD_DATA_INTEGRITY = "ldp_vc"
+public let FORMAT_W3C_JSONLD_SIGNED_JWT = "jwt_vc_json-ld"
+public let FORMAT_W3C_SIGNED_JWT = "jwt_vc_json"
+
 public typealias Namespace = String
 public typealias ClaimName = String
 
@@ -79,18 +85,22 @@ public extension SingleCredential {
             "format": MsoMdocFormat.FORMAT,
             "proof": try proof.toDictionary(),
             "doctype": credential.docType,
-            "credential_encryption_jwk": try encryptionJwk.toDictionary(),
-            "credential_response_encryption_alg": responseEncryptionAlg.name,
-            "credential_response_encryption_enc": responseEncryptionMethod.name
+            "credential_response_encryption": [
+              "jwk": try encryptionJwk.toDictionary(),
+              "alg": responseEncryptionAlg.name,
+              "enc": responseEncryptionMethod.name
+            ]
           ]
           
         } else {
           return [
             "format": MsoMdocFormat.FORMAT,
             "doctype": credential.docType,
-            "credential_encryption_jwk": try encryptionJwk.toDictionary(),
-            "credential_response_encryption_alg": responseEncryptionAlg.name,
-            "credential_response_encryption_enc": responseEncryptionMethod.name
+            "credential_response_encryption": [
+              "jwk": try encryptionJwk.toDictionary(),
+              "alg": responseEncryptionAlg.name,
+              "enc": responseEncryptionMethod.name
+            ]
           ]
         }
       }
@@ -108,27 +118,28 @@ public extension SingleCredential {
         let responseEncryptionAlg,
         let responseEncryptionMethod
       ):
-        let credentialDefinition = try [
-          "type": credential.credentialDefinition.type
-        ].toDictionary()
         
         if let proof = credential.proof {
           return [
+            "vct": credential.credentialDefinition.type,
             "format": SdJwtVcFormat.FORMAT,
             "proof": try proof.toDictionary(),
-            "credential_encryption_jwk": try encryptionJwk.toDictionary(),
-            "credential_response_encryption_alg": responseEncryptionAlg.name,
-            "credential_response_encryption_enc": responseEncryptionMethod.name,
-            "credential_definition": credentialDefinition
+            "credential_response_encryption": [
+              "jwk": try encryptionJwk.toDictionary(),
+              "alg": responseEncryptionAlg.name,
+              "enc": responseEncryptionMethod.name
+            ]
           ]
           
         } else {
           return [
+            "vct": SdJwtVcFormat.FORMAT,
             "format": SdJwtVcFormat.FORMAT,
-            "credential_encryption_jwk": try encryptionJwk.toDictionary(),
-            "credential_response_encryption_alg": responseEncryptionAlg.name,
-            "credential_response_encryption_enc": responseEncryptionMethod.name,
-            "credential_definition": credentialDefinition
+            "credential_response_encryption": [
+              "jwk": try encryptionJwk.toDictionary(),
+              "alg": responseEncryptionAlg.name,
+              "enc": responseEncryptionMethod.name
+            ]
           ]
         }
       }
@@ -143,7 +154,7 @@ public struct MsoMdocIssuanceRequest {
   public let credentialResponseEncryptionAlg: JWEAlgorithm?
   public let credentialResponseEncryptionMethod: JOSEEncryptionMethod?
   public let doctype: String
-  public let claims: [Namespace: [ClaimName: SupportedCredential]]
+  public let claims: [Namespace: [ClaimName: CredentialSupported]]
   
   public init(
     format: String,
@@ -152,7 +163,7 @@ public struct MsoMdocIssuanceRequest {
     credentialResponseEncryptionAlg: JWEAlgorithm?,
     credentialResponseEncryptionMethod: JOSEEncryptionMethod?,
     doctype: String,
-    claims: [Namespace: [ClaimName: SupportedCredential]]
+    claims: [Namespace: [ClaimName: CredentialSupported]]
   ) {
     self.format = format
     self.proof = proof
@@ -169,7 +180,7 @@ public struct MsoMdocIssuanceRequest {
     credentialResponseEncryptionAlg: JWEAlgorithm?,
     credentialResponseEncryptionMethod: JOSEEncryptionMethod?,
     doctype: String,
-    claims: [Namespace: [ClaimName: SupportedCredential]]
+    claims: [Namespace: [ClaimName: CredentialSupported]]
   ) -> MsoMdocIssuanceRequest {
     var encryptionMethod = credentialResponseEncryptionMethod
     if credentialResponseEncryptionAlg != nil && credentialResponseEncryptionMethod == nil {

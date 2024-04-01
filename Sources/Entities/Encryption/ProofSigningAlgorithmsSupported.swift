@@ -15,15 +15,15 @@
  */
 import Foundation
 
-public typealias IssuanceRequestCredentialIdentifier = (CredentialConfigurationIdentifier, CredentialIdentifier?)
 
-public struct CredentialIdentifier: Codable, Hashable {
-  public let value: String
+public struct ProofSigningAlgorithmsSupported: Codable {
+  public let algorithms: [String]
   
-  public init(value: String) throws {
-    if value.isEmpty {
-      throw ValidationError.error(reason: "Value cannot be empty")
-    }
-    self.value = value
+  public init(algorithms: [String]) {
+    self.algorithms = algorithms
+  }
+  
+  private enum CodingKeys: String, CodingKey {
+    case algorithms = "proof_signing_alg_values_supported"
   }
 }

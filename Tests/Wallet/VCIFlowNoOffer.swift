@@ -167,25 +167,25 @@ private func walletInitiatedIssuanceNoOfferSdJwt(wallet: Wallet) async throws {
   
   print("[[Scenario: No offer passed, wallet initiates issuance by credetial scopes]]")
   
-  let credential = try await wallet.issueByCredentialIdentifier(PID_SdJwtVC_SCOPE)
+  let credential = try await wallet.issueByCredentialIdentifier(PID_SdJwtVC_config_id)
   
-  print("--> [ISSUANCE] Issued PID in format \(PID_SdJwtVC_SCOPE): \(credential)")
+  print("--> [ISSUANCE] Issued PID in format \(PID_SdJwtVC_config_id): \(credential)")
 }
 
 private func walletInitiatedIssuanceNoOfferMdoc(wallet: Wallet) async throws {
   
   print("[[Scenario: No offer passed, wallet initiates issuance by credetial scopes]]")
   
-  let credential = try await wallet.issueByCredentialIdentifier(PID_MsoMdoc_SCOPE)
+  let credential = try await wallet.issueByCredentialIdentifier(PID_MsoMdoc_config_id)
   
-  print("--> [ISSUANCE] Issued PID in format \(PID_MsoMdoc_SCOPE): \(credential)")
+  print("--> [ISSUANCE] Issued PID in format \(PID_MsoMdoc_config_id): \(credential)")
 }
 
 private func walletInitiatedIssuanceNoOfferMDL(wallet: Wallet) async throws {
   
   print("[[Scenario: No offer passed, wallet initiates issuance by credetial scopes]]")
   
-  let credential = try await wallet.issueByCredentialIdentifier(PID_mDL_SCOPE)
+  let credential = try await wallet.issueByCredentialIdentifier(MDL_config_id)
   
-  print("--> [ISSUANCE] Issued PID in format \(PID_mDL_SCOPE): \(credential)")
+  print("--> [ISSUANCE] Issued PID in format \(MDL_config_id): \(credential)")
 }

@@ -69,42 +69,42 @@ public struct Display: Codable, Equatable {
 public extension Display {
   
   struct Logo: Codable, Equatable {
-    let url: URL?
+    let uri: URL?
     let alternativeText: String?
     
     enum CodingKeys: String, CodingKey {
-      case url
+      case uri
       case alternativeText = "alt_text"
     }
     
     public init(
-      url: URL? = nil,
+      uri: URL? = nil,
       alternativeText: String? = nil
     ) {
-      self.url = url
+      self.uri = uri
       self.alternativeText = alternativeText
     }
     
     public init(from decoder: Decoder) throws {
       let container = try decoder.container(keyedBy: CodingKeys.self)
-      if let urlString = try? container.decode(String.self, forKey: .url) {
-        url = URL(string: urlString)
+      if let urlString = try? container.decode(String.self, forKey: .uri) {
+        uri = URL(string: urlString)
       } else {
-        url = nil
+        uri = nil
       }
       alternativeText = try? container.decode(String.self, forKey: .alternativeText)
     }
     
     init(json: JSON) {
-      var url: URL?
+      var uri: URL?
       if let urlString = json["url"].string {
-        url = URL(string: urlString)
+        uri = URL(string: urlString)
       } else {
-        url = nil
+        uri = nil
       }
       
       self.init(
-        url: url,
+        uri: uri,
         alternativeText: json["alt_text"].string
       )
     }

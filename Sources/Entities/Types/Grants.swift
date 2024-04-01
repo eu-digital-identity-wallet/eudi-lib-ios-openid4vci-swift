@@ -22,9 +22,18 @@ public enum Grants {
   
   public struct AuthorizationCode {
     public let issuerState: String?
+    public let authorizationServer: URL?
     
-    public init(issuerState: String? = nil) {
+    public init(
+      issuerState: String? = nil,
+      authorizationServer: URL?
+    ) throws {
       self.issuerState = issuerState
+      self.authorizationServer = authorizationServer
+      
+      if let issuerState, issuerState.isEmpty {
+        throw ValidationError.error(reason: "issuerState cannot be blank")
+      }
     }
   }
 
@@ -32,15 +41,28 @@ public enum Grants {
     public let preAuthorizedCode: String?
     public let pinRequired: Bool
     public let interval: TimeInterval
+    public let txCode: TxCode?
     
     public init(
       preAuthorizedCode: String?,
       pinRequired: Bool = false,
-      interval: TimeInterval = 5.0
+      interval: TimeInterval = 5.0,
+      txCode: TxCode? = nil
     ) {
       self.preAuthorizedCode = preAuthorizedCode
       self.pinRequired = pinRequired
       self.interval = interval
+      self.txCode = txCode
+    }
+  }
+  
+  public struct Both {
+    public let authorizationCode: AuthorizationCode
+    public let preAuthorizedCode: PreAuthorizedCode
+    
+    public init(authorizationCode: AuthorizationCode, preAuthorizedCode: PreAuthorizedCode) {
+      self.authorizationCode = authorizationCode
+      self.preAuthorizedCode = preAuthorizedCode
     }
   }
 }
@@ -50,7 +72,10 @@ extension GrantsDTO {
     if let authorizationCode = authorizationCode,
        let preAuthorizationCode = preAuthorizationCode {
       return .both(
-        Grants.AuthorizationCode(issuerState: authorizationCode.issuerState),
+        try Grants.AuthorizationCode(
+          issuerState: authorizationCode.issuerState, 
+          authorizationServer: URL(string: authorizationCode.authorizationServer ?? "")
+        ),
         Grants.PreAuthorizedCode(
           preAuthorizedCode: preAuthorizationCode.preAuthorizedCode,
           pinRequired: preAuthorizationCode.userPinRequired ?? false
@@ -59,7 +84,10 @@ extension GrantsDTO {
       
     } else if let authorizationCode = authorizationCode {
       return .authorizationCode(
-        Grants.AuthorizationCode(issuerState: authorizationCode.issuerState)
+        try Grants.AuthorizationCode(
+          issuerState: authorizationCode.issuerState, 
+          authorizationServer: URL(string: authorizationCode.authorizationServer ?? "")
+        )
       )
       
     } else if let preAuthorizationCode = preAuthorizationCode {

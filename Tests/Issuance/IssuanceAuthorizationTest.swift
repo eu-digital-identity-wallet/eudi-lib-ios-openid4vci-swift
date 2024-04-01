@@ -56,7 +56,7 @@ class IssuanceAuthorizationTest: XCTestCase {
     
     // Then
     let parPlaced = await issuer.pushAuthorizationCodeRequest(
-      credentials: offer.credentials
+      credentialOffer: offer
     )
 
     if case let .success(request) = parPlaced,
@@ -91,7 +91,7 @@ class IssuanceAuthorizationTest: XCTestCase {
     
     // Then
     let parPlaced = await issuer.pushAuthorizationCodeRequest(
-      credentials: offer.credentials
+      credentialOffer: offer
     )
 
     switch parPlaced {
@@ -143,7 +143,7 @@ class IssuanceAuthorizationTest: XCTestCase {
       let authorizedRequest = await issuer.requestAccessToken(authorizationCode: authorizationCode)
       
       if case let .success(authorized) = authorizedRequest,
-         case let .noProofRequired(token) = authorized {
+         case let .noProofRequired(token, _) = authorized {
         XCTAssert(true, "Got access token: \(token)")
         return
       }
@@ -196,7 +196,7 @@ class IssuanceAuthorizationTest: XCTestCase {
       let authorizedRequest = await issuer.requestAccessToken(authorizationCode: authorizationCode)
       
       if case let .success(authorized) = authorizedRequest,
-         case let .proofRequired(token, _) = authorized {
+         case let .proofRequired(token, _, _) = authorized {
         XCTAssert(true, "Got access token: \(token)")
         return
       }

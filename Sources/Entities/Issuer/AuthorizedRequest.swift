@@ -16,26 +16,34 @@
 import Foundation
 
 public enum AuthorizedRequest {
-  case noProofRequired(token: IssuanceAccessToken)
-  case proofRequired(token: IssuanceAccessToken, cNonce: CNonce)
+  case noProofRequired(
+    token: IssuanceAccessToken,
+    credentialIdentifiers: [CredentialConfigurationIdentifier: [CredentialIdentifier]]
+    )
+  case proofRequired(
+    token: IssuanceAccessToken,
+    cNonce: CNonce,
+    credentialIdentifiers: [CredentialConfigurationIdentifier: [CredentialIdentifier]]
+  )
 }
 
 public extension AuthorizedRequest {
   var accessToken: IssuanceAccessToken? {
     switch self {
-    case .noProofRequired(let token):
+    case .noProofRequired(let token, _):
       return token
-    case .proofRequired(token: let token, _):
+    case .proofRequired(let token, _, _):
       return token
     }
   }
   func handleInvalidProof(cNonce: CNonce) throws -> AuthorizedRequest {
     switch self {
       
-    case .noProofRequired(let token):
+    case .noProofRequired(let token, let credentialIdentifiers):
       return .proofRequired(
         token: token,
-        cNonce: cNonce
+        cNonce: cNonce, 
+        credentialIdentifiers: credentialIdentifiers
       )
     default: throw ValidationError.error(reason: "Expected .noProofRequired authorisation request")
     }

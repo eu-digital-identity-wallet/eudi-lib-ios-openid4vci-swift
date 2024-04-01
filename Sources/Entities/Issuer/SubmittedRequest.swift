@@ -21,7 +21,7 @@ public struct CredentialIssuanceResponse: Codable {
   
   public enum Result: Codable {
     case deferred(transactionId: TransactionId)
-    case issued(format: String, credential: String)
+    case issued(format: String, credential: String, notificationId: NotificationId?)
   }
   
   public init(credentialResponses: [Result], cNonce: CNonce?) {

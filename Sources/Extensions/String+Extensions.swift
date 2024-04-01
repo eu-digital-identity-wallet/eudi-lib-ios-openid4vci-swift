@@ -14,8 +14,28 @@
  * limitations under the License.
  */
 import Foundation
+import CryptoKit
 
 public extension String {
+  
+  /// Generates a random Base64URL-encoded string of the specified length.
+  ///
+  /// - Parameter length: The length of the random string to generate.
+  /// - Returns: A random Base64URL-encoded string of the specified length.
+  static func randomBase64URLString(length: Int) -> String {
+    // Generate random bytes using CryptoKit's SymmetricKey
+    let randomBytes = SymmetricKey(size: .bits256)
+    let randomData = randomBytes.withUnsafeBytes { Data($0) }
+    
+    // Convert the random data to a Base64URL-encoded string
+    let base64URLString = randomData.base64EncodedString()
+      .replacingOccurrences(of: "+", with: "-")
+      .replacingOccurrences(of: "/", with: "_")
+      .trimmingCharacters(in: ["="])
+    
+    // Return a substring of the encoded string with the specified length
+    return String(base64URLString.prefix(length))
+  }
   
   /// Removes spaces, tabs, newlines, and carriage returns from the string.
   ///

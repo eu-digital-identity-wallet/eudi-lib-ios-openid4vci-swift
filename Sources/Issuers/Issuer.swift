@@ -19,8 +19,7 @@ import JOSESwift
 public protocol IssuerType {
   
   func pushAuthorizationCodeRequest(
-    credentials: [CredentialIdentifier],
-    issuerState: String?
+    credentialOffer: CredentialOffer
   ) async -> Result<UnauthorizedRequest, Error>
   
   func authorizeWithPreAuthorizationCode(
@@ -40,7 +39,7 @@ public protocol IssuerType {
   func requestSingle(
     noProofRequest: AuthorizedRequest,
     claimSet: ClaimSet?,
-    credentialIdentifier: CredentialIdentifier?,
+    requestCredentialIdentifier: IssuanceRequestCredentialIdentifier,
     responseEncryptionSpecProvider: (_ issuerResponseEncryptionMetadata: CredentialResponseEncryption) -> IssuanceResponseEncryptionSpec?
   ) async throws -> Result<SubmittedRequest, Error>
   
@@ -48,7 +47,7 @@ public protocol IssuerType {
     proofRequest: AuthorizedRequest,
     bindingKey: BindingKey,
     claimSet: ClaimSet?,
-    credentialIdentifier: CredentialIdentifier?,
+    requestCredentialIdentifier: IssuanceRequestCredentialIdentifier,
     responseEncryptionSpecProvider: (_ issuerResponseEncryptionMetadata: CredentialResponseEncryption) -> IssuanceResponseEncryptionSpec?
   ) async throws -> Result<SubmittedRequest, Error>
   
@@ -56,6 +55,11 @@ public protocol IssuerType {
     proofRequest: AuthorizedRequest,
     transactionId: TransactionId
   ) async throws -> Result<DeferredCredentialIssuanceResponse, Error>
+  
+  func notify(
+    authorizedRequest: AuthorizedRequest,
+    notificationId: NotificationObject
+  ) async throws -> Result<Void, Error>
 }
 
 public actor Issuer: IssuerType {
@@ -69,6 +73,8 @@ public actor Issuer: IssuerType {
   private let issuanceRequester: IssuanceRequesterType
   private let deferredIssuanceRequester: IssuanceRequesterType
   
+  private let notifyIssuer: NotifyIssuerType
+  
   public init(
     authorizationServerMetadata: IdentityAndAccessManagementMetadata,
     issuerMetadata: CredentialIssuerMetadata,
@@ -76,7 +82,8 @@ public actor Issuer: IssuerType {
     parPoster: PostingType = Poster(),
     tokenPoster: PostingType = Poster(),
     requesterPoster: PostingType = Poster(),
-    deferredRequesterPoster: PostingType = Poster()
+    deferredRequesterPoster: PostingType = Poster(),
+    notificationPoster: PostingType = Poster()
   ) throws {
     self.authorizationServerMetadata = authorizationServerMetadata
     self.issuerMetadata = issuerMetadata
@@ -98,43 +105,67 @@ public actor Issuer: IssuerType {
       issuerMetadata: issuerMetadata,
       poster: deferredRequesterPoster
     )
+    
+    notifyIssuer = NotifyIssuer(
+      issuerMetadata: issuerMetadata,
+      poster: notificationPoster
+    )
   }
   
   public func pushAuthorizationCodeRequest(
-    credentials: [CredentialIdentifier],
-    issuerState: String? = nil
+    credentialOffer: CredentialOffer
   ) async -> Result<UnauthorizedRequest, Error> {
-    let scopes: [Scope] = credentials
-      .map {
-        issuerMetadata.credentialsSupported[$0]
-      }
-      .compactMap {
-        return try? Scope($0?.getScope())
-      }
+    let credentials = credentialOffer.credentialConfigurationIdentifiers
+    let issuerState: String? = switch credentialOffer.grants {
+    case .authorizationCode(let code), .both(let code, _):
+      code.issuerState
+    default:
+      nil
+    }
+
+    var authorizationDetails: [OidCredentialAuthorizationDetail] = []
+    var scopes: [Scope] = []
     
-    let state = UUID().uuidString
-    do {
-      let result: (
-        verifier: PKCEVerifier,
-        code: GetAuthorizationCodeURL
-      ) = try await authorizer.submitPushedAuthorizationRequest(
-        scopes: scopes,
-        state: state,
-        issuerState: issuerState
-      ).get()
-      
-      return .success(
-        .par(
-          .init(
-            credentials: credentials,
-            getAuthorizationCodeURL: result.code,
-            pkceVerifier: result.verifier,
-            state: state
+    credentialOffer.credentialConfigurationIdentifiers.forEach { credentialConfigurationId in
+      if let credentialConfigurationIdentifier = try? CredentialConfigurationIdentifier(value: credentialConfigurationId.value),
+         let supportedCredential = issuerMetadata.credentialsSupported[credentialConfigurationIdentifier],
+           let scope = try? Scope(supportedCredential.getScope()) {
+          scopes.append(scope)
+        } else {
+          authorizationDetails.append(ByCredentialConfiguration(credentialConfigurationId: credentialConfigurationId))
+        }
+    }
+    
+    let authorizationServerSupportsPar = credentialOffer.authorizationServerMetadata.authorizationServerSupportsPar
+
+    let state = String.randomBase64URLString(length: 32)
+    
+    if authorizationServerSupportsPar {
+      do {
+        let result: (
+          verifier: PKCEVerifier,
+          code: GetAuthorizationCodeURL
+        ) = try await authorizer.submitPushedAuthorizationRequest(
+          scopes: scopes,
+          state: state,
+          issuerState: issuerState
+        ).get()
+        
+        return .success(
+          .par(
+            .init(
+              credentials: try credentials.map { try CredentialIdentifier(value: $0.value) },
+              getAuthorizationCodeURL: result.code,
+              pkceVerifier: result.verifier,
+              state: state
+            )
           )
         )
-      )
-    } catch {
-      return .failure(ValidationError.error(reason: error.localizedDescription))
+      } catch {
+        return .failure(ValidationError.error(reason: error.localizedDescription))
+      }
+    } else {
+      return .failure(ValidationError.error(reason: "Authorization server does not support PAR"))
     }
   }
   
@@ -159,9 +190,9 @@ public actor Issuer: IssuerType {
         switch response {
         case .success((let accessToken, let nonce)):
           if let cNonce = CNonce(value: nonce) {
-            return .success(.proofRequired(token: try IssuanceAccessToken(accessToken: accessToken), cNonce: cNonce))
+            return .success(.proofRequired(token: try IssuanceAccessToken(accessToken: accessToken), cNonce: cNonce, credentialIdentifiers: [:]))
           } else {
-            return .success(.noProofRequired(token: try IssuanceAccessToken(accessToken: accessToken)))
+            return .success(.noProofRequired(token: try IssuanceAccessToken(accessToken: accessToken), credentialIdentifiers: [:]))
           }
         case .failure(let error):
           return .failure(ValidationError.error(reason: error.localizedDescription))
@@ -193,13 +224,15 @@ public actor Issuer: IssuerType {
             return .success(
               .proofRequired(
                 token: try IssuanceAccessToken(accessToken: response.accessToken),
-                cNonce: cNonce
+                cNonce: cNonce,
+                credentialIdentifiers: [:]
               )
             )
           } else {
             return .success(
               .noProofRequired(
-                token: try IssuanceAccessToken(accessToken: response.accessToken)
+                token: try IssuanceAccessToken(accessToken: response.accessToken),
+                credentialIdentifiers: [:]
               )
             )
           }
@@ -265,9 +298,9 @@ public actor Issuer: IssuerType {
   
   private func accessToken(from request: AuthorizedRequest) -> IssuanceAccessToken {
     switch request {
-    case .noProofRequired(let token):
+    case .noProofRequired(let token, _):
       return token
-    case .proofRequired(let token, _):
+    case .proofRequired(let token, _, _):
       return token
     }
   }
@@ -276,7 +309,7 @@ public actor Issuer: IssuerType {
     switch request {
     case .noProofRequired:
       return nil
-    case .proofRequired(_, let cnonce):
+    case .proofRequired(_, let cnonce, _):
       return cnonce
     }
   }
@@ -284,21 +317,17 @@ public actor Issuer: IssuerType {
   public func requestSingle(
     noProofRequest: AuthorizedRequest,
     claimSet: ClaimSet? = nil,
-    credentialIdentifier: CredentialIdentifier?,
+    requestCredentialIdentifier: IssuanceRequestCredentialIdentifier,
     responseEncryptionSpecProvider: (_ issuerResponseEncryptionMetadata: CredentialResponseEncryption) -> IssuanceResponseEncryptionSpec?
   ) async throws -> Result<SubmittedRequest, Error> {
     
-    guard let credentialIdentifier else {
-      throw ValidationError.error(reason: "Invalid credential CredentialIdentifier for requestSingle")
-    }
-    
     guard let supportedCredential = issuerMetadata
-      .credentialsSupported[credentialIdentifier] else {
+      .credentialsSupported[requestCredentialIdentifier.0] else {
       throw ValidationError.error(reason: "Invalid Supported credential for requestSingle")
     }
     
     switch noProofRequest {
-    case .noProofRequired(let token):
+    case .noProofRequired(let token, _):
       return try await requestIssuance(token: token) {
         return try supportedCredential.toIssuanceRequest(
           requester: issuanceRequester,
@@ -314,16 +343,12 @@ public actor Issuer: IssuerType {
     proofRequest: AuthorizedRequest,
     bindingKey: BindingKey,
     claimSet: ClaimSet? = nil,
-    credentialIdentifier: CredentialIdentifier?,
+    requestCredentialIdentifier: IssuanceRequestCredentialIdentifier,
     responseEncryptionSpecProvider: (_ issuerResponseEncryptionMetadata: CredentialResponseEncryption) -> IssuanceResponseEncryptionSpec?
   ) async throws -> Result<SubmittedRequest, Error> {
     
-    guard let credentialIdentifier else {
-      throw ValidationError.error(reason: "Invalid credential CredentialIdentifier for requestSingle")
-    }
-    
     guard let supportedCredential = issuerMetadata
-      .credentialsSupported[credentialIdentifier] else {
+      .credentialsSupported[requestCredentialIdentifier.0] else {
       throw ValidationError.error(reason: "Invalid Supported credential for requestSingle")
     }
     
@@ -501,6 +526,17 @@ public extension Issuer {
     return try await deferredIssuanceRequester.placeDeferredCredentialRequest(
       accessToken: token,
       transactionId: transactionId
+    )
+  }
+  
+  func notify(
+    authorizedRequest: AuthorizedRequest,
+    notificationId: NotificationObject
+  ) async throws -> Result<Void, Error> {
+    
+    return try await notifyIssuer.notify(
+      authorizedRequest: authorizedRequest,
+      notification: notificationId
     )
   }
 }

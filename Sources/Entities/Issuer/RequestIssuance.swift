@@ -21,17 +21,35 @@ public struct X509Certificate {}
 protocol RequestIssuance {
   
   // Request single issuance without proof
-  func requestSingle(with request: AuthorizedRequest, credentialMetadata: CredentialMetadata, claimSet: ClaimSet?) async throws -> Result<SubmittedRequest, Error>
+  func requestSingle(
+    with request: AuthorizedRequest,
+    credentialMetadata: CredentialMetadata,
+    claimSet: ClaimSet?
+  ) async throws -> Result<SubmittedRequest, Error>
   
   // Request single issuance with proof
-  func requestSingle(with request: AuthorizedRequest, credentialMetadata: CredentialMetadata, claimSet: ClaimSet?, bindingKey: BindingKey) async throws -> Result<SubmittedRequest, Error>
+  func requestSingle(
+    with request: AuthorizedRequest,
+    credentialMetadata: CredentialMetadata,
+    claimSet: ClaimSet?,
+    bindingKey: BindingKey
+  ) async throws -> Result<SubmittedRequest, Error>
   
   // Request batch issuance without proof
-  func requestBatch(with request: AuthorizedRequest, credentialsMetadata: [(CredentialMetadata, ClaimSet?)]) async throws -> Result<SubmittedRequest, Error>
+  func requestBatch(
+    with request: AuthorizedRequest,
+    credentialsMetadata: [(CredentialMetadata, ClaimSet?)]
+  ) async throws -> Result<SubmittedRequest, Error>
   
   // Request batch issuance with proof
-  func requestBatch(with request: AuthorizedRequest, credentialsMetadata: [(CredentialMetadata, ClaimSet?, BindingKey)]) async throws -> Result<SubmittedRequest, Error>
+  func requestBatch(
+    with request: AuthorizedRequest,
+    credentialsMetadata: [(CredentialMetadata, ClaimSet?, BindingKey)]
+  ) async throws -> Result<SubmittedRequest, Error>
   
   // Handle invalid proof
-  func handleInvalidProof(with request: AuthorizedRequest, cNonce: CNonce) async throws -> AuthorizedRequest
+  func handleInvalidProof(
+    with request: AuthorizedRequest,
+    cNonce: CNonce
+  ) async throws -> AuthorizedRequest
 }

@@ -101,14 +101,14 @@ class IssuanceSingleRequestTest: XCTestCase {
       let authorizedRequest = await issuer.requestAccessToken(authorizationCode: authorizationCode)
       
       if case let .success(authorized) = authorizedRequest,
-         case let .noProofRequired(token) = authorized {
+         case let .noProofRequired(token, _) = authorized {
         XCTAssert(true, "Got access token: \(token)")
         XCTAssert(true, "Is no proof required")
         
         do {
           let result = try await issuer.requestSingle(
             noProofRequest: authorized,
-            credentialIdentifier: .init(value: "eu.europa.ec.eudiw.pid_mso_mdoc"),
+            requestCredentialIdentifier: (.init(value: "eu.europa.ec.eudiw.pid_mso_mdoc"), nil),
             responseEncryptionSpecProvider: { _ in
               spec
             })
@@ -121,7 +121,7 @@ class IssuanceSingleRequestTest: XCTestCase {
                 switch result {
                 case .deferred:
                   XCTAssert(false, "Unexpected deferred")
-                case .issued(_, let credential):
+                case .issued(_, let credential, _):
                   XCTAssert(true, "credential: \(credential)")
                   return
                 }

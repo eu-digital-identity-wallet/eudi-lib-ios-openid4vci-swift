@@ -24,7 +24,7 @@ public protocol CredentialIssuerMetadataType {
   associatedtype InputType
 
   /// The output type for resolved type. Must be Codable and Equatable.
-  associatedtype OutputType: Codable, Equatable
+  associatedtype OutputType: Decodable, Equatable
 
   /// The error type for resolving type. Must conform to the Error protocol.
   associatedtype ErrorType: Error
