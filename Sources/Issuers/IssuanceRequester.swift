@@ -307,7 +307,7 @@ private extension BatchIssuanceSuccessResponse {
         if let transactionId = response.transactionId {
           return CredentialIssuanceResponse.Result.deferred(transactionId: try .init(value: transactionId))
         } else if let credential = response.credential {
-          return CredentialIssuanceResponse.Result.issued(format: response.format, credential: credential, notificationId: nil)
+          return CredentialIssuanceResponse.Result.issued(format: nil, credential: credential, notificationId: nil)
         } else {
           throw CredentialIssuanceError.responseUnparsable("Got success response for issuance but response misses 'transaction_id' and 'certificate' parameters")
         }

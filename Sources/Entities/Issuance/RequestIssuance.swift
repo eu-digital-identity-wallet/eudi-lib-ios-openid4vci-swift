@@ -16,8 +16,6 @@
 import Foundation
 import JOSESwift
 
-public struct X509Certificate {}
-
 protocol RequestIssuance {
   
   // Request single issuance without proof
