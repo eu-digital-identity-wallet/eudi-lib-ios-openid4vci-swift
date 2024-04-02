@@ -391,7 +391,7 @@ public actor Issuer: IssuerType {
         let credentialRequests: [CredentialIssuanceRequest] = try credentialsMetadata.map { (identifier, claimSet) in
           guard let supportedCredential = issuerMetadata
             .credentialsSupported[identifier.0] else {
-            throw ValidationError.error(reason: "Invalid Supported credential for requestSingle")
+            throw ValidationError.error(reason: "Invalid Supported credential for requestBatch")
           }
           return try supportedCredential.toIssuanceRequest(
             requester: issuanceRequester,

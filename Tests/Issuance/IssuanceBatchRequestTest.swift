@@ -109,7 +109,10 @@ class IssuanceBatchRequestTest: XCTestCase {
           
           let result = try await issuer.requestBatch(
             noProofRequest: authorized,
-            credentialsMetadata: [((.init(value: "eu.europa.ec.eudiw.pid_mso_mdoc"), nil), nil)],
+            credentialsMetadata: [
+              ((.init(value: "eu.europa.ec.eudiw.pid_mso_mdoc"), nil), nil),
+              ((.init(value: "eu.europa.ec.eudiw.pid_vc_sd_jwt"), nil), nil)
+            ],
             responseEncryptionSpecProvider: { _ in
               spec
             })
