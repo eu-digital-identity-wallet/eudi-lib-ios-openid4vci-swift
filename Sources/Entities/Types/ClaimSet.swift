@@ -51,7 +51,7 @@ public enum ClaimSet: Codable {
     }
   }
   
-  public func validate(credentialSupported: CredentialSupported) -> ClaimSet? {
+  public func validate(claims: [String]) throws -> ClaimSet? {
     switch self {
     case .w3CJsonLdDataIntegrity(_):
       return nil
@@ -60,23 +60,53 @@ public enum ClaimSet: Codable {
     case .w3CSignedJwt(_):
       return nil
     case .msoMdoc(let claimSet):
-      guard let claims = claimSet?.claims else {
+      guard let claimSetClaims = claimSet?.claims else {
         return nil
       }
+      
       if !claims.isEmpty {
-        for (nameSpace, claimName) in claims {
-          
+        for (_, claimName) in claimSetClaims {
+          if !claims.contains(where: { $0 == claimName}) {
+            throw ValidationError.error(reason: "Requested claim name \(claimName) is not supported by issuer")
+          }
         }
         return .msoMdoc(claimSet)
       } else {
         return nil
       }
       
-    case .sdJwtVc(_):
-      return nil
+    case .sdJwtVc(let claimSet):
+      guard let claimSetClaims = claimSet?.claims else {
+        return nil
+      }
       
-    case .generic(_):
-      return nil
+      if !claims.isEmpty {
+        for (claimName, _) in claimSetClaims {
+          if !claims.contains(where: { $0 == claimName}) {
+            throw ValidationError.error(reason: "Requested claim name \(claimName) is not supported by issuer")
+          }
+        }
+        return .sdJwtVc(claimSet)
+      } else {
+        return nil
+      }
+      
+    case .generic(let claimSet):
+      guard let c = claimSet?.claims else {
+        return nil
+      }
+      
+      if !claims.isEmpty {
+        for claimName in c {
+          if !claims.contains(where: { $0 == claimName}) {
+            print(claimName)
+            throw ValidationError.error(reason: "Requested claim name \(claimName) is not supported by issuer")
+          }
+        }
+        return .generic(claimSet)
+      } else {
+        return nil
+      }
     }
   }
 }

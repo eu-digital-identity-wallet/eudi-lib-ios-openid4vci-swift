@@ -227,6 +227,10 @@ public extension MsoMdocFormat {
     public let claims: MsoMdocClaims
     public let order: [ClaimName]
     
+    var claimList: [String] {
+      claims.values.flatMap { $0 }.map { $0.0 }
+    }
+    
     enum CodingKeys: String, CodingKey {
       case format
       case scope
@@ -323,10 +327,9 @@ public extension MsoMdocFormat {
     func toIssuanceRequest(
       responseEncryptionSpec: IssuanceResponseEncryptionSpec?,
       claimSet: ClaimSet?,
-      proof: Proof?,
-      supportedCredential: CredentialSupported
+      proof: Proof?
     ) throws -> CredentialIssuanceRequest {
-      return try .single(
+      try .single(
         .msoMdoc(
           .init(
             docType: docType,
@@ -335,7 +338,7 @@ public extension MsoMdocFormat {
             credentialEncryptionKey: responseEncryptionSpec?.privateKey,
             credentialResponseEncryptionAlg: responseEncryptionSpec?.algorithm,
             credentialResponseEncryptionMethod: responseEncryptionSpec?.encryptionMethod,
-            claimSet: claimSet
+            claimSet: try claimSet?.validate(claims: self.claimList)
           )
         )
       )

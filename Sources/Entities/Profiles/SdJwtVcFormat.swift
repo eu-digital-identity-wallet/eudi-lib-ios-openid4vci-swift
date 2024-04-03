@@ -236,6 +236,10 @@ public extension SdJwtVcFormat {
       case credentialDefinition = "credential_definition"
     }
     
+    var claimList: [String] {
+      return self.credentialDefinition.claims?.keys.map { $0 } ?? []
+    }
+    
     public init(
       scope: String?,
       cryptographicBindingMethodsSupported: [CryptographicBindingMethod],
@@ -303,7 +307,6 @@ public extension SdJwtVcFormat {
       claimSet: ClaimSet?,
       proof: Proof?
     ) throws -> CredentialIssuanceRequest {
-      
       try .single(
         .sdJwtVc(
           .init(
@@ -314,7 +317,7 @@ public extension SdJwtVcFormat {
             credentialResponseEncryptionMethod: responseEncryptionSpec?.encryptionMethod,
             credentialDefinition: .init(
               type: credentialDefinition.type,
-              claims: claimSet
+              claims: try claimSet?.validate(claims: self.claimList)
             )
           )
         )
