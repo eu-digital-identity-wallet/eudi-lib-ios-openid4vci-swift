@@ -158,6 +158,12 @@ public struct Claim: Codable {
     case display
   }
   
+  public init() {
+    self.mandatory = nil
+    self.valueType = nil
+    self.display = nil
+  }
+  
   public init(mandatory: Bool?, valueType: String?, display: [Display]?) {
     self.mandatory = mandatory
     self.valueType = valueType

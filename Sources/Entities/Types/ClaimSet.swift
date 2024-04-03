@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 import Foundation
+import SwiftyJSON
 
 public enum ClaimSet: Codable {
   case w3CJsonLdDataIntegrity(W3CJsonLdDataIntegrityFormat.W3CJsonLdDataIntegrityClaimSet)
@@ -21,6 +22,63 @@ public enum ClaimSet: Codable {
   case w3CSignedJwt(W3CSignedJwtFormat.W3CSignedJwtClaimSet)
   case msoMdoc(MsoMdocFormat.MsoMdocClaimSet?)
   case sdJwtVc(SdJwtVcFormat.SdJwtVcClaimSet?)
+  case generic(GenericClaimSet?)
+  
+  public func toDictionary() -> [String: JSON]? {
+    switch self {
+    case .w3CJsonLdDataIntegrity,
+         .w3CJsonLdSignedJwt,
+         .w3CSignedJwt:
+      return nil
+    case .msoMdoc(let claimSet):
+      guard let claims = claimSet?.claims else {
+        return nil
+      }
+      
+      let elements = Dictionary(grouping: claims) { key, _ in
+          return key
+      }.values.flatMap { $0 }.map { $0.1 }
+
+      return Dictionary(uniqueKeysWithValues: elements.map { ($0, JSON()) })
+      
+    case .sdJwtVc(_):
+      return nil
+    case .generic(let claimSet):
+      guard let claims = claimSet?.claims else {
+        return nil
+      }
+      return Dictionary(uniqueKeysWithValues: claims.map { ($0, JSON()) })
+    }
+  }
+  
+  public func validate(credentialSupported: CredentialSupported) -> ClaimSet? {
+    switch self {
+    case .w3CJsonLdDataIntegrity(_):
+      return nil
+    case .w3CJsonLdSignedJwt(_):
+      return nil
+    case .w3CSignedJwt(_):
+      return nil
+    case .msoMdoc(let claimSet):
+      guard let claims = claimSet?.claims else {
+        return nil
+      }
+      if !claims.isEmpty {
+        for (nameSpace, claimName) in claims {
+          
+        }
+        return .msoMdoc(claimSet)
+      } else {
+        return nil
+      }
+      
+    case .sdJwtVc(_):
+      return nil
+      
+    case .generic(_):
+      return nil
+    }
+  }
 }
 
 public extension ClaimSet {
@@ -56,6 +114,8 @@ public extension ClaimSet {
     case .msoMdoc(let claimSet):
       try container.encode(claimSet)
     case .sdJwtVc(let claimSet):
+      try container.encode(claimSet)
+    case .generic(let claimSet):
       try container.encode(claimSet)
     }
   }

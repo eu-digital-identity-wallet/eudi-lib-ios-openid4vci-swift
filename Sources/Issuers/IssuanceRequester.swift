@@ -190,18 +190,16 @@ public actor IssuanceRequester: IssuanceRequesterType {
     
     do {
       let authorizationHeader: [String: Any] = accessToken.authorizationHeader
-      let encodedRequest: [String: JSON] = try request
+      let encodedRequest: [JSON] = try request
         .map { try $0.toDictionary() }
-        .reduce(into: [:]) { result, dictionary in
-          result.merge(dictionary) { (_, new) in new }
-        }
-      let merged = authorizationHeader.merging(encodedRequest) { (_, new) in new }
+
+      let merged = authorizationHeader.merging(["credential_requests": encodedRequest]) { (_, new) in new }
       
       let response: BatchIssuanceSuccessResponse = try await service.formPost(
         poster: poster,
         url: endpoint,
         headers: [:],
-        parameters: merged.convertToDictionaryOfStrings()
+        body: merged
       )
       return .success(try response.toBatchIssuanceResponse())
       

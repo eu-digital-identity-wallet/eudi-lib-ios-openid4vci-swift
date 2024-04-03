@@ -74,7 +74,8 @@ public extension CredentialSupported {
       return try credentialConfiguration.toIssuanceRequest(
         responseEncryptionSpec: responseEncryptionSpec,
         claimSet: claimSet,
-        proof: proof
+        proof: proof, 
+        supportedCredential: self
       )
 
     case .sdJwtVc(let credentialConfiguration):

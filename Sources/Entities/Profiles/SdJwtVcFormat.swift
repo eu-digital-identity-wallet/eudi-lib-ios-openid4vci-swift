@@ -304,40 +304,7 @@ public extension SdJwtVcFormat {
       proof: Proof?
     ) throws -> CredentialIssuanceRequest {
       
-      func validateClaimSet(
-        claimSet: SdJwtVcClaimSet
-      ) throws -> SdJwtVcClaimSet {
-        if credentialDefinition.claims == nil ||
-           (((credentialDefinition.claims?.isEmpty) != nil) && claimSet.claims.isEmpty) {
-          throw CredentialIssuanceError.invalidIssuanceRequest(
-            "Issuer does not support claims for credential [\(SdJwtVcFormat.FORMAT)-\(credentialDefinition.type)]"
-          )
-        }
-        
-        if credentialDefinition.claims == nil || (((credentialDefinition.claims?.isEmpty) != nil) && claimSet.claims.isEmpty) {
-          throw CredentialIssuanceError.invalidIssuanceRequest(
-            "Issuer does not support claims for credential [\(SdJwtVcFormat.FORMAT)-\(credentialDefinition.type)]"
-          )
-        }
-        return claimSet
-      }
-      
-      var validClaimSet: SdJwtVcFormat.SdJwtVcClaimSet?
-      if let claimSet = claimSet {
-        switch claimSet {
-        case .sdJwtVc(let claimSet):
-          guard let claimSet else {
-            throw CredentialIssuanceError.invalidIssuanceRequest(
-              "Invalid Claim Set provided for issuance")
-          }
-          validClaimSet = try validateClaimSet(claimSet: claimSet)
-        default: throw CredentialIssuanceError.invalidIssuanceRequest(
-          "Invalid Claim Set provided for issuance"
-        )
-        }
-      }
-
-      return try .single(
+      try .single(
         .sdJwtVc(
           .init(
             proof: proof,
@@ -347,9 +314,7 @@ public extension SdJwtVcFormat {
             credentialResponseEncryptionMethod: responseEncryptionSpec?.encryptionMethod,
             credentialDefinition: .init(
               type: credentialDefinition.type,
-              claims: .sdJwtVc(
-                validClaimSet
-              )
+              claims: claimSet
             )
           )
         )

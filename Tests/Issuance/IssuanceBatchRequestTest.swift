@@ -16,6 +16,7 @@
 import Foundation
 import XCTest
 import JOSESwift
+import SwiftyJSON
 
 @testable import OpenID4VCI
 
@@ -107,118 +108,26 @@ class IssuanceBatchRequestTest: XCTestCase {
         
         do {
           
+          let claimSetMsoMdoc = MsoMdocFormat.MsoMdocClaimSet(
+            claims: [
+              ("org.iso.18013.5.1", "given_name"),
+              ("org.iso.18013.5.1", "family_name"),
+              ("org.iso.18013.5.1", "birth_date")
+            ]
+          )
+          
+          let claimSetSDJWTVC = GenericClaimSet(claims: [
+            "given_name",
+            "family_name",
+            "birth_date",
+          ])
+          
           let result = try await issuer.requestBatch(
             noProofRequest: authorized,
             credentialsMetadata: [
-              ((.init(value: "eu.europa.ec.eudiw.pid_mso_mdoc"), nil), nil),
-              ((.init(value: "eu.europa.ec.eudiw.pid_vc_sd_jwt"), nil), nil)
+              ((.init(value: PID_MsoMdoc_config_id), nil), .msoMdoc(claimSetMsoMdoc)),
+              ((.init(value: PID_SdJwtVC_config_id), nil), .generic(claimSetSDJWTVC))
             ],
-            responseEncryptionSpecProvider: { _ in
-              spec
-            })
-          
-          switch result {
-          case .success(let request):
-            switch request {
-            case .success(let response):
-              if let result = response.credentialResponses.first {
-                switch result {
-                case .deferred:
-                  XCTAssert(false, "Unexpected deferred")
-                case .issued(_, let credential, _):
-                  XCTAssert(true, "credential: \(credential)")
-                  return
-                }
-              } else {
-                break
-              }
-            case .failed(let error):
-              XCTAssert(false, error.localizedDescription)
-              
-            case .invalidProof(_, let errorDescription):
-              XCTAssert(false, errorDescription!)
-            }
-            XCTAssert(false, "Unexpected request")
-          case .failure(let error):
-            XCTAssert(false, error.localizedDescription)
-          }
-        } catch {
-          XCTAssert(false, error.localizedDescription)
-        }
-        
-        return
-      }
-      
-    case .failure(let error):
-      XCTAssert(false, error.localizedDescription)
-    }
-    
-    XCTAssert(false, "Unable to get access token")
-  }
-  
-  func testLiveBatchCredentialIssuance() async throws {
-    
-    // Given
-    guard let offer = await TestsConstants.createMockCredentialOfferValidEncryption() else {
-      XCTAssert(false, "Unable to resolve credential offer")
-      return
-    }
-    
-    // Given
-    let privateKey = try KeyController.generateRSAPrivateKey()
-    let publicKey = try KeyController.generateRSAPublicKey(from: privateKey)
-    
-    let alg = JWSAlgorithm(.RS256)
-    let publicKeyJWK = try RSAPublicKey(
-      publicKey: publicKey,
-      additionalParameters: [
-        "alg": alg.name,
-        "use": "enc",
-        "kid": UUID().uuidString
-      ])
-    
-    let spec = IssuanceResponseEncryptionSpec(
-      jwk: publicKeyJWK,
-      privateKey: privateKey,
-      algorithm: .init(.RSA_OAEP_256),
-      encryptionMethod: .init(.A128CBC_HS256)
-    )
-    
-    let user = ActingUser(
-      username: "tneal",
-      password: "password"
-    )
-    
-    // When
-    let issuer = try Issuer(
-      authorizationServerMetadata: offer.authorizationServerMetadata,
-      issuerMetadata: offer.credentialIssuerMetadata,
-      config: config
-    )
-    
-    let authorizationCode = "MZqG9bsQ8UALhsGNlY39Yw=="
-    let request: UnauthorizedRequest = TestsConstants.unAuthorizedRequest
-    
-    let issuanceAuthorization: IssuanceAuthorization = .authorizationCode(authorizationCode: authorizationCode)
-    let unAuthorized = await issuer.handleAuthorizationCode(
-      parRequested: request,
-      authorizationCode: issuanceAuthorization
-    )
-    
-    switch unAuthorized {
-    case .success(let authorizationCode):
-      let authorizedRequest = await issuer.requestAccessToken(authorizationCode: authorizationCode)
-      
-      if case let .success(authorized) = authorizedRequest,
-         case let .noProofRequired(token, _) = authorized {
-        XCTAssert(true, "Got access token: \(token)")
-        XCTAssert(true, "Is no proof required")
-        
-        do {
-          
-          let result = try await issuer.requestBatch(
-            noProofRequest: authorized,
-            credentialsMetadata: [((.init(value: "eu.europa.ec.eudiw.pid_mso_mdoc"), nil), nil)],
             responseEncryptionSpecProvider: { _ in
               spec
             })
