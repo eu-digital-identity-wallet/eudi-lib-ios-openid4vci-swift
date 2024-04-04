@@ -190,18 +190,16 @@ public actor IssuanceRequester: IssuanceRequesterType {
     
     do {
       let authorizationHeader: [String: Any] = accessToken.authorizationHeader
-      let encodedRequest: [String: JSON] = try request
+      let encodedRequest: [JSON] = try request
         .map { try $0.toDictionary() }
-        .reduce(into: [:]) { result, dictionary in
-          result.merge(dictionary) { (_, new) in new }
-        }
-      let merged = authorizationHeader.merging(encodedRequest) { (_, new) in new }
+
+      let merged = authorizationHeader.merging(["credential_requests": encodedRequest]) { (_, new) in new }
       
       let response: BatchIssuanceSuccessResponse = try await service.formPost(
         poster: poster,
         url: endpoint,
         headers: [:],
-        parameters: merged.convertToDictionaryOfStrings()
+        body: merged
       )
       return .success(try response.toBatchIssuanceResponse())
       
@@ -307,7 +305,7 @@ private extension BatchIssuanceSuccessResponse {
         if let transactionId = response.transactionId {
           return CredentialIssuanceResponse.Result.deferred(transactionId: try .init(value: transactionId))
         } else if let credential = response.credential {
-          return CredentialIssuanceResponse.Result.issued(format: response.format, credential: credential, notificationId: nil)
+          return CredentialIssuanceResponse.Result.issued(format: nil, credential: credential, notificationId: nil)
         } else {
           throw CredentialIssuanceError.responseUnparsable("Got success response for issuance but response misses 'transaction_id' and 'certificate' parameters")
         }

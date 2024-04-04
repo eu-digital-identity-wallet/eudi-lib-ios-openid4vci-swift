@@ -30,19 +30,29 @@ public typealias MsoMdocClaims = [Namespace: [ClaimName: Claim]]
 public extension MsoMdocClaims {
   init(json: JSON) {
     var claims = MsoMdocClaims()
-    for (namespace, subJSON) in json.dictionaryValue {
-      var namespaceClaims = [ClaimName: Claim]()
-      for (claimName, claimJSON) in subJSON.dictionaryValue {
-        let claim = Claim(
-          mandatory: claimJSON["mandatory"].bool,
-          valueType: claimJSON["valuetype"].string,
-          display: claimJSON["display"].arrayValue.compactMap {
-            Display(json: $0)
-          }
-        )
-        namespaceClaims[claimName] = claim
+    if let _ = json.dictionaryObject {
+      for (namespace, subJSON) in json.dictionaryValue {
+        var namespaceClaims = [ClaimName: Claim]()
+        for (claimName, claimJSON) in subJSON.dictionaryValue {
+          let claim = Claim(
+            mandatory: claimJSON["mandatory"].bool,
+            valueType: claimJSON["valuetype"].string,
+            display: claimJSON["display"].arrayValue.compactMap {
+              Display(json: $0)
+            }
+          )
+          namespaceClaims[claimName] = claim
+        }
+        claims[namespace] = namespaceClaims
       }
-      claims[namespace] = namespaceClaims
+    } else if let jsonArray = json.arrayObject {
+      for element in jsonArray {
+        if let dictionary = element as? [String: String] {
+          if let key = dictionary.keys.first, let value = dictionary[key] {
+            claims[key] = [value: Claim()]
+          }
+        }
+      }
     }
     self = claims
   }
@@ -69,19 +79,21 @@ public extension SingleCredential {
     case .msoMdoc(let credential):
       switch credential.requestedCredentialResponseEncryption {
       case .notRequested:
-        return [
+        let dictionary = [
           "format": MsoMdocFormat.FORMAT,
           "doctype": credential.docType,
-        ]
+          "claims": credential.claimSet?.toDictionary()
+        ] as [String : Any?]
+        return JSON(dictionary.filter { $0.value != nil })
+        
       case .requested(
         let encryptionJwk,
         _,
         let responseEncryptionAlg,
         let responseEncryptionMethod
       ):
-        
         if let proof = credential.proof {
-          return [
+          let dictionary = [
             "format": MsoMdocFormat.FORMAT,
             "proof": try proof.toDictionary(),
             "doctype": credential.docType,
@@ -89,29 +101,35 @@ public extension SingleCredential {
               "jwk": try encryptionJwk.toDictionary(),
               "alg": responseEncryptionAlg.name,
               "enc": responseEncryptionMethod.name
-            ]
-          ]
+            ],
+            "claims": credential.claimSet?.toDictionary()
+          ] as [String : Any?]
+          return JSON(dictionary.filter { $0.value != nil })
           
         } else {
-          return [
+          let dictionary = [
             "format": MsoMdocFormat.FORMAT,
             "doctype": credential.docType,
             "credential_response_encryption": [
               "jwk": try encryptionJwk.toDictionary(),
               "alg": responseEncryptionAlg.name,
               "enc": responseEncryptionMethod.name
-            ]
-          ]
+            ],
+            "claims": credential.claimSet?.toDictionary()
+          ] as [String : Any?]
+          return JSON(dictionary.filter { $0.value != nil })
         }
       }
     case .sdJwtVc(let credential):
       switch credential.requestedCredentialResponseEncryption {
       case .notRequested:
-        return [
+        let dictionary = [
           "credential_definition" : [
             "type": credential.credentialDefinition.type
-          ]
-        ]
+          ],
+          "claims": credential.credentialDefinition.claims?.toDictionary()
+        ] as [String : Any?]
+        return JSON(dictionary.filter { $0.value != nil })
       case .requested(
         let encryptionJwk,
         _,
@@ -120,7 +138,7 @@ public extension SingleCredential {
       ):
         
         if let proof = credential.proof {
-          return [
+          let dictionary = [
             "vct": credential.credentialDefinition.type,
             "format": SdJwtVcFormat.FORMAT,
             "proof": try proof.toDictionary(),
@@ -128,19 +146,23 @@ public extension SingleCredential {
               "jwk": try encryptionJwk.toDictionary(),
               "alg": responseEncryptionAlg.name,
               "enc": responseEncryptionMethod.name
-            ]
-          ]
+            ],
+            "claims": credential.credentialDefinition.claims?.toDictionary()
+          ] as [String : Any?]
+          return JSON(dictionary.filter { $0.value != nil })
           
         } else {
-          return [
+          let dictionary = [
             "vct": SdJwtVcFormat.FORMAT,
             "format": SdJwtVcFormat.FORMAT,
             "credential_response_encryption": [
               "jwk": try encryptionJwk.toDictionary(),
               "alg": responseEncryptionAlg.name,
               "enc": responseEncryptionMethod.name
-            ]
-          ]
+            ],
+            "claims": credential.credentialDefinition.claims?.toDictionary()
+          ] as [String : Any?]
+          return JSON(dictionary.filter { $0.value != nil })
         }
       }
     }

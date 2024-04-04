@@ -101,10 +101,36 @@ public extension MsoMdocFormat {
   }
   
   struct MsoMdocClaimSet: Codable {
-    public let claims: MsoMdocClaims
+    public let claims: [(Namespace, ClaimName)]
     
-    public init(claims: MsoMdocClaims) {
+    public init(claims: [(Namespace, ClaimName)]) {
       self.claims = claims
+    }
+    
+    public func encode(to encoder: Encoder) throws {
+      var container = encoder.unkeyedContainer()
+      for (namespace, claimName) in claims {
+        var nestedContainer = container.nestedContainer(keyedBy: CodingKeys.self)
+        try nestedContainer.encode(namespace, forKey: .namespace)
+        try nestedContainer.encode(claimName, forKey: .claimName)
+      }
+    }
+    
+    public init(from decoder: Decoder) throws {
+      var container = try decoder.unkeyedContainer()
+      var decodedClaims: [(Namespace, ClaimName)] = []
+      while !container.isAtEnd {
+        let nestedContainer = try container.nestedContainer(keyedBy: CodingKeys.self)
+        let namespace = try nestedContainer.decode(Namespace.self, forKey: .namespace)
+        let claimName = try nestedContainer.decode(ClaimName.self, forKey: .claimName)
+        decodedClaims.append((namespace, claimName))
+      }
+      claims = decodedClaims
+    }
+    
+    private enum CodingKeys: String, CodingKey {
+      case namespace
+      case claimName
     }
   }
   
@@ -159,7 +185,7 @@ public extension MsoMdocFormat {
         try CryptographicBindingMethod(method: $0)
       } ?? []
       let display: [Display] = self.display ?? []
-
+      
       let credentialSigningAlgValuesSupported: [String] = self.credentialSigningAlgValuesSupported ?? []
       let claims: MsoMdocClaims = claims?.mapValues { namespaceAndClaims in
         namespaceAndClaims.mapValues { claim in
@@ -200,6 +226,10 @@ public extension MsoMdocFormat {
     public let docType: String
     public let claims: MsoMdocClaims
     public let order: [ClaimName]
+    
+    var claimList: [String] {
+      claims.values.flatMap { $0 }.map { $0.0 }
+    }
     
     enum CodingKeys: String, CodingKey {
       case format
@@ -299,45 +329,7 @@ public extension MsoMdocFormat {
       claimSet: ClaimSet?,
       proof: Proof?
     ) throws -> CredentialIssuanceRequest {
-      
-      func validateClaimSet(claimSet: MsoMdocClaimSet) throws -> MsoMdocClaimSet {
-        if claims.isEmpty && claimSet.claims.isEmpty {
-          throw CredentialIssuanceError.invalidIssuanceRequest(
-            "Issuer does not support claims for credential [MsoMdoc-\(docType)]"
-          )
-        }
-        
-        for (key, requestedClaims) in claimSet.claims {
-          if let supportedClaims = claims[key] {
-            let supportedSet = Set(supportedClaims.keys)
-            if !supportedSet.isSuperset(of: Array(requestedClaims.keys)) {
-              throw CredentialIssuanceError.invalidIssuanceRequest("Claim names requested are not supported by issuer")
-            }
-          } else {
-            throw CredentialIssuanceError.invalidIssuanceRequest(
-              "Namespace \(key) not supported by issuer"
-            )
-          }
-        }
-        return claimSet
-      }
-      
-      var validClaimSet: MsoMdocFormat.MsoMdocClaimSet?
-      if let claimSet = claimSet {
-        switch claimSet {
-        case .msoMdoc(let claimSet):
-          guard let claimSet else {
-            throw CredentialIssuanceError.invalidIssuanceRequest(
-              "Invalid Claim Set provided for issuance")
-          }
-          validClaimSet = try validateClaimSet(claimSet: claimSet)
-        default: throw CredentialIssuanceError.invalidIssuanceRequest(
-          "Invalid Claim Set provided for issuance"
-        )
-        }
-      }
-      
-      return try .single(
+      try .single(
         .msoMdoc(
           .init(
             docType: docType,
@@ -346,7 +338,7 @@ public extension MsoMdocFormat {
             credentialEncryptionKey: responseEncryptionSpec?.privateKey,
             credentialResponseEncryptionAlg: responseEncryptionSpec?.algorithm,
             credentialResponseEncryptionMethod: responseEncryptionSpec?.encryptionMethod,
-            claimSet: .msoMdoc(validClaimSet)
+            claimSet: try claimSet?.validate(claims: self.claimList)
           )
         )
       )

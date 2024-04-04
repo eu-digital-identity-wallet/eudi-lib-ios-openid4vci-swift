@@ -15,23 +15,10 @@
  */
 import Foundation
 
-public struct CredentialIssuanceResponse: Codable {
-  public let credentialResponses: [Result]
-  public let cNonce: CNonce?
+public struct GenericClaimSet: Codable {
+  public let claims: [ClaimName]
   
-  public enum Result: Codable {
-    case deferred(transactionId: TransactionId)
-    case issued(format: String, credential: String, notificationId: NotificationId?)
+  public init(claims: [ClaimName]) {
+    self.claims = claims
   }
-  
-  public init(credentialResponses: [Result], cNonce: CNonce?) {
-    self.credentialResponses = credentialResponses
-    self.cNonce = cNonce
-  }
-}
-
-public enum SubmittedRequest {
-  case success(response: CredentialIssuanceResponse)
-  case failed(error: CredentialIssuanceError)
-  case invalidProof(cNonce: CNonce, errorDescription: String?)
 }

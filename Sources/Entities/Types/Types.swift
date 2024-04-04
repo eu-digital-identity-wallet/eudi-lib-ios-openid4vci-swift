@@ -134,23 +134,10 @@ public struct BatchIssuanceSuccessResponse: Codable {
   public let cNonce: String?
   public let cNonceExpiresInSeconds: Int?
   
-  public struct CertificateIssuanceResponse: Codable {
-    public let format: String
-    public let credential: String?
-    public let transactionId: String?
-    public let notificationId: String?
-    
-    public init(
-      format: String,
-      credential: String?,
-      transactionId: String?,
-      notificationId: String?
-    ) {
-      self.format = format
-      self.credential = credential
-      self.transactionId = transactionId
-      self.notificationId = notificationId
-    }
+  enum CodingKeys: String, CodingKey {
+    case credentialResponses = "credentials"
+    case cNonce = "c_nonce"
+    case cNonceExpiresInSeconds = "c_nonce_expires_in"
   }
   
   public init(credentialResponses: [CertificateIssuanceResponse], cNonce: String?, cNonceExpiresInSeconds: Int?) {
@@ -169,6 +156,12 @@ public struct Claim: Codable {
     case mandatory
     case valueType = "value_type"
     case display
+  }
+  
+  public init() {
+    self.mandatory = nil
+    self.valueType = nil
+    self.display = nil
   }
   
   public init(mandatory: Bool?, valueType: String?, display: [Display]?) {

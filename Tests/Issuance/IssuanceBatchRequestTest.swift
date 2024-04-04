@@ -16,10 +16,11 @@
 import Foundation
 import XCTest
 import JOSESwift
+import SwiftyJSON
 
 @testable import OpenID4VCI
 
-class IssuanceSingleRequestTest: XCTestCase {
+class IssuanceBatchRequestTest: XCTestCase {
   
   let config: WalletOpenId4VCIConfig = .init(
     clientId: "wallet-dev",
@@ -34,7 +35,7 @@ class IssuanceSingleRequestTest: XCTestCase {
     super.tearDown()
   }
   
-  func testWhenIssuerRespondsSingleCredentialThenCredentialExists() async throws {
+  func testBatchCredentialIssuance() async throws {
     
     // Given
     guard let offer = await TestsConstants.createMockCredentialOfferValidEncryption() else {
@@ -81,7 +82,7 @@ class IssuanceSingleRequestTest: XCTestCase {
       ),
       requesterPoster: Poster(
         session: NetworkingMock(
-          path: "single_issuance_success_response_credential",
+          path: "batch_issuance_success_response_credential",
           extension: "json"
         )
       )
@@ -115,10 +116,18 @@ class IssuanceSingleRequestTest: XCTestCase {
             ]
           )
           
-          let result = try await issuer.requestSingle(
+          let claimSetSDJWTVC = GenericClaimSet(claims: [
+            "given_name",
+            "family_name",
+            "birth_date",
+          ])
+          
+          let result = try await issuer.requestBatch(
             noProofRequest: authorized,
-            claimSet: .msoMdoc(claimSetMsoMdoc),
-            requestCredentialIdentifier: (.init(value: "eu.europa.ec.eudiw.pid_mso_mdoc"), nil),
+            credentialsMetadata: [
+              ((.init(value: PID_MsoMdoc_config_id), nil), .msoMdoc(claimSetMsoMdoc)),
+              ((.init(value: PID_SdJwtVC_config_id), nil), .generic(claimSetSDJWTVC))
+            ],
             responseEncryptionSpecProvider: { _ in
               spec
             })

@@ -60,6 +60,18 @@ public protocol IssuerType {
     authorizedRequest: AuthorizedRequest,
     notificationId: NotificationObject
   ) async throws -> Result<Void, Error>
+  
+  func requestBatch(
+    noProofRequest: AuthorizedRequest,
+    credentialsMetadata: [(IssuanceRequestCredentialIdentifier, ClaimSet?)],
+    responseEncryptionSpecProvider: (_ issuerResponseEncryptionMetadata: CredentialResponseEncryption) -> IssuanceResponseEncryptionSpec?
+  ) async throws -> Result<SubmittedRequest, Error>
+  
+  func requestBatch(
+    proofRequest: AuthorizedRequest,
+    credentialsMetadata: [(IssuanceRequestCredentialIdentifier, ClaimSet?, BindingKey)],
+    responseEncryptionSpecProvider: (_ issuerResponseEncryptionMetadata: CredentialResponseEncryption) -> IssuanceResponseEncryptionSpec?
+  ) async throws -> Result<SubmittedRequest, Error>
 }
 
 public actor Issuer: IssuerType {
@@ -365,6 +377,49 @@ public actor Issuer: IssuerType {
         responseEncryptionSpecProvider: responseEncryptionSpecProvider
       )
     }
+  }
+  
+  public func requestBatch(
+    noProofRequest: AuthorizedRequest,
+    credentialsMetadata: [(IssuanceRequestCredentialIdentifier, ClaimSet?)],
+    responseEncryptionSpecProvider: (_ issuerResponseEncryptionMetadata: CredentialResponseEncryption) -> IssuanceResponseEncryptionSpec?
+  ) async throws -> Result<SubmittedRequest, Error> {
+    
+    switch noProofRequest {
+    case .noProofRequired(let token, _):
+      return try await requestIssuance(token: token) {
+        let credentialRequests: [CredentialIssuanceRequest] = try credentialsMetadata.map { (identifier, claimSet) in
+          guard let supportedCredential = issuerMetadata
+            .credentialsSupported[identifier.0] else {
+            throw ValidationError.error(reason: "Invalid Supported credential for requestBatch")
+          }
+          return try supportedCredential.toIssuanceRequest(
+            requester: issuanceRequester,
+            claimSet: claimSet,
+            responseEncryptionSpecProvider: responseEncryptionSpecProvider
+          )
+        }
+        
+        let batch: [SingleCredential] = credentialRequests.compactMap { credentialIssuanceRequest in
+          switch credentialIssuanceRequest {
+          case .single(let credential):
+            return credential
+          default:
+            return nil
+          }
+        }
+        return .batch(batch)
+      }
+    default: return .failure(ValidationError.error(reason: ".noProofRequired is required"))
+    }
+  }
+  
+  public func requestBatch(
+    proofRequest: AuthorizedRequest,
+    credentialsMetadata: [(IssuanceRequestCredentialIdentifier, ClaimSet?, BindingKey)],
+    responseEncryptionSpecProvider: (_ issuerResponseEncryptionMetadata: CredentialResponseEncryption) -> IssuanceResponseEncryptionSpec?
+  ) async throws -> Result<SubmittedRequest, Error> {
+    .failure(ValidationError.error(reason: ""))
   }
 }
 
