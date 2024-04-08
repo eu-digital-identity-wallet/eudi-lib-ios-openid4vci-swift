@@ -304,7 +304,9 @@ class IssuanceAuthorizationTest: XCTestCase {
       authorizationCode: try .init(
         preAuthorizationCode: code.preAuthorizedCode,
         txCode: code.txCode
-      )
+      ),
+      clientId: "218232426",
+      transactionCode: "12345"
     )
     
     switch result {
@@ -359,7 +361,9 @@ class IssuanceAuthorizationTest: XCTestCase {
       authorizationCode: try .init(
         preAuthorizationCode: code.preAuthorizedCode,
         txCode: code.txCode
-      )
+      ),
+      clientId: "218232426",
+      transactionCode: "12345"
     )
     
     let privateKey = try KeyController.generateRSAPrivateKey()
