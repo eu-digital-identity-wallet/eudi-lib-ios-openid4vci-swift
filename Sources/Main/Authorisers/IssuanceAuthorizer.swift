@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 import Foundation
+import SwiftyJSON
 
 public protocol IssuanceAuthorizerType {
   
@@ -30,7 +31,9 @@ public protocol IssuanceAuthorizerType {
   
   func requestAccessTokenPreAuthFlow(
     preAuthorizedCode: String,
-    userPin: String
+    txCode: TxCode,
+    clientId: String,
+    transactionCode: String?
   ) async throws -> Result<(String, String?), ValidationError>
 }
 
@@ -203,18 +206,22 @@ public actor IssuanceAuthorizer: IssuanceAuthorizerType {
   
   public func requestAccessTokenPreAuthFlow(
     preAuthorizedCode: String,
-    userPin: String
+    txCode: TxCode,
+    clientId: String,
+    transactionCode: String?
   ) async throws -> Result<(String, String?), ValidationError> {
-    let parameters: [String: String] = try preAuthCodeFlow(
+    let parameters: JSON = try await preAuthCodeFlow(
       preAuthorizedCode: preAuthorizedCode,
-      userPin: userPin
+      txCode: txCode,
+      clientId: clientId,
+      transactionCode: transactionCode
     )
     
     let response: AccessTokenRequestResponse = try await service.formPost(
       poster: tokenPoster,
-      url: authorizationEndpoint,
+      url: tokenEndpoint,
       headers: [:],
-      parameters: parameters
+      parameters: parameters.toDictionary().convertToDictionaryOfStrings()
     )
     
     switch response {
@@ -249,17 +256,23 @@ private extension IssuanceAuthorizer {
   
   func preAuthCodeFlow(
     preAuthorizedCode: String,
-    userPin: String?
-  ) throws -> [String: String]  {
-    if let userPin {
-      [
-        Constants.GRANT_TYPE_PARAM: try Self.grantPreauthorizationCode.utf8UrlEncoded(),
+    txCode: TxCode?,
+    clientId: String,
+    transactionCode: String?
+  ) async throws -> JSON  {
+    if txCode != nil {
+      let dictionary: [String: Any?] = [
+        Constants.CLIENT_ID_PARAM: clientId,
+        Constants.GRANT_TYPE_PARAM: Constants.GRANT_TYPE_PARAM_VALUE,
         Constants.PRE_AUTHORIZED_CODE_PARAM: preAuthorizedCode,
-        Constants.USER_PIN_PARAM: userPin
-      ]
+        Constants.TX_CODE_PARAM: transactionCode
+      ].filter { $0.value != nil }
+      return JSON(dictionary)
+      
     } else {
-      [
-        Constants.GRANT_TYPE_PARAM: try Self.grantPreauthorizationCode.utf8UrlEncoded(),
+      return [
+        Constants.CLIENT_ID_PARAM: clientId,
+        Constants.GRANT_TYPE_PARAM: Constants.GRANT_TYPE_PARAM_VALUE,
         Constants.PRE_AUTHORIZED_CODE_PARAM: preAuthorizedCode
       ]
     }
