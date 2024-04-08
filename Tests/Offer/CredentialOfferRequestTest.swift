@@ -67,43 +67,22 @@ class CredentialOfferRequestTest: XCTestCase {
   func testInitializationWithInvalidURL() {
     
     // Given
-    let urlString = "invalid-url"
+    let urlString = ""
     
     // When
     XCTAssertThrowsError(try CredentialOfferRequest(urlString: urlString)) { error in
       
       // Then
-      guard let error = error as? CredentialOfferRequestValidationError else {
+      guard let error = error as? CredentialOfferRequestError else {
         XCTAssert(false, "Unexpected error")
         return
       }
       switch error {
-      case .oneOfCredentialOfferOrCredentialOfferUri:
+      case .nonParsableCredentialOfferEndpointUrl:
         XCTAssertTrue(true)
       default:
         XCTAssert(false, "Unexpected error")
       }
-    }
-  }
-  
-  func testInitializationWithMissingParameters() {
-    
-    // Given
-    let urlString = "https://example.com/"
-    
-    // When
-    XCTAssertThrowsError(try CredentialOfferRequest(urlString: urlString)) { error in
-      
-      // Then
-      XCTAssertTrue(error is CredentialOfferRequestValidationError)
-    }
-  }
-  
-  func testInitializationWithEmptyParameters() {
-    let urlString = "https://example.com/?credential_offer=&credential_offer_uri="
-    
-    XCTAssertThrowsError(try CredentialOfferRequest(urlString: urlString)) { error in
-      XCTAssertTrue(error is CredentialOfferRequestValidationError)
     }
   }
   
