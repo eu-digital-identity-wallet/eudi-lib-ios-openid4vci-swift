@@ -23,7 +23,7 @@ public protocol IssuerType {
   ) async -> Result<UnauthorizedRequest, Error>
   
   func authorizeWithPreAuthorizationCode(
-    credentials: [CredentialIdentifier],
+    credentialOffer: CredentialOffer,
     authorizationCode: IssuanceAuthorization
   ) async -> Result<AuthorizedRequest, Error>
   
@@ -182,21 +182,17 @@ public actor Issuer: IssuerType {
   }
   
   public func authorizeWithPreAuthorizationCode(
-    credentials: [CredentialIdentifier],
+    credentialOffer: CredentialOffer,
     authorizationCode: IssuanceAuthorization
   ) async -> Result<AuthorizedRequest, Error> {
+    
     switch authorizationCode {
-    case .authorizationCode:
-      return .failure(ValidationError.error(
-        reason: "Invalid issuance authorisation, pre authorisation supported only"
-      ))
-      
-    case .preAuthorizationCode(let authorisation, let pin):
+    case .preAuthorizationCode(let authorisation, let txCode):
       do {
         let response =
         try await authorizer.requestAccessTokenPreAuthFlow(
           preAuthorizedCode: authorisation,
-          userPin: pin
+          txCode: txCode
         )
         
         switch response {
@@ -212,6 +208,10 @@ public actor Issuer: IssuerType {
       } catch {
         return .failure(ValidationError.error(reason: error.localizedDescription))
       }
+    default:
+      return .failure(ValidationError.error(
+        reason: "Invalid issuance authorisation, pre authorisation supported only"
+      ))
     }
   }
   
