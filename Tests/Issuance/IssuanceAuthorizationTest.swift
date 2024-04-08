@@ -381,7 +381,8 @@ class IssuanceAuthorizationTest: XCTestCase {
     let bindingKey: BindingKey = .jwk(
       algorithm: alg,
       jwk: publicKeyJWK,
-      privateKey: privateKey
+      privateKey: privateKey,
+      issuer: "218232426"
     )
     
     let request = try result.get()
