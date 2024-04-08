@@ -320,7 +320,7 @@ class IssuanceAuthorizationTest: XCTestCase {
   func testThirdPartyIssuerSuccessfulAuthorizationWithPreAuthorizationCodeFlow() async throws {
     
     /// Replace the url string below with the one you can generate here: https://trial.authlete.net/api/offer/issue
-    let urlString = "https://trial.authlete.net/api/offer/pVoGJOZe1cgZPGCwA5s_OQyrcr1YgWlsEr4LPhtp8SA"
+    let urlString = ""
     if urlString.isEmpty {
       XCTExpectFailure()
       XCTAssert(false, "urlString cannot be empty")
