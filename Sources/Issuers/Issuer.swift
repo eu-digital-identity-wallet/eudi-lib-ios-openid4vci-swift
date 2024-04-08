@@ -24,7 +24,9 @@ public protocol IssuerType {
   
   func authorizeWithPreAuthorizationCode(
     credentialOffer: CredentialOffer,
-    authorizationCode: IssuanceAuthorization
+    authorizationCode: IssuanceAuthorization,
+    clientId: String,
+    transactionCode: String?
   ) async -> Result<AuthorizedRequest, Error>
   
   func handleAuthorizationCode(
@@ -183,7 +185,9 @@ public actor Issuer: IssuerType {
   
   public func authorizeWithPreAuthorizationCode(
     credentialOffer: CredentialOffer,
-    authorizationCode: IssuanceAuthorization
+    authorizationCode: IssuanceAuthorization,
+    clientId: String,
+    transactionCode: String?
   ) async -> Result<AuthorizedRequest, Error> {
     
     switch authorizationCode {
@@ -192,7 +196,9 @@ public actor Issuer: IssuerType {
         let response =
         try await authorizer.requestAccessTokenPreAuthFlow(
           preAuthorizedCode: authorisation,
-          txCode: txCode
+          txCode: txCode,
+          clientId: clientId,
+          transactionCode: transactionCode
         )
         
         switch response {
