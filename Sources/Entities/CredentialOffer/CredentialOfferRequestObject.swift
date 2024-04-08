@@ -16,7 +16,7 @@
 import Foundation
 import SwiftyJSON
 
-public struct CredentialOfferRequestObject: Codable, Equatable {
+public struct CredentialOfferRequestObject: Codable {
   public let credentialIssuer: String
   public let credentialConfigurationIds: [JSON]
   public let grants: GrantsDTO?
