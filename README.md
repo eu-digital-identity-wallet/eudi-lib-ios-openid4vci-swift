@@ -193,8 +193,8 @@ let authorizedRequest = await issuer.authorizeWithPreAuthorizationCode(
 
 Given an ```authorizedRequest``` and an ```Issuer``` a single credential issuance request can be placed as follows
 
-```kotlin
-import eu.europa.ec.eudi.openid4vci.*
+```swift
+import OpenID4VCI
 
 let requestOutcome = try await issuer.requestSingle(
     proofRequest: ...,
