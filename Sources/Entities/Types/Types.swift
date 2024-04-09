@@ -110,7 +110,7 @@ public struct Scope: Codable {
 
 public enum ContentType: String {
   case key = "Content-Type"
-  case form = "application/x-www-form-urlencoded; charset=UTF-8"
+  case form = "application/x-www-form-urlencoded"
   case json = "application/json"
 }
 
@@ -196,7 +196,7 @@ public struct DeferredIssuanceRequestTO: Codable {
   }
 }
 
-public enum TxCodeInputMode: String {
+public enum TxCodeInputMode: String, Codable {
   case numeric
   case text
   
@@ -209,19 +209,8 @@ public enum TxCodeInputMode: String {
   }
 }
 
-public struct TxCode {
-  public let inputMode: TxCodeInputMode = .numeric
-  public let length: Int?
-  public let description: String?
-  
-  public init(length: Int?, description: String?) {
-    self.length = length
-    self.description = description
-  }
-}
-
-public struct TxCodeTO: Codable {
-  public let inputMode: String?
+public struct TxCode: Codable {
+  public let inputMode: TxCodeInputMode
   public let length: Int?
   public let description: String?
   
@@ -231,17 +220,14 @@ public struct TxCodeTO: Codable {
     case description
   }
   
-  public init(inputMode: String?, length: Int?, description: String?) {
+  public init(
+    inputMode: TxCodeInputMode,
+    length: Int?,
+    description: String?
+  ) {
     self.inputMode = inputMode
     self.length = length
     self.description = description
-  }
-  
-  public init(from decoder: Decoder) throws {
-    let container = try decoder.container(keyedBy: CodingKeys.self)
-    inputMode = try container.decodeIfPresent(String.self, forKey: .inputMode) ?? "numeric"
-    length = try container.decodeIfPresent(Int.self, forKey: .length)
-    description = try container.decodeIfPresent(String.self, forKey: .description)
   }
 }
 

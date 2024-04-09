@@ -15,6 +15,7 @@
  */
 import Foundation
 import XCTest
+import JOSESwift
 
 @testable import OpenID4VCI
 
@@ -261,6 +262,144 @@ class IssuanceAuthorizationTest: XCTestCase {
     }
     
     XCTAssert(false, "Unable to get access token")
+  }
+  
+  func testSuccessfulAuthorizationWithPreAuthorizationCodeFlow() async throws {
+    
+    // Given
+    guard let offer = await TestsConstants.createMockPreAuthCredentialOffer() else {
+      XCTAssert(false, "Unable to resolve credential offer")
+      return
+    }
+    
+    // When
+    let issuer = try Issuer(
+      authorizationServerMetadata: offer.authorizationServerMetadata,
+      issuerMetadata: offer.credentialIssuerMetadata,
+      config: config,
+      parPoster: Poster(
+        session: NetworkingThrowingMock()
+      ),
+      tokenPoster: Poster(
+        session: NetworkingMock(
+          path: "access_token_request_response_no_proof",
+          extension: "json"
+        )
+      )
+    )
+    
+    let grants = offer.grants
+    var code: Grants.PreAuthorizedCode!
+    switch grants {
+    case .preAuthorizedCode(let preAuthorizedCode):
+      code = preAuthorizedCode
+    case .both(_, let preAuthorizedCode):
+      code = preAuthorizedCode
+    default:
+      XCTAssert(false, "Unexpected grant type")
+    }
+    
+    let result = await issuer.authorizeWithPreAuthorizationCode(
+      credentialOffer: offer,
+      authorizationCode: try .init(
+        preAuthorizationCode: code.preAuthorizedCode,
+        txCode: code.txCode
+      ),
+      clientId: "218232426",
+      transactionCode: "123456"
+    )
+    
+    switch result {
+    case .success(let request):
+      if case let .noProofRequired(token, _) = request {
+        XCTAssert(true, "Got access token: \(token)")
+      }
+    case .failure(let error):
+      XCTAssert(false, error.localizedDescription)
+    }
+  }
+  
+  func testThirdPartyIssuerSuccessfulAuthorizationWithPreAuthorizationCodeFlow() async throws {
+    
+    /// Replace the url string below with the one you can generate here: https://trial.authlete.net/api/offer/issue
+    let urlString = ""
+    if urlString.isEmpty {
+      XCTExpectFailure()
+      XCTAssert(false, "urlString cannot be empty")
+      return
+    }
+    
+    let resolver = CredentialOfferRequestResolver()
+    let resolution = await resolver
+      .resolve(
+        source: try .init(
+          urlString: urlString
+        )
+      )
+    
+    let offer: CredentialOffer = try resolution.get()
+    let issuerMetadata = offer.credentialIssuerMetadata
+    let issuer = try Issuer(
+      authorizationServerMetadata: offer.authorizationServerMetadata,
+      issuerMetadata: issuerMetadata,
+      config: config
+    )
+    
+    let grants = offer.grants
+    var code: Grants.PreAuthorizedCode!
+    switch grants {
+    case .preAuthorizedCode(let preAuthorizedCode):
+      code = preAuthorizedCode
+    case .both(_, let preAuthorizedCode):
+      code = preAuthorizedCode
+    default:
+      XCTAssert(false, "Unexpected grant type")
+    }
+    
+    let result = await issuer.authorizeWithPreAuthorizationCode(
+      credentialOffer: offer,
+      authorizationCode: try .init(
+        preAuthorizationCode: code.preAuthorizedCode,
+        txCode: code.txCode
+      ),
+      clientId: "218232426",
+      transactionCode: "12345"
+    )
+    
+    let privateKey = try KeyController.generateRSAPrivateKey()
+    let publicKey = try KeyController.generateRSAPublicKey(from: privateKey)
+    
+    let alg = JWSAlgorithm(.RS256)
+    let publicKeyJWK = try RSAPublicKey(
+      publicKey: publicKey,
+      additionalParameters: [
+        "alg": alg.name,
+        "use": "sig",
+        "kid": UUID().uuidString
+      ])
+    
+    let bindingKey: BindingKey = .jwk(
+      algorithm: alg,
+      jwk: publicKeyJWK,
+      privateKey: privateKey,
+      issuer: "218232426"
+    )
+    
+    let request = try result.get()
+    let requestSingleResult = try await issuer.requestSingle(
+      proofRequest: request,
+      bindingKey: bindingKey,
+      requestCredentialIdentifier: (CredentialConfigurationIdentifier(value: "IdentityCredential"), nil),
+      responseEncryptionSpecProvider: {
+        Issuer.createResponseEncryptionSpec($0)
+      })
+    
+    switch requestSingleResult {
+    case .success:
+      XCTAssertTrue(true)
+    case .failure(let error):
+      XCTAssert(false, error.localizedDescription)
+    }
   }
 }
 

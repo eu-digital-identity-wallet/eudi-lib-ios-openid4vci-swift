@@ -16,7 +16,7 @@
 import Foundation
 
 // Grant, conforming to Codable.
-public struct GrantsDTO: Codable, Equatable {
+public struct GrantsDTO: Codable {
   // Properties for authorization code and pre-authorization code.
   public let authorizationCode: AuthorizationCode?
   public let preAuthorizationCode: PreAuthorizationCode?
@@ -60,18 +60,18 @@ public extension GrantsDTO {
   }
   
   // Define another nested struct named PreAuthorizationCode, conforming to Codable.
-  struct PreAuthorizationCode: Codable, Equatable {
+  struct PreAuthorizationCode: Codable {
     public let preAuthorizedCode: String?
-    public let userPinRequired: Bool?
+    public let txCode: TxCode?
     
     enum CodingKeys: String, CodingKey {
       case preAuthorizedCode = "pre-authorized_code"
-      case userPinRequired = "user_pin_required"
+      case txCode = "tx_code"
     }
     
-    public init(preAuthorizedCode: String, userPinRequired: Bool?, interval: UInt?) {
+    public init(preAuthorizedCode: String, txCode: TxCode?) {
       self.preAuthorizedCode = preAuthorizedCode
-      self.userPinRequired = userPinRequired
+      self.txCode = txCode
     }
   }
 }

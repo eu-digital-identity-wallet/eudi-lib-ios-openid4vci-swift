@@ -17,7 +17,10 @@ import Foundation
 
 public enum IssuanceAuthorization {
   case authorizationCode(authorizationCode: String)
-  case preAuthorizationCode(preAuthorizedCode: String, pin: String)
+  case preAuthorizationCode(
+    preAuthorizedCode: String,
+    txCode: TxCode
+  )
 }
 
 public extension IssuanceAuthorization {
@@ -31,12 +34,23 @@ public extension IssuanceAuthorization {
     self = .authorizationCode(authorizationCode: authorizationCode)
   }
   
-  init(preAuthorizationCode: String, pin: String) throws {
+  init(preAuthorizationCode: String?, txCode: TxCode?) throws {
+    
+    guard let preAuthorizationCode else {
+      throw ValidationError.error(reason: "Missing preAuthorizationCode")
+    }
+    
+    guard let txCode else {
+      throw ValidationError.error(reason: "Missing txCode")
+    }
     
     guard !preAuthorizationCode.isEmpty else {
       throw CredentialError.genericError
     }
     
-    self = .preAuthorizationCode(preAuthorizedCode: preAuthorizationCode, pin: pin)
+    self = .preAuthorizationCode(
+      preAuthorizedCode: preAuthorizationCode,
+      txCode: txCode
+    )
   }
 }

@@ -22,7 +22,8 @@ public enum BindingKey {
   case jwk(
     algorithm: JWSAlgorithm,
     jwk: JWK,
-    privateKey: SecKey
+    privateKey: SecKey,
+    issuer: String? = nil
   )
   
   // DID Binding Key
@@ -43,26 +44,27 @@ public extension BindingKey {
     case .jwk(
       let algorithm,
       let jwk,
-      let privateKey
+      let privateKey,
+      let issuer
     ):
       switch credentialSpec {
       case .msoMdoc(let spec):
-        let suites = spec.proofTypesSupported?["jwt"]?.algorithms.contains { $0 == algorithm.name } ??  false
-//        let bindings = spec.cryptographicBindingMethodsSupported.contains { $0  == .jwk }
-        let proofs = spec.proofTypesSupported?.keys.contains { $0 == "jwt" } ?? false
-        
+        let suites = spec.proofTypesSupported?["jwt"]?.algorithms.contains { $0 == algorithm.name } ??  true
         guard suites else {
           throw CredentialIssuanceError.cryptographicSuiteNotSupported(algorithm.name)
         }
-        
-//        guard bindings else {
-//          throw CredentialIssuanceError.cryptographicBindingMethodNotSupported
-//        }
-        
+
+        let proofs = spec.proofTypesSupported?.keys.contains { $0 == "jwt" } ?? true
         guard proofs else {
           throw CredentialIssuanceError.proofTypeNotSupported
         }
         
+        /*
+        let bindings = spec.cryptographicBindingMethodsSupported.contains { $0  == .jwk }
+        guard bindings else {
+          throw CredentialIssuanceError.cryptographicBindingMethodNotSupported
+        }
+         */
         let aud = issuanceRequester.issuerMetadata.credentialIssuerIdentifier.url.absoluteString
         
         let header = try JWSHeader(parameters: [
@@ -74,7 +76,8 @@ public extension BindingKey {
         let dictionary: [String: Any] = [
           JWTClaimNames.issuedAt: Int(Date().timeIntervalSince1970.rounded()),
           JWTClaimNames.audience: aud,
-          JWTClaimNames.nonce: cNonce ?? ""
+          JWTClaimNames.nonce: cNonce ?? "",
+          JWTClaimNames.issuer: issuer ?? ""
         ]
         
         let payload = Payload(try dictionary.toThrowingJSONData())
@@ -99,21 +102,22 @@ public extension BindingKey {
         return .jwt(jws.compactSerializedString)
 
       case .sdJwtVc(let spec):
-        let suites = spec.proofTypesSupported?["jwt"]?.algorithms.contains { $0 == algorithm.name } ??  false
-//        let bindings = spec.cryptographicBindingMethodsSupported.contains { $0  == .jwk }
-        let proofs = spec.proofTypesSupported?.keys.contains { $0 == "jwt" } ?? false
-        
+        let suites = spec.proofTypesSupported?["jwt"]?.algorithms.contains { $0 == algorithm.name } ??  true
         guard suites else {
           throw CredentialIssuanceError.cryptographicSuiteNotSupported(algorithm.name)
         }
-        
-//        guard bindings else {
-//          throw CredentialIssuanceError.cryptographicBindingMethodNotSupported
-//        }
-        
+
+        let proofs = spec.proofTypesSupported?.keys.contains { $0 == "jwt" } ?? true
         guard proofs else {
           throw CredentialIssuanceError.proofTypeNotSupported
         }
+        
+        /*
+        let bindings = spec.cryptographicBindingMethodsSupported.contains { $0  == .jwk }
+        guard bindings else {
+          throw CredentialIssuanceError.cryptographicBindingMethodNotSupported
+        }
+         */
         
         let aud = issuanceRequester.issuerMetadata.credentialIssuerIdentifier.url.absoluteString
         
@@ -126,7 +130,8 @@ public extension BindingKey {
         let dictionary: [String: Any] = [
           JWTClaimNames.issuedAt: Int(Date().timeIntervalSince1970.rounded()),
           JWTClaimNames.audience: aud,
-          JWTClaimNames.nonce: cNonce ?? ""
+          JWTClaimNames.nonce: cNonce ?? "",
+          JWTClaimNames.issuer: issuer ?? ""
         ]
         
         let payload = Payload(try dictionary.toThrowingJSONData())

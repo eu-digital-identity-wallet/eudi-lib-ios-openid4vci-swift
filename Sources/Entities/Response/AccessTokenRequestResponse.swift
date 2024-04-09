@@ -19,7 +19,7 @@ public enum AccessTokenRequestResponse: Codable {
   case success(
     accessToken: String,
     expiresIn: Int,
-    scope: String,
+    scope: String?,
     cNonce: String?,
     cNonceExpiresIn: Int?
   )
@@ -42,12 +42,11 @@ public enum AccessTokenRequestResponse: Codable {
     let container = try decoder.container(keyedBy: CodingKeys.self)
     
     if let accessToken = try? container.decode(String.self, forKey: .accessToken),
-       let expiresIn = try? container.decode(Int.self, forKey: .expiresIn),
-       let scope = try? container.decode(String.self, forKey: .scope) {
+       let expiresIn = try? container.decode(Int.self, forKey: .expiresIn) {
       self = .success(
         accessToken: accessToken,
         expiresIn: expiresIn,
-        scope: scope,
+        scope: try? container.decode(String.self, forKey: .scope),
         cNonce: try? container.decode(String.self, forKey: .cNonce),
         cNonceExpiresIn: try? container.decode(Int.self, forKey: .cNonceExpiresIn) 
       )

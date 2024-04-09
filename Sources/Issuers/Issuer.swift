@@ -23,8 +23,10 @@ public protocol IssuerType {
   ) async -> Result<UnauthorizedRequest, Error>
   
   func authorizeWithPreAuthorizationCode(
-    credentials: [CredentialIdentifier],
-    authorizationCode: IssuanceAuthorization
+    credentialOffer: CredentialOffer,
+    authorizationCode: IssuanceAuthorization,
+    clientId: String,
+    transactionCode: String?
   ) async -> Result<AuthorizedRequest, Error>
   
   func handleAuthorizationCode(
@@ -182,21 +184,33 @@ public actor Issuer: IssuerType {
   }
   
   public func authorizeWithPreAuthorizationCode(
-    credentials: [CredentialIdentifier],
-    authorizationCode: IssuanceAuthorization
+    credentialOffer: CredentialOffer,
+    authorizationCode: IssuanceAuthorization,
+    clientId: String,
+    transactionCode: String?
   ) async -> Result<AuthorizedRequest, Error> {
+    
     switch authorizationCode {
-    case .authorizationCode:
-      return .failure(ValidationError.error(
-        reason: "Invalid issuance authorisation, pre authorisation supported only"
-      ))
-      
-    case .preAuthorizationCode(let authorisation, let pin):
+    case .preAuthorizationCode(let authorisation, let txCode):
       do {
+        guard let transactionCode else {
+          throw ValidationError.error(reason: "Issuer's grant is pre-authorization code with transaction code required but no transaction code passed")
+        }
+        
+        if txCode.length != transactionCode.count {
+          throw ValidationError.error(reason: "Expected transaction code length is \(txCode.length ?? 0) but code of length \(transactionCode.count) passed")
+        }
+        
+        if txCode.inputMode != .numeric {
+          throw ValidationError.error(reason: "Issuers expects transaction code to be numeric but is not.")
+        }
+        
         let response =
         try await authorizer.requestAccessTokenPreAuthFlow(
           preAuthorizedCode: authorisation,
-          userPin: pin
+          txCode: txCode,
+          clientId: clientId,
+          transactionCode: transactionCode
         )
         
         switch response {
@@ -212,6 +226,10 @@ public actor Issuer: IssuerType {
       } catch {
         return .failure(ValidationError.error(reason: error.localizedDescription))
       }
+    default:
+      return .failure(ValidationError.error(
+        reason: "Invalid issuance authorisation, pre authorisation supported only"
+      ))
     }
   }
   

@@ -39,19 +39,14 @@ public enum Grants {
 
   public struct PreAuthorizedCode {
     public let preAuthorizedCode: String?
-    public let pinRequired: Bool
-    public let interval: TimeInterval
     public let txCode: TxCode?
     
     public init(
       preAuthorizedCode: String?,
-      pinRequired: Bool = false,
-      interval: TimeInterval = 5.0,
+
       txCode: TxCode? = nil
     ) {
       self.preAuthorizedCode = preAuthorizedCode
-      self.pinRequired = pinRequired
-      self.interval = interval
       self.txCode = txCode
     }
   }
@@ -78,7 +73,7 @@ extension GrantsDTO {
         ),
         Grants.PreAuthorizedCode(
           preAuthorizedCode: preAuthorizationCode.preAuthorizedCode,
-          pinRequired: preAuthorizationCode.userPinRequired ?? false
+          txCode: preAuthorizationCode.txCode
         )
       )
       
@@ -94,7 +89,7 @@ extension GrantsDTO {
       return .preAuthorizedCode(
         Grants.PreAuthorizedCode(
           preAuthorizedCode: preAuthorizationCode.preAuthorizedCode,
-          pinRequired: preAuthorizationCode.userPinRequired ?? false
+          txCode: preAuthorizationCode.txCode
         )
       )
     }

@@ -14,19 +14,21 @@
  * limitations under the License.
  */
 import Foundation
+import XCTest
 
-public struct Constants {
-  public static let GRANT_TYPE_PARAM = "grant_type"
-  public static let GRANT_TYPE_PARAM_VALUE = "urn:ietf:params:oauth:grant-type:pre-authorized_code"
+@testable import OpenID4VCI
+
+class NetworkingThrowingMock: Networking {
   
-  public static let REDIRECT_URI_PARAM = "redirect_uri"
-  public static let CLIENT_ID_PARAM = "client_id"
-  public static let CODE_VERIFIER_PARAM = "code_verifier"
-  public static let AUTHORIZATION_CODE_PARAM = "code"
+  func data(
+    from url: URL
+  ) async throws -> (Data, URLResponse) {
+    throw ValidationError.error(reason: "Should not call ThrowingMock")
+  }
   
-  public static let USER_PIN_PARAM = "user_pin"
-  public static let PRE_AUTHORIZED_CODE_PARAM = "pre-authorized_code"
-  
-  public static let OPENID_SCOPE = "openid"
-  public static let TX_CODE_PARAM = "tx_code"
+  func data(
+    for request: URLRequest
+  ) async throws -> (Data, URLResponse) {
+    throw ValidationError.error(reason: "Should not call ThrowingMock")
+  }
 }

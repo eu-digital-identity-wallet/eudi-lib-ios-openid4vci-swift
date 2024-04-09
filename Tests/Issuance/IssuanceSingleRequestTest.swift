@@ -161,4 +161,127 @@ class IssuanceSingleRequestTest: XCTestCase {
     
     XCTAssert(false, "Unable to get access token")
   }
+  
+  func testPreAuthWhenIssuerRespondsSingleCredentialThenCredentialExists() async throws {
+    
+    // Given
+    guard let offer = await TestsConstants.createMockCredentialOfferValidEncryption() else {
+      XCTAssert(false, "Unable to resolve credential offer")
+      return
+    }
+    
+    // Given
+    let privateKey = try KeyController.generateRSAPrivateKey()
+    let publicKey = try KeyController.generateRSAPublicKey(from: privateKey)
+    
+    let alg = JWSAlgorithm(.RS256)
+    let publicKeyJWK = try RSAPublicKey(
+      publicKey: publicKey,
+      additionalParameters: [
+        "alg": alg.name,
+        "use": "enc",
+        "kid": UUID().uuidString
+      ])
+    
+    let spec = IssuanceResponseEncryptionSpec(
+      jwk: publicKeyJWK,
+      privateKey: privateKey,
+      algorithm: .init(.RSA_OAEP_256),
+      encryptionMethod: .init(.A128CBC_HS256)
+    )
+    
+    // When
+    let issuer = try Issuer(
+      authorizationServerMetadata: offer.authorizationServerMetadata,
+      issuerMetadata: offer.credentialIssuerMetadata,
+      config: config,
+      parPoster: Poster(
+        session: NetworkingThrowingMock()
+      ),
+      tokenPoster: Poster(
+        session: NetworkingMock(
+          path: "access_token_request_response_no_proof",
+          extension: "json"
+        )
+      ),
+      requesterPoster: Poster(
+        session: NetworkingMock(
+          path: "single_issuance_success_response_credential",
+          extension: "json"
+        )
+      )
+    )
+    
+    let issuanceAuthorization: IssuanceAuthorization = .preAuthorizationCode(
+      preAuthorizedCode: "1234-1234",
+      txCode:.init(
+        inputMode: .numeric,
+        length: 5,
+        description: "description"
+      )
+    )
+    
+    let unAuthorized = await issuer.authorizeWithPreAuthorizationCode(
+      credentialOffer: offer,
+      authorizationCode: issuanceAuthorization,
+      clientId: "218232426",
+      transactionCode: "12345"
+    )
+    
+    if case let .success(authorized) = unAuthorized,
+       case let .noProofRequired(token, _) = authorized {
+      XCTAssert(true, "Got access token: \(token)")
+      XCTAssert(true, "Is no proof required")
+      
+      do {
+        
+        let claimSetMsoMdoc = MsoMdocFormat.MsoMdocClaimSet(
+          claims: [
+            ("org.iso.18013.5.1", "given_name"),
+            ("org.iso.18013.5.1", "family_name"),
+            ("org.iso.18013.5.1", "birth_date")
+          ]
+        )
+        
+        let result = try await issuer.requestSingle(
+          noProofRequest: authorized,
+          claimSet: .msoMdoc(claimSetMsoMdoc),
+          requestCredentialIdentifier: (.init(value: "eu.europa.ec.eudiw.pid_mso_mdoc"), nil),
+          responseEncryptionSpecProvider: { _ in
+            spec
+          })
+        
+        switch result {
+        case .success(let request):
+          switch request {
+          case .success(let response):
+            if let result = response.credentialResponses.first {
+              switch result {
+              case .deferred:
+                XCTAssert(false, "Unexpected deferred")
+              case .issued(_, let credential, _):
+                XCTAssert(true, "credential: \(credential)")
+                return
+              }
+            } else {
+              break
+            }
+          case .failed(let error):
+            XCTAssert(false, error.localizedDescription)
+            
+          case .invalidProof(_, let errorDescription):
+            XCTAssert(false, errorDescription!)
+          }
+          XCTAssert(false, "Unexpected request")
+        case .failure(let error):
+          XCTAssert(false, error.localizedDescription)
+        }
+      } catch {
+        XCTAssert(false, error.localizedDescription)
+      }
+      return
+    }
+    
+    XCTAssert(false, "Unable to issue credential")
+  }
 }

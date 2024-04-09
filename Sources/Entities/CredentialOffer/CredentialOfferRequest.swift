@@ -41,7 +41,7 @@ public extension CredentialOfferRequest {
         throw CredentialOfferRequestValidationError.invalidCredentialOfferUri(byReference)
       }
     } else {
-      throw CredentialOfferRequestValidationError.oneOfCredentialOfferOrCredentialOfferUri
-    }
+      self = .fetchByReference(url: url)
+     }
   }
 }
