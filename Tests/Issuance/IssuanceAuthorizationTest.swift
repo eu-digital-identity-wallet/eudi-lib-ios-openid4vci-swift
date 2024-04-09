@@ -306,7 +306,7 @@ class IssuanceAuthorizationTest: XCTestCase {
         txCode: code.txCode
       ),
       clientId: "218232426",
-      transactionCode: "12345"
+      transactionCode: "123456"
     )
     
     switch result {

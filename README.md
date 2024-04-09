@@ -184,8 +184,10 @@ import OpenID4VCI
 let issuer: Issuer = ...
 let preAuthorizationCode = ... // pre-authorization code as contained in a credential offer 
 let authorizedRequest = await issuer.authorizeWithPreAuthorizationCode(
-    credentials: [...],
-    authorizationCode: ...
+    credentialOffer: ...,
+    authorizationCode: ...,
+    clientId: ...,
+    transactionCode: ...
   )
 ```
 
