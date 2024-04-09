@@ -35,11 +35,22 @@ public enum ClaimSet: Codable {
         return nil
       }
       
-      let elements = Dictionary(grouping: claims) { key, _ in
+      let grouped = Dictionary(grouping: claims) { key, _ in
           return key
-      }.values.flatMap { $0 }.map { $0.1 }
+      }
 
-      return Dictionary(uniqueKeysWithValues: elements.map { ($0, JSON()) })
+      do {
+        let transformed = try grouped.mapValues { valueArray in
+          try valueArray.reduce(JSON()) { result, tuple in
+            var json = JSON()
+            json[tuple.1] = JSON()
+            return try result.merged(with: json)
+          }
+        }
+        return transformed
+      } catch {
+        return [:]
+      }
       
     case .sdJwtVc(_):
       return nil
