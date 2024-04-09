@@ -64,7 +64,8 @@ public extension GenericErrorResponse {
       return .deferredCredentialIssuancePending(interval: interval)
     case "invalid_token": return .invalidToken
     case "invalid_transaction_id": return .invalidTransactionId
-    case "unsupported_credential_type": return .unsupportedCredentialType
+    case "unsupported_credential_type":
+      return .unsupportedCredentialType
     case "unsupported_credential_format": return .unsupportedCredentialFormat
     case "invalid_encryption_parameters": return .invalidEncryptionParameters
     default: return .issuanceRequestFailed(
