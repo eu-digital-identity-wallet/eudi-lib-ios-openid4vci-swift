@@ -23,7 +23,10 @@ struct Wallet {
 }
 
 extension Wallet {
-  func issueByCredentialIdentifier(_ identifier: String) async throws -> String {
+  func issueByCredentialIdentifier(
+    _ identifier: String,
+    claimSet: ClaimSet? = nil
+  ) async throws -> String {
     let credentialConfigurationIdentifier = try CredentialConfigurationIdentifier(value: identifier)
     let credentialIssuerIdentifier = try CredentialIssuerId(CREDENTIAL_ISSUER_PUBLIC_URL)
     
@@ -53,7 +56,8 @@ extension Wallet {
         )
         return try await issueOfferedCredentialNoProof(
           offer: offer,
-          credentialConfigurationIdentifier: credentialConfigurationIdentifier
+          credentialConfigurationIdentifier: credentialConfigurationIdentifier,
+          claimSet: claimSet
         )
         
       } else {
@@ -64,7 +68,10 @@ extension Wallet {
     }
   }
   
-  private func issueMultipleOfferedCredentialWithProof(offer: CredentialOffer) async throws -> [(String, String)] {
+  private func issueMultipleOfferedCredentialWithProof(
+    offer: CredentialOffer,
+    claimSet: ClaimSet? = nil
+  ) async throws -> [(String, String)] {
     
     let issuerMetadata = offer.credentialIssuerMetadata
     let issuer = try Issuer(
@@ -88,7 +95,8 @@ extension Wallet {
         let data = try await noProofRequiredSubmissionUseCase(
           issuer: issuer,
           noProofRequiredState: authorized,
-          credentialConfigurationIdentifier: credentialConfigurationIdentifier
+          credentialConfigurationIdentifier: credentialConfigurationIdentifier, 
+          claimSet: claimSet
         )
         return (scope, data)
       }
@@ -101,7 +109,8 @@ extension Wallet {
         let data = try await proofRequiredSubmissionUseCase(
           issuer: issuer,
           authorized: authorized,
-          credentialConfigurationIdentifier: credentialConfigurationIdentifier
+          credentialConfigurationIdentifier: credentialConfigurationIdentifier,
+          claimSet: claimSet
         )
         return (scope, data)
       }
@@ -110,7 +119,8 @@ extension Wallet {
   
   private func issueOfferedCredentialNoProof(
     offer: CredentialOffer,
-    credentialConfigurationIdentifier: CredentialConfigurationIdentifier
+    credentialConfigurationIdentifier: CredentialConfigurationIdentifier,
+    claimSet: ClaimSet? = nil
   ) async throws -> String {
     
     let issuer = try Issuer(
@@ -130,13 +140,15 @@ extension Wallet {
       return try await noProofRequiredSubmissionUseCase(
         issuer: issuer,
         noProofRequiredState: authorized,
-        credentialConfigurationIdentifier: credentialConfigurationIdentifier
+        credentialConfigurationIdentifier: credentialConfigurationIdentifier,
+        claimSet: claimSet
       )
     case .proofRequired:
       return try await proofRequiredSubmissionUseCase(
         issuer: issuer,
         authorized: authorized,
-        credentialConfigurationIdentifier: credentialConfigurationIdentifier
+        credentialConfigurationIdentifier: credentialConfigurationIdentifier,
+        claimSet: claimSet
       )
     }
   }
@@ -144,7 +156,10 @@ extension Wallet {
 
 extension Wallet {
   
-  func issueByCredentialOfferUrlMultipleFormats(offerUri: String) async throws -> [(String, String)] {
+  func issueByCredentialOfferUrlMultipleFormats(
+    offerUri: String,
+    claimSet: ClaimSet? = nil
+  ) async throws -> [(String, String)] {
     let resolver = CredentialOfferRequestResolver()
     let result = await resolver
       .resolve(
@@ -155,13 +170,20 @@ extension Wallet {
     
     switch result {
     case .success(let offer):
-      return try await issueMultipleOfferedCredentialWithProof(offer: offer)
+      return try await issueMultipleOfferedCredentialWithProof(
+        offer: offer,
+        claimSet: claimSet
+      )
     case .failure(let error):
       throw ValidationError.error(reason: "Unable to resolve credential offer: \(error.localizedDescription)")
     }
   }
   
-  func issueByCredentialOfferUrl(offerUri: String, scope: String) async throws -> String {
+  func issueByCredentialOfferUrl(
+    offerUri: String,
+    scope: String,
+    claimSet: ClaimSet? = nil
+  ) async throws -> String {
     let result = await CredentialOfferRequestResolver()
       .resolve(
         source: try .init(
@@ -171,13 +193,21 @@ extension Wallet {
     
     switch result {
     case .success(let offer):
-      return try await issueOfferedCredentialWithProof(offer: offer, scope: scope)
+      return try await issueOfferedCredentialWithProof(
+        offer: offer,
+        scope: scope,
+        claimSet: claimSet
+      )
     case .failure(let error):
       throw ValidationError.error(reason: "Unable to resolve credential offer: \(error.localizedDescription)")
     }
   }
   
-  private func issueOfferedCredentialWithProof(offer: CredentialOffer, scope: String) async throws -> String {
+  private func issueOfferedCredentialWithProof(
+    offer: CredentialOffer,
+    scope: String,
+    claimSet: ClaimSet? = nil
+  ) async throws -> String {
     
     let issuerMetadata = offer.credentialIssuerMetadata
     guard let credentialConfigurationIdentifier = issuerMetadata.credentialsSupported.keys.first(where: { $0.value == scope }) else {
@@ -200,13 +230,15 @@ extension Wallet {
       return try await noProofRequiredSubmissionUseCase(
         issuer: issuer,
         noProofRequiredState: authorized,
-        credentialConfigurationIdentifier: credentialConfigurationIdentifier
+        credentialConfigurationIdentifier: credentialConfigurationIdentifier,
+        claimSet: claimSet
       )
     case .proofRequired:
       return try await proofRequiredSubmissionUseCase(
         issuer: issuer,
         authorized: authorized,
-        credentialConfigurationIdentifier: credentialConfigurationIdentifier
+        credentialConfigurationIdentifier: credentialConfigurationIdentifier,
+        claimSet: claimSet
       )
     }
   }
@@ -254,12 +286,6 @@ extension Wallet {
         parRequested: request,
         authorizationCode: issuanceAuthorization
       )
-        
-//        authorizationCode = ""
-//        unAuthorized = await issuer.handleAuthorizationCode(
-//          parRequested: request,
-//          code: &authorizationCode
-//        )
 
       print("--> [AUTHORIZATION] Authorization code retrieved: \(authorizationCode)")
       
@@ -285,12 +311,14 @@ extension Wallet {
   private func noProofRequiredSubmissionUseCase(
     issuer: Issuer,
     noProofRequiredState: AuthorizedRequest,
-    credentialConfigurationIdentifier: CredentialConfigurationIdentifier
+    credentialConfigurationIdentifier: CredentialConfigurationIdentifier,
+    claimSet: ClaimSet? = nil
   ) async throws -> String {
     switch noProofRequiredState {
     case .noProofRequired:
       let requestOutcome = try await issuer.requestSingle(
         noProofRequest: noProofRequiredState,
+        claimSet: claimSet,
         requestCredentialIdentifier: (credentialConfigurationIdentifier, nil),
         responseEncryptionSpecProvider: { Issuer.createResponseEncryptionSpec($0) }
       )
@@ -316,7 +344,8 @@ extension Wallet {
           return try await proofRequiredSubmissionUseCase(
             issuer: issuer,
             authorized: noProofRequiredState.handleInvalidProof(cNonce: cNonce),
-            credentialConfigurationIdentifier: credentialConfigurationIdentifier
+            credentialConfigurationIdentifier: credentialConfigurationIdentifier,
+            claimSet: claimSet
           )
         case .failed(error: let error):
           throw ValidationError.error(reason: error.localizedDescription)
@@ -332,7 +361,8 @@ extension Wallet {
   private func proofRequiredSubmissionUseCase(
     issuer: Issuer,
     authorized: AuthorizedRequest,
-    credentialConfigurationIdentifier: CredentialConfigurationIdentifier?
+    credentialConfigurationIdentifier: CredentialConfigurationIdentifier?,
+    claimSet: ClaimSet? = nil
   ) async throws -> String {
     
     guard let credentialConfigurationIdentifier else {
@@ -341,6 +371,7 @@ extension Wallet {
     let requestOutcome = try await issuer.requestSingle(
       proofRequest: authorized,
       bindingKey: bindingKey,
+      claimSet: claimSet,
       requestCredentialIdentifier: (credentialConfigurationIdentifier, nil),
       responseEncryptionSpecProvider:  { Issuer.createResponseEncryptionSpec($0) }
     )
