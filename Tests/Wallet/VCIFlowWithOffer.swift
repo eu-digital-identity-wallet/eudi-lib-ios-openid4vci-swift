@@ -60,7 +60,9 @@ class VCIFlowWithOffer: XCTestCase {
     )
     
     do {
-      try await walletInitiatedIssuanceWithOfferSdJWT(wallet: wallet)
+      try await walletInitiatedIssuanceWithOfferSdJWT(
+        wallet: wallet
+      )
     } catch {
       
       XCTExpectFailure()
@@ -101,7 +103,9 @@ class VCIFlowWithOffer: XCTestCase {
     )
     
     do {
-      try await walletInitiatedIssuanceWithOfferMdoc(wallet: wallet)
+      try await walletInitiatedIssuanceWithOfferMdoc(
+        wallet: wallet
+      )
     } catch {
       
       XCTExpectFailure()
@@ -142,7 +146,9 @@ class VCIFlowWithOffer: XCTestCase {
     )
     
     do {
-      try await walletInitiatedIssuanceWithOfferMDL(wallet: wallet)
+      try await walletInitiatedIssuanceWithOfferMDL(
+        wallet: wallet
+      )
     } catch {
       
       XCTExpectFailure()
@@ -183,7 +189,9 @@ class VCIFlowWithOffer: XCTestCase {
     )
     
     do {
-      try await walletInitiatedIssuanceWithOfferArray(wallet: wallet)
+      try await walletInitiatedIssuanceWithOfferArray(
+        wallet: wallet
+      )
     } catch {
       
       XCTExpectFailure()
@@ -194,51 +202,69 @@ class VCIFlowWithOffer: XCTestCase {
   }
 }
 
-private func walletInitiatedIssuanceWithOfferSdJWT(wallet: Wallet) async throws {
+private func walletInitiatedIssuanceWithOfferSdJWT(
+  wallet: Wallet,
+  claimSet: ClaimSet? = nil
+) async throws {
   
   print("[[Scenario: Offer passed to wallet via url]] ")
   
   let url = "\(CREDENTIAL_ISSUER_PUBLIC_URL)/credentialoffer?credential_offer=\(SdJwtVC_CredentialOffer)"
   let credential = try await wallet.issueByCredentialOfferUrl(
     offerUri: url,
-    scope: PID_SdJwtVC_config_id
+    scope: PID_SdJwtVC_config_id,
+    claimSet: claimSet
   )
 
   print("--> [ISSUANCE] Issued credential: \(credential)")
 }
 
-private func walletInitiatedIssuanceWithOfferMDL(wallet: Wallet) async throws {
+private func walletInitiatedIssuanceWithOfferMDL(
+  wallet: Wallet,
+  claimSet: ClaimSet? = nil
+) async throws {
   
   print("[[Scenario: Offer passed to wallet via url]] ")
   
   let url = "\(CREDENTIAL_ISSUER_PUBLIC_URL)/credentialoffer?credential_offer=\(MDL_CredentialOffer)"
   let credential = try await wallet.issueByCredentialOfferUrl(
     offerUri: url,
-    scope: MDL_config_id
+    scope: MDL_config_id,
+    claimSet: claimSet
   )
   
   print("--> [ISSUANCE] Issued credential : \(credential)")
 }
 
-private func walletInitiatedIssuanceWithOfferMdoc(wallet: Wallet) async throws {
+private func walletInitiatedIssuanceWithOfferMdoc(
+  wallet: Wallet,
+  claimSet: ClaimSet? = nil
+) async throws {
   
   print("[[Scenario: Offer passed to wallet via url]] ")
   
   let url = "\(CREDENTIAL_ISSUER_PUBLIC_URL)/credentialoffer?credential_offer=\(MsoMdoc_CredentialOffer)"
   let credential = try await wallet.issueByCredentialOfferUrl(
     offerUri: url,
-    scope: PID_MsoMdoc_config_id
+    scope: PID_MsoMdoc_config_id,
+    claimSet: claimSet
   )
   
   print("--> [ISSUANCE] Issued credential : \(credential)")
 }
 
-private func walletInitiatedIssuanceWithOfferArray(wallet: Wallet) async throws {
+private func walletInitiatedIssuanceWithOfferArray(
+  wallet: Wallet,
+  claimSet: ClaimSet? = nil
+) async throws {
   
   print("[[Scenario: Offer passed to wallet via url]] ")
   
   let url = "\(CREDENTIAL_ISSUER_PUBLIC_URL)/credentialoffer?credential_offer=\(All_Supported_CredentialOffer)"
-  let credentials = try await wallet.issueByCredentialOfferUrlMultipleFormats(offerUri: url)
+  let credentials = try await wallet.issueByCredentialOfferUrlMultipleFormats(
+    offerUri: url,
+    claimSet: claimSet
+  )
   
   print("--> [ISSUANCE] Issued credentials:")
   for credential in credentials {

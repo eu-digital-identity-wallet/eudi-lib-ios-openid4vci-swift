@@ -69,7 +69,9 @@ class VCIFlowNoOffer: XCTestCase {
     )
     
     do {
-      try await walletInitiatedIssuanceNoOfferSdJwt(wallet: wallet)
+      try await walletInitiatedIssuanceNoOfferSdJwt(
+        wallet: wallet
+      )
       
     } catch {
       
@@ -111,7 +113,9 @@ class VCIFlowNoOffer: XCTestCase {
     )
     
     do {
-      try await walletInitiatedIssuanceNoOfferMdoc(wallet: wallet)
+      try await walletInitiatedIssuanceNoOfferMdoc(
+        wallet: wallet
+      )
     } catch {
       
       XCTExpectFailure()
@@ -151,8 +155,19 @@ class VCIFlowNoOffer: XCTestCase {
       bindingKey: bindingKey
     )
     
+    let claimSetMsoMdoc = MsoMdocFormat.MsoMdocClaimSet(
+      claims: [
+        ("org.iso.18013.5.1", "given_name"),
+        ("org.iso.18013.5.1", "family_name"),
+        ("org.iso.18013.5.1", "birth_date")
+      ]
+    )
+    
     do {
-      try await walletInitiatedIssuanceNoOfferMDL(wallet: wallet)
+      try await walletInitiatedIssuanceNoOfferMDL(
+        wallet: wallet,
+        claimSet: .msoMdoc(claimSetMsoMdoc)
+      )
     } catch {
       
       XCTExpectFailure()
@@ -163,29 +178,44 @@ class VCIFlowNoOffer: XCTestCase {
   }
 }
 
-private func walletInitiatedIssuanceNoOfferSdJwt(wallet: Wallet) async throws {
+private func walletInitiatedIssuanceNoOfferSdJwt(
+  wallet: Wallet,
+  claimSet: ClaimSet? = nil
+) async throws {
   
   print("[[Scenario: No offer passed, wallet initiates issuance by credetial scopes]]")
   
-  let credential = try await wallet.issueByCredentialIdentifier(PID_SdJwtVC_config_id)
+  let credential = try await wallet.issueByCredentialIdentifier(
+    PID_SdJwtVC_config_id,
+    claimSet: claimSet
+  )
   
   print("--> [ISSUANCE] Issued PID in format \(PID_SdJwtVC_config_id): \(credential)")
 }
 
-private func walletInitiatedIssuanceNoOfferMdoc(wallet: Wallet) async throws {
+private func walletInitiatedIssuanceNoOfferMdoc(
+  wallet: Wallet,
+  claimSet: ClaimSet? = nil
+) async throws {
   
   print("[[Scenario: No offer passed, wallet initiates issuance by credetial scopes]]")
   
-  let credential = try await wallet.issueByCredentialIdentifier(PID_MsoMdoc_config_id)
+  let credential = try await wallet.issueByCredentialIdentifier(
+    PID_MsoMdoc_config_id,
+    claimSet: claimSet
+  )
   
   print("--> [ISSUANCE] Issued PID in format \(PID_MsoMdoc_config_id): \(credential)")
 }
 
-private func walletInitiatedIssuanceNoOfferMDL(wallet: Wallet) async throws {
+private func walletInitiatedIssuanceNoOfferMDL(wallet: Wallet, claimSet: ClaimSet?) async throws {
   
   print("[[Scenario: No offer passed, wallet initiates issuance by credetial scopes]]")
   
-  let credential = try await wallet.issueByCredentialIdentifier(MDL_config_id)
+  let credential = try await wallet.issueByCredentialIdentifier(
+    MDL_config_id,
+    claimSet: claimSet
+  )
   
   print("--> [ISSUANCE] Issued PID in format \(MDL_config_id): \(credential)")
 }
