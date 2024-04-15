@@ -40,6 +40,7 @@ public extension SdJwtVcFormat {
   struct SdJwtVcSingleCredential: Codable {
     public let proof: Proof?
     public let format: String = SdJwtVcFormat.FORMAT
+    public let vct: String?
     public let credentialEncryptionJwk: JWK?
     public let credentialEncryptionKey: SecKey?
     public let credentialResponseEncryptionAlg: JWEAlgorithm?
@@ -57,6 +58,7 @@ public extension SdJwtVcFormat {
     
     public init(
       proof: Proof?,
+      vct: String?,
       credentialEncryptionJwk: JWK? = nil,
       credentialEncryptionKey: SecKey? = nil,
       credentialResponseEncryptionAlg: JWEAlgorithm? = nil,
@@ -64,6 +66,7 @@ public extension SdJwtVcFormat {
       credentialDefinition: CredentialDefinition
     ) throws {
       self.proof = proof
+      self.vct = vct
       self.credentialEncryptionJwk = credentialEncryptionJwk
       self.credentialEncryptionKey = credentialEncryptionKey
       self.credentialResponseEncryptionAlg = credentialResponseEncryptionAlg
@@ -164,6 +167,7 @@ public extension SdJwtVcFormat {
   struct CredentialConfigurationDTO: Codable {
     public let format: String
     public let scope: String?
+    public let vct: String?
     public let cryptographicBindingMethodsSupported: [String]?
     public let credentialSigningAlgValuesSupported: [String]?
     public let proofTypesSupported: [String: ProofSigningAlgorithmsSupported]?
@@ -173,6 +177,7 @@ public extension SdJwtVcFormat {
     enum CodingKeys: String, CodingKey {
       case format
       case scope
+      case vct
       case cryptographicBindingMethodsSupported = "cryptographic_binding_methods_supported"
       case credentialSigningAlgValuesSupported = "credential_signing_alg_values_supported"
       case proofTypesSupported = "proof_types_supported"
@@ -183,6 +188,7 @@ public extension SdJwtVcFormat {
     public init(
       format: String,
       scope: String? = nil,
+      vct: String? = nil,
       cryptographicBindingMethodsSupported: [String]? = nil,
       credentialSigningAlgValuesSupported: [String]? = nil,
       proofTypesSupported: [String: ProofSigningAlgorithmsSupported]? = nil,
@@ -191,6 +197,7 @@ public extension SdJwtVcFormat {
     ) {
       self.format = format
       self.scope = scope
+      self.vct = vct
       self.cryptographicBindingMethodsSupported = cryptographicBindingMethodsSupported
       self.credentialSigningAlgValuesSupported = credentialSigningAlgValuesSupported
       self.proofTypesSupported = proofTypesSupported
@@ -209,7 +216,8 @@ public extension SdJwtVcFormat {
       let credentialDefinition = self.credentialDefinition.toDomain()
       
       return .init(
-        scope: scope,
+        scope: scope, 
+        vct: vct,
         cryptographicBindingMethodsSupported: bindingMethods,
         credentialSigningAlgValuesSupported: credentialSigningAlgValuesSupported,
         proofTypesSupported: self.proofTypesSupported,
@@ -221,6 +229,7 @@ public extension SdJwtVcFormat {
   
   struct CredentialConfiguration: Codable {
     public let scope: String?
+    public let vct: String?
     public let cryptographicBindingMethodsSupported: [CryptographicBindingMethod]
     public let credentialSigningAlgValuesSupported: [String]
     public let proofTypesSupported: [String: ProofSigningAlgorithmsSupported]?
@@ -229,6 +238,7 @@ public extension SdJwtVcFormat {
     
     enum CodingKeys: String, CodingKey {
       case scope
+      case vct
       case cryptographicBindingMethodsSupported = "cryptographic_binding_methods_supported"
       case credentialSigningAlgValuesSupported = "credential_signing_alg_values_supported"
       case proofTypesSupported = "proof_types_supported"
@@ -242,6 +252,7 @@ public extension SdJwtVcFormat {
     
     public init(
       scope: String?,
+      vct: String?,
       cryptographicBindingMethodsSupported: [CryptographicBindingMethod],
       credentialSigningAlgValuesSupported: [String],
       proofTypesSupported: [String: ProofSigningAlgorithmsSupported]?,
@@ -249,6 +260,7 @@ public extension SdJwtVcFormat {
       credentialDefinition: CredentialDefinition
     ) {
       self.scope = scope
+      self.vct = vct
       self.cryptographicBindingMethodsSupported = cryptographicBindingMethodsSupported
       self.credentialSigningAlgValuesSupported = credentialSigningAlgValuesSupported
       self.proofTypesSupported = proofTypesSupported
@@ -259,6 +271,7 @@ public extension SdJwtVcFormat {
     public init(from decoder: Decoder) throws {
       let container = try decoder.container(keyedBy: CodingKeys.self)
       scope = try container.decodeIfPresent(String.self, forKey: .scope)
+      vct = try container.decodeIfPresent(String.self, forKey: .vct)
       cryptographicBindingMethodsSupported = try container.decode([CryptographicBindingMethod].self, forKey: .cryptographicBindingMethodsSupported)
       credentialSigningAlgValuesSupported = try container.decode([String].self, forKey: .credentialSigningAlgValuesSupported)
       
@@ -281,6 +294,7 @@ public extension SdJwtVcFormat {
     
     init(json: JSON) throws {
       self.scope = json["scope"].string
+      self.vct = json["vct"].string
       self.cryptographicBindingMethodsSupported = try json["cryptographic_binding_methods_supported"].arrayValue.map {
         try CryptographicBindingMethod(method: $0.stringValue)
       }
@@ -310,7 +324,8 @@ public extension SdJwtVcFormat {
       try .single(
         .sdJwtVc(
           .init(
-            proof: proof,
+            proof: proof, 
+            vct: vct,
             credentialEncryptionJwk: responseEncryptionSpec?.jwk,
             credentialEncryptionKey: responseEncryptionSpec?.privateKey,
             credentialResponseEncryptionAlg: responseEncryptionSpec?.algorithm,
