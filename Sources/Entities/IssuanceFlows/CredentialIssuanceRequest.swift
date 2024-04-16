@@ -124,9 +124,8 @@ public extension SingleCredential {
       switch credential.requestedCredentialResponseEncryption {
       case .notRequested:
         let dictionary = [
-          "credential_definition" : [
-            "type": credential.credentialDefinition.type
-          ],
+          "vct": credential.vct ?? credential.credentialDefinition.type,
+          "format": SdJwtVcFormat.FORMAT,
           "claims": credential.credentialDefinition.claims?.toDictionary()
         ] as [String : Any?]
         return JSON(dictionary.filter { $0.value != nil })
@@ -139,7 +138,7 @@ public extension SingleCredential {
         
         if let proof = credential.proof {
           let dictionary = [
-            "vct": credential.credentialDefinition.type,
+            "vct": credential.vct ?? credential.credentialDefinition.type,
             "format": SdJwtVcFormat.FORMAT,
             "proof": try proof.toDictionary(),
             "credential_response_encryption": [
@@ -153,7 +152,7 @@ public extension SingleCredential {
           
         } else {
           let dictionary = [
-            "vct": SdJwtVcFormat.FORMAT,
+            "vct": credential.vct ?? SdJwtVcFormat.FORMAT,
             "format": SdJwtVcFormat.FORMAT,
             "credential_response_encryption": [
               "jwk": try encryptionJwk.toDictionary(),
