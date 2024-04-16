@@ -132,7 +132,6 @@ public actor IssuanceRequester: IssuanceRequesterType {
       case .sdJwtVc(let credential):
         switch issuerMetadata.credentialResponseEncryption {
         case .notRequired:
-          print(string)
           guard let response = SingleIssuanceSuccessResponse.fromJSONString(string) else {
             return .failure(ValidationError.todo(reason: "Cannot decode .notRequired response"))
           }
