@@ -72,7 +72,7 @@ public extension CredentialSupported {
       }
      
       return try credentialConfiguration.toIssuanceRequest(
-        responseEncryptionSpec: responseEncryptionSpec,
+        responseEncryptionSpec: issuerEncryption.notRequired ? nil : responseEncryptionSpec,
         claimSet: claimSet,
         proof: proof
       )
