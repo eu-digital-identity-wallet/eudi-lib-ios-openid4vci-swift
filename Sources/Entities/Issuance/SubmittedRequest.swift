@@ -34,4 +34,20 @@ public enum SubmittedRequest {
   case success(response: CredentialIssuanceResponse)
   case failed(error: CredentialIssuanceError)
   case invalidProof(cNonce: CNonce, errorDescription: String?)
+  
+  var credentials: [String] {
+    switch self {
+    case .success(let response):
+      response.credentialResponses.compactMap { result in
+        switch result {
+        case .issued(_, let credential, _):
+          credential
+        default:
+          nil
+        }
+      }
+    default:
+      []
+    }
+  }
 }
