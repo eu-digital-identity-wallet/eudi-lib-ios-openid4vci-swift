@@ -92,7 +92,7 @@ public struct CredentialIssuerMetadata: Decodable, Equatable {
     deferredCredentialEndpoint = try container.decodeIfPresent(CredentialIssuerEndpoint.self, forKey: .deferredCredentialEndpoint)
     notificationEndpoint = try container.decodeIfPresent(CredentialIssuerEndpoint.self, forKey: .notificationEndpoint)
     
-    credentialResponseEncryption = try container.decode(CredentialResponseEncryption.self, forKey: .credentialResponseEncryption)
+    credentialResponseEncryption = (try? container.decode(CredentialResponseEncryption.self, forKey: .credentialResponseEncryption)) ?? .notRequired
     
     let json = try container.decodeIfPresent(JSON.self, forKey: .credentialConfigurationsSupported) ?? []
     var mapIdentifierCredential: [CredentialConfigurationIdentifier: CredentialSupported] = [:]
