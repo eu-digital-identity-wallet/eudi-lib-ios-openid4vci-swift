@@ -14,11 +14,11 @@ let package = Package(
   ],
   dependencies: [
     .package(url: "https://github.com/SwiftyJSON/SwiftyJSON.git", from: "4.0.0"),
+    .package(url: "https://github.com/scinfu/SwiftSoup.git", from: "2.6.0"),
     .package(
       url: "https://github.com/niscy-eudiw/JOSESwift.git",
       exact: "2.4.1-gcm"
     ),
-    .package(url: "https://github.com/scinfu/SwiftSoup.git", from: "2.6.0"),
   ],
   targets: [
     .target(
