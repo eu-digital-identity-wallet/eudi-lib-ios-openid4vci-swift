@@ -97,7 +97,7 @@ public actor IssuanceAuthorizer: IssuanceAuthorizerType {
         throw ValidationError.error(reason: "Invalid token endpoint")
       }
       
-      if let pushedAuthorizationRequestEndpoint = data.pushedAuthorizationRequestEndpoint, let url = URL(string: pushedAuthorizationRequestEndpoint) {
+      if let authorizationEndpoint = data.authorizationEndpoint, let url = URL(string: authorizationEndpoint) {
         self.authorizationEndpoint = url
       } else {
         throw ValidationError.error(reason: "In valid authorization endpoint")
