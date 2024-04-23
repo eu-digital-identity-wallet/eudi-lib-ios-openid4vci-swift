@@ -44,6 +44,7 @@ public struct CredentialIssuerMetadata: Decodable, Equatable {
     case display = "display"
     case credentialResponseEncryption = "credential_response_encryption"
     case signedMetadata = "signed_metadata"
+    case credentialsSupported = "credentials_supported"
     case credentialIdentifiersSupported = "credential_identifiers_supported"
   }
   
@@ -93,8 +94,9 @@ public struct CredentialIssuerMetadata: Decodable, Equatable {
     notificationEndpoint = try container.decodeIfPresent(CredentialIssuerEndpoint.self, forKey: .notificationEndpoint)
     
     credentialResponseEncryption = (try? container.decode(CredentialResponseEncryption.self, forKey: .credentialResponseEncryption)) ?? .notRequired
-    
-    let json = try container.decodeIfPresent(JSON.self, forKey: .credentialConfigurationsSupported) ?? []
+
+    let supportedCredentials = try container.decodeIfPresent(JSON.self, forKey: .credentialsSupported) ?? []
+    let json = try container.decodeIfPresent(JSON.self, forKey: .credentialConfigurationsSupported) ?? supportedCredentials
     var mapIdentifierCredential: [CredentialConfigurationIdentifier: CredentialSupported] = [:]
     for (key, value): (String, JSON) in json {
       if let dictionary = value.dictionary,
