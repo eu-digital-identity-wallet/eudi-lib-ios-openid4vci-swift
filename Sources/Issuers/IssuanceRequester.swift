@@ -282,17 +282,17 @@ public actor IssuanceRequester: IssuanceRequesterType {
 
 private extension SingleIssuanceSuccessResponse {
   func toSingleIssuanceResponse() throws -> CredentialIssuanceResponse {
-    if let transactionId = transactionId {
+    if let credential = credential {
+      return CredentialIssuanceResponse(
+        credentialResponses: [.issued(format: format ?? "", credential: credential, notificationId: nil)],
+        cNonce: CNonce(value: cNonce, expiresInSeconds: cNonceExpiresInSeconds)
+      )
+    } else if let transactionId = transactionId {
       return CredentialIssuanceResponse(
         credentialResponses: [.deferred(transactionId: try .init(value: transactionId))],
         cNonce:  CNonce(value: cNonce!, expiresInSeconds: cNonceExpiresInSeconds)
       )
       
-    } else if let credential = credential {
-      return CredentialIssuanceResponse(
-        credentialResponses: [.issued(format: format ?? "", credential: credential, notificationId: nil)],
-        cNonce: CNonce(value: cNonce, expiresInSeconds: cNonceExpiresInSeconds)
-      )
     }
     throw CredentialIssuanceError.responseUnparsable("Got success response for issuance but response misses 'transaction_id' and 'certificate' parameters")
   }

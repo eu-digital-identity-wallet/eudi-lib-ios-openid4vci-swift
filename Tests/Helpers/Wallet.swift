@@ -87,7 +87,11 @@ extension Wallet {
     
     switch authorized {
     case .noProofRequired:
-      return try await offer.credentialIssuerMetadata.credentialsSupported.asyncCompactMap { (credentialConfigurationIdentifier, supportedCredential) in
+      return try await offer
+        .credentialIssuerMetadata
+        .credentialsSupported
+        .filter { offer.credentialConfigurationIdentifiers.contains($0.key) }
+        .asyncCompactMap { (credentialConfigurationIdentifier, supportedCredential) in
         guard let scope = issuerMetadata.credentialsSupported[credentialConfigurationIdentifier]?.getScope() else {
           throw ValidationError.error(reason: "Cannot find scope for \(credentialConfigurationIdentifier)")
         }
@@ -288,13 +292,12 @@ extension Wallet {
       )
       /*
       authorizationCode = ""
-      let issuanceAuthorization: IssuanceAuthorization = .authorizationCode(authorizationCode: authorizationCode)
+      let _: IssuanceAuthorization = .authorizationCode(authorizationCode: authorizationCode)
       unAuthorized = await issuer.handleAuthorizationCode(
         parRequested: request,
         code: &authorizationCode
       )
        */
-
       print("--> [AUTHORIZATION] Authorization code retrieved: \(authorizationCode)")
       
       switch unAuthorized {

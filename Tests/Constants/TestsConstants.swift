@@ -22,6 +22,7 @@ import Foundation
 //let PID_SdJwtVC_config_id = "eu.europa.ec.eudiw.mdl_jwt_vc_json"
 //let PID_MsoMdoc_config_id = "eu.europa.ec.eudiw.pid_mdoc"
 //let MDL_config_id = "eu.europa.ec.eudiw.mdl_mdoc"
+
 let CREDENTIAL_ISSUER_PUBLIC_URL = "https://dev.issuer-backend.eudiw.dev"
 let MDL_config_id = "org.iso.18013.5.1.mDL"
 let PID_MsoMdoc_config_id = "eu.europa.ec.eudiw.pid_mso_mdoc"
