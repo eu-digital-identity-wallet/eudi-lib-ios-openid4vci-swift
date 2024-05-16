@@ -27,14 +27,14 @@ public protocol IssuanceAuthorizerType {
   func requestAccessTokenAuthFlow(
     authorizationCode: String,
     codeVerifier: String
-  ) async throws -> Result<(String, String?), ValidationError>
+  ) async throws -> Result<(AccessToken, CNonce?), ValidationError>
   
   func requestAccessTokenPreAuthFlow(
     preAuthorizedCode: String,
     txCode: TxCode,
     clientId: String,
     transactionCode: String?
-  ) async throws -> Result<(String, String?), ValidationError>
+  ) async throws -> Result<(AccessToken, CNonce?), ValidationError>
 }
 
 public actor IssuanceAuthorizer: IssuanceAuthorizerType {
@@ -177,7 +177,7 @@ public actor IssuanceAuthorizer: IssuanceAuthorizerType {
   public func requestAccessTokenAuthFlow(
     authorizationCode: String,
     codeVerifier: String
-  ) async throws -> Result<(String, String?), ValidationError> {
+  ) async throws -> Result<(AccessToken, CNonce?), ValidationError> {
     
     let parameters: [String: String] = authCodeFlow(
       authorizationCode: authorizationCode,
@@ -195,7 +195,10 @@ public actor IssuanceAuthorizer: IssuanceAuthorizerType {
     
     switch response {
     case .success(let accessToken, _, _, let nonce, _):
-      return .success((accessToken, nonce))
+      return .success((
+        try .init(value: accessToken),
+        .init(value: nonce))
+      )
     case .failure(let error, let errorDescription):
       throw CredentialIssuanceError.pushedAuthorizationRequestFailed(
         error: error,
@@ -209,7 +212,7 @@ public actor IssuanceAuthorizer: IssuanceAuthorizerType {
     txCode: TxCode,
     clientId: String,
     transactionCode: String?
-  ) async throws -> Result<(String, String?), ValidationError> {
+  ) async throws -> Result<(AccessToken, CNonce?), ValidationError> {
     let parameters: JSON = try await preAuthCodeFlow(
       preAuthorizedCode: preAuthorizedCode,
       txCode: txCode,
@@ -226,7 +229,10 @@ public actor IssuanceAuthorizer: IssuanceAuthorizerType {
     
     switch response {
     case .success(let accessToken, _, _, let nonce, _):
-      return .success((accessToken, nonce))
+      return .success((
+        try .init(value: accessToken),
+        .init(value: nonce))
+      )
     case .failure(let error, let errorDescription):
       throw CredentialIssuanceError.pushedAuthorizationRequestFailed(
         error: error,

@@ -114,6 +114,21 @@ public enum ContentType: String {
   case json = "application/json"
 }
 
+public struct AccessToken: Codable {
+  public let value: String
+  
+  public init(value: String?) throws {
+    guard let value else {
+      throw ValidationError.error(reason: "Nil access token")
+    }
+    if value.isEmpty {
+      throw ValidationError.error(reason: "Empty access token")
+    }
+    
+    self.value = value
+  }
+}
+
 public struct CNonce: Codable {
   public let value: String
   public let expiresInSeconds: Int?

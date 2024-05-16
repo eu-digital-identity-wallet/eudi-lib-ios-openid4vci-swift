@@ -215,10 +215,10 @@ public actor Issuer: IssuerType {
         
         switch response {
         case .success((let accessToken, let nonce)):
-          if let cNonce = CNonce(value: nonce) {
-            return .success(.proofRequired(token: try IssuanceAccessToken(accessToken: accessToken), cNonce: cNonce, credentialIdentifiers: [:]))
+          if let cNonce = nonce {
+            return .success(.proofRequired(token: try IssuanceAccessToken(accessToken: accessToken.value), cNonce: cNonce, credentialIdentifiers: [:]))
           } else {
-            return .success(.noProofRequired(token: try IssuanceAccessToken(accessToken: accessToken), credentialIdentifiers: [:]))
+            return .success(.noProofRequired(token: try IssuanceAccessToken(accessToken: accessToken.value), credentialIdentifiers: [:]))
           }
         case .failure(let error):
           return .failure(ValidationError.error(reason: error.localizedDescription))
@@ -243,17 +243,17 @@ public actor Issuer: IssuerType {
       case .authorizationCode(authorizationCode: let authorizationCode):
         do {
           let response: (
-            accessToken: String,
-            nonce: String?
+            accessToken: AccessToken,
+            nonce: CNonce?
           ) = try await authorizer.requestAccessTokenAuthFlow(
             authorizationCode: authorizationCode,
             codeVerifier: request.pkceVerifier.codeVerifier
           ).get()
           
-          if let nonce = response.nonce, let cNonce = CNonce(value: nonce) {
+          if let cNonce = response.nonce {
             return .success(
               .proofRequired(
-                token: try IssuanceAccessToken(accessToken: response.accessToken),
+                token: try IssuanceAccessToken(accessToken: response.accessToken.value),
                 cNonce: cNonce,
                 credentialIdentifiers: [:]
               )
@@ -261,7 +261,7 @@ public actor Issuer: IssuerType {
           } else {
             return .success(
               .noProofRequired(
-                token: try IssuanceAccessToken(accessToken: response.accessToken),
+                token: try IssuanceAccessToken(accessToken: response.accessToken.value),
                 credentialIdentifiers: [:]
               )
             )
