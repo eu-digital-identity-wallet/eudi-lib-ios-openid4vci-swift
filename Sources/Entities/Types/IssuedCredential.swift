@@ -16,6 +16,10 @@
 import Foundation
 
 public enum IssuedCredential {
-  case issued(format: String, credential: String)
+  case issued(
+    format: String,
+    credential: String,
+    notificationId: String
+  )
   case deferred(transactionId: TransactionId)
 }
