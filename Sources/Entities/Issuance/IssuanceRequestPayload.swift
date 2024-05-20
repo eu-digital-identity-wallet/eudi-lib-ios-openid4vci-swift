@@ -37,4 +37,13 @@ public enum IssuanceRequestPayload {
     credentialConfigurationIdentifier: CredentialConfigurationIdentifier,
     claimSet: ClaimSet?
   )
+  
+  var credentialConfigurationIdentifier: CredentialConfigurationIdentifier {
+    switch self {
+    case .identifierBased(let credentialConfigurationIdentifier, _):
+      return credentialConfigurationIdentifier
+    case .configurationBased(let credentialConfigurationIdentifier, _):
+      return credentialConfigurationIdentifier
+    }
+  }
 }
