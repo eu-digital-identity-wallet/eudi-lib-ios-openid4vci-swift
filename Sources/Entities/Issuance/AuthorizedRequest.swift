@@ -25,6 +25,24 @@ public enum AuthorizedRequest {
     cNonce: CNonce,
     credentialIdentifiers: [CredentialConfigurationIdentifier: [CredentialIdentifier]]
   )
+  
+  public var noProofToken: IssuanceAccessToken? {
+    switch self {
+    case .noProofRequired(let token, _):
+      return token
+    case .proofRequired:
+      return nil
+    }
+  }
+  
+  public var proofToken: IssuanceAccessToken? {
+    switch self {
+    case .noProofRequired:
+      return nil
+    case .proofRequired(let token, _, _):
+      return token
+    }
+  }
 }
 
 public extension AuthorizedRequest {
