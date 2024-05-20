@@ -513,6 +513,31 @@ private extension Issuer {
       )
     }
   }
+  
+  func scopesAndCredentialConfigurationIds(credentialOffer: CredentialOffer) throws -> ([Scope], [CredentialConfigurationIdentifier]) {
+    var scopes = [Scope]()
+    var configurationIdentifiers = [CredentialConfigurationIdentifier]()
+    
+    func credentialConfigurationById(id: CredentialConfigurationIdentifier) throws -> CredentialSupported {
+      let issuerMetadata = credentialOffer.credentialIssuerMetadata
+      return try unwrapOrThrow(issuerMetadata.credentialsSupported[id], error: ValidationError.error(reason: "\(id) was not found within issuer metadata"))
+    }
+    
+    for id in credentialOffer.credentialConfigurationIdentifiers {
+      let credentialConfiguration = try credentialConfigurationById(id: id)
+      switch config.authorizeIssuanceConfig {
+      case .favorScopes:
+        if let scope = credentialConfiguration.getScope() {
+          scopes.append(try Scope(scope))
+        } else {
+          configurationIdentifiers.append(id)
+        }
+      case .authorizationDetails:
+        configurationIdentifiers.append(id)
+      }
+    }
+    return (scopes, configurationIdentifiers)
+  }
 }
 
 public extension Issuer {
