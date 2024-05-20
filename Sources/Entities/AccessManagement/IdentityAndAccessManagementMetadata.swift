@@ -19,6 +19,15 @@ public enum IdentityAndAccessManagementMetadata {
   case oidc(OIDCProviderMetadata)
   case oauth(AuthorizationServerMetadata)
   
+  var issuer: String? {
+    switch self {
+    case .oidc(let metaData):
+      return metaData.issuer
+    case .oauth(let metaData):
+      return metaData.issuer
+    }
+  }
+  
   var authorizationServerSupportsPar: Bool {
     switch self {
     case .oidc(let metaData):

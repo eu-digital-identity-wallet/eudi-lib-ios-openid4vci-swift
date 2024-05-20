@@ -20,6 +20,7 @@ public protocol AuthorizationServerClientType {
   
   func submitPushedAuthorizationRequest(
     scopes: [Scope],
+    credentialConfigurationIdentifiers: [CredentialConfigurationIdentifier],
     state: String,
     issuerState: String?
   ) async throws -> Result<(PKCEVerifier, GetAuthorizationCodeURL), Error>
@@ -49,6 +50,7 @@ public actor AuthorizationServerClient: AuthorizationServerClientType {
   public let redirectionURI: URL
   public let clientId: String
   public let authorizationServerMetadata: IdentityAndAccessManagementMetadata
+  public let credentialIssuerIdentifier: CredentialIssuerId
   
   static let responseType = "code"
   static let grantAuthorizationCode = "authorization_code"
@@ -59,13 +61,17 @@ public actor AuthorizationServerClient: AuthorizationServerClientType {
     parPoster: PostingType = Poster(),
     tokenPoster: PostingType = Poster(),
     config: WalletOpenId4VCIConfig,
-    authorizationServerMetadata: IdentityAndAccessManagementMetadata
+    authorizationServerMetadata: IdentityAndAccessManagementMetadata,
+    credentialIssuerIdentifier: CredentialIssuerId
   ) throws {
     self.service = service
     self.parPoster = parPoster
     self.tokenPoster = tokenPoster
     self.config = config
+    
     self.authorizationServerMetadata = authorizationServerMetadata
+    self.credentialIssuerIdentifier = credentialIssuerIdentifier
+    
     self.redirectionURI = config.authFlowRedirectionURI
     self.clientId = ClientId(config.clientId)
     
@@ -113,6 +119,7 @@ public actor AuthorizationServerClient: AuthorizationServerClientType {
   
   public func submitPushedAuthorizationRequest(
     scopes: [Scope],
+    credentialConfigurationIdentifiers: [CredentialConfigurationIdentifier],
     state: String,
     issuerState: String?
   ) async throws -> Result<(PKCEVerifier, GetAuthorizationCodeURL), Error> {
@@ -126,6 +133,7 @@ public actor AuthorizationServerClient: AuthorizationServerClientType {
       clientId: config.clientId,
       redirectUri: config.authFlowRedirectionURI.absoluteString,
       scope: scopes.map { $0.value }.joined(separator: " ").appending(" ").appending(Constants.OPENID_SCOPE),
+      credentialConfigurationIds: toAuthorizationDetail(credentialConfigurationIds: credentialConfigurationIdentifiers),
       state: state,
       codeChallenge: PKCEGenerator.generateCodeChallenge(codeVerifier: codeVerifier),
       codeChallengeMethod: CodeChallenge.sha256.rawValue,
@@ -237,6 +245,23 @@ public actor AuthorizationServerClient: AuthorizationServerClientType {
       throw CredentialIssuanceError.pushedAuthorizationRequestFailed(
         error: error,
         errorDescription: errorDescription
+      )
+    }
+  }
+  
+  func toAuthorizationDetail(
+    credentialConfigurationIds: [CredentialConfigurationIdentifier]
+  ) -> [AuthorizationDetail] {
+    credentialConfigurationIds.compactMap { id in
+      var locations: [String] = []
+      if credentialIssuerIdentifier.url.absoluteString != authorizationServerMetadata.issuer {
+        locations.append(credentialIssuerIdentifier.url.absoluteString)
+      }
+      
+      return AuthorizationDetail(
+        type: .init(type: OPENID_CREDENTIAL),
+        locations: locations,
+        credentialConfigurationId: id.value
       )
     }
   }

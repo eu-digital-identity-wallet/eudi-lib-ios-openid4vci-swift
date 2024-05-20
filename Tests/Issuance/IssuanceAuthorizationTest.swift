@@ -57,7 +57,7 @@ class IssuanceAuthorizationTest: XCTestCase {
     )
     
     // Then
-    let parPlaced = await issuer.pushAuthorizationCodeRequest(
+    let parPlaced = try await issuer.pushAuthorizationCodeRequest(
       credentialOffer: offer
     )
 
@@ -92,7 +92,7 @@ class IssuanceAuthorizationTest: XCTestCase {
     )
     
     // Then
-    let parPlaced = await issuer.pushAuthorizationCodeRequest(
+    let parPlaced = try await issuer.pushAuthorizationCodeRequest(
       credentialOffer: offer
     )
 

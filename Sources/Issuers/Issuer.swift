@@ -20,7 +20,7 @@ public protocol IssuerType {
   
   func pushAuthorizationCodeRequest(
     credentialOffer: CredentialOffer
-  ) async -> Result<UnauthorizedRequest, Error>
+  ) async throws -> Result<UnauthorizedRequest, Error>
   
   func authorizeWithPreAuthorizationCode(
     credentialOffer: CredentialOffer,
@@ -107,7 +107,8 @@ public actor Issuer: IssuerType {
       parPoster: parPoster,
       tokenPoster: tokenPoster,
       config: config,
-      authorizationServerMetadata: authorizationServerMetadata
+      authorizationServerMetadata: authorizationServerMetadata,
+      credentialIssuerIdentifier: issuerMetadata.credentialIssuerIdentifier
     )
     
     issuanceRequester = IssuanceRequester(
@@ -128,7 +129,7 @@ public actor Issuer: IssuerType {
   
   public func pushAuthorizationCodeRequest(
     credentialOffer: CredentialOffer
-  ) async -> Result<UnauthorizedRequest, Error> {
+  ) async throws -> Result<UnauthorizedRequest, Error> {
     let credentials = credentialOffer.credentialConfigurationIdentifiers
     let issuerState: String? = switch credentialOffer.grants {
     case .authorizationCode(let code), .both(let code, _):
@@ -136,23 +137,12 @@ public actor Issuer: IssuerType {
     default:
       nil
     }
+    
+    let (scopes, credentialConfogurationIdentifiers) = try scopesAndCredentialConfigurationIds(credentialOffer: credentialOffer)
 
-    var authorizationDetails: [OidCredentialAuthorizationDetail] = []
-    var scopes: [Scope] = []
-    
-    credentialOffer.credentialConfigurationIdentifiers.forEach { credentialConfigurationId in
-      if let credentialConfigurationIdentifier = try? CredentialConfigurationIdentifier(value: credentialConfigurationId.value),
-         let supportedCredential = issuerMetadata.credentialsSupported[credentialConfigurationIdentifier],
-           let scope = try? Scope(supportedCredential.getScope()) {
-          scopes.append(scope)
-        } else {
-          authorizationDetails.append(ByCredentialConfiguration(credentialConfigurationId: credentialConfigurationId))
-        }
-    }
-    
     let authorizationServerSupportsPar = credentialOffer.authorizationServerMetadata.authorizationServerSupportsPar
 
-    let state = String.randomBase64URLString(length: 32)
+    let state = StateValue().value
     
     if authorizationServerSupportsPar {
       do {
@@ -161,6 +151,7 @@ public actor Issuer: IssuerType {
           code: GetAuthorizationCodeURL
         ) = try await authorizer.submitPushedAuthorizationRequest(
           scopes: scopes,
+          credentialConfigurationIdentifiers: credentialConfogurationIdentifiers,
           state: state,
           issuerState: issuerState
         ).get()
