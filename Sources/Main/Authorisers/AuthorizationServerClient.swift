@@ -16,7 +16,7 @@
 import Foundation
 import SwiftyJSON
 
-public protocol IssuanceAuthorizerType {
+public protocol AuthorizationServerClientType {
   
   func submitPushedAuthorizationRequest(
     scopes: [Scope],
@@ -37,7 +37,7 @@ public protocol IssuanceAuthorizerType {
   ) async throws -> Result<(AccessToken, CNonce?), ValidationError>
 }
 
-public actor IssuanceAuthorizer: IssuanceAuthorizerType {
+public actor AuthorizationServerClient: AuthorizationServerClientType {
   
   public let config: WalletOpenId4VCIConfig
   public let service: AuthorisationServiceType
@@ -242,7 +242,7 @@ public actor IssuanceAuthorizer: IssuanceAuthorizerType {
   }
 }
 
-private extension IssuanceAuthorizer {
+private extension AuthorizationServerClient {
   
   func authCodeFlow(
     authorizationCode: String,

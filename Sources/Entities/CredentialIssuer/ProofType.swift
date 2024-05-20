@@ -18,6 +18,7 @@ import Foundation
 public enum ProofType: Codable {
   case jwt
   case cwt
+  case ldpVp
   
   private enum CodingKeys: String, CodingKey {
     case rawValue
@@ -32,6 +33,8 @@ public enum ProofType: Codable {
       self = .jwt
     case "CWT", "cwt":
       self = .cwt
+    case "LDP_VP", "ldp_vp":
+      self = .cwt
     default:
       throw DecodingError.dataCorruptedError(in: container, debugDescription: "Invalid proof type")
     }
@@ -45,6 +48,8 @@ public enum ProofType: Codable {
       try container.encode("JWT")
     case .cwt:
       try container.encode("CWT")
+    case .ldpVp:
+      try container.encode("LDP_VP")
     }
   }
   
@@ -54,6 +59,8 @@ public enum ProofType: Codable {
       self = .jwt
     case "CWT", "cwt":
       self = .cwt
+    case "LDP_VP", "ldp_vp":
+      self = .ldpVp
     default:
       throw ValidationError.error(reason: "Invalid proof type: \(type)")
     }

@@ -82,7 +82,7 @@ public actor Issuer: IssuerType {
   let issuerMetadata: CredentialIssuerMetadata
   let config: WalletOpenId4VCIConfig
   
-  private let authorizer: IssuanceAuthorizerType
+  private let authorizer: AuthorizationServerClientType
   
   private let issuanceRequester: IssuanceRequesterType
   private let deferredIssuanceRequester: IssuanceRequesterType
@@ -103,7 +103,7 @@ public actor Issuer: IssuerType {
     self.issuerMetadata = issuerMetadata
     self.config = config
     
-    authorizer = try IssuanceAuthorizer(
+    authorizer = try AuthorizationServerClient(
       parPoster: parPoster,
       tokenPoster: tokenPoster,
       config: config,
