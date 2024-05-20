@@ -15,8 +15,6 @@
  */
 import Foundation
 
-public typealias IssuanceRequestCredentialIdentifier = (CredentialConfigurationIdentifier, CredentialIdentifier?)
-
 public struct CredentialIdentifier: Codable, Hashable {
   public let value: String
   
