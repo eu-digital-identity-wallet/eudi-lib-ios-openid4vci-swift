@@ -23,7 +23,7 @@ public enum AuthorizeIssuanceConfig {
 public typealias ClientId = String
 public typealias ClientSecret = String
 
-public struct WalletOpenId4VCIConfig {
+public struct OpenId4VCIConfig {
   public let clientId: ClientId
   public let authFlowRedirectionURI: URL
   public let authorizeIssuanceConfig: AuthorizeIssuanceConfig
@@ -31,7 +31,7 @@ public struct WalletOpenId4VCIConfig {
   public init(
     clientId: ClientId,
     authFlowRedirectionURI: URL,
-    authorizeIssuanceConfig: AuthorizeIssuanceConfig
+    authorizeIssuanceConfig: AuthorizeIssuanceConfig = .favorScopes
   ) {
     self.clientId = clientId
     self.authFlowRedirectionURI = authFlowRedirectionURI
