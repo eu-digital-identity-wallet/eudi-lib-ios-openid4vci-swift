@@ -45,8 +45,9 @@ public extension CredentialSupported {
   
   func toIssuanceRequest(
     requester: IssuanceRequesterType,
-    claimSet: ClaimSet?,
+    claimSet: ClaimSet? = nil,
     proof: Proof? = nil,
+    credentialIdentifier: CredentialIdentifier? = nil,
     responseEncryptionSpecProvider: (_ issuerResponseEncryptionMetadata: CredentialResponseEncryption) -> IssuanceResponseEncryptionSpec?
   ) throws -> CredentialIssuanceRequest {
     switch self {

@@ -326,6 +326,7 @@ public extension MsoMdocFormat {
     
     func toIssuanceRequest(
       responseEncryptionSpec: IssuanceResponseEncryptionSpec?,
+      credentialIdentifier: CredentialIdentifier? = nil,
       claimSet: ClaimSet?,
       proof: Proof?
     ) throws -> CredentialIssuanceRequest {
@@ -339,7 +340,8 @@ public extension MsoMdocFormat {
             credentialResponseEncryptionAlg: responseEncryptionSpec?.algorithm,
             credentialResponseEncryptionMethod: responseEncryptionSpec?.encryptionMethod,
             claimSet: try claimSet?.validate(claims: self.claimList)
-          )
+          ),
+          credentialIdentifier
         )
       )
     }

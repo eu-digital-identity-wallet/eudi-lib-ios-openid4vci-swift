@@ -69,71 +69,116 @@ public struct DeferredCredentialRequest: Codable {
 }
 
 public enum SingleCredential {
-  case msoMdoc(MsoMdocFormat.MsoMdocSingleCredential)
-  case sdJwtVc(SdJwtVcFormat.SdJwtVcSingleCredential)
+  case msoMdoc(MsoMdocFormat.MsoMdocSingleCredential, CredentialIdentifier?)
+  case sdJwtVc(SdJwtVcFormat.SdJwtVcSingleCredential, CredentialIdentifier?)
 }
 
 public extension SingleCredential {
   func toDictionary() throws -> JSON {
     switch self {
-    case .msoMdoc(let credential):
+    case .msoMdoc(let credential, let identifier):
       switch credential.requestedCredentialResponseEncryption {
       case .notRequested:
-        let dictionary = [
-          "format": MsoMdocFormat.FORMAT,
-          "doctype": credential.docType,
-          "claims": credential.claimSet?.toDictionary(),
-          "proof": credential.proof != nil ? (try? credential.proof.toDictionary()) : nil
-        ] as [String : Any?]
-        return JSON(dictionary.filter { $0.value != nil })
-        
+        if let identifier {
+          let dictionary = [
+            "credential_identifier": identifier,
+            "proof": credential.proof != nil ? (try? credential.proof.toDictionary()) : nil
+          ] as [String : Any?]
+          return JSON(dictionary.filter { $0.value != nil })
+          
+        } else {
+          let dictionary = [
+            "format": MsoMdocFormat.FORMAT,
+            "doctype": credential.docType,
+            "claims": credential.claimSet?.toDictionary(),
+            "proof": credential.proof != nil ? (try? credential.proof.toDictionary()) : nil
+          ] as [String : Any?]
+          return JSON(dictionary.filter { $0.value != nil })
+        }
       case .requested(
         let encryptionJwk,
         _,
         let responseEncryptionAlg,
         let responseEncryptionMethod
       ):
-        let dictionary = [
-          "format": MsoMdocFormat.FORMAT,
-          "proof": credential.proof != nil ? (try? credential.proof.toDictionary()) : nil,
-          "doctype": credential.docType,
-          "credential_response_encryption": [
-            "jwk": try encryptionJwk.toDictionary(),
-            "alg": responseEncryptionAlg.name,
-            "enc": responseEncryptionMethod.name
-          ],
-          "claims": credential.claimSet?.toDictionary()
-        ] as [String : Any?]
-        return JSON(dictionary.filter { $0.value != nil })
+        if let identifier {
+          let dictionary = [
+            "proof": credential.proof != nil ? (try? credential.proof.toDictionary()) : nil,
+            "credential_identifier": identifier,
+            "credential_response_encryption": [
+              "jwk": try encryptionJwk.toDictionary(),
+              "alg": responseEncryptionAlg.name,
+              "enc": responseEncryptionMethod.name
+            ]
+          ] as [String : Any?]
+          return JSON(dictionary.filter { $0.value != nil })
+          
+        } else {
+          let dictionary = [
+            "format": MsoMdocFormat.FORMAT,
+            "proof": credential.proof != nil ? (try? credential.proof.toDictionary()) : nil,
+            "doctype": credential.docType,
+            "credential_response_encryption": [
+              "jwk": try encryptionJwk.toDictionary(),
+              "alg": responseEncryptionAlg.name,
+              "enc": responseEncryptionMethod.name
+            ],
+            "claims": credential.claimSet?.toDictionary()
+          ] as [String : Any?]
+          return JSON(dictionary.filter { $0.value != nil })
+        }
       }
-    case .sdJwtVc(let credential):
+    case .sdJwtVc(let credential, let identifier):
       switch credential.requestedCredentialResponseEncryption {
       case .notRequested:
-        let dictionary = [
-          "vct": credential.vct ?? credential.credentialDefinition.type,
-          "proof": credential.proof != nil ? (try? credential.proof.toDictionary()) : nil,
-          "format": SdJwtVcFormat.FORMAT,
-          "claims": credential.credentialDefinition.claims?.toDictionary()
-        ] as [String : Any?]
-        return JSON(dictionary.filter { $0.value != nil })
+        if let identifier {
+          let dictionary = [
+            "proof": credential.proof != nil ? (try? credential.proof.toDictionary()) : nil,
+            "credential_identifier": identifier
+          ] as [String : Any?]
+          return JSON(dictionary.filter { $0.value != nil })
+          
+        } else {
+          let dictionary = [
+            "vct": credential.vct ?? credential.credentialDefinition.type,
+            "proof": credential.proof != nil ? (try? credential.proof.toDictionary()) : nil,
+            "format": SdJwtVcFormat.FORMAT,
+            "claims": credential.credentialDefinition.claims?.toDictionary()
+          ] as [String : Any?]
+          return JSON(dictionary.filter { $0.value != nil })
+        }
       case .requested(
         let encryptionJwk,
         _,
         let responseEncryptionAlg,
         let responseEncryptionMethod
       ):
-        let dictionary = [
-          "vct": credential.vct ?? credential.credentialDefinition.type,
-          "format": SdJwtVcFormat.FORMAT,
-          "proof": credential.proof != nil ? (try? credential.proof.toDictionary()) : nil,
-          "credential_response_encryption": [
-            "jwk": try encryptionJwk.toDictionary(),
-            "alg": responseEncryptionAlg.name,
-            "enc": responseEncryptionMethod.name
-          ],
-          "claims": credential.credentialDefinition.claims?.toDictionary()
-        ] as [String : Any?]
-        return JSON(dictionary.filter { $0.value != nil })
+        if let identifier {
+          let dictionary = [
+            "credential_identifier": identifier,
+            "proof": credential.proof != nil ? (try? credential.proof.toDictionary()) : nil,
+            "credential_response_encryption": [
+              "jwk": try encryptionJwk.toDictionary(),
+              "alg": responseEncryptionAlg.name,
+              "enc": responseEncryptionMethod.name
+            ]
+          ] as [String : Any?]
+          return JSON(dictionary.filter { $0.value != nil })
+          
+        } else {
+          let dictionary = [
+            "vct": credential.vct ?? credential.credentialDefinition.type,
+            "format": SdJwtVcFormat.FORMAT,
+            "proof": credential.proof != nil ? (try? credential.proof.toDictionary()) : nil,
+            "credential_response_encryption": [
+              "jwk": try encryptionJwk.toDictionary(),
+              "alg": responseEncryptionAlg.name,
+              "enc": responseEncryptionMethod.name
+            ],
+            "claims": credential.credentialDefinition.claims?.toDictionary()
+          ] as [String : Any?]
+          return JSON(dictionary.filter { $0.value != nil })
+        }
       }
     }
   }

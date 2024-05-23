@@ -21,7 +21,7 @@ import JOSESwift
 
 class IssuanceNotificationTest: XCTestCase {
   
-  let config: WalletOpenId4VCIConfig = .init(
+  let config: OpenId4VCIConfig = .init(
     clientId: "wallet-dev",
     authFlowRedirectionURI: URL(string: "urn:ietf:wg:oauth:2.0:oob")!,
     authorizeIssuanceConfig: .favorScopes
@@ -113,12 +113,15 @@ class IssuanceNotificationTest: XCTestCase {
         XCTAssert(true, "Is no proof required")
         
         do {
+          let payload: IssuanceRequestPayload = .configurationBased(
+            credentialConfigurationIdentifier: try .init(
+              value: "eu.europa.ec.eudiw.pid_mso_mdoc"
+            ),
+            claimSet: nil
+          )
           let result = try await issuer.requestSingle(
             noProofRequest: authorized,
-            requestCredentialIdentifier: (
-              .init(value: "eu.europa.ec.eudiw.pid_mso_mdoc"),
-              nil
-            ),
+            requestPayload: payload,
             responseEncryptionSpecProvider: { _ in
               spec
             })
@@ -253,12 +256,15 @@ class IssuanceNotificationTest: XCTestCase {
         XCTAssert(true, "Is no proof required")
         
         do {
+          let payload: IssuanceRequestPayload = .configurationBased(
+            credentialConfigurationIdentifier: try .init(
+              value: "eu.europa.ec.eudiw.pid_mso_mdoc"
+            ),
+            claimSet: nil
+          )
           let result = try await issuer.requestSingle(
             noProofRequest: authorized,
-            requestCredentialIdentifier: (
-              .init(value: "eu.europa.ec.eudiw.pid_mso_mdoc"),
-              nil
-            ),
+            requestPayload: payload,
             responseEncryptionSpecProvider: { _ in
               spec
             })

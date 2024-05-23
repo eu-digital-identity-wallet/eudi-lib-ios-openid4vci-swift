@@ -40,16 +40,14 @@ public protocol IssuerType {
   
   func requestSingle(
     noProofRequest: AuthorizedRequest,
-    claimSet: ClaimSet?,
-    requestCredentialIdentifier: IssuanceRequestCredentialIdentifier,
+    requestPayload: IssuanceRequestPayload,
     responseEncryptionSpecProvider: (_ issuerResponseEncryptionMetadata: CredentialResponseEncryption) -> IssuanceResponseEncryptionSpec?
   ) async throws -> Result<SubmittedRequest, Error>
   
   func requestSingle(
     proofRequest: AuthorizedRequest,
     bindingKey: BindingKey,
-    claimSet: ClaimSet?,
-    requestCredentialIdentifier: IssuanceRequestCredentialIdentifier,
+    requestPayload: IssuanceRequestPayload,
     responseEncryptionSpecProvider: (_ issuerResponseEncryptionMetadata: CredentialResponseEncryption) -> IssuanceResponseEncryptionSpec?
   ) async throws -> Result<SubmittedRequest, Error>
   
@@ -65,13 +63,13 @@ public protocol IssuerType {
   
   func requestBatch(
     noProofRequest: AuthorizedRequest,
-    credentialsMetadata: [(IssuanceRequestCredentialIdentifier, ClaimSet?)],
+    credentialsMetadata: [(IssuanceRequestPayload, ClaimSet?)],
     responseEncryptionSpecProvider: (_ issuerResponseEncryptionMetadata: CredentialResponseEncryption) -> IssuanceResponseEncryptionSpec?
   ) async throws -> Result<SubmittedRequest, Error>
   
   func requestBatch(
     proofRequest: AuthorizedRequest,
-    credentialsMetadata: [(IssuanceRequestCredentialIdentifier, ClaimSet?, BindingKey)],
+    credentialsMetadata: [(IssuanceRequestPayload, ClaimSet?, BindingKey)],
     responseEncryptionSpecProvider: (_ issuerResponseEncryptionMetadata: CredentialResponseEncryption) -> IssuanceResponseEncryptionSpec?
   ) async throws -> Result<SubmittedRequest, Error>
 }
@@ -80,7 +78,7 @@ public actor Issuer: IssuerType {
   
   let authorizationServerMetadata: IdentityAndAccessManagementMetadata
   let issuerMetadata: CredentialIssuerMetadata
-  let config: WalletOpenId4VCIConfig
+  let config: OpenId4VCIConfig
   
   private let authorizer: AuthorizationServerClientType
   
@@ -92,7 +90,7 @@ public actor Issuer: IssuerType {
   public init(
     authorizationServerMetadata: IdentityAndAccessManagementMetadata,
     issuerMetadata: CredentialIssuerMetadata,
-    config: WalletOpenId4VCIConfig,
+    config: OpenId4VCIConfig,
     parPoster: PostingType = Poster(),
     tokenPoster: PostingType = Poster(),
     requesterPoster: PostingType = Poster(),
@@ -205,11 +203,22 @@ public actor Issuer: IssuerType {
         )
         
         switch response {
-        case .success((let accessToken, let nonce)):
+        case .success((let accessToken, let nonce, let identifiers)):
           if let cNonce = nonce {
-            return .success(.proofRequired(token: try IssuanceAccessToken(accessToken: accessToken.value), cNonce: cNonce, credentialIdentifiers: [:]))
+            return .success(
+              .proofRequired(
+                token: try IssuanceAccessToken(accessToken: accessToken.value),
+                cNonce: cNonce,
+                credentialIdentifiers: identifiers
+              )
+            )
           } else {
-            return .success(.noProofRequired(token: try IssuanceAccessToken(accessToken: accessToken.value), credentialIdentifiers: [:]))
+            return .success(
+              .noProofRequired(
+                token: try IssuanceAccessToken(accessToken: accessToken.value),
+                credentialIdentifiers: identifiers
+              )
+            )
           }
         case .failure(let error):
           return .failure(ValidationError.error(reason: error.localizedDescription))
@@ -235,7 +244,8 @@ public actor Issuer: IssuerType {
         do {
           let response: (
             accessToken: AccessToken,
-            nonce: CNonce?
+            nonce: CNonce?,
+            identifiers: AuthorizationDetailsIdentifiers?
           ) = try await authorizer.requestAccessTokenAuthFlow(
             authorizationCode: authorizationCode,
             codeVerifier: request.pkceVerifier.codeVerifier
@@ -246,14 +256,14 @@ public actor Issuer: IssuerType {
               .proofRequired(
                 token: try IssuanceAccessToken(accessToken: response.accessToken.value),
                 cNonce: cNonce,
-                credentialIdentifiers: [:]
+                credentialIdentifiers: response.identifiers
               )
             )
           } else {
             return .success(
               .noProofRequired(
                 token: try IssuanceAccessToken(accessToken: response.accessToken.value),
-                credentialIdentifiers: [:]
+                credentialIdentifiers: response.identifiers
               )
             )
           }
@@ -337,52 +347,72 @@ public actor Issuer: IssuerType {
   
   public func requestSingle(
     noProofRequest: AuthorizedRequest,
-    claimSet: ClaimSet? = nil,
-    requestCredentialIdentifier: IssuanceRequestCredentialIdentifier,
+    requestPayload: IssuanceRequestPayload,
     responseEncryptionSpecProvider: (_ issuerResponseEncryptionMetadata: CredentialResponseEncryption) -> IssuanceResponseEncryptionSpec?
   ) async throws -> Result<SubmittedRequest, Error> {
     
-    guard let supportedCredential = issuerMetadata
-      .credentialsSupported[requestCredentialIdentifier.0] else {
+    guard let token = noProofRequest.noProofToken else {
       throw ValidationError.error(reason: "Invalid Supported credential for requestSingle")
     }
     
-    switch noProofRequest {
-    case .noProofRequired(let token, _):
-      return try await requestIssuance(token: token) {
-        return try supportedCredential.toIssuanceRequest(
-          requester: issuanceRequester,
-          claimSet: claimSet,
-          responseEncryptionSpecProvider: responseEncryptionSpecProvider
-        )
-      }
-    default: return .failure(ValidationError.error(reason: ".noProofRequired is required"))
+    switch requestPayload {
+    case .identifierBased(
+      let credentialConfigurationIdentifier,
+      let credentialIdentifier
+    ):
+      return try await identifierBasedRequest(
+        token: token,
+        credentialIdentifier: credentialIdentifier,
+        credentialConfigurationIdentifier: credentialConfigurationIdentifier,
+        responseEncryptionSpecProvider: responseEncryptionSpecProvider
+      )
+      
+    case .configurationBased(
+      let credentialConfigurationIdentifier,
+      let claimSet
+    ):
+      return try await formatBasedRequest(
+        token: token, 
+        claimSet: claimSet,
+        credentialConfigurationIdentifier: credentialConfigurationIdentifier,
+        responseEncryptionSpecProvider: responseEncryptionSpecProvider
+      )
     }
   }
   
   public func requestSingle(
     proofRequest: AuthorizedRequest,
     bindingKey: BindingKey,
-    claimSet: ClaimSet? = nil,
-    requestCredentialIdentifier: IssuanceRequestCredentialIdentifier,
+    requestPayload: IssuanceRequestPayload,
     responseEncryptionSpecProvider: (_ issuerResponseEncryptionMetadata: CredentialResponseEncryption) -> IssuanceResponseEncryptionSpec?
   ) async throws -> Result<SubmittedRequest, Error> {
-    
-    guard let supportedCredential = issuerMetadata
-      .credentialsSupported[requestCredentialIdentifier.0] else {
+    guard let token = proofRequest.proofToken else {
       throw ValidationError.error(reason: "Invalid Supported credential for requestSingle")
     }
     
-    let cNonce = cNonce(from: proofRequest)
-    return try await requestIssuance(token: accessToken(from: proofRequest)) {
-      return try supportedCredential.toIssuanceRequest(
-        requester: issuanceRequester,
+    switch requestPayload {
+    case .identifierBased(
+      let credentialConfigurationIdentifier,
+      let credentialIdentifier
+    ):
+      return try await identifierBasedRequest(
+        token: token,
+        bindingKey: bindingKey,
+        credentialIdentifier: credentialIdentifier,
+        credentialConfigurationIdentifier: credentialConfigurationIdentifier,
+        responseEncryptionSpecProvider: responseEncryptionSpecProvider
+      )
+      
+    case .configurationBased(
+      let credentialConfigurationIdentifier,
+      let claimSet
+    ):
+      return try await formatBasedRequest(
+        token: token,
         claimSet: claimSet,
-        proof: bindingKey.toSupportedProof(
-          issuanceRequester: issuanceRequester,
-          credentialSpec: supportedCredential,
-          cNonce: cNonce?.value
-        ),
+        bindingKey: bindingKey,
+        cNonce: cNonce(from: proofRequest),
+        credentialConfigurationIdentifier: credentialConfigurationIdentifier,
         responseEncryptionSpecProvider: responseEncryptionSpecProvider
       )
     }
@@ -390,7 +420,7 @@ public actor Issuer: IssuerType {
   
   public func requestBatch(
     noProofRequest: AuthorizedRequest,
-    credentialsMetadata: [(IssuanceRequestCredentialIdentifier, ClaimSet?)],
+    credentialsMetadata: [(IssuanceRequestPayload, ClaimSet?)],
     responseEncryptionSpecProvider: (_ issuerResponseEncryptionMetadata: CredentialResponseEncryption) -> IssuanceResponseEncryptionSpec?
   ) async throws -> Result<SubmittedRequest, Error> {
     
@@ -399,7 +429,7 @@ public actor Issuer: IssuerType {
       return try await requestIssuance(token: token) {
         let credentialRequests: [CredentialIssuanceRequest] = try credentialsMetadata.map { (identifier, claimSet) in
           guard let supportedCredential = issuerMetadata
-            .credentialsSupported[identifier.0] else {
+            .credentialsSupported[identifier.credentialConfigurationIdentifier] else {
             throw ValidationError.error(reason: "Invalid Supported credential for requestBatch")
           }
           return try supportedCredential.toIssuanceRequest(
@@ -425,7 +455,7 @@ public actor Issuer: IssuerType {
   
   public func requestBatch(
     proofRequest: AuthorizedRequest,
-    credentialsMetadata: [(IssuanceRequestCredentialIdentifier, ClaimSet?, BindingKey)],
+    credentialsMetadata: [(IssuanceRequestPayload, ClaimSet?, BindingKey)],
     responseEncryptionSpecProvider: (_ issuerResponseEncryptionMetadata: CredentialResponseEncryption) -> IssuanceResponseEncryptionSpec?
   ) async throws -> Result<SubmittedRequest, Error> {
     .failure(ValidationError.error(reason: ""))
@@ -464,9 +494,6 @@ private extension Issuer {
       }
     }
   }
-}
-
-private extension Issuer {
   
   func handleIssuanceError(_ error: Error) -> Result<SubmittedRequest, Error> {
     if let issuanceError = error as? CredentialIssuanceError {
@@ -528,6 +555,62 @@ private extension Issuer {
       }
     }
     return (scopes, configurationIdentifiers)
+  }
+  
+  func formatBasedRequest(
+    token: IssuanceAccessToken,
+    claimSet: ClaimSet?,
+    bindingKey: BindingKey? = nil,
+    cNonce: CNonce? = nil,
+    credentialConfigurationIdentifier: CredentialConfigurationIdentifier,
+    responseEncryptionSpecProvider: (_ issuerResponseEncryptionMetadata: CredentialResponseEncryption) -> IssuanceResponseEncryptionSpec?
+  ) async throws -> Result<SubmittedRequest, Error> {
+      
+    guard let supportedCredential = issuerMetadata
+      .credentialsSupported[credentialConfigurationIdentifier] else {
+      throw ValidationError.error(reason: "Invalid Supported credential for requestSingle")
+    }
+    
+    return try await requestIssuance(token: token) {
+      return try supportedCredential.toIssuanceRequest(
+        requester: issuanceRequester,
+        claimSet: claimSet, 
+        proof: bindingKey?.toSupportedProof(
+          issuanceRequester: issuanceRequester,
+          credentialSpec: supportedCredential,
+          cNonce: cNonce?.value
+        ),
+        responseEncryptionSpecProvider: responseEncryptionSpecProvider
+      )
+    }
+  }
+  
+  func identifierBasedRequest(
+    token: IssuanceAccessToken,
+    bindingKey: BindingKey? = nil,
+    cNonce: CNonce? = nil,
+    credentialIdentifier: CredentialIdentifier,
+    credentialConfigurationIdentifier: CredentialConfigurationIdentifier,
+    responseEncryptionSpecProvider: (_ issuerResponseEncryptionMetadata: CredentialResponseEncryption) -> IssuanceResponseEncryptionSpec?
+  ) async throws -> Result<SubmittedRequest, Error> {
+    
+    guard let supportedCredential = issuerMetadata
+      .credentialsSupported[credentialConfigurationIdentifier] else {
+      throw ValidationError.error(reason: "Invalid Supported credential for requestSingle")
+    }
+    
+    return try await requestIssuance(token: token) {
+      return try supportedCredential.toIssuanceRequest(
+        requester: issuanceRequester,
+        proof: bindingKey?.toSupportedProof(
+          issuanceRequester: issuanceRequester,
+          credentialSpec: supportedCredential,
+          cNonce: cNonce?.value
+        ),
+        credentialIdentifier: credentialIdentifier,
+        responseEncryptionSpecProvider: responseEncryptionSpecProvider
+      )
+    }
   }
 }
 

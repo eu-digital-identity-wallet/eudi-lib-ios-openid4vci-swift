@@ -28,19 +28,19 @@ public protocol AuthorizationServerClientType {
   func requestAccessTokenAuthFlow(
     authorizationCode: String,
     codeVerifier: String
-  ) async throws -> Result<(AccessToken, CNonce?), ValidationError>
+  ) async throws -> Result<(AccessToken, CNonce?, AuthorizationDetailsIdentifiers?), ValidationError>
   
   func requestAccessTokenPreAuthFlow(
     preAuthorizedCode: String,
     txCode: TxCode,
     clientId: String,
     transactionCode: String?
-  ) async throws -> Result<(AccessToken, CNonce?), ValidationError>
+  ) async throws -> Result<(AccessToken, CNonce?, AuthorizationDetailsIdentifiers?), ValidationError>
 }
 
 public actor AuthorizationServerClient: AuthorizationServerClientType {
   
-  public let config: WalletOpenId4VCIConfig
+  public let config: OpenId4VCIConfig
   public let service: AuthorisationServiceType
   public let parPoster: PostingType
   public let tokenPoster: PostingType
@@ -60,7 +60,7 @@ public actor AuthorizationServerClient: AuthorizationServerClientType {
     service: AuthorisationServiceType = AuthorisationService(),
     parPoster: PostingType = Poster(),
     tokenPoster: PostingType = Poster(),
-    config: WalletOpenId4VCIConfig,
+    config: OpenId4VCIConfig,
     authorizationServerMetadata: IdentityAndAccessManagementMetadata,
     credentialIssuerIdentifier: CredentialIssuerId
   ) throws {
@@ -185,7 +185,7 @@ public actor AuthorizationServerClient: AuthorizationServerClientType {
   public func requestAccessTokenAuthFlow(
     authorizationCode: String,
     codeVerifier: String
-  ) async throws -> Result<(AccessToken, CNonce?), ValidationError> {
+  ) async throws -> Result<(AccessToken, CNonce?, AuthorizationDetailsIdentifiers?), ValidationError> {
     
     let parameters: [String: String] = authCodeFlow(
       authorizationCode: authorizationCode,
@@ -202,10 +202,13 @@ public actor AuthorizationServerClient: AuthorizationServerClientType {
     )
     
     switch response {
-    case .success(let accessToken, _, _, let nonce, _):
-      return .success((
-        try .init(value: accessToken),
-        .init(value: nonce))
+    case .success(let accessToken, _, _, let nonce, _, let identifiers):
+      return .success(
+        (
+          try .init(value: accessToken),
+          .init(value: nonce),
+          identifiers
+        )
       )
     case .failure(let error, let errorDescription):
       throw CredentialIssuanceError.pushedAuthorizationRequestFailed(
@@ -220,7 +223,7 @@ public actor AuthorizationServerClient: AuthorizationServerClientType {
     txCode: TxCode,
     clientId: String,
     transactionCode: String?
-  ) async throws -> Result<(AccessToken, CNonce?), ValidationError> {
+  ) async throws -> Result<(AccessToken, CNonce?, AuthorizationDetailsIdentifiers?), ValidationError> {
     let parameters: JSON = try await preAuthCodeFlow(
       preAuthorizedCode: preAuthorizedCode,
       txCode: txCode,
@@ -236,10 +239,13 @@ public actor AuthorizationServerClient: AuthorizationServerClientType {
     )
     
     switch response {
-    case .success(let accessToken, _, _, let nonce, _):
-      return .success((
-        try .init(value: accessToken),
-        .init(value: nonce))
+    case .success(let accessToken, _, _, let nonce, _, let identifiers):
+      return .success(
+        (
+          try .init(value: accessToken),
+          .init(value: nonce),
+          identifiers
+        )
       )
     case .failure(let error, let errorDescription):
       throw CredentialIssuanceError.pushedAuthorizationRequestFailed(

@@ -22,7 +22,7 @@ import SwiftyJSON
 
 class IssuanceBatchRequestTest: XCTestCase {
   
-  let config: WalletOpenId4VCIConfig = .init(
+  let config: OpenId4VCIConfig = .init(
     clientId: "wallet-dev",
     authFlowRedirectionURI: URL(string: "urn:ietf:wg:oauth:2.0:oob")!,
     authorizeIssuanceConfig: .favorScopes
@@ -108,7 +108,7 @@ class IssuanceBatchRequestTest: XCTestCase {
         XCTAssert(true, "Is no proof required")
         
         do {
-          
+                    
           let claimSetMsoMdoc = MsoMdocFormat.MsoMdocClaimSet(
             claims: [
               ("org.iso.18013.5.1", "given_name"),
@@ -123,11 +123,22 @@ class IssuanceBatchRequestTest: XCTestCase {
             "birth_date",
           ])
           
+          let msoMdocPayload: IssuanceRequestPayload = .configurationBased(
+            credentialConfigurationIdentifier: try .init(value: PID_MsoMdoc_config_id),
+            claimSet: .msoMdoc(claimSetMsoMdoc)
+          )
+          
+          let sdJwtVCPayload: IssuanceRequestPayload = .configurationBased(
+            credentialConfigurationIdentifier: try .init(value: PID_SdJwtVC_config_id),
+            claimSet: .generic(claimSetSDJWTVC)
+          )
+          
+          
           let result = try await issuer.requestBatch(
             noProofRequest: authorized,
             credentialsMetadata: [
-              ((.init(value: PID_MsoMdoc_config_id), nil), .msoMdoc(claimSetMsoMdoc)),
-              ((.init(value: PID_SdJwtVC_config_id), nil), .generic(claimSetSDJWTVC))
+              (msoMdocPayload, .msoMdoc(claimSetMsoMdoc)),
+              (sdJwtVCPayload, .generic(claimSetSDJWTVC))
             ],
             responseEncryptionSpecProvider: { _ in
               spec

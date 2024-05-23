@@ -21,7 +21,7 @@ import JOSESwift
 
 class IssuanceAuthorizationTest: XCTestCase {
   
-  let config: WalletOpenId4VCIConfig = .init(
+  let config: OpenId4VCIConfig = .init(
     clientId: "wallet-dev",
     authFlowRedirectionURI: URL(string: "urn:ietf:wg:oauth:2.0:oob")!,
     authorizeIssuanceConfig: .favorScopes
@@ -388,10 +388,17 @@ class IssuanceAuthorizationTest: XCTestCase {
     )
     
     let request = try result.get()
+    let payload: IssuanceRequestPayload = .configurationBased(
+      credentialConfigurationIdentifier: try CredentialConfigurationIdentifier(
+        value: "IdentityCredential"
+      ),
+      claimSet: nil
+    )
+    
     let requestSingleResult = try await issuer.requestSingle(
       proofRequest: request,
       bindingKey: bindingKey,
-      requestCredentialIdentifier: (CredentialConfigurationIdentifier(value: "IdentityCredential"), nil),
+      requestPayload: payload,
       responseEncryptionSpecProvider: {
         Issuer.createResponseEncryptionSpec($0)
       })

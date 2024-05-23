@@ -18,12 +18,12 @@ import Foundation
 public enum AuthorizedRequest {
   case noProofRequired(
     token: IssuanceAccessToken,
-    credentialIdentifiers: [CredentialConfigurationIdentifier: [CredentialIdentifier]]
+    credentialIdentifiers: AuthorizationDetailsIdentifiers?
     )
   case proofRequired(
     token: IssuanceAccessToken,
     cNonce: CNonce,
-    credentialIdentifiers: [CredentialConfigurationIdentifier: [CredentialIdentifier]]
+    credentialIdentifiers: AuthorizationDetailsIdentifiers?
   )
   
   public var noProofToken: IssuanceAccessToken? {

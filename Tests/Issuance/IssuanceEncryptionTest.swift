@@ -21,7 +21,7 @@ import JOSESwift
 
 class IssuanceEncryptionTest: XCTestCase {
   
-  let config: WalletOpenId4VCIConfig = .init(
+  let config: OpenId4VCIConfig = .init(
     clientId: "wallet-dev",
     authFlowRedirectionURI: URL(string: "urn:ietf:wg:oauth:2.0:oob")!,
     authorizeIssuanceConfig: .favorScopes
@@ -65,12 +65,15 @@ class IssuanceEncryptionTest: XCTestCase {
     
     // Then
     do {
+      let payload: IssuanceRequestPayload = .configurationBased(
+        credentialConfigurationIdentifier: try .init(
+          value: "MobileDrivingLicense_msoMdoc"
+        ),
+        claimSet: nil
+      )
       _ = try await issuer.requestSingle(
         noProofRequest: authorizedRequest,
-        requestCredentialIdentifier: (
-          .init(value: "MobileDrivingLicense_msoMdoc"),
-          nil
-        ),
+        requestPayload: payload,
         responseEncryptionSpecProvider: { _ in
           return spec
         }
@@ -115,12 +118,15 @@ class IssuanceEncryptionTest: XCTestCase {
     
     // Then
     do {
+      let payload: IssuanceRequestPayload = .configurationBased(
+        credentialConfigurationIdentifier: try .init(
+          value: "MobileDrivingLicense_msoMdoc"
+        ),
+        claimSet: nil
+      )
       _ = try await issuer.requestSingle(
         noProofRequest: authorizedRequest,
-        requestCredentialIdentifier: (
-          .init(value: "MobileDrivingLicense_msoMdoc"),
-          nil
-        ),
+        requestPayload: payload,
         responseEncryptionSpecProvider: { _ in
           return spec
         }
@@ -151,12 +157,15 @@ class IssuanceEncryptionTest: XCTestCase {
     
     // Then
     do {
+      let payload: IssuanceRequestPayload = .configurationBased(
+        credentialConfigurationIdentifier: try .init(
+          value: "MobileDrivingLicense_msoMdoc"
+        ),
+        claimSet: nil
+      )
       _ = try await issuer.requestSingle(
         noProofRequest: authorizedRequest,
-        requestCredentialIdentifier: (
-          .init(value: "MobileDrivingLicense_msoMdoc"),
-          nil
-        ),
+        requestPayload: payload,
         responseEncryptionSpecProvider: { _ in
           return spec
         }

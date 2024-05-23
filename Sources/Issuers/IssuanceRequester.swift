@@ -82,7 +82,7 @@ public actor IssuanceRequester: IssuanceRequesterType {
       
     } catch PostError.cannotParse(let string) {
       switch request {
-      case .msoMdoc(let credential):
+      case .msoMdoc(let credential, let identifier):
         switch issuerMetadata.credentialResponseEncryption {
         case .notRequired:
           guard let response = SingleIssuanceSuccessResponse.fromJSONString(string) else {
@@ -129,7 +129,7 @@ public actor IssuanceRequester: IssuanceRequesterType {
             return .failure(error)
           }
         }
-      case .sdJwtVc(let credential):
+      case .sdJwtVc(let credential, let identifier):
         switch issuerMetadata.credentialResponseEncryption {
         case .notRequired:
           guard let response = SingleIssuanceSuccessResponse.fromJSONString(string) else {

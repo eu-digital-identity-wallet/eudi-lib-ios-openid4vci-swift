@@ -318,6 +318,7 @@ public extension SdJwtVcFormat {
     
     func toIssuanceRequest(
       responseEncryptionSpec: IssuanceResponseEncryptionSpec?,
+      credentialIdentifier: CredentialIdentifier? = nil,
       claimSet: ClaimSet?,
       proof: Proof?
     ) throws -> CredentialIssuanceRequest {
@@ -334,7 +335,8 @@ public extension SdJwtVcFormat {
               type: credentialDefinition.type,
               claims: try claimSet?.validate(claims: self.claimList)
             )
-          )
+          ),
+          credentialIdentifier
         )
       )
     }

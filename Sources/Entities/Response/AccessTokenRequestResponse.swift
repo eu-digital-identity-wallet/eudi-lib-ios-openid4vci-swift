@@ -15,13 +15,16 @@
  */
 import Foundation
 
+public typealias AuthorizationDetailsIdentifiers = [CredentialConfigurationIdentifier: [CredentialIdentifier]]
+
 public enum AccessTokenRequestResponse: Codable {
   case success(
     accessToken: String,
     expiresIn: Int,
     scope: String?,
     cNonce: String?,
-    cNonceExpiresIn: Int?
+    cNonceExpiresIn: Int?,
+    authorizationDetails: AuthorizationDetailsIdentifiers?
   )
   case failure(
     error: String,
@@ -38,17 +41,43 @@ public enum AccessTokenRequestResponse: Codable {
     case errorDescription = "error_description"
   }
   
+  struct DynamicKey: CodingKey {
+    var stringValue: String
+    init?(stringValue: String) {
+      self.stringValue = stringValue
+    }
+    
+    var intValue: Int? { return nil }
+    init?(intValue: Int) { return nil }
+  }
+  
   public init(from decoder: Decoder) throws {
     let container = try decoder.container(keyedBy: CodingKeys.self)
     
     if let accessToken = try? container.decode(String.self, forKey: .accessToken),
        let expiresIn = try? container.decode(Int.self, forKey: .expiresIn) {
+      
+      var authorizationDetails: AuthorizationDetailsIdentifiers = [:]
+      
+      // Decode the dynamic key dictionary
+      if let dynamicKeyContainer = try? decoder.container(keyedBy: DynamicKey.self) {
+        var dynamicKeyDictionary = [CredentialConfigurationIdentifier: [CredentialIdentifier]]()
+        for key in dynamicKeyContainer.allKeys {
+          if let identifier = try? CredentialConfigurationIdentifier(value: key.stringValue),
+             let values = (try? dynamicKeyContainer.decode([String].self, forKey: key))?.compactMap({ try? CredentialIdentifier(value: $0)}) {
+            dynamicKeyDictionary[identifier] = values
+          }
+        }
+        authorizationDetails = dynamicKeyDictionary
+      }
+      
       self = .success(
         accessToken: accessToken,
         expiresIn: expiresIn,
         scope: try? container.decode(String.self, forKey: .scope),
         cNonce: try? container.decode(String.self, forKey: .cNonce),
-        cNonceExpiresIn: try? container.decode(Int.self, forKey: .cNonceExpiresIn) 
+        cNonceExpiresIn: try? container.decode(Int.self, forKey: .cNonceExpiresIn),
+        authorizationDetails: (authorizationDetails.isEmpty ? nil : authorizationDetails)
       )
     } else if let error = try? container.decode(String.self, forKey: .error),
               let errorDescription = try? container.decode(String.self, forKey: .errorDescription) {
@@ -67,7 +96,7 @@ public enum AccessTokenRequestResponse: Codable {
     var container = encoder.container(keyedBy: CodingKeys.self)
     
     switch self {
-    case let .success(accessToken, expiresIn, scope, cNonce, cNonceExpiresIn):
+    case let .success(accessToken, expiresIn, scope, cNonce, cNonceExpiresIn, _):
       try container.encode(accessToken, forKey: .accessToken)
       try container.encode(expiresIn, forKey: .expiresIn)
       try container.encode(scope, forKey: .scope)
