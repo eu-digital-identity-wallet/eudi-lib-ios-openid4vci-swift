@@ -1,0 +1,9 @@
+{
+  "access_token": "my.access.toekn",
+  "expires_in": 3600,
+  "scope": "a.b.c",
+  "eu.europa.ec.eudiw.pid_mso_mdoc" : [
+    "eu.europa.ec.eudiw.pid_mso_mdoc_1",
+    "eu.europa.ec.eudiw.pid_mso_mdoc_2"
+  ]
+}
