@@ -144,7 +144,7 @@ public actor AuthorizationServerMetadataResolver: AuthorizationServerMetadataRes
   }
 }
 
-private extension AuthorizationServerMetadataResolver {
+extension AuthorizationServerMetadataResolver {
   
   func modifyURL(
     url: URL,
@@ -159,9 +159,15 @@ private extension AuthorizationServerMetadataResolver {
     case .insertPathComponents(let component1, let component2):
       var pathComponents = urlComponents?.path.split(separator: "/").map(String.init) ?? []
       
-      if let host = url.host {
-        pathComponents.insert(component2, at: 1)
-        pathComponents.insert(component1, at: 1)
+      if let _ = url.host {
+        if pathComponents.isEmpty {
+          pathComponents.append(component1)
+          pathComponents.append(component2)
+          
+        } else {
+          pathComponents.insert(component2, at: 0)
+          pathComponents.insert(component1, at: 0)
+        }
         urlComponents?.path = "/" + pathComponents.joined(separator: "/")
       }
     }
