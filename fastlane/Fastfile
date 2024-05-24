@@ -22,8 +22,7 @@ platform :ios do
       package_path: '.',
       scheme: 'OpenID4VCI',
       devices: ['iPhone 14'], 
-      result_bundle: true,
-      output_style: 'raw'
+      result_bundle: true
     }
 
     if ENV['CI'] 

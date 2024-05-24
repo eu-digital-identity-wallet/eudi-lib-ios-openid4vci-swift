@@ -324,7 +324,6 @@ class IssuanceAuthorizationTest: XCTestCase {
     
     /// Replace the url string below with the one you can generate here: https://trial.authlete.net/api/offer/issue
     let urlString = """
-    https://trial.authlete.net/api/offer/66W00sW1WVlUl4fCfjaPyWtb5zVbJ9_7821XwIAtZyE
     """
     if urlString.isEmpty {
       XCTExpectFailure()
