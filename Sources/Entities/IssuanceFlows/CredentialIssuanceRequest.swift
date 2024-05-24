@@ -69,17 +69,17 @@ public struct DeferredCredentialRequest: Codable {
 }
 
 public enum SingleCredential {
-  case msoMdoc(MsoMdocFormat.MsoMdocSingleCredential, CredentialIdentifier?)
-  case sdJwtVc(SdJwtVcFormat.SdJwtVcSingleCredential, CredentialIdentifier?)
+  case msoMdoc(MsoMdocFormat.MsoMdocSingleCredential)
+  case sdJwtVc(SdJwtVcFormat.SdJwtVcSingleCredential)
 }
 
 public extension SingleCredential {
   func toDictionary() throws -> JSON {
     switch self {
-    case .msoMdoc(let credential, let identifier):
+    case .msoMdoc(let credential):
       switch credential.requestedCredentialResponseEncryption {
       case .notRequested:
-        if let identifier {
+        if let identifier = credential.credentialIdentifier {
           let dictionary = [
             "credential_identifier": identifier,
             "proof": credential.proof != nil ? (try? credential.proof.toDictionary()) : nil
@@ -101,7 +101,7 @@ public extension SingleCredential {
         let responseEncryptionAlg,
         let responseEncryptionMethod
       ):
-        if let identifier {
+        if let identifier = credential.credentialIdentifier {
           let dictionary = [
             "proof": credential.proof != nil ? (try? credential.proof.toDictionary()) : nil,
             "credential_identifier": identifier,
@@ -128,10 +128,10 @@ public extension SingleCredential {
           return JSON(dictionary.filter { $0.value != nil })
         }
       }
-    case .sdJwtVc(let credential, let identifier):
+    case .sdJwtVc(let credential):
       switch credential.requestedCredentialResponseEncryption {
       case .notRequested:
-        if let identifier {
+        if let identifier = credential.credentialIdentifier {
           let dictionary = [
             "proof": credential.proof != nil ? (try? credential.proof.toDictionary()) : nil,
             "credential_identifier": identifier
@@ -153,7 +153,7 @@ public extension SingleCredential {
         let responseEncryptionAlg,
         let responseEncryptionMethod
       ):
-        if let identifier {
+        if let identifier = credential.credentialIdentifier {
           let dictionary = [
             "credential_identifier": identifier,
             "proof": credential.proof != nil ? (try? credential.proof.toDictionary()) : nil,

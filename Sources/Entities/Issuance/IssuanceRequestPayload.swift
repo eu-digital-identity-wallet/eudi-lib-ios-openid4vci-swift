@@ -46,4 +46,13 @@ public enum IssuanceRequestPayload {
       return credentialConfigurationIdentifier
     }
   }
+  
+  var claimSet: ClaimSet? {
+    switch self {
+    case .identifierBased:
+      return nil
+    case .configurationBased(_, let claimSet):
+      return claimSet
+    }
+  }
 }

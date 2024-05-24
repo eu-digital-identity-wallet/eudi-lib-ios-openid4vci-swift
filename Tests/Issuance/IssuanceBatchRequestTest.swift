@@ -136,9 +136,9 @@ class IssuanceBatchRequestTest: XCTestCase {
           
           let result = try await issuer.requestBatch(
             noProofRequest: authorized,
-            credentialsMetadata: [
-              (msoMdocPayload, .msoMdoc(claimSetMsoMdoc)),
-              (sdJwtVCPayload, .generic(claimSetSDJWTVC))
+            requestPayload: [
+              msoMdocPayload,
+              sdJwtVCPayload
             ],
             responseEncryptionSpecProvider: { _ in
               spec

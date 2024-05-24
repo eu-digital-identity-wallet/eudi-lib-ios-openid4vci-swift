@@ -47,6 +47,7 @@ public extension SdJwtVcFormat {
     public let credentialResponseEncryptionMethod: JOSEEncryptionMethod?
     public let credentialDefinition: CredentialDefinition
     public let requestedCredentialResponseEncryption: RequestedCredentialResponseEncryption
+    public let credentialIdentifier: CredentialIdentifier?
     
     enum CodingKeys: String, CodingKey {
       case proof
@@ -54,6 +55,7 @@ public extension SdJwtVcFormat {
       case credentialResponseEncryptionAlg
       case credentialResponseEncryptionMethod
       case credentialDefinition
+      case credentialIdentifier
     }
     
     public init(
@@ -63,7 +65,8 @@ public extension SdJwtVcFormat {
       credentialEncryptionKey: SecKey? = nil,
       credentialResponseEncryptionAlg: JWEAlgorithm? = nil,
       credentialResponseEncryptionMethod: JOSEEncryptionMethod? = nil,
-      credentialDefinition: CredentialDefinition
+      credentialDefinition: CredentialDefinition,
+      credentialIdentifier: CredentialIdentifier?
     ) throws {
       self.proof = proof
       self.vct = vct
@@ -75,6 +78,8 @@ public extension SdJwtVcFormat {
         type: credentialDefinition.type,
         claims: credentialDefinition.claims
       )
+      self.credentialIdentifier = credentialIdentifier
+      
       self.requestedCredentialResponseEncryption = try .init(
         encryptionJwk: credentialEncryptionJwk,
         encryptionKey: credentialEncryptionKey,
@@ -334,9 +339,9 @@ public extension SdJwtVcFormat {
             credentialDefinition: .init(
               type: credentialDefinition.type,
               claims: try claimSet?.validate(claims: self.claimList)
-            )
-          ),
-          credentialIdentifier
+            ),
+            credentialIdentifier: credentialIdentifier
+          )
         )
       )
     }

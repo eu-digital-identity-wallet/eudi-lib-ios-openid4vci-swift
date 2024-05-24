@@ -63,13 +63,7 @@ public protocol IssuerType {
   
   func requestBatch(
     noProofRequest: AuthorizedRequest,
-    credentialsMetadata: [(IssuanceRequestPayload, ClaimSet?)],
-    responseEncryptionSpecProvider: (_ issuerResponseEncryptionMetadata: CredentialResponseEncryption) -> IssuanceResponseEncryptionSpec?
-  ) async throws -> Result<SubmittedRequest, Error>
-  
-  func requestBatch(
-    proofRequest: AuthorizedRequest,
-    credentialsMetadata: [(IssuanceRequestPayload, ClaimSet?, BindingKey)],
+    requestPayload: [IssuanceRequestPayload],
     responseEncryptionSpecProvider: (_ issuerResponseEncryptionMetadata: CredentialResponseEncryption) -> IssuanceResponseEncryptionSpec?
   ) async throws -> Result<SubmittedRequest, Error>
 }
@@ -168,7 +162,31 @@ public actor Issuer: IssuerType {
         return .failure(ValidationError.error(reason: error.localizedDescription))
       }
     } else {
-      return .failure(ValidationError.error(reason: "Authorization server does not support PAR"))
+      do {
+        let result: (
+          verifier: PKCEVerifier,
+          code: GetAuthorizationCodeURL
+        ) = try await authorizer.authorizationRequestUrl(
+          scopes: scopes,
+          credentialConfigurationIdentifiers: credentialConfogurationIdentifiers,
+          state: state,
+          issuerState: issuerState
+        ).get()
+        
+        return .success(
+          .par(
+            .init(
+              credentials: try credentials.map { try CredentialIdentifier(value: $0.value) },
+              getAuthorizationCodeURL: result.code,
+              pkceVerifier: result.verifier,
+              state: state
+            )
+          )
+        )
+      } catch {
+        return .failure(ValidationError.error(reason: error.localizedDescription))
+      }
+
     }
   }
   
@@ -420,21 +438,21 @@ public actor Issuer: IssuerType {
   
   public func requestBatch(
     noProofRequest: AuthorizedRequest,
-    credentialsMetadata: [(IssuanceRequestPayload, ClaimSet?)],
+    requestPayload: [IssuanceRequestPayload],
     responseEncryptionSpecProvider: (_ issuerResponseEncryptionMetadata: CredentialResponseEncryption) -> IssuanceResponseEncryptionSpec?
   ) async throws -> Result<SubmittedRequest, Error> {
     
     switch noProofRequest {
     case .noProofRequired(let token, _):
       return try await requestIssuance(token: token) {
-        let credentialRequests: [CredentialIssuanceRequest] = try credentialsMetadata.map { (identifier, claimSet) in
+        let credentialRequests: [CredentialIssuanceRequest] = try requestPayload.map { identifier in
           guard let supportedCredential = issuerMetadata
             .credentialsSupported[identifier.credentialConfigurationIdentifier] else {
             throw ValidationError.error(reason: "Invalid Supported credential for requestBatch")
           }
           return try supportedCredential.toIssuanceRequest(
             requester: issuanceRequester,
-            claimSet: claimSet,
+            claimSet: identifier.claimSet,
             responseEncryptionSpecProvider: responseEncryptionSpecProvider
           )
         }
@@ -451,14 +469,6 @@ public actor Issuer: IssuerType {
       }
     default: return .failure(ValidationError.error(reason: ".noProofRequired is required"))
     }
-  }
-  
-  public func requestBatch(
-    proofRequest: AuthorizedRequest,
-    credentialsMetadata: [(IssuanceRequestPayload, ClaimSet?, BindingKey)],
-    responseEncryptionSpecProvider: (_ issuerResponseEncryptionMetadata: CredentialResponseEncryption) -> IssuanceResponseEncryptionSpec?
-  ) async throws -> Result<SubmittedRequest, Error> {
-    .failure(ValidationError.error(reason: ""))
   }
 }
 

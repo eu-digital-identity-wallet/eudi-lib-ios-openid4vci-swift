@@ -45,4 +45,13 @@ public enum IdentityAndAccessManagementMetadata {
       return URL(string: metaData.pushedAuthorizationRequestEndpoint ?? "")
     }
   }
+  
+  var authorizationEndpointURI: URL? {
+    switch self {
+    case .oidc(let metaData):
+      return URL(string: metaData.authorizationEndpoint ?? "")
+    case .oauth(let metaData):
+      return URL(string: metaData.authorizationEndpoint ?? "")
+    }
+  }
 }

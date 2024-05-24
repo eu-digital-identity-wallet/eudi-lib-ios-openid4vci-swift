@@ -18,6 +18,13 @@ import SwiftyJSON
 
 public protocol AuthorizationServerClientType {
   
+  func authorizationRequestUrl(
+    scopes: [Scope],
+    credentialConfigurationIdentifiers: [CredentialConfigurationIdentifier],
+    state: String,
+    issuerState: String?
+  ) async throws -> Result<(PKCEVerifier, GetAuthorizationCodeURL), Error>
+  
   func submitPushedAuthorizationRequest(
     scopes: [Scope],
     credentialConfigurationIdentifiers: [CredentialConfigurationIdentifier],
@@ -117,6 +124,43 @@ public actor AuthorizationServerClient: AuthorizationServerClientType {
     }
   }
   
+  public func authorizationRequestUrl(
+    scopes: [Scope],
+    credentialConfigurationIdentifiers: [CredentialConfigurationIdentifier],
+    state: String,
+    issuerState: String?
+  ) async throws -> Result<(PKCEVerifier, GetAuthorizationCodeURL), Error> {
+    guard !scopes.isEmpty else {
+      throw ValidationError.error(reason: "No scopes provided. Cannot submit par with no scopes.")
+    }
+    
+    let codeVerifier = PKCEGenerator.codeVerifier() ?? ""
+    let verifier = try PKCEVerifier(
+      codeVerifier: codeVerifier,
+      codeVerifierMethod: CodeChallenge.sha256.rawValue
+    )
+    
+    guard let uri = authorizationServerMetadata.authorizationEndpointURI?.absoluteString else {
+      throw ValidationError.error(reason: "No authorization endpoint URI found")
+    }
+    
+    let queryParams = [
+      GetAuthorizationCodeURL.PARAM_CLIENT_ID: config.clientId,
+      GetAuthorizationCodeURL.PARAM_REQUEST_STATE: state,
+      GetAuthorizationCodeURL.PARAM_REQUEST_URI: uri
+    ]
+    
+    guard let urlWithParams = authorizationEndpoint.appendingQueryParameters(queryParams) else {
+      throw ValidationError.invalidUrl(parEndpoint.absoluteString)
+    }
+    
+    let authorizationCodeURL = try GetAuthorizationCodeURL(
+      urlString: urlWithParams.absoluteString
+    )
+    
+    return .success((verifier, authorizationCodeURL))
+  }
+  
   public func submitPushedAuthorizationRequest(
     scopes: [Scope],
     credentialConfigurationIdentifiers: [CredentialConfigurationIdentifier],
@@ -148,7 +192,7 @@ public actor AuthorizationServerClient: AuthorizationServerClientType {
       )
       
       switch response {
-      case .success(requestURI: let requestURI, _):
+      case .success(let requestURI, _):
         
         let verifier = try PKCEVerifier(
           codeVerifier: codeVerifier,
