@@ -15,6 +15,11 @@
  */
 import Foundation
 
+public enum URLModificationType {
+  case appendPathComponents(String, String)
+  case insertPathComponents(String, String)
+}
+
 protocol AuthorizationServerMetadataResolverType {
   /// Resolves client metadata asynchronously.
   ///
@@ -70,21 +75,102 @@ public actor AuthorizationServerMetadataResolver: AuthorizationServerMetadataRes
     fetcher: Fetcher<OIDCProviderMetadata>,
     url: URL
   ) async -> OIDCProviderMetadata? {
-    try? await fetcher.fetch(
-      url: url
-        .appendingPathComponent(".well-known")
-        .appendingPathComponent("openid-configuration")
-    ).get()
+    
+    //According to the spec https://www.rfc-editor.org/rfc/rfc8414.html#section-3
+    //“.well-known/oauth-authorization-server” need to be inserted after removing the path components first. e.g :
+    // https://example.com/.well-known/oauth-authorization-server/path1/path2
+    // We provide a fallback that simply appends the components
+    do {
+      guard let insertedUrl = modifyURL(
+        url: url,
+        modificationType: .appendPathComponents(".well-known", "openid-configuration")
+      ) else {
+        return nil
+      }
+      
+      return try await fetcher.fetch(
+        url: insertedUrl
+      ).get()
+      
+    } catch {
+      
+      guard let appendedUrl = modifyURL(
+        url: url,
+        modificationType: .insertPathComponents(".well-known", "openid-configuration")
+      ) else {
+        return nil
+      }
+      
+      return try? await fetcher.fetch(
+        url: appendedUrl
+      ).get()
+    }
   }
   
   private func fetchAuthorizationServerMetadata(
     fetcher: Fetcher<AuthorizationServerMetadata>,
     url: URL
   ) async -> AuthorizationServerMetadata? {
-    try? await fetcher.fetch(
-      url: url
-        .appendingPathComponent(".well-known")
-        .appendingPathComponent("oauth-authorization-server")
-    ).get()
+    
+    //According to the spec https://www.rfc-editor.org/rfc/rfc8414.html#section-3
+    //“.well-known/oauth-authorization-server” need to be inserted after removing the path components first. e.g :
+    // https://example.com/.well-known/oauth-authorization-server/path1/path2
+    // We provide a fallback that simply appends the components
+    do {
+      guard let insertedUrl = modifyURL(
+        url: url,
+        modificationType: .appendPathComponents(".well-known", "oauth-authorization-server")
+      ) else {
+        return nil
+      }
+      
+      return try await fetcher.fetch(
+        url: insertedUrl
+      ).get()
+      
+    } catch {
+      
+      guard let appendedUrl = modifyURL(
+        url: url,
+        modificationType: .insertPathComponents(".well-known", "oauth-authorization-server")
+      ) else {
+        return nil
+      }
+      
+      return try? await fetcher.fetch(
+        url: appendedUrl
+      ).get()
+    }
+  }
+}
+
+extension AuthorizationServerMetadataResolver {
+  
+  func modifyURL(
+    url: URL,
+    modificationType: URLModificationType
+  ) -> URL? {
+    var urlComponents = URLComponents(url: url, resolvingAgainstBaseURL: false)
+    
+    switch modificationType {
+    case .appendPathComponents(let component1, let component2):
+      urlComponents?.path.append(contentsOf: "/\(component1)/\(component2)")
+      
+    case .insertPathComponents(let component1, let component2):
+      var pathComponents = urlComponents?.path.split(separator: "/").map(String.init) ?? []
+      
+      if let _ = url.host {
+        if pathComponents.isEmpty {
+          pathComponents.append(component1)
+          pathComponents.append(component2)
+          
+        } else {
+          pathComponents.insert(component2, at: 0)
+          pathComponents.insert(component1, at: 0)
+        }
+        urlComponents?.path = "/" + pathComponents.joined(separator: "/")
+      }
+    }
+    return urlComponents?.url
   }
 }
