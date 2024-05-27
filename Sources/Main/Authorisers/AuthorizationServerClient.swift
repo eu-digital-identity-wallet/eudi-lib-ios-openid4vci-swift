@@ -16,6 +16,8 @@
 import Foundation
 import SwiftyJSON
 
+let OPENID_CREDENTIAL = "openid_credential"
+
 public protocol AuthorizationServerClientType {
   
   func authorizationRequestUrl(
