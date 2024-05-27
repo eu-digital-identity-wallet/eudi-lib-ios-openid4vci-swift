@@ -198,10 +198,14 @@ Given an ```authorizedRequest``` and an ```Issuer``` a single credential issuanc
 ```swift
 import OpenID4VCI
 
+let payload: IssuanceRequestPayload = .configurationBased(
+  credentialConfigurationIdentifier: ...
+)
+
 let requestOutcome = try await issuer.requestSingle(
     proofRequest: ...,
     bindingKey: ...,
-    requestCredentialIdentifier: ...,
+    requestPayload: payload,
     responseEncryptionSpecProvider:  { 
         Issuer.createResponseEncryptionSpec($0) 
     }
