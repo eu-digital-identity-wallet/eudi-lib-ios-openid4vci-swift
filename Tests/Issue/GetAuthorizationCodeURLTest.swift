@@ -53,7 +53,7 @@ class GetAuthorizationCodeURLTests: XCTestCase {
   }
   
   func testMissingRequestUriParameter() {
-    XCTAssertThrowsError(try GetAuthorizationCodeURL(urlString: "https://example.com?client_id=123")) { error in
+    XCTAssertThrowsError(try GetAuthorizationCodeURL(urlString: "https://example.com?client=123")) { error in
       XCTAssertTrue(error is AuthorizationCodeURLError)
     }
   }
