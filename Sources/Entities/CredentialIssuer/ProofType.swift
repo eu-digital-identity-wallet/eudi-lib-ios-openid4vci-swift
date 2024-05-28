@@ -34,7 +34,7 @@ public enum ProofType: Codable {
     case "CWT", "cwt":
       self = .cwt
     case "LDP_VP", "ldp_vp":
-      self = .cwt
+      self = .ldpVp
     default:
       throw DecodingError.dataCorruptedError(in: container, debugDescription: "Invalid proof type")
     }

@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 import Foundation
+import SwiftyJSON
 
 public typealias AuthorizationDetailsIdentifiers = [CredentialConfigurationIdentifier: [CredentialIdentifier]]
 
@@ -39,16 +40,7 @@ public enum AccessTokenRequestResponse: Codable {
     case cNonce = "c_nonce"
     case cNonceExpiresIn = "c_nonce_expires_in"
     case errorDescription = "error_description"
-  }
-  
-  struct DynamicKey: CodingKey {
-    var stringValue: String
-    init?(stringValue: String) {
-      self.stringValue = stringValue
-    }
-    
-    var intValue: Int? { return nil }
-    init?(intValue: Int) { return nil }
+    case authorizationDetails = "authorization_details"
   }
   
   public init(from decoder: Decoder) throws {
@@ -59,16 +51,23 @@ public enum AccessTokenRequestResponse: Codable {
       
       var authorizationDetails: AuthorizationDetailsIdentifiers = [:]
       
-      // Decode the dynamic key dictionary
-      if let dynamicKeyContainer = try? decoder.container(keyedBy: DynamicKey.self) {
-        var dynamicKeyDictionary = [CredentialConfigurationIdentifier: [CredentialIdentifier]]()
-        for key in dynamicKeyContainer.allKeys {
-          if let identifier = try? CredentialConfigurationIdentifier(value: key.stringValue),
-             let values = (try? dynamicKeyContainer.decode([String].self, forKey: key))?.compactMap({ try? CredentialIdentifier(value: $0)}) {
-            dynamicKeyDictionary[identifier] = values
+      let json = try? container.decode(JSON.self, forKey: .authorizationDetails)
+      if let array = json?.array {
+        for item in array {
+          if let key = item["credential_configuration_id"].string,
+             let values = item["credential_identifiers"].array,
+             let credentialConfigurationIdentifier = try? CredentialConfigurationIdentifier(value: key) {
+            
+            let credentialIdentifiers: [CredentialIdentifier] = values.compactMap {
+              guard let string = $0.string else { return nil }
+              return try? CredentialIdentifier(value: string)
+            }
+            
+            if !credentialIdentifiers.isEmpty {
+              authorizationDetails[credentialConfigurationIdentifier] = credentialIdentifiers
+            }
           }
         }
-        authorizationDetails = dynamicKeyDictionary
       }
       
       self = .success(
