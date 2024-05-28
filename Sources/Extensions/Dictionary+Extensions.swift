@@ -111,6 +111,25 @@ public extension Dictionary where Key == String, Value == Any {
     return stringDictionary
   }
   
+  func convertToDictionaryOfStrings(excludingKeys: [String]) -> [Key: String] {
+    var stringDictionary: [Key: String] = [:]
+    
+    for (key, value) in self {
+      
+      if excludingKeys.contains(where: { $0 == key }) {
+        continue
+      }
+      
+      if let stringValue = value as? String {
+        stringDictionary[key] = stringValue
+      } else {
+        stringDictionary[key] = JSON(value).stringValue
+      }
+    }
+    
+    return stringDictionary
+  }
+  
   func containsAll(_ keys: [Key]) -> Bool {
     let keySet = Set(keys)
     let dictionaryKeySet = Set(self.keys)

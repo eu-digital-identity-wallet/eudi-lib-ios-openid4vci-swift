@@ -33,8 +33,7 @@ public struct GetAuthorizationCodeURL {
     
     let parameters = url.queryParameters
     guard
-      parameters["\(Self.PARAM_CLIENT_ID)"] != nil,
-      parameters["\(Self.PARAM_REQUEST_URI)"] != nil
+      parameters["\(Self.PARAM_CLIENT_ID)"] != nil
     else {
       throw AuthorizationCodeURLError.missingQueryParameters
     }
