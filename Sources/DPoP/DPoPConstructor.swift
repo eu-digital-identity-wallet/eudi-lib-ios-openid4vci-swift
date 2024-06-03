@@ -28,8 +28,40 @@ public class DPoPConstructor {
     self.privateKey = privateKey
   }
   
-  func jwt() -> String {
+  func jwt(tokenEndpoint: URL) throws -> String {
     
-    return ""
+    let header = try JWSHeader(parameters: [
+      "typ": "dpop+jwt",
+      "alg": algorithm.name,
+      "jwk": jwk.toDictionary()
+    ])
+    
+    let dictionary: [String: Any] = [
+      JWTClaimNames.issuedAt: Int(Date().timeIntervalSince1970.rounded()),
+      "htm": "POST",
+      "htu": tokenEndpoint.absoluteString,
+      "jti": String.randomBase64URLString(length: 20)
+    ]
+    
+    let payload = Payload(try dictionary.toThrowingJSONData())
+    
+    guard let signatureAlgorithm = SignatureAlgorithm(rawValue: algorithm.name) else {
+      throw CredentialIssuanceError.cryptographicAlgorithmNotSupported
+    }
+    
+    guard let signer = Signer(
+      signingAlgorithm: signatureAlgorithm,
+      key: privateKey
+    ) else {
+      throw ValidationError.error(reason: "Unable to create JWS signer")
+    }
+    
+    let jws = try JWS(
+      header: header,
+      payload: payload,
+      signer: signer
+    )
+    
+    return jws.compactSerializedString
   }
 }
