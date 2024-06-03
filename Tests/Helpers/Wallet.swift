@@ -95,13 +95,16 @@ extension Wallet {
           throw ValidationError.error(reason: "Cannot find scope for \(credentialConfigurationIdentifier)")
         }
 
-        let data = try await noProofRequiredSubmissionUseCase(
+        if let data = try? await noProofRequiredSubmissionUseCase(
           issuer: issuer,
           noProofRequiredState: authorized,
           credentialConfigurationIdentifier: credentialConfigurationIdentifier, 
           claimSet: claimSet
-        )
-        return (scope, data)
+        ) {
+          return (scope, data)
+        } else {
+          return nil
+        }
       }
       
     case .proofRequired:
