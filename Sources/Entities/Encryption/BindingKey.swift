@@ -59,12 +59,6 @@ public extension BindingKey {
           throw CredentialIssuanceError.proofTypeNotSupported
         }
         
-        /*
-        let bindings = spec.cryptographicBindingMethodsSupported.contains { $0  == .jwk }
-        guard bindings else {
-          throw CredentialIssuanceError.cryptographicBindingMethodNotSupported
-        }
-         */
         let aud = issuanceRequester.issuerMetadata.credentialIssuerIdentifier.url.absoluteString
         
         let header = try JWSHeader(parameters: [
