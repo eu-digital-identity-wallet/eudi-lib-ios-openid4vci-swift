@@ -225,7 +225,10 @@ public actor Issuer: IssuerType {
           if let cNonce = nonce {
             return .success(
               .proofRequired(
-                accessToken: try IssuanceAccessToken(accessToken: accessToken.value), 
+                accessToken: try IssuanceAccessToken(
+                  accessToken: accessToken.value,
+                  tokenType: nil
+                ),
                 refreshToken: nil,
                 cNonce: cNonce,
                 credentialIdentifiers: identifiers
@@ -234,7 +237,10 @@ public actor Issuer: IssuerType {
           } else {
             return .success(
               .noProofRequired(
-                accessToken: try IssuanceAccessToken(accessToken: accessToken.value), 
+                accessToken: try IssuanceAccessToken(
+                  accessToken: accessToken.value,
+                  tokenType: nil
+                ),
                 refreshToken: nil,
                 credentialIdentifiers: identifiers
               )
@@ -265,7 +271,8 @@ public actor Issuer: IssuerType {
           let response: (
             accessToken: AccessToken,
             nonce: CNonce?,
-            identifiers: AuthorizationDetailsIdentifiers?
+            identifiers: AuthorizationDetailsIdentifiers?,
+            tokenType: TokenType?
           ) = try await authorizer.requestAccessTokenAuthFlow(
             authorizationCode: authorizationCode,
             codeVerifier: request.pkceVerifier.codeVerifier
@@ -274,7 +281,10 @@ public actor Issuer: IssuerType {
           if let cNonce = response.nonce {
             return .success(
               .proofRequired(
-                accessToken: try IssuanceAccessToken(accessToken: response.accessToken.value), 
+                accessToken: try IssuanceAccessToken(
+                  accessToken: response.accessToken.value,
+                  tokenType: response.tokenType
+                ),
                 refreshToken: nil,
                 cNonce: cNonce,
                 credentialIdentifiers: response.identifiers
@@ -283,7 +293,10 @@ public actor Issuer: IssuerType {
           } else {
             return .success(
               .noProofRequired(
-                accessToken: try IssuanceAccessToken(accessToken: response.accessToken.value), 
+                accessToken: try IssuanceAccessToken(
+                  accessToken: response.accessToken.value,
+                  tokenType: response.tokenType
+                ),
                 refreshToken: nil,
                 credentialIdentifiers: response.identifiers
               )

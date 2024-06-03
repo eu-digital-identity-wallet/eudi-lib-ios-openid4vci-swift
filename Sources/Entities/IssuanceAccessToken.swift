@@ -15,14 +15,39 @@
  */
 import Foundation
 
+public enum TokenType: String, Codable {
+  case bearer = "Bearer"
+  case dpop = "DPoP"
+  
+  public init(value: String?) {
+    guard let value else {
+      self = .bearer
+      return
+    }
+    
+    if value == TokenType.bearer.rawValue {
+      self = .bearer
+    } else if value == TokenType.dpop.rawValue {
+      self = .dpop
+    } else {
+      self = .bearer
+    }
+  }
+}
+
 public struct IssuanceAccessToken: Codable {
   public let accessToken: String
+  public let tokenType: TokenType?
   
-  public init(accessToken: String) throws {
+  public init(
+    accessToken: String,
+    tokenType: TokenType?
+  ) throws {
     guard !accessToken.isEmpty else {
       throw ValidationError.error(reason: "Access token cannot be empty")
     }
     self.accessToken = accessToken
+    self.tokenType = tokenType
   }
 }
 

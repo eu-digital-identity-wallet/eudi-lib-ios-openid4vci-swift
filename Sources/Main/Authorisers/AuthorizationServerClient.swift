@@ -37,7 +37,7 @@ public protocol AuthorizationServerClientType {
   func requestAccessTokenAuthFlow(
     authorizationCode: String,
     codeVerifier: String
-  ) async throws -> Result<(AccessToken, CNonce?, AuthorizationDetailsIdentifiers?), ValidationError>
+  ) async throws -> Result<(AccessToken, CNonce?, AuthorizationDetailsIdentifiers?, TokenType?), ValidationError>
   
   func requestAccessTokenPreAuthFlow(
     preAuthorizedCode: String,
@@ -237,7 +237,12 @@ public actor AuthorizationServerClient: AuthorizationServerClientType {
   public func requestAccessTokenAuthFlow(
     authorizationCode: String,
     codeVerifier: String
-  ) async throws -> Result<(AccessToken, CNonce?, AuthorizationDetailsIdentifiers?), ValidationError> {
+  ) async throws -> Result<(
+    AccessToken,
+    CNonce?,
+    AuthorizationDetailsIdentifiers?,
+    TokenType?
+  ), ValidationError> {
     
     let parameters: [String: String] = authCodeFlow(
       authorizationCode: authorizationCode,
@@ -254,12 +259,13 @@ public actor AuthorizationServerClient: AuthorizationServerClientType {
     )
     
     switch response {
-    case .success(_, let accessToken, _, _, _, let nonce, _, let identifiers):
+    case .success(let tokenType, let accessToken, _, _, _, let nonce, _, let identifiers):
       return .success(
         (
           try .init(value: accessToken),
           .init(value: nonce),
-          identifiers
+          identifiers,
+          TokenType(value: tokenType)
         )
       )
     case .failure(let error, let errorDescription):
