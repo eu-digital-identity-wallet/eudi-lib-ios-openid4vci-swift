@@ -114,6 +114,36 @@ public enum ContentType: String {
   case json = "application/json"
 }
 
+public struct AccessToken: Codable {
+  public let value: String
+  
+  public init(value: String?) throws {
+    guard let value else {
+      throw ValidationError.error(reason: "Nil access token")
+    }
+    if value.isEmpty {
+      throw ValidationError.error(reason: "Empty access token")
+    }
+    
+    self.value = value
+  }
+}
+
+public struct RefreshToken: Codable {
+  public let value: String
+  
+  public init(value: String?) throws {
+    guard let value else {
+      throw ValidationError.error(reason: "Nil access token")
+    }
+    if value.isEmpty {
+      throw ValidationError.error(reason: "Empty access token")
+    }
+    
+    self.value = value
+  }
+}
+
 public struct CNonce: Codable {
   public let value: String
   public let expiresInSeconds: Int?
@@ -234,4 +264,11 @@ public struct TxCode: Codable {
 public enum InputModeTO: String, Codable {
   case text = "text"
   case numeric = "numeric"
+}
+
+struct TokenResponse: Codable {
+  let accessToken: AccessToken
+  let refreshToken: RefreshToken?
+  let cNonce: CNonce?
+  let authorizationDetails: [CredentialConfigurationIdentifier: [CredentialIdentifier]]
 }

@@ -127,7 +127,7 @@ import OpenID4VCI
 let credentialIdentifier = try CredentialIdentifier(value: "https://....")
 let credentialIssuerIdentifier = try CredentialIssuerId(CREDENTIAL_ISSUER_PUBLIC_URL)
 let offer: CredentialOffer = ...
-let config: WalletOpenId4VCIConfig = ...
+let config: OpenId4VCIConfig = ...
 
 let issuer = try Issuer(
     authorizationServerMetadata: offer.authorizationServerMetadata,
@@ -198,10 +198,14 @@ Given an ```authorizedRequest``` and an ```Issuer``` a single credential issuanc
 ```swift
 import OpenID4VCI
 
+let payload: IssuanceRequestPayload = .configurationBased(
+  credentialConfigurationIdentifier: ...
+)
+
 let requestOutcome = try await issuer.requestSingle(
     proofRequest: ...,
     bindingKey: ...,
-    requestCredentialIdentifier: ...,
+    requestPayload: payload,
     responseEncryptionSpecProvider:  { 
         Issuer.createResponseEncryptionSpec($0) 
     }

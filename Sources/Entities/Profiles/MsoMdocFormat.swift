@@ -44,6 +44,7 @@ public extension MsoMdocFormat {
     public let credentialResponseEncryptionAlg: JWEAlgorithm?
     public let credentialResponseEncryptionMethod: JOSEEncryptionMethod?
     public let claimSet: ClaimSet?
+    public let credentialIdentifier: CredentialIdentifier?
     public let requestedCredentialResponseEncryption: RequestedCredentialResponseEncryption
     
     enum CodingKeys: String, CodingKey {
@@ -53,6 +54,7 @@ public extension MsoMdocFormat {
       case credentialResponseEncryptionAlg
       case credentialResponseEncryptionMethod
       case claimSet
+      case credentialIdentifier
     }
     
     public init(
@@ -62,7 +64,8 @@ public extension MsoMdocFormat {
       credentialEncryptionKey: SecKey? = nil,
       credentialResponseEncryptionAlg: JWEAlgorithm? = nil,
       credentialResponseEncryptionMethod: JOSEEncryptionMethod? = nil,
-      claimSet: ClaimSet? = nil
+      claimSet: ClaimSet? = nil,
+      credentialIdentifier: CredentialIdentifier?
     ) throws {
       self.docType = docType
       self.proof = proof
@@ -71,6 +74,7 @@ public extension MsoMdocFormat {
       self.credentialResponseEncryptionAlg = credentialResponseEncryptionAlg
       self.credentialResponseEncryptionMethod = credentialResponseEncryptionMethod
       self.claimSet = claimSet
+      self.credentialIdentifier = credentialIdentifier
       
       self.requestedCredentialResponseEncryption = try .init(
         encryptionJwk: credentialEncryptionJwk,
@@ -97,6 +101,7 @@ public extension MsoMdocFormat {
       try container.encode(credentialResponseEncryptionAlg, forKey: .credentialResponseEncryptionAlg)
       try container.encode(credentialResponseEncryptionMethod, forKey: .credentialResponseEncryptionMethod)
       try container.encode(claimSet, forKey: .claimSet)
+      try container.encode(credentialIdentifier, forKey: .credentialIdentifier)
     }
   }
   
@@ -326,6 +331,7 @@ public extension MsoMdocFormat {
     
     func toIssuanceRequest(
       responseEncryptionSpec: IssuanceResponseEncryptionSpec?,
+      credentialIdentifier: CredentialIdentifier? = nil,
       claimSet: ClaimSet?,
       proof: Proof?
     ) throws -> CredentialIssuanceRequest {
@@ -338,7 +344,8 @@ public extension MsoMdocFormat {
             credentialEncryptionKey: responseEncryptionSpec?.privateKey,
             credentialResponseEncryptionAlg: responseEncryptionSpec?.algorithm,
             credentialResponseEncryptionMethod: responseEncryptionSpec?.encryptionMethod,
-            claimSet: try claimSet?.validate(claims: self.claimList)
+            claimSet: try claimSet?.validate(claims: self.claimList), 
+            credentialIdentifier: credentialIdentifier
           )
         )
       )

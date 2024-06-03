@@ -19,6 +19,15 @@ public enum IdentityAndAccessManagementMetadata {
   case oidc(OIDCProviderMetadata)
   case oauth(AuthorizationServerMetadata)
   
+  var issuer: String? {
+    switch self {
+    case .oidc(let metaData):
+      return metaData.issuer
+    case .oauth(let metaData):
+      return metaData.issuer
+    }
+  }
+  
   var authorizationServerSupportsPar: Bool {
     switch self {
     case .oidc(let metaData):
@@ -34,6 +43,15 @@ public enum IdentityAndAccessManagementMetadata {
       return URL(string: metaData.pushedAuthorizationRequestEndpoint ?? "")
     case .oauth(let metaData):
       return URL(string: metaData.pushedAuthorizationRequestEndpoint ?? "")
+    }
+  }
+  
+  var authorizationEndpointURI: URL? {
+    switch self {
+    case .oidc(let metaData):
+      return URL(string: metaData.authorizationEndpoint ?? "")
+    case .oauth(let metaData):
+      return URL(string: metaData.authorizationEndpoint ?? "")
     }
   }
 }

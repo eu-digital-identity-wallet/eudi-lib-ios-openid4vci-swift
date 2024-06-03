@@ -15,13 +15,10 @@
  */
 import Foundation
 
-public struct CredentialIdentifier: Codable, Hashable {
+public struct StateValue {
   public let value: String
   
-  public init(value: String) throws {
-    if value.isEmpty {
-      throw ValidationError.error(reason: "Value cannot be empty")
-    }
-    self.value = value
+  public init() {
+    self.value = String.randomBase64URLString(length: 32)
   }
 }

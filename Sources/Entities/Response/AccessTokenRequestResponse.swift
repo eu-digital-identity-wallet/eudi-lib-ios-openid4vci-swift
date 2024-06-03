@@ -14,6 +14,9 @@
  * limitations under the License.
  */
 import Foundation
+import SwiftyJSON
+
+public typealias AuthorizationDetailsIdentifiers = [CredentialConfigurationIdentifier: [CredentialIdentifier]]
 
 public enum AccessTokenRequestResponse: Codable {
   case success(
@@ -21,7 +24,8 @@ public enum AccessTokenRequestResponse: Codable {
     expiresIn: Int,
     scope: String?,
     cNonce: String?,
-    cNonceExpiresIn: Int?
+    cNonceExpiresIn: Int?,
+    authorizationDetails: AuthorizationDetailsIdentifiers?
   )
   case failure(
     error: String,
@@ -36,6 +40,7 @@ public enum AccessTokenRequestResponse: Codable {
     case cNonce = "c_nonce"
     case cNonceExpiresIn = "c_nonce_expires_in"
     case errorDescription = "error_description"
+    case authorizationDetails = "authorization_details"
   }
   
   public init(from decoder: Decoder) throws {
@@ -43,12 +48,35 @@ public enum AccessTokenRequestResponse: Codable {
     
     if let accessToken = try? container.decode(String.self, forKey: .accessToken),
        let expiresIn = try? container.decode(Int.self, forKey: .expiresIn) {
+      
+      var authorizationDetails: AuthorizationDetailsIdentifiers = [:]
+      
+      let json = try? container.decode(JSON.self, forKey: .authorizationDetails)
+      if let array = json?.array {
+        for item in array {
+          if let key = item["credential_configuration_id"].string,
+             let values = item["credential_identifiers"].array,
+             let credentialConfigurationIdentifier = try? CredentialConfigurationIdentifier(value: key) {
+            
+            let credentialIdentifiers: [CredentialIdentifier] = values.compactMap {
+              guard let string = $0.string else { return nil }
+              return try? CredentialIdentifier(value: string)
+            }
+            
+            if !credentialIdentifiers.isEmpty {
+              authorizationDetails[credentialConfigurationIdentifier] = credentialIdentifiers
+            }
+          }
+        }
+      }
+      
       self = .success(
         accessToken: accessToken,
         expiresIn: expiresIn,
         scope: try? container.decode(String.self, forKey: .scope),
         cNonce: try? container.decode(String.self, forKey: .cNonce),
-        cNonceExpiresIn: try? container.decode(Int.self, forKey: .cNonceExpiresIn) 
+        cNonceExpiresIn: try? container.decode(Int.self, forKey: .cNonceExpiresIn),
+        authorizationDetails: (authorizationDetails.isEmpty ? nil : authorizationDetails)
       )
     } else if let error = try? container.decode(String.self, forKey: .error),
               let errorDescription = try? container.decode(String.self, forKey: .errorDescription) {
@@ -67,7 +95,7 @@ public enum AccessTokenRequestResponse: Codable {
     var container = encoder.container(keyedBy: CodingKeys.self)
     
     switch self {
-    case let .success(accessToken, expiresIn, scope, cNonce, cNonceExpiresIn):
+    case let .success(accessToken, expiresIn, scope, cNonce, cNonceExpiresIn, _):
       try container.encode(accessToken, forKey: .accessToken)
       try container.encode(expiresIn, forKey: .expiresIn)
       try container.encode(scope, forKey: .scope)

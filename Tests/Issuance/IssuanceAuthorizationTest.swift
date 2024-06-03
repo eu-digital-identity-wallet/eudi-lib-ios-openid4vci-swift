@@ -21,9 +21,10 @@ import JOSESwift
 
 class IssuanceAuthorizationTest: XCTestCase {
   
-  let config: WalletOpenId4VCIConfig = .init(
+  let config: OpenId4VCIConfig = .init(
     clientId: "wallet-dev",
-    authFlowRedirectionURI: URL(string: "urn:ietf:wg:oauth:2.0:oob")!
+    authFlowRedirectionURI: URL(string: "urn:ietf:wg:oauth:2.0:oob")!,
+    authorizeIssuanceConfig: .favorScopes
   )
   
   override func setUp() async throws {
@@ -56,7 +57,7 @@ class IssuanceAuthorizationTest: XCTestCase {
     )
     
     // Then
-    let parPlaced = await issuer.pushAuthorizationCodeRequest(
+    let parPlaced = try await issuer.pushAuthorizationCodeRequest(
       credentialOffer: offer
     )
 
@@ -91,7 +92,7 @@ class IssuanceAuthorizationTest: XCTestCase {
     )
     
     // Then
-    let parPlaced = await issuer.pushAuthorizationCodeRequest(
+    let parPlaced = try await issuer.pushAuthorizationCodeRequest(
       credentialOffer: offer
     )
 
@@ -387,10 +388,17 @@ class IssuanceAuthorizationTest: XCTestCase {
     )
     
     let request = try result.get()
+    let payload: IssuanceRequestPayload = .configurationBased(
+      credentialConfigurationIdentifier: try CredentialConfigurationIdentifier(
+        value: "IdentityCredential"
+      ),
+      claimSet: nil
+    )
+    
     let requestSingleResult = try await issuer.requestSingle(
       proofRequest: request,
       bindingKey: bindingKey,
-      requestCredentialIdentifier: (CredentialConfigurationIdentifier(value: "IdentityCredential"), nil),
+      requestPayload: payload,
       responseEncryptionSpecProvider: {
         Issuer.createResponseEncryptionSpec($0)
       })

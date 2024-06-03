@@ -16,10 +16,20 @@
 import Foundation
 import SwiftyJSON
 
-public protocol IssuanceAuthorizerType {
+let OPENID_CREDENTIAL = "openid_credential"
+
+public protocol AuthorizationServerClientType {
+  
+  func authorizationRequestUrl(
+    scopes: [Scope],
+    credentialConfigurationIdentifiers: [CredentialConfigurationIdentifier],
+    state: String,
+    issuerState: String?
+  ) async throws -> Result<(PKCEVerifier, GetAuthorizationCodeURL), Error>
   
   func submitPushedAuthorizationRequest(
     scopes: [Scope],
+    credentialConfigurationIdentifiers: [CredentialConfigurationIdentifier],
     state: String,
     issuerState: String?
   ) async throws -> Result<(PKCEVerifier, GetAuthorizationCodeURL), Error>
@@ -27,19 +37,19 @@ public protocol IssuanceAuthorizerType {
   func requestAccessTokenAuthFlow(
     authorizationCode: String,
     codeVerifier: String
-  ) async throws -> Result<(String, String?), ValidationError>
+  ) async throws -> Result<(AccessToken, CNonce?, AuthorizationDetailsIdentifiers?), ValidationError>
   
   func requestAccessTokenPreAuthFlow(
     preAuthorizedCode: String,
     txCode: TxCode,
     clientId: String,
     transactionCode: String?
-  ) async throws -> Result<(String, String?), ValidationError>
+  ) async throws -> Result<(AccessToken, CNonce?, AuthorizationDetailsIdentifiers?), ValidationError>
 }
 
-public actor IssuanceAuthorizer: IssuanceAuthorizerType {
+public actor AuthorizationServerClient: AuthorizationServerClientType {
   
-  public let config: WalletOpenId4VCIConfig
+  public let config: OpenId4VCIConfig
   public let service: AuthorisationServiceType
   public let parPoster: PostingType
   public let tokenPoster: PostingType
@@ -49,6 +59,7 @@ public actor IssuanceAuthorizer: IssuanceAuthorizerType {
   public let redirectionURI: URL
   public let clientId: String
   public let authorizationServerMetadata: IdentityAndAccessManagementMetadata
+  public let credentialIssuerIdentifier: CredentialIssuerId
   
   static let responseType = "code"
   static let grantAuthorizationCode = "authorization_code"
@@ -58,14 +69,18 @@ public actor IssuanceAuthorizer: IssuanceAuthorizerType {
     service: AuthorisationServiceType = AuthorisationService(),
     parPoster: PostingType = Poster(),
     tokenPoster: PostingType = Poster(),
-    config: WalletOpenId4VCIConfig,
-    authorizationServerMetadata: IdentityAndAccessManagementMetadata
+    config: OpenId4VCIConfig,
+    authorizationServerMetadata: IdentityAndAccessManagementMetadata,
+    credentialIssuerIdentifier: CredentialIssuerId
   ) throws {
     self.service = service
     self.parPoster = parPoster
     self.tokenPoster = tokenPoster
     self.config = config
+    
     self.authorizationServerMetadata = authorizationServerMetadata
+    self.credentialIssuerIdentifier = credentialIssuerIdentifier
+    
     self.redirectionURI = config.authFlowRedirectionURI
     self.clientId = ClientId(config.clientId)
     
@@ -111,8 +126,52 @@ public actor IssuanceAuthorizer: IssuanceAuthorizerType {
     }
   }
   
+  public func authorizationRequestUrl(
+    scopes: [Scope],
+    credentialConfigurationIdentifiers: [CredentialConfigurationIdentifier],
+    state: String,
+    issuerState: String?
+  ) async throws -> Result<(PKCEVerifier, GetAuthorizationCodeURL), Error> {
+    guard !scopes.isEmpty else {
+      throw ValidationError.error(reason: "No scopes provided. Cannot submit par with no scopes.")
+    }
+    
+    let codeVerifier = PKCEGenerator.codeVerifier() ?? ""
+    let verifier = try PKCEVerifier(
+      codeVerifier: codeVerifier,
+      codeVerifierMethod: CodeChallenge.sha256.rawValue
+    )
+    
+    let authzRequest = AuthorizationRequest(
+      responseType: Self.responseType,
+      clientId: config.clientId,
+      redirectUri: config.authFlowRedirectionURI.absoluteString,
+      scope: scopes.map { $0.value }.joined(separator: " ").appending(" ").appending(Constants.OPENID_SCOPE),
+      credentialConfigurationIds: toAuthorizationDetail(credentialConfigurationIds: credentialConfigurationIdentifiers),
+      state: state,
+      codeChallenge: PKCEGenerator.generateCodeChallenge(codeVerifier: codeVerifier),
+      codeChallengeMethod: CodeChallenge.sha256.rawValue,
+      issuerState: issuerState
+    )
+    
+    guard let urlWithParams = authorizationEndpoint.appendingQueryParameters(
+      try authzRequest.toDictionary().convertToDictionaryOfStrings(
+        excludingKeys: ["scope", "credential_configuration_ids"]
+      )
+    ) else {
+      throw ValidationError.invalidUrl(parEndpoint.absoluteString)
+    }
+    
+    let authorizationCodeURL = try GetAuthorizationCodeURL(
+      urlString: urlWithParams.absoluteString
+    )
+    
+    return .success((verifier, authorizationCodeURL))
+  }
+  
   public func submitPushedAuthorizationRequest(
     scopes: [Scope],
+    credentialConfigurationIdentifiers: [CredentialConfigurationIdentifier],
     state: String,
     issuerState: String?
   ) async throws -> Result<(PKCEVerifier, GetAuthorizationCodeURL), Error> {
@@ -126,6 +185,7 @@ public actor IssuanceAuthorizer: IssuanceAuthorizerType {
       clientId: config.clientId,
       redirectUri: config.authFlowRedirectionURI.absoluteString,
       scope: scopes.map { $0.value }.joined(separator: " ").appending(" ").appending(Constants.OPENID_SCOPE),
+      credentialConfigurationIds: toAuthorizationDetail(credentialConfigurationIds: credentialConfigurationIdentifiers),
       state: state,
       codeChallenge: PKCEGenerator.generateCodeChallenge(codeVerifier: codeVerifier),
       codeChallengeMethod: CodeChallenge.sha256.rawValue,
@@ -140,7 +200,7 @@ public actor IssuanceAuthorizer: IssuanceAuthorizerType {
       )
       
       switch response {
-      case .success(requestURI: let requestURI, _):
+      case .success(let requestURI, _):
         
         let verifier = try PKCEVerifier(
           codeVerifier: codeVerifier,
@@ -177,7 +237,7 @@ public actor IssuanceAuthorizer: IssuanceAuthorizerType {
   public func requestAccessTokenAuthFlow(
     authorizationCode: String,
     codeVerifier: String
-  ) async throws -> Result<(String, String?), ValidationError> {
+  ) async throws -> Result<(AccessToken, CNonce?, AuthorizationDetailsIdentifiers?), ValidationError> {
     
     let parameters: [String: String] = authCodeFlow(
       authorizationCode: authorizationCode,
@@ -194,8 +254,14 @@ public actor IssuanceAuthorizer: IssuanceAuthorizerType {
     )
     
     switch response {
-    case .success(let accessToken, _, _, let nonce, _):
-      return .success((accessToken, nonce))
+    case .success(let accessToken, _, _, let nonce, _, let identifiers):
+      return .success(
+        (
+          try .init(value: accessToken),
+          .init(value: nonce),
+          identifiers
+        )
+      )
     case .failure(let error, let errorDescription):
       throw CredentialIssuanceError.pushedAuthorizationRequestFailed(
         error: error,
@@ -209,7 +275,7 @@ public actor IssuanceAuthorizer: IssuanceAuthorizerType {
     txCode: TxCode,
     clientId: String,
     transactionCode: String?
-  ) async throws -> Result<(String, String?), ValidationError> {
+  ) async throws -> Result<(AccessToken, CNonce?, AuthorizationDetailsIdentifiers?), ValidationError> {
     let parameters: JSON = try await preAuthCodeFlow(
       preAuthorizedCode: preAuthorizedCode,
       txCode: txCode,
@@ -225,8 +291,14 @@ public actor IssuanceAuthorizer: IssuanceAuthorizerType {
     )
     
     switch response {
-    case .success(let accessToken, _, _, let nonce, _):
-      return .success((accessToken, nonce))
+    case .success(let accessToken, _, _, let nonce, _, let identifiers):
+      return .success(
+        (
+          try .init(value: accessToken),
+          .init(value: nonce),
+          identifiers
+        )
+      )
     case .failure(let error, let errorDescription):
       throw CredentialIssuanceError.pushedAuthorizationRequestFailed(
         error: error,
@@ -234,9 +306,26 @@ public actor IssuanceAuthorizer: IssuanceAuthorizerType {
       )
     }
   }
+  
+  func toAuthorizationDetail(
+    credentialConfigurationIds: [CredentialConfigurationIdentifier]
+  ) -> [AuthorizationDetail] {
+    credentialConfigurationIds.compactMap { id in
+      var locations: [String] = []
+      if credentialIssuerIdentifier.url.absoluteString != authorizationServerMetadata.issuer {
+        locations.append(credentialIssuerIdentifier.url.absoluteString)
+      }
+      
+      return AuthorizationDetail(
+        type: .init(type: OPENID_CREDENTIAL),
+        locations: locations,
+        credentialConfigurationId: id.value
+      )
+    }
+  }
 }
 
-private extension IssuanceAuthorizer {
+private extension AuthorizationServerClient {
   
   func authCodeFlow(
     authorizationCode: String,

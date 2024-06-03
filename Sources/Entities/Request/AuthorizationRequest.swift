@@ -20,6 +20,7 @@ public struct AuthorizationRequest: Codable {
   public let clientId: String?
   public let redirectUri: String?
   public let scope: String?
+  public let credentialConfigurationIds: [AuthorizationDetail]?
   public let state: String?
   public let responseMode: String?
   public let codeChallenge: String?
@@ -40,6 +41,7 @@ public struct AuthorizationRequest: Codable {
     case clientId = "client_id"
     case redirectUri = "redirect_uri"
     case scope
+    case credentialConfigurationIds = "credential_configuration_ids"
     case state
     case responseMode = "response_mode"
     case codeChallenge = "code_challenge"
@@ -61,6 +63,7 @@ public struct AuthorizationRequest: Codable {
     clientId: String? = nil,
     redirectUri: String? = nil,
     scope: String? = nil,
+    credentialConfigurationIds: [AuthorizationDetail]? = nil,
     state: String? = nil,
     responseMode: String? = nil,
     codeChallenge: String? = nil,
@@ -79,6 +82,7 @@ public struct AuthorizationRequest: Codable {
     self.clientId = clientId
     self.redirectUri = redirectUri
     self.scope = scope
+    self.credentialConfigurationIds = credentialConfigurationIds
     self.state = state
     self.responseMode = responseMode
     self.codeChallenge = codeChallenge

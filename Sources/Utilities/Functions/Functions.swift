@@ -25,3 +25,10 @@ public func convertToJsonString(dictionary: [String: Any]) -> String? {
     return nil
   }
 }
+
+public func unwrapOrThrow<T>(_ optional: T?, error: Error) throws -> T {
+  guard let unwrapped = optional else {
+    throw error
+  }
+  return unwrapped
+}

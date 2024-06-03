@@ -48,8 +48,7 @@ extension Wallet {
           credentialIssuerIdentifier: credentialIssuerIdentifier,
           credentialIssuerMetadata: metaData,
           credentialConfigurationIdentifiers: [
-            .init(value: identifier),
-            .init(value: Constants.OPENID_SCOPE)
+            .init(value: identifier)
           ],
           grants: nil,
           authorizationServerMetadata: try authServerMetadata.get()
@@ -96,13 +95,16 @@ extension Wallet {
           throw ValidationError.error(reason: "Cannot find scope for \(credentialConfigurationIdentifier)")
         }
 
-        let data = try await noProofRequiredSubmissionUseCase(
+        if let data = try? await noProofRequiredSubmissionUseCase(
           issuer: issuer,
           noProofRequiredState: authorized,
           credentialConfigurationIdentifier: credentialConfigurationIdentifier, 
           claimSet: claimSet
-        )
-        return (scope, data)
+        ) {
+          return (scope, data)
+        } else {
+          return nil
+        }
       }
       
     case .proofRequired:
@@ -270,7 +272,7 @@ extension Wallet {
     
     print("--> [AUTHORIZATION] Placing PAR to AS server's endpoint \(pushedAuthorizationRequestEndpoint)")
     
-    let parPlaced = await issuer.pushAuthorizationCodeRequest(
+    let parPlaced = try await issuer.pushAuthorizationCodeRequest(
       credentialOffer: offer
     )
     
@@ -327,10 +329,13 @@ extension Wallet {
   ) async throws -> String {
     switch noProofRequiredState {
     case .noProofRequired:
+      let payload: IssuanceRequestPayload = .configurationBased(
+        credentialConfigurationIdentifier: credentialConfigurationIdentifier,
+        claimSet: claimSet
+      )
       let requestOutcome = try await issuer.requestSingle(
         noProofRequest: noProofRequiredState,
-        claimSet: claimSet,
-        requestCredentialIdentifier: (credentialConfigurationIdentifier, nil),
+        requestPayload: payload,
         responseEncryptionSpecProvider: { Issuer.createResponseEncryptionSpec($0) }
       )
       switch requestOutcome {
@@ -379,11 +384,16 @@ extension Wallet {
     guard let credentialConfigurationIdentifier else {
       throw ValidationError.error(reason: "Credential configuration identifier not found")
     }
+    
+    let payload: IssuanceRequestPayload = .configurationBased(
+      credentialConfigurationIdentifier: credentialConfigurationIdentifier,
+      claimSet: claimSet
+    )
+    
     let requestOutcome = try await issuer.requestSingle(
       proofRequest: authorized,
       bindingKey: bindingKey,
-      claimSet: claimSet,
-      requestCredentialIdentifier: (credentialConfigurationIdentifier, nil),
+      requestPayload: payload,
       responseEncryptionSpecProvider:  { Issuer.createResponseEncryptionSpec($0) }
     )
     

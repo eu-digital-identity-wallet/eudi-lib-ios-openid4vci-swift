@@ -15,13 +15,26 @@
  */
 import Foundation
 
-public struct CredentialIdentifier: Codable, Hashable {
-  public let value: String
-  
-  public init(value: String) throws {
-    if value.isEmpty {
-      throw ValidationError.error(reason: "Value cannot be empty")
+public struct AuthorizationType: Codable {
+    public let type: String
+    
+    public init(type: String) {
+        self.type = type
     }
-    self.value = value
+}
+
+public struct AuthorizationDetail: Codable {
+  public let type: AuthorizationType
+  public let locations: [String]
+  public let credentialConfigurationId: String
+  
+  public init(
+    type: AuthorizationType,
+    locations: [String],
+    credentialConfigurationId: String
+  ) {
+    self.type = type
+    self.locations = locations
+    self.credentialConfigurationId = credentialConfigurationId
   }
 }
