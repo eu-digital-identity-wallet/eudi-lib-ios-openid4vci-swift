@@ -307,7 +307,7 @@ extension Wallet {
         let authorizedRequest = await issuer.requestAccessToken(authorizationCode: request)
         
         if case let .success(authorized) = authorizedRequest,
-           case let .noProofRequired(token, _) = authorized {
+           case let .noProofRequired(token, _, _) = authorized {
           print("--> [AUTHORIZATION] Authorization code exchanged with access token : \(token.accessToken)")
           
           return authorized

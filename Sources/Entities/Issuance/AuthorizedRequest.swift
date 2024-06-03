@@ -18,17 +18,19 @@ import Foundation
 public enum AuthorizedRequest {
   case noProofRequired(
     accessToken: IssuanceAccessToken,
+    refreshToken: IssuanceRefreshToken?,
     credentialIdentifiers: AuthorizationDetailsIdentifiers?
     )
   case proofRequired(
     accessToken: IssuanceAccessToken,
+    refreshToken: IssuanceRefreshToken?,
     cNonce: CNonce,
     credentialIdentifiers: AuthorizationDetailsIdentifiers?
   )
   
   public var noProofToken: IssuanceAccessToken? {
     switch self {
-    case .noProofRequired(let accessToken, _):
+    case .noProofRequired(let accessToken, _, _):
       return accessToken
     case .proofRequired:
       return nil
@@ -39,7 +41,7 @@ public enum AuthorizedRequest {
     switch self {
     case .noProofRequired:
       return nil
-    case .proofRequired(let accessToken, _, _):
+    case .proofRequired(let accessToken, _, _, _):
       return accessToken
     }
   }
@@ -48,18 +50,20 @@ public enum AuthorizedRequest {
 public extension AuthorizedRequest {
   var accessToken: IssuanceAccessToken? {
     switch self {
-    case .noProofRequired(let accessToken, _):
+    case .noProofRequired(let accessToken, _, _):
       return accessToken
-    case .proofRequired(let accessToken, _, _):
+    case .proofRequired(let accessToken, _, _, _):
       return accessToken
     }
   }
+  
   func handleInvalidProof(cNonce: CNonce) throws -> AuthorizedRequest {
     switch self {
       
-    case .noProofRequired(let accessToken, let credentialIdentifiers):
+    case .noProofRequired(let accessToken, let refreshToken, let credentialIdentifiers):
       return .proofRequired(
         accessToken: accessToken,
+        refreshToken: refreshToken,
         cNonce: cNonce,
         credentialIdentifiers: credentialIdentifiers
       )

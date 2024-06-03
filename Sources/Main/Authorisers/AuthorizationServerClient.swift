@@ -254,7 +254,7 @@ public actor AuthorizationServerClient: AuthorizationServerClientType {
     )
     
     switch response {
-    case .success(let accessToken, _, _, _, let nonce, _, let identifiers):
+    case .success(_, let accessToken, _, _, _, let nonce, _, let identifiers):
       return .success(
         (
           try .init(value: accessToken),
@@ -291,7 +291,7 @@ public actor AuthorizationServerClient: AuthorizationServerClientType {
     )
     
     switch response {
-    case .success(let accessToken, _, _, _, let nonce, _, let identifiers):
+    case .success(_, let accessToken, _, _, _, let nonce, _, let identifiers):
       return .success(
         (
           try .init(value: accessToken),
