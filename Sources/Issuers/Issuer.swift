@@ -225,7 +225,7 @@ public actor Issuer: IssuerType {
           if let cNonce = nonce {
             return .success(
               .proofRequired(
-                token: try IssuanceAccessToken(accessToken: accessToken.value),
+                accessToken: try IssuanceAccessToken(accessToken: accessToken.value),
                 cNonce: cNonce,
                 credentialIdentifiers: identifiers
               )
@@ -233,7 +233,7 @@ public actor Issuer: IssuerType {
           } else {
             return .success(
               .noProofRequired(
-                token: try IssuanceAccessToken(accessToken: accessToken.value),
+                accessToken: try IssuanceAccessToken(accessToken: accessToken.value),
                 credentialIdentifiers: identifiers
               )
             )
@@ -272,7 +272,7 @@ public actor Issuer: IssuerType {
           if let cNonce = response.nonce {
             return .success(
               .proofRequired(
-                token: try IssuanceAccessToken(accessToken: response.accessToken.value),
+                accessToken: try IssuanceAccessToken(accessToken: response.accessToken.value),
                 cNonce: cNonce,
                 credentialIdentifiers: response.identifiers
               )
@@ -280,7 +280,7 @@ public actor Issuer: IssuerType {
           } else {
             return .success(
               .noProofRequired(
-                token: try IssuanceAccessToken(accessToken: response.accessToken.value),
+                accessToken: try IssuanceAccessToken(accessToken: response.accessToken.value),
                 credentialIdentifiers: response.identifiers
               )
             )

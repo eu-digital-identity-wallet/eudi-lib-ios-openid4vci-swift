@@ -265,10 +265,3 @@ public enum InputModeTO: String, Codable {
   case text = "text"
   case numeric = "numeric"
 }
-
-struct TokenResponse: Codable {
-  let accessToken: AccessToken
-  let refreshToken: RefreshToken?
-  let cNonce: CNonce?
-  let authorizationDetails: [CredentialConfigurationIdentifier: [CredentialIdentifier]]
-}
