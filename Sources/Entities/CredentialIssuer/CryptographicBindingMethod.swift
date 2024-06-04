@@ -18,7 +18,7 @@ import Foundation
 public enum CryptographicBindingMethod: Codable, Equatable {
   case jwk
   case x5c
-  case cose
+  case coseKey
   case mso
   case did(method: String)
   
@@ -35,8 +35,8 @@ public enum CryptographicBindingMethod: Codable, Equatable {
       self = .jwk
     case "x5c":
       self = .x5c
-    case "cose":
-      self = .cose
+    case "cose_key":
+      self = .coseKey
     case "mso":
       self = .mso
     default:
@@ -55,8 +55,8 @@ public enum CryptographicBindingMethod: Codable, Equatable {
       try container.encode("jwk")
     case .x5c:
       try container.encode("x5c")
-    case .cose:
-      try container.encode("cose")
+    case .coseKey:
+      try container.encode("cose_key")
     case .mso:
       try container.encode("mso")
     case .did(let method):
@@ -70,8 +70,8 @@ public enum CryptographicBindingMethod: Codable, Equatable {
       self = .jwk
     case "x5c":
       self = .x5c
-    case "cose":
-      self = .cose
+    case "cose_key":
+      self = .coseKey
     case "mso":
       self = .mso
     default:
