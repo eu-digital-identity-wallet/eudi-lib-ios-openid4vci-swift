@@ -324,6 +324,7 @@ class IssuanceAuthorizationTest: XCTestCase {
     /// Replace the url string below with the one you can generate here: https://trial.authlete.net/api/offer/issue
     let urlString = """
     """
+    
     if urlString.isEmpty {
       XCTExpectFailure()
       XCTAssert(false, "urlString cannot be empty")
@@ -382,6 +383,105 @@ class IssuanceAuthorizationTest: XCTestCase {
     let bindingKey: BindingKey = .jwk(
       algorithm: alg,
       jwk: publicKeyJWK,
+      privateKey: privateKey,
+      issuer: "218232426"
+    )
+    
+    let request = try result.get()
+    let payload: IssuanceRequestPayload = .configurationBased(
+      credentialConfigurationIdentifier: try CredentialConfigurationIdentifier(
+        value: "IdentityCredential"
+      ),
+      claimSet: nil
+    )
+    
+    let requestSingleResult = try await issuer.requestSingle(
+      proofRequest: request,
+      bindingKey: bindingKey,
+      requestPayload: payload,
+      responseEncryptionSpecProvider: {
+        Issuer.createResponseEncryptionSpec($0)
+      })
+    
+    switch requestSingleResult {
+    case .success(let request):
+      print(request.credentials.joined(separator: ", "))
+      XCTAssertTrue(true)
+    case .failure(let error):
+      XCTAssert(false, error.localizedDescription)
+    }
+  }
+  
+  func testThirdPartyIssuerSuccessfulAuthorizationWithPreAuthorizationCodeFlowWithDPoP() async throws {
+    
+    /// Replace the url string below with the one you can generate here: https://trial.authlete.net/api/offer/issue
+    let urlString = """
+    """
+    if urlString.isEmpty {
+      XCTExpectFailure()
+      XCTAssert(false, "urlString cannot be empty")
+      return
+    }
+    
+    let resolver = CredentialOfferRequestResolver()
+    let resolution = await resolver
+      .resolve(
+        source: try .init(
+          urlString: urlString
+        )
+      )
+    
+    let privateKey = try KeyController.generateECDHPrivateKey()
+    let publicKey = try KeyController.generateECDHPublicKey(from: privateKey)
+    
+    let alg = JWSAlgorithm(.ES256)
+    let jwk = try ECPublicKey(
+      publicKey: publicKey,
+      additionalParameters: [
+        "alg": alg.name,
+        "use": "sig",
+        "kid": UUID().uuidString
+      ])
+    
+    let dpopConstructor: DPoPConstructor = .init(
+      algorithm: alg,
+      jwk: jwk,
+      privateKey: privateKey
+    )
+    
+    let offer: CredentialOffer = try resolution.get()
+    let issuerMetadata = offer.credentialIssuerMetadata
+    let issuer = try Issuer(
+      authorizationServerMetadata: offer.authorizationServerMetadata,
+      issuerMetadata: issuerMetadata,
+      config: config,
+      dpopConstructor: dpopConstructor
+    )
+    
+    let grants = offer.grants
+    var code: Grants.PreAuthorizedCode!
+    switch grants {
+    case .preAuthorizedCode(let preAuthorizedCode):
+      code = preAuthorizedCode
+    case .both(_, let preAuthorizedCode):
+      code = preAuthorizedCode
+    default:
+      XCTAssert(false, "Unexpected grant type")
+    }
+    
+    let result = await issuer.authorizeWithPreAuthorizationCode(
+      credentialOffer: offer,
+      authorizationCode: try .init(
+        preAuthorizationCode: code.preAuthorizedCode,
+        txCode: code.txCode
+      ),
+      clientId: "218232426",
+      transactionCode: "12345"
+    )
+    
+    let bindingKey: BindingKey = .jwk(
+      algorithm: alg,
+      jwk: jwk,
       privateKey: privateKey,
       issuer: "218232426"
     )

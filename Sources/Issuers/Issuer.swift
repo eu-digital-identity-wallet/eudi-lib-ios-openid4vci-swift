@@ -89,7 +89,8 @@ public actor Issuer: IssuerType {
     tokenPoster: PostingType = Poster(),
     requesterPoster: PostingType = Poster(),
     deferredRequesterPoster: PostingType = Poster(),
-    notificationPoster: PostingType = Poster()
+    notificationPoster: PostingType = Poster(),
+    dpopConstructor: DPoPConstructor? = nil
   ) throws {
     self.authorizationServerMetadata = authorizationServerMetadata
     self.issuerMetadata = issuerMetadata
@@ -100,12 +101,14 @@ public actor Issuer: IssuerType {
       tokenPoster: tokenPoster,
       config: config,
       authorizationServerMetadata: authorizationServerMetadata,
-      credentialIssuerIdentifier: issuerMetadata.credentialIssuerIdentifier
+      credentialIssuerIdentifier: issuerMetadata.credentialIssuerIdentifier,
+      dpopConstructor: dpopConstructor
     )
     
     issuanceRequester = IssuanceRequester(
       issuerMetadata: issuerMetadata, 
-      poster: requesterPoster
+      poster: requesterPoster,
+      dpopConstructor: dpopConstructor
     )
     
     deferredIssuanceRequester = IssuanceRequester(
@@ -226,8 +229,8 @@ public actor Issuer: IssuerType {
             return .success(
               .proofRequired(
                 accessToken: try IssuanceAccessToken(
-                  accessToken: accessToken.value,
-                  tokenType: nil
+                  accessToken: accessToken.accessToken,
+                  tokenType: accessToken.tokenType
                 ),
                 refreshToken: nil,
                 cNonce: cNonce,
@@ -238,8 +241,8 @@ public actor Issuer: IssuerType {
             return .success(
               .noProofRequired(
                 accessToken: try IssuanceAccessToken(
-                  accessToken: accessToken.value,
-                  tokenType: nil
+                  accessToken: accessToken.accessToken,
+                  tokenType: accessToken.tokenType
                 ),
                 refreshToken: nil,
                 credentialIdentifiers: identifiers
@@ -269,7 +272,7 @@ public actor Issuer: IssuerType {
       case .authorizationCode(authorizationCode: let authorizationCode):
         do {
           let response: (
-            accessToken: AccessToken,
+            accessToken: IssuanceAccessToken,
             nonce: CNonce?,
             identifiers: AuthorizationDetailsIdentifiers?,
             tokenType: TokenType?
@@ -282,7 +285,7 @@ public actor Issuer: IssuerType {
             return .success(
               .proofRequired(
                 accessToken: try IssuanceAccessToken(
-                  accessToken: response.accessToken.value,
+                  accessToken: response.accessToken.accessToken,
                   tokenType: response.tokenType
                 ),
                 refreshToken: nil,
@@ -294,7 +297,7 @@ public actor Issuer: IssuerType {
             return .success(
               .noProofRequired(
                 accessToken: try IssuanceAccessToken(
-                  accessToken: response.accessToken.value,
+                  accessToken: response.accessToken.accessToken,
                   tokenType: response.tokenType
                 ),
                 refreshToken: nil,

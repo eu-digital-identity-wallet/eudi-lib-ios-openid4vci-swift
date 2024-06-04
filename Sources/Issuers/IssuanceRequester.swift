@@ -47,15 +47,18 @@ public actor IssuanceRequester: IssuanceRequesterType {
   public let issuerMetadata: CredentialIssuerMetadata
   public let service: AuthorisationServiceType
   public let poster: PostingType
+  public let dpopConstructor: DPoPConstructor?
   
   public init(
     issuerMetadata: CredentialIssuerMetadata,
     service: AuthorisationServiceType = AuthorisationService(),
-    poster: PostingType
+    poster: PostingType,
+    dpopConstructor: DPoPConstructor? = nil
   ) {
     self.issuerMetadata = issuerMetadata
     self.service = service
     self.poster = poster
+    self.dpopConstructor = dpopConstructor
   }
   
   public func placeIssuanceRequest(
@@ -65,7 +68,11 @@ public actor IssuanceRequester: IssuanceRequesterType {
     let endpoint = issuerMetadata.credentialEndpoint.url
     
     do {
-      let authorizationHeader: [String: String] = accessToken.authorizationHeader
+      let authorizationHeader: [String: String] = try accessToken.dPoPOrBearerAuthorizationHeader(
+        dpopConstructor: dpopConstructor,
+        endpoint: endpoint
+      )
+      
       let encodedRequest: [String: Any] = try request.toDictionary().dictionaryValue
       
       let response: SingleIssuanceSuccessResponse = try await service.formPost(

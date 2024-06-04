@@ -20,6 +20,7 @@ import Foundation
 struct Wallet {
   let actingUser: ActingUser
   let bindingKey: BindingKey
+  let dPoPConstructor: DPoPConstructor?
 }
 
 extension Wallet {
@@ -209,6 +210,30 @@ extension Wallet {
     }
   }
   
+  func issueByCredentialOfferUrl_DPoP(
+    offerUri: String,
+    scope: String,
+    claimSet: ClaimSet? = nil
+  ) async throws -> String {
+    let result = await CredentialOfferRequestResolver()
+      .resolve(
+        source: try .init(
+          urlString: offerUri
+        )
+      )
+    
+    switch result {
+    case .success(let offer):
+      return try await issueOfferedCredentialWithProof_DPoP(
+        offer: offer,
+        scope: scope,
+        claimSet: claimSet
+      )
+    case .failure(let error):
+      throw ValidationError.error(reason: "Unable to resolve credential offer: \(error.localizedDescription)")
+    }
+  }
+  
   private func issueOfferedCredentialWithProof(
     offer: CredentialOffer,
     scope: String,
@@ -224,6 +249,47 @@ extension Wallet {
       authorizationServerMetadata: offer.authorizationServerMetadata,
       issuerMetadata: offer.credentialIssuerMetadata,
       config: config
+    )
+    
+    let authorized = try await authorizeRequestWithAuthCodeUseCase(
+      issuer: issuer,
+      offer: offer
+    )
+    
+    switch authorized {
+    case .noProofRequired:
+      return try await noProofRequiredSubmissionUseCase(
+        issuer: issuer,
+        noProofRequiredState: authorized,
+        credentialConfigurationIdentifier: credentialConfigurationIdentifier,
+        claimSet: claimSet
+      )
+    case .proofRequired:
+      return try await proofRequiredSubmissionUseCase(
+        issuer: issuer,
+        authorized: authorized,
+        credentialConfigurationIdentifier: credentialConfigurationIdentifier,
+        claimSet: claimSet
+      )
+    }
+  }
+  
+  private func issueOfferedCredentialWithProof_DPoP(
+    offer: CredentialOffer,
+    scope: String,
+    claimSet: ClaimSet? = nil
+  ) async throws -> String {
+    
+    let issuerMetadata = offer.credentialIssuerMetadata
+    guard let credentialConfigurationIdentifier = issuerMetadata.credentialsSupported.keys.first(where: { $0.value == scope }) else {
+      throw ValidationError.error(reason:  "Cannot find credential identifier for \(scope)")
+    }
+    
+    let issuer = try Issuer(
+      authorizationServerMetadata: offer.authorizationServerMetadata,
+      issuerMetadata: offer.credentialIssuerMetadata,
+      config: config,
+      dpopConstructor: dPoPConstructor
     )
     
     let authorized = try await authorizeRequestWithAuthCodeUseCase(
@@ -305,7 +371,6 @@ extension Wallet {
       switch unAuthorized {
       case .success(let request):
         let authorizedRequest = await issuer.requestAccessToken(authorizationCode: request)
-        
         if case let .success(authorized) = authorizedRequest,
            case let .noProofRequired(token, _, _) = authorized {
           print("--> [AUTHORIZATION] Authorization code exchanged with access token : \(token.accessToken)")

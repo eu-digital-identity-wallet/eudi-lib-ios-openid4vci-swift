@@ -15,6 +15,7 @@
  */
 import Foundation
 import JOSESwift
+import CryptoKit
 
 public class DPoPConstructor {
   
@@ -28,7 +29,7 @@ public class DPoPConstructor {
     self.privateKey = privateKey
   }
   
-  func jwt(tokenEndpoint: URL) throws -> String {
+  func jwt(endpoint: URL, accessToken: String?) throws -> String {
     
     let header = try JWSHeader(parameters: [
       "typ": "dpop+jwt",
@@ -36,12 +37,18 @@ public class DPoPConstructor {
       "jwk": jwk.toDictionary()
     ])
     
-    let dictionary: [String: Any] = [
+    var dictionary: [String: Any] = [
       JWTClaimNames.issuedAt: Int(Date().timeIntervalSince1970.rounded()),
       "htm": "POST",
-      "htu": tokenEndpoint.absoluteString,
+      "htu": endpoint.absoluteString,
       "jti": String.randomBase64URLString(length: 20)
     ]
+    
+    if let data = accessToken?.data(using: .utf8) {
+      let hashed = SHA256.hash(data: data)
+      let hash = Data(hashed).base64URLEncodedString()
+      dictionary["ath"] = hash
+    }
     
     let payload = Payload(try dictionary.toThrowingJSONData())
     
