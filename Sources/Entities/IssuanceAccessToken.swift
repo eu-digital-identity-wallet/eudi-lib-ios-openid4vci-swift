@@ -57,7 +57,7 @@ public extension IssuanceAccessToken {
   }
   
   func dPoPOrBearerAuthorizationHeader(
-    dpopConstructor: DPoPConstructor?,
+    dpopConstructor: DPoPConstructorType?,
     endpoint: URL?
   ) throws -> [String: String] {
     if tokenType == TokenType.bearer {

@@ -43,4 +43,6 @@ public struct JWTClaimNames {
 
 public extension JWTClaimNames {
   static let nonce = "nonce"
+  static let htm = "htm"
+  static let htu = "htu"
 }

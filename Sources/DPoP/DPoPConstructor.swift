@@ -17,7 +17,22 @@ import Foundation
 import JOSESwift
 import CryptoKit
 
-public class DPoPConstructor {
+public protocol DPoPConstructorType {
+  func jwt(endpoint: URL, accessToken: String?) throws -> String
+}
+  
+public class DPoPConstructor: DPoPConstructorType {
+  
+  private enum Methods: String {
+    case get = "GET"
+    case head = "HEAD"
+    case post = "POST"
+    case put = "PUT"
+    case delete = "DELETE"
+    case connect = "CONNECT"
+    case options = "OPTIONS"
+    case trace = "TRACE"
+  }
   
   public let algorithm: JWSAlgorithm
   public let jwk: JWK
@@ -29,7 +44,7 @@ public class DPoPConstructor {
     self.privateKey = privateKey
   }
   
-  func jwt(endpoint: URL, accessToken: String?) throws -> String {
+  public func jwt(endpoint: URL, accessToken: String?) throws -> String {
     
     let header = try JWSHeader(parameters: [
       "typ": "dpop+jwt",
@@ -39,9 +54,9 @@ public class DPoPConstructor {
     
     var dictionary: [String: Any] = [
       JWTClaimNames.issuedAt: Int(Date().timeIntervalSince1970.rounded()),
-      "htm": "POST",
-      "htu": endpoint.absoluteString,
-      "jti": String.randomBase64URLString(length: 20)
+      JWTClaimNames.htm: Methods.post.rawValue,
+      JWTClaimNames.htu: endpoint.absoluteString,
+      JWTClaimNames.jwtId: String.randomBase64URLString(length: 20)
     ]
     
     if let data = accessToken?.data(using: .utf8) {

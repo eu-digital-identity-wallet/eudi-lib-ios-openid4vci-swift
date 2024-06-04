@@ -90,7 +90,7 @@ public actor Issuer: IssuerType {
     requesterPoster: PostingType = Poster(),
     deferredRequesterPoster: PostingType = Poster(),
     notificationPoster: PostingType = Poster(),
-    dpopConstructor: DPoPConstructor? = nil
+    dpopConstructor: DPoPConstructorType? = nil
   ) throws {
     self.authorizationServerMetadata = authorizationServerMetadata
     self.issuerMetadata = issuerMetadata

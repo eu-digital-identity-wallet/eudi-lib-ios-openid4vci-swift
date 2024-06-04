@@ -20,7 +20,7 @@ import Foundation
 struct Wallet {
   let actingUser: ActingUser
   let bindingKey: BindingKey
-  let dPoPConstructor: DPoPConstructor?
+  let dPoPConstructor: DPoPConstructorType?
 }
 
 extension Wallet {

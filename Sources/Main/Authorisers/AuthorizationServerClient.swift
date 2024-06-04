@@ -60,7 +60,7 @@ public actor AuthorizationServerClient: AuthorizationServerClientType {
   public let clientId: String
   public let authorizationServerMetadata: IdentityAndAccessManagementMetadata
   public let credentialIssuerIdentifier: CredentialIssuerId
-  public let dpopConstructor: DPoPConstructor?
+  public let dpopConstructor: DPoPConstructorType?
   
   static let responseType = "code"
   static let grantAuthorizationCode = "authorization_code"
@@ -73,7 +73,7 @@ public actor AuthorizationServerClient: AuthorizationServerClientType {
     config: OpenId4VCIConfig,
     authorizationServerMetadata: IdentityAndAccessManagementMetadata,
     credentialIssuerIdentifier: CredentialIssuerId,
-    dpopConstructor: DPoPConstructor? = nil
+    dpopConstructor: DPoPConstructorType? = nil
   ) throws {
     self.service = service
     self.parPoster = parPoster

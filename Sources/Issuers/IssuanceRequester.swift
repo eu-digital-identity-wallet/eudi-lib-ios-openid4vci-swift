@@ -47,13 +47,13 @@ public actor IssuanceRequester: IssuanceRequesterType {
   public let issuerMetadata: CredentialIssuerMetadata
   public let service: AuthorisationServiceType
   public let poster: PostingType
-  public let dpopConstructor: DPoPConstructor?
+  public let dpopConstructor: DPoPConstructorType?
   
   public init(
     issuerMetadata: CredentialIssuerMetadata,
     service: AuthorisationServiceType = AuthorisationService(),
     poster: PostingType,
-    dpopConstructor: DPoPConstructor? = nil
+    dpopConstructor: DPoPConstructorType? = nil
   ) {
     self.issuerMetadata = issuerMetadata
     self.service = service
