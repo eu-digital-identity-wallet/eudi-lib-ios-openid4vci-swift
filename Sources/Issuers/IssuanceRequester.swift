@@ -33,7 +33,8 @@ public protocol IssuanceRequesterType {
   
   func placeDeferredCredentialRequest(
     accessToken: IssuanceAccessToken,
-    transactionId: TransactionId
+    transactionId: TransactionId,
+    issuanceResponseEncryptionSpec: IssuanceResponseEncryptionSpec?
   ) async throws -> Result<DeferredCredentialIssuanceResponse, Error>
   
   func notifyIssuer(
@@ -119,15 +120,13 @@ public actor IssuanceRequester: IssuanceRequesterType {
                 return .failure(ValidationError.error(reason: "Unsupported encryption algorithms: \(responseEncryptionAlg.name), \(responseEncryptionMethod.name)"))
               }
               
-              let jwe = try JWE(compactSerialization: string)
-              guard let decrypter = Decrypter(
+              let payload = try decrypt(
+                jwtString: string,
                 keyManagementAlgorithm: keyManagementAlgorithm,
                 contentEncryptionAlgorithm: contentEncryptionAlgorithm,
-                decryptionKey: key
-              ) else {
-                return .failure(ValidationError.error(reason: "Could nit instantiate descypter"))
-              }
-              let payload = try jwe.decrypt(using: decrypter)
+                privateKey: key
+              )
+              
               let response = try JSONDecoder().decode(SingleIssuanceSuccessResponse.self, from: payload.data())
               return .success(try response.toDomain())
             }
@@ -165,15 +164,12 @@ public actor IssuanceRequester: IssuanceRequesterType {
               return .failure(ValidationError.error(reason: "Unsupported encryption algorithms"))
             }
             
-            let jwe = try JWE(compactSerialization: string)
-            guard let decrypter = Decrypter(
+            let payload = try decrypt(
+              jwtString: string,
               keyManagementAlgorithm: keyManagementAlgorithm,
               contentEncryptionAlgorithm: contentEncryptionAlgorithm,
-              decryptionKey: key
-            ) else {
-              return .failure(ValidationError.error(reason: "Could nit instantiate descypter"))
-            }
-            let payload = try jwe.decrypt(using: decrypter)
+              privateKey: key
+            )
             let response = try JSONDecoder().decode(SingleIssuanceSuccessResponse.self, from: payload.data())
             return .success(try response.toDomain())
           }
@@ -196,7 +192,11 @@ public actor IssuanceRequester: IssuanceRequesterType {
     }
     
     do {
-      let authorizationHeader: [String: Any] = accessToken.authorizationHeader
+      let authorizationHeader: [String: Any] = try accessToken.dPoPOrBearerAuthorizationHeader(
+        dpopConstructor: dpopConstructor,
+        endpoint: endpoint
+      )
+      
       let encodedRequest: [JSON] = try request
         .map { try $0.toDictionary() }
 
@@ -217,13 +217,18 @@ public actor IssuanceRequester: IssuanceRequesterType {
   
   public func placeDeferredCredentialRequest(
     accessToken: IssuanceAccessToken,
-    transactionId: TransactionId
+    transactionId: TransactionId,
+    issuanceResponseEncryptionSpec: IssuanceResponseEncryptionSpec?
   ) async throws -> Result<DeferredCredentialIssuanceResponse, Error> {
     guard let deferredCredentialEndpoint = issuerMetadata.deferredCredentialEndpoint else {
       throw CredentialError.issuerDoesNotSupportDeferredIssuance
     }
     
-    let authorizationHeader: [String: String] = accessToken.authorizationHeader
+    let authorizationHeader: [String: String] = try accessToken.dPoPOrBearerAuthorizationHeader(
+      dpopConstructor: dpopConstructor,
+      endpoint: deferredCredentialEndpoint.url
+    )
+    
     let encodedRequest: [String: Any] = try JSON(transactionId.toDeferredRequestTO().toDictionary()).dictionaryValue
     
     do {
@@ -234,11 +239,38 @@ public actor IssuanceRequester: IssuanceRequesterType {
         body: encodedRequest
       )
       return .success(response)
+      
+    } catch PostError.cannotParse(let string) {
+      
+      if let responseEncryptionSpec = issuanceResponseEncryptionSpec {
+        guard
+          let keyManagementAlgorithm = KeyManagementAlgorithm(algorithm: responseEncryptionSpec.algorithm),
+          let contentEncryptionAlgorithm = ContentEncryptionAlgorithm(encryptionMethod: responseEncryptionSpec.encryptionMethod)
+        else {
+          return .failure(ValidationError.error(reason: "Unsupported encryption algorithms: \(responseEncryptionSpec.algorithm.name), \(responseEncryptionSpec.encryptionMethod.name)"))
+        }
+        
+        guard let key = responseEncryptionSpec.privateKey else {
+          return .failure(ValidationError.error(reason: "Invalid private key"))
+        }
+        
+        let payload = try decrypt(
+          jwtString: string,
+          keyManagementAlgorithm: keyManagementAlgorithm,
+          contentEncryptionAlgorithm: contentEncryptionAlgorithm,
+          privateKey: key
+        )
+        
+        let response = try JSONDecoder().decode(DeferredCredentialIssuanceResponse.self, from: payload.data())
+        return .success(response)
+      }
+      
+      return .failure(ValidationError.error(reason: "responseEncryptionSpec not found \(#line)"))
+      
     } catch {
       
       return .failure(error)
     }
-    
   }
   
   public func notifyIssuer(
@@ -255,8 +287,12 @@ public actor IssuanceRequester: IssuanceRequesterType {
         throw CredentialIssuerMetadataValidationError.invalidNotificationEndpoint
       }
       
-      let authorizationHeader: [String: String] = accessToken.authorizationHeader
-      let url = notificationEndpoint.url
+      let endpoint = notificationEndpoint.url
+      let authorizationHeader: [String: String] = try accessToken.dPoPOrBearerAuthorizationHeader(
+        dpopConstructor: dpopConstructor,
+        endpoint: endpoint
+      )
+      
       let payload = NotificationObject(
         id: notification.id,
         event: notification.event,
@@ -267,7 +303,7 @@ public actor IssuanceRequester: IssuanceRequesterType {
       do {
         let _: EmptyResponse = try await service.formPost(
           poster: poster,
-          url: url,
+          url: endpoint,
           headers: authorizationHeader,
           body: encodedRequest
         )
@@ -284,6 +320,26 @@ public actor IssuanceRequester: IssuanceRequesterType {
     } catch {
       return .failure(error)
     }
+  }
+}
+
+private extension IssuanceRequester {
+  func decrypt(
+    jwtString: String,
+    keyManagementAlgorithm: KeyManagementAlgorithm,
+    contentEncryptionAlgorithm: ContentEncryptionAlgorithm,
+    privateKey: SecKey
+  ) throws -> Payload {
+    
+    let jwe = try JWE(compactSerialization: jwtString)
+    guard let decrypter = Decrypter(
+      keyManagementAlgorithm: keyManagementAlgorithm,
+      contentEncryptionAlgorithm: contentEncryptionAlgorithm,
+      decryptionKey: privateKey
+    ) else {
+      throw ValidationError.error(reason: "Could not instantiate descypter")
+    }
+    return try jwe.decrypt(using: decrypter)
   }
 }
 

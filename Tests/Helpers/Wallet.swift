@@ -398,10 +398,11 @@ extension Wallet {
         credentialConfigurationIdentifier: credentialConfigurationIdentifier,
         claimSet: claimSet
       )
+      let responseEncryptionSpecProvider = { Issuer.createResponseEncryptionSpec($0) }
       let requestOutcome = try await issuer.requestSingle(
         noProofRequest: noProofRequiredState,
         requestPayload: payload,
-        responseEncryptionSpecProvider: { Issuer.createResponseEncryptionSpec($0) }
+        responseEncryptionSpecProvider: responseEncryptionSpecProvider
       )
       switch requestOutcome {
       case .success(let request):
@@ -455,11 +456,12 @@ extension Wallet {
       claimSet: claimSet
     )
     
+    let responseEncryptionSpecProvider = { Issuer.createResponseEncryptionSpec($0) }
     let requestOutcome = try await issuer.requestSingle(
       proofRequest: authorized,
       bindingKey: bindingKey,
       requestPayload: payload,
-      responseEncryptionSpecProvider:  { Issuer.createResponseEncryptionSpec($0) }
+      responseEncryptionSpecProvider: responseEncryptionSpecProvider
     )
     
     switch requestOutcome {

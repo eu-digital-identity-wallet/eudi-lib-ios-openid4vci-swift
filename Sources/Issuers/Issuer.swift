@@ -70,6 +70,8 @@ public protocol IssuerType {
 
 public actor Issuer: IssuerType {
   
+  public var deferredResponseEncryptionSpec: IssuanceResponseEncryptionSpec? = nil
+  
   let authorizationServerMetadata: IdentityAndAccessManagementMetadata
   let issuerMetadata: CredentialIssuerMetadata
   let config: OpenId4VCIConfig
@@ -479,7 +481,7 @@ public actor Issuer: IssuerType {
         
         let batch: [SingleCredential] = credentialRequests.compactMap { credentialIssuanceRequest in
           switch credentialIssuanceRequest {
-          case .single(let credential):
+          case .single(let credential, _):
             return credential
           default:
             return nil
@@ -500,7 +502,8 @@ private extension Issuer {
   ) async throws -> Result<SubmittedRequest, Error> {
     let credentialRequest = try issuanceRequestSupplier()
     switch credentialRequest {
-    case .single(let single):
+    case .single(let single, let encryptionSpec):
+      self.deferredResponseEncryptionSpec = encryptionSpec
       let result = try await issuanceRequester.placeIssuanceRequest(
         accessToken: token,
         request: single
@@ -727,7 +730,8 @@ public extension Issuer {
     
     return try await deferredIssuanceRequester.placeDeferredCredentialRequest(
       accessToken: token,
-      transactionId: transactionId
+      transactionId: transactionId,
+      issuanceResponseEncryptionSpec: deferredResponseEncryptionSpec
     )
   }
   

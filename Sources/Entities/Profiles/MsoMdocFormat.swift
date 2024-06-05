@@ -347,7 +347,7 @@ public extension MsoMdocFormat {
             claimSet: try claimSet?.validate(claims: self.claimList), 
             credentialIdentifier: credentialIdentifier
           )
-        )
+        ), responseEncryptionSpec
       )
     }
   }
