@@ -37,14 +37,14 @@ public protocol AuthorizationServerClientType {
   func requestAccessTokenAuthFlow(
     authorizationCode: String,
     codeVerifier: String
-  ) async throws -> Result<(AccessToken, CNonce?, AuthorizationDetailsIdentifiers?), ValidationError>
+  ) async throws -> Result<(IssuanceAccessToken, CNonce?, AuthorizationDetailsIdentifiers?, TokenType?), ValidationError>
   
   func requestAccessTokenPreAuthFlow(
     preAuthorizedCode: String,
     txCode: TxCode,
     clientId: String,
     transactionCode: String?
-  ) async throws -> Result<(AccessToken, CNonce?, AuthorizationDetailsIdentifiers?), ValidationError>
+  ) async throws -> Result<(IssuanceAccessToken, CNonce?, AuthorizationDetailsIdentifiers?), ValidationError>
 }
 
 public actor AuthorizationServerClient: AuthorizationServerClientType {
@@ -60,6 +60,7 @@ public actor AuthorizationServerClient: AuthorizationServerClientType {
   public let clientId: String
   public let authorizationServerMetadata: IdentityAndAccessManagementMetadata
   public let credentialIssuerIdentifier: CredentialIssuerId
+  public let dpopConstructor: DPoPConstructorType?
   
   static let responseType = "code"
   static let grantAuthorizationCode = "authorization_code"
@@ -71,7 +72,8 @@ public actor AuthorizationServerClient: AuthorizationServerClientType {
     tokenPoster: PostingType = Poster(),
     config: OpenId4VCIConfig,
     authorizationServerMetadata: IdentityAndAccessManagementMetadata,
-    credentialIssuerIdentifier: CredentialIssuerId
+    credentialIssuerIdentifier: CredentialIssuerId,
+    dpopConstructor: DPoPConstructorType? = nil
   ) throws {
     self.service = service
     self.parPoster = parPoster
@@ -83,6 +85,8 @@ public actor AuthorizationServerClient: AuthorizationServerClientType {
     
     self.redirectionURI = config.authFlowRedirectionURI
     self.clientId = ClientId(config.clientId)
+    
+    self.dpopConstructor = dpopConstructor
     
     switch authorizationServerMetadata {
     case .oidc(let data):
@@ -237,7 +241,12 @@ public actor AuthorizationServerClient: AuthorizationServerClientType {
   public func requestAccessTokenAuthFlow(
     authorizationCode: String,
     codeVerifier: String
-  ) async throws -> Result<(AccessToken, CNonce?, AuthorizationDetailsIdentifiers?), ValidationError> {
+  ) async throws -> Result<(
+    IssuanceAccessToken,
+    CNonce?,
+    AuthorizationDetailsIdentifiers?,
+    TokenType?
+  ), ValidationError> {
     
     let parameters: [String: String] = authCodeFlow(
       authorizationCode: authorizationCode,
@@ -245,21 +254,22 @@ public actor AuthorizationServerClient: AuthorizationServerClientType {
       clientId: clientId,
       codeVerifier: codeVerifier
     )
-    
+
     let response: AccessTokenRequestResponse = try await service.formPost(
       poster: tokenPoster,
       url: tokenEndpoint, 
-      headers: [:],
+      headers: try tokenEndPointHeaders(),
       parameters: parameters
     )
     
     switch response {
-    case .success(let accessToken, _, _, let nonce, _, let identifiers):
+    case .success(let tokenType, let accessToken, _, _, _, let nonce, _, let identifiers):
       return .success(
         (
-          try .init(value: accessToken),
+          try .init(accessToken: accessToken, tokenType: .init(value: tokenType)),
           .init(value: nonce),
-          identifiers
+          identifiers,
+          TokenType(value: tokenType)
         )
       )
     case .failure(let error, let errorDescription):
@@ -275,7 +285,7 @@ public actor AuthorizationServerClient: AuthorizationServerClientType {
     txCode: TxCode,
     clientId: String,
     transactionCode: String?
-  ) async throws -> Result<(AccessToken, CNonce?, AuthorizationDetailsIdentifiers?), ValidationError> {
+  ) async throws -> Result<(IssuanceAccessToken, CNonce?, AuthorizationDetailsIdentifiers?), ValidationError> {
     let parameters: JSON = try await preAuthCodeFlow(
       preAuthorizedCode: preAuthorizedCode,
       txCode: txCode,
@@ -286,15 +296,15 @@ public actor AuthorizationServerClient: AuthorizationServerClientType {
     let response: AccessTokenRequestResponse = try await service.formPost(
       poster: tokenPoster,
       url: tokenEndpoint,
-      headers: [:],
+      headers: try tokenEndPointHeaders(),
       parameters: parameters.toDictionary().convertToDictionaryOfStrings()
     )
     
     switch response {
-    case .success(let accessToken, _, _, let nonce, _, let identifiers):
+    case .success(let tokenType, let accessToken, _, _, _, let nonce, _, let identifiers):
       return .success(
         (
-          try .init(value: accessToken),
+          try .init(accessToken: accessToken, tokenType: .init(value: tokenType)),
           .init(value: nonce),
           identifiers
         )
@@ -326,6 +336,14 @@ public actor AuthorizationServerClient: AuthorizationServerClientType {
 }
 
 private extension AuthorizationServerClient {
+  
+  func tokenEndPointHeaders() throws -> [String: String] {
+    if let dpopConstructor {
+      return ["DPoP": try dpopConstructor.jwt(endpoint: tokenEndpoint, accessToken: nil)]
+    } else {
+      return [:]
+    }
+  }
   
   func authCodeFlow(
     authorizationCode: String,

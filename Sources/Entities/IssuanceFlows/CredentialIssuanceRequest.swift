@@ -59,7 +59,7 @@ public extension MsoMdocClaims {
 }
 
 public enum CredentialIssuanceRequest {
-  case single(SingleCredential)
+  case single(SingleCredential, IssuanceResponseEncryptionSpec?)
   case batch([SingleCredential])
 }
 

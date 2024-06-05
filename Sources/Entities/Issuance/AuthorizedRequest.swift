@@ -17,19 +17,21 @@ import Foundation
 
 public enum AuthorizedRequest {
   case noProofRequired(
-    token: IssuanceAccessToken,
+    accessToken: IssuanceAccessToken,
+    refreshToken: IssuanceRefreshToken?,
     credentialIdentifiers: AuthorizationDetailsIdentifiers?
     )
   case proofRequired(
-    token: IssuanceAccessToken,
+    accessToken: IssuanceAccessToken,
+    refreshToken: IssuanceRefreshToken?,
     cNonce: CNonce,
     credentialIdentifiers: AuthorizationDetailsIdentifiers?
   )
   
   public var noProofToken: IssuanceAccessToken? {
     switch self {
-    case .noProofRequired(let token, _):
-      return token
+    case .noProofRequired(let accessToken, _, _):
+      return accessToken
     case .proofRequired:
       return nil
     }
@@ -39,8 +41,8 @@ public enum AuthorizedRequest {
     switch self {
     case .noProofRequired:
       return nil
-    case .proofRequired(let token, _, _):
-      return token
+    case .proofRequired(let accessToken, _, _, _):
+      return accessToken
     }
   }
 }
@@ -48,19 +50,21 @@ public enum AuthorizedRequest {
 public extension AuthorizedRequest {
   var accessToken: IssuanceAccessToken? {
     switch self {
-    case .noProofRequired(let token, _):
-      return token
-    case .proofRequired(let token, _, _):
-      return token
+    case .noProofRequired(let accessToken, _, _):
+      return accessToken
+    case .proofRequired(let accessToken, _, _, _):
+      return accessToken
     }
   }
+  
   func handleInvalidProof(cNonce: CNonce) throws -> AuthorizedRequest {
     switch self {
       
-    case .noProofRequired(let token, let credentialIdentifiers):
+    case .noProofRequired(let accessToken, let refreshToken, let credentialIdentifiers):
       return .proofRequired(
-        token: token,
-        cNonce: cNonce, 
+        accessToken: accessToken,
+        refreshToken: refreshToken,
+        cNonce: cNonce,
         credentialIdentifiers: credentialIdentifiers
       )
     default: throw ValidationError.error(reason: "Expected .noProofRequired authorisation request")

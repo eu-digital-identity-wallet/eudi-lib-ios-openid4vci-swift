@@ -15,19 +15,59 @@
  */
 import Foundation
 
+public enum TokenType: String, Codable {
+  case bearer = "Bearer"
+  case dpop = "DPoP"
+  
+  public init(value: String?) {
+    guard let value else {
+      self = .bearer
+      return
+    }
+    
+    if value == TokenType.bearer.rawValue {
+      self = .bearer
+    } else if value == TokenType.dpop.rawValue {
+      self = .dpop
+    } else {
+      self = .bearer
+    }
+  }
+}
+
 public struct IssuanceAccessToken: Codable {
   public let accessToken: String
+  public let tokenType: TokenType?
   
-  public init(accessToken: String) throws {
+  public init(
+    accessToken: String,
+    tokenType: TokenType?
+  ) throws {
     guard !accessToken.isEmpty else {
       throw ValidationError.error(reason: "Access token cannot be empty")
     }
     self.accessToken = accessToken
+    self.tokenType = tokenType
   }
 }
 
 public extension IssuanceAccessToken {
   var authorizationHeader: [String: String] {
     ["Authorization": "BEARER \(accessToken)"]
+  }
+  
+  func dPoPOrBearerAuthorizationHeader(
+    dpopConstructor: DPoPConstructorType?,
+    endpoint: URL?
+  ) throws -> [String: String] {
+    if tokenType == TokenType.bearer {
+      return ["Authorization": "BEARER \(accessToken)"]
+    } else if let dpopConstructor, tokenType == TokenType.dpop, let endpoint {
+      return [
+        "Authorization": "DPoP \(accessToken)",
+        "DPoP": try dpopConstructor.jwt(endpoint: endpoint, accessToken: accessToken)
+      ]
+    }
+    return ["Authorization": "BEARER \(accessToken)"]
   }
 }

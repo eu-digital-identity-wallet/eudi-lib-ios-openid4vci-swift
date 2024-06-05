@@ -20,7 +20,9 @@ public typealias AuthorizationDetailsIdentifiers = [CredentialConfigurationIdent
 
 public enum AccessTokenRequestResponse: Codable {
   case success(
+    tokenType: String?,
     accessToken: String,
+    refreshToken: String?,
     expiresIn: Int,
     scope: String?,
     cNonce: String?,
@@ -33,7 +35,9 @@ public enum AccessTokenRequestResponse: Codable {
   )
   
   enum CodingKeys: String, CodingKey {
+    case tokenType = "token_type"
     case accessToken = "access_token"
+    case refreshToken = "refresh_token"
     case expiresIn = "expires_in"
     case scope
     case error
@@ -49,6 +53,8 @@ public enum AccessTokenRequestResponse: Codable {
     if let accessToken = try? container.decode(String.self, forKey: .accessToken),
        let expiresIn = try? container.decode(Int.self, forKey: .expiresIn) {
       
+      let tokenType = try? container.decode(String.self, forKey: .tokenType)
+      let refeshToken = try? container.decode(String.self, forKey: .refreshToken)
       var authorizationDetails: AuthorizationDetailsIdentifiers = [:]
       
       let json = try? container.decode(JSON.self, forKey: .authorizationDetails)
@@ -71,7 +77,9 @@ public enum AccessTokenRequestResponse: Codable {
       }
       
       self = .success(
+        tokenType: tokenType,
         accessToken: accessToken,
+        refreshToken: refeshToken,
         expiresIn: expiresIn,
         scope: try? container.decode(String.self, forKey: .scope),
         cNonce: try? container.decode(String.self, forKey: .cNonce),
@@ -95,8 +103,19 @@ public enum AccessTokenRequestResponse: Codable {
     var container = encoder.container(keyedBy: CodingKeys.self)
     
     switch self {
-    case let .success(accessToken, expiresIn, scope, cNonce, cNonceExpiresIn, _):
+    case let .success(
+      tokenType,
+      accessToken,
+      refreshToken,
+      expiresIn,
+      scope,
+      cNonce,
+      cNonceExpiresIn,
+      _
+    ):
+      try container.encode(tokenType, forKey: .tokenType)
       try container.encode(accessToken, forKey: .accessToken)
+      try container.encode(refreshToken, forKey: .refreshToken)
       try container.encode(expiresIn, forKey: .expiresIn)
       try container.encode(scope, forKey: .scope)
       try container.encode(cNonce, forKey: .cNonce)

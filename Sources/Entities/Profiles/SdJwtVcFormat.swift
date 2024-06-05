@@ -342,7 +342,7 @@ public extension SdJwtVcFormat {
             ),
             credentialIdentifier: credentialIdentifier
           )
-        )
+        ), responseEncryptionSpec
       )
     }
   }

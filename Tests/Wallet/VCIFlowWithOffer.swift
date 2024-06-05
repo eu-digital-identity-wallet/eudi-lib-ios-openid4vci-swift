@@ -56,7 +56,8 @@ class VCIFlowWithOffer: XCTestCase {
     
     let wallet = Wallet(
       actingUser: user,
-      bindingKey: bindingKey
+      bindingKey: bindingKey, 
+      dPoPConstructor: nil
     )
     
     do {
@@ -99,7 +100,8 @@ class VCIFlowWithOffer: XCTestCase {
     
     let wallet = Wallet(
       actingUser: user,
-      bindingKey: bindingKey
+      bindingKey: bindingKey,
+      dPoPConstructor: nil
     )
     
     do {
@@ -142,7 +144,8 @@ class VCIFlowWithOffer: XCTestCase {
     
     let wallet = Wallet(
       actingUser: user,
-      bindingKey: bindingKey
+      bindingKey: bindingKey,
+      dPoPConstructor: nil
     )
     
     do {
@@ -185,7 +188,8 @@ class VCIFlowWithOffer: XCTestCase {
     
     let wallet = Wallet(
       actingUser: user,
-      bindingKey: bindingKey
+      bindingKey: bindingKey,
+      dPoPConstructor: nil
     )
     
     do {
@@ -228,13 +232,62 @@ class VCIFlowWithOffer: XCTestCase {
     
     let wallet = Wallet(
       actingUser: user,
-      bindingKey: bindingKey
+      bindingKey: bindingKey,
+      dPoPConstructor: nil
     )
     
     do {
       try await walletInitiatedIssuanceWithOfferUrl(
         wallet: wallet,
         url: CREDENTIAL_OFFER_QR_CODE_URL.removingPercentEncoding!
+      )
+    } catch {
+      
+      XCTExpectFailure()
+      XCTAssert(false, error.localizedDescription)
+    }
+    
+    XCTAssert(true)
+  }
+  
+  func testWithOfferMDLDPoP() async throws {
+    
+    let privateKey = try KeyController.generateECDHPrivateKey()
+    let publicKey = try KeyController.generateECDHPublicKey(from: privateKey)
+    
+    let alg = JWSAlgorithm(.ES256)
+    let publicKeyJWK = try ECPublicKey(
+      publicKey: publicKey,
+      additionalParameters: [
+        "alg": alg.name,
+        "use": "sig",
+        "kid": UUID().uuidString
+      ])
+    
+    let bindingKey: BindingKey = .jwk(
+      algorithm: alg,
+      jwk: publicKeyJWK,
+      privateKey: privateKey
+    )
+    
+    let user = ActingUser(
+      username: "tneal",
+      password: "password"
+    )
+    
+    let wallet = Wallet(
+      actingUser: user,
+      bindingKey: bindingKey,
+      dPoPConstructor: DPoPConstructor(
+        algorithm: alg,
+        jwk: publicKeyJWK,
+        privateKey: privateKey
+      )
+    )
+    
+    do {
+      try await walletInitiatedIssuanceWithOfferMDL_DPoP(
+        wallet: wallet
       )
     } catch {
       
@@ -272,6 +325,23 @@ private func walletInitiatedIssuanceWithOfferMDL(
   
   let url = "\(CREDENTIAL_ISSUER_PUBLIC_URL)/credentialoffer?credential_offer=\(MDL_CredentialOffer)"
   let credential = try await wallet.issueByCredentialOfferUrl(
+    offerUri: url,
+    scope: MDL_config_id,
+    claimSet: claimSet
+  )
+  
+  print("--> [ISSUANCE] Issued credential : \(credential)")
+}
+
+private func walletInitiatedIssuanceWithOfferMDL_DPoP(
+  wallet: Wallet,
+  claimSet: ClaimSet? = nil
+) async throws {
+  
+  print("[[Scenario: Offer passed to wallet via url]] ")
+  
+  let url = "\(CREDENTIAL_ISSUER_PUBLIC_URL)/credentialoffer?credential_offer=\(MDL_CredentialOffer)"
+  let credential = try await wallet.issueByCredentialOfferUrl_DPoP(
     offerUri: url,
     scope: MDL_config_id,
     claimSet: claimSet
