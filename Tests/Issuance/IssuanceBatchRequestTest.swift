@@ -36,7 +36,7 @@ class IssuanceBatchRequestTest: XCTestCase {
     super.tearDown()
   }
   
-  func testBatchCredentialIssuance() async throws {
+  func testGivenMockDataBatchCredentialIssuance() async throws {
     
     // Given
     guard let offer = await TestsConstants.createMockCredentialOfferValidEncryption() else {
@@ -181,5 +181,183 @@ class IssuanceBatchRequestTest: XCTestCase {
     }
     
     XCTAssert(false, "Unable to get access token")
+  }
+  
+  func testBatchCredentialIssuance() async throws {
+    
+    // Given
+    let url = "\(CREDENTIAL_ISSUER_PUBLIC_URL)/credentialoffer?credential_offer=\(SdJwtVC_CredentialOffer)"
+    
+    guard let offer = try? await CredentialOfferRequestResolver()
+      .resolve(
+        source: try .init(
+          urlString: url
+        )
+      ).get() else {
+      XCTAssert(false, "Unable to resolve credential offer")
+      return
+    }
+    
+    // Given
+    let privateKey = try KeyController.generateRSAPrivateKey()
+    let publicKey = try KeyController.generateRSAPublicKey(from: privateKey)
+    
+    let alg = JWSAlgorithm(.RS256)
+    let publicKeyJWK = try RSAPublicKey(
+      publicKey: publicKey,
+      additionalParameters: [
+        "alg": alg.name,
+        "use": "enc",
+        "kid": UUID().uuidString
+      ])
+    
+    let spec = IssuanceResponseEncryptionSpec(
+      jwk: publicKeyJWK,
+      privateKey: privateKey,
+      algorithm: .init(.RSA_OAEP_256),
+      encryptionMethod: .init(.A128CBC_HS256)
+    )
+    
+    // When
+    let issuer = try Issuer(
+      authorizationServerMetadata: offer.authorizationServerMetadata,
+      issuerMetadata: offer.credentialIssuerMetadata,
+      config: config
+    )
+    
+    let bindingKey: BindingKey = .jwk(
+      algorithm: alg,
+      jwk: publicKeyJWK,
+      privateKey: privateKey
+    )
+    
+    let wallet = Wallet(
+      actingUser: .init(
+        username: "tneal",
+        password: "password"
+      ),
+      bindingKey: bindingKey,
+      dPoPConstructor: nil
+    )
+    
+    let authorized = try await wallet.authorizeRequestWithAuthCodeUseCase(
+      issuer: issuer,
+      offer: offer
+    )
+    
+    let claimSetMsoMdoc = MsoMdocFormat.MsoMdocClaimSet(
+      claims: [
+        ("org.iso.18013.5.1", "given_name"),
+        ("org.iso.18013.5.1", "family_name")
+      ]
+    )
+    
+    let claimSetSDJWTVC = GenericClaimSet(claims: [
+      "given_name",
+      "family_name"
+    ])
+    
+    let msoMdocPayload: IssuanceRequestPayload = .configurationBased(
+      credentialConfigurationIdentifier: try .init(
+        value: PID_MsoMdoc_config_id
+      ),
+      claimSet: .msoMdoc(claimSetMsoMdoc)
+    )
+    
+    let sdJwtVCPayload: IssuanceRequestPayload = .configurationBased(
+      credentialConfigurationIdentifier: try .init(
+        value: PID_SdJwtVC_config_id
+      ),
+      claimSet: .generic(claimSetSDJWTVC)
+    )
+    
+    switch authorized {
+      
+    case .noProofRequired:
+      do {
+                  
+        let result = try await issuer.requestBatch(
+          noProofRequest: authorized,
+          requestPayload: [
+            msoMdocPayload,
+            sdJwtVCPayload
+          ],
+          responseEncryptionSpecProvider: { _ in
+            spec
+          })
+        
+        switch result {
+        case .success(let request):
+          switch request {
+          case .success(let response):
+            if let result = response.credentialResponses.first {
+              switch result {
+              case .deferred:
+                XCTAssert(false, "Unexpected deferred")
+              case .issued(_, let credential, _):
+                XCTAssert(true, "credential: \(credential)")
+                return
+              }
+            } else {
+              break
+            }
+          case .failed(let error):
+            XCTAssert(false, error.localizedDescription)
+            
+          case .invalidProof(_, let errorDescription):
+            XCTAssert(false, errorDescription!)
+          }
+          XCTAssert(false, "Unexpected request")
+        case .failure(let error):
+          XCTAssert(false, error.localizedDescription)
+        }
+      } catch {
+        XCTExpectFailure()
+        XCTAssert(false, error.localizedDescription)
+      }
+    case .proofRequired:
+      do {
+                  
+        let result = try await issuer.requestBatch(
+          proofRequest: authorized,
+          bindingKey: bindingKey,
+          requestPayload: [
+            msoMdocPayload,
+            sdJwtVCPayload
+          ],
+          responseEncryptionSpecProvider: { _ in
+            spec
+          })
+        
+        switch result {
+        case .success(let request):
+          switch request {
+          case .success(let response):
+            if let result = response.credentialResponses.first {
+              switch result {
+              case .deferred:
+                XCTAssert(false, "Unexpected deferred")
+              case .issued(_, let credential, _):
+                XCTAssert(true, "credential: \(credential)")
+                return
+              }
+            } else {
+              break
+            }
+          case .failed(let error):
+            XCTAssert(false, error.localizedDescription)
+            
+          case .invalidProof(_, let errorDescription):
+            XCTAssert(false, errorDescription!)
+          }
+          XCTAssert(false, "Unexpected request")
+        case .failure(let error):
+          XCTAssert(false, error.localizedDescription)
+        }
+      } catch {
+        XCTExpectFailure()
+        XCTAssert(false, error.localizedDescription)
+      }
+    }
   }
 }
