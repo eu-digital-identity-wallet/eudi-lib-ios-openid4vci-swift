@@ -315,7 +315,7 @@ extension Wallet {
     }
   }
   
-  private func authorizeRequestWithAuthCodeUseCase(
+  func authorizeRequestWithAuthCodeUseCase(
     issuer: Issuer,
     offer: CredentialOffer
   ) async throws -> AuthorizedRequest {
