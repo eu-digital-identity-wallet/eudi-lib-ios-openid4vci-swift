@@ -20,6 +20,7 @@ public enum PostError: LocalizedError {
   case networkError(Error)
   case response(GenericErrorResponse)
   case cannotParse(String)
+  case serverError
   
   /**
    Provides a localized description of the post error.
@@ -36,6 +37,8 @@ public enum PostError: LocalizedError {
       return "Generic error response"
     case .cannotParse(let string):
       return "Could not parse: \(string)"
+    case .serverError:
+      return "Server error"
     }
   }
 }
@@ -93,6 +96,8 @@ public struct Poster: PostingType {
       if statusCode >= 400 && statusCode < 500 {
         let object = try JSONDecoder().decode(GenericErrorResponse.self, from: data)
         return .failure(.response(object))
+      } else if statusCode >= 500 && statusCode < 599 {
+        return .failure(.serverError)
       }
       
       do {
