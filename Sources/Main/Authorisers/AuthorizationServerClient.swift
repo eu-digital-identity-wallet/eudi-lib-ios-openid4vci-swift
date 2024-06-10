@@ -160,7 +160,11 @@ public actor AuthorizationServerClient: AuthorizationServerClientType {
     
     guard let urlWithParams = authorizationEndpoint.appendingQueryParameters(
       try authzRequest.toDictionary().convertToDictionaryOfStrings(
-        excludingKeys: ["scope", "credential_configuration_ids"]
+        excludingKeys: [
+          "credential_configuration_ids",
+          "code_challenge",
+          "code_challenge_method"
+        ]
       )
     ) else {
       throw ValidationError.invalidUrl(parEndpoint.absoluteString)
