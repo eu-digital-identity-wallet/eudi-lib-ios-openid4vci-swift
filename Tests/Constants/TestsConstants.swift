@@ -25,8 +25,8 @@ import Foundation
 
 let CREDENTIAL_ISSUER_PUBLIC_URL = "https://dev.issuer-backend.eudiw.dev"
 let MDL_config_id = "org.iso.18013.5.1.mDL"
-let PID_MsoMdoc_config_id = "eu.europa.ec.eudiw.pid_mso_mdoc"
-let PID_SdJwtVC_config_id = "eu.europa.ec.eudiw.pid_vc_sd_jwt"
+let PID_MsoMdoc_config_id = "eu.europa.ec.eudi.pid_mso_mdoc"
+let PID_SdJwtVC_config_id = "eu.europa.ec.eudi.pid_vc_sd_jwt"
 
 //let CredentialIssuer_URL = "https://preprod.issuer.eudiw.dev/oidc"
 //let PID_SdJwtVC_SCOPE = "eu.europa.ec.eudiw.pid_jwt_vc_json"
@@ -34,7 +34,7 @@ let PID_SdJwtVC_config_id = "eu.europa.ec.eudiw.pid_vc_sd_jwt"
 //let PID_mDL_SCOPE = "eu.europa.ec.eudiw.mdl_mdoc"
 
 let CREDENTIAL_OFFER_QR_CODE_URL = """
-eudi-openid4ci://credentialsOffer?credential_offer=%7B%22credential_issuer%22:%22https://dev.issuer-backend.eudiw.dev%22,%22credential_configuration_ids%22:[%22eu.europa.ec.eudiw.pid_mso_mdoc%22,%22eu.europa.ec.eudiw.pid_vc_sd_jwt%22,%22org.iso.18013.5.1.mDL%22],%22grants%22:%7B%22authorization_code%22:%7B%22authorization_server%22:%22https://dev.auth.eudiw.dev/realms/pid-issuer-realm%22%7D%7D%7D
+eudi-openid4ci://credentialsOffer?credential_offer=%7B%22credential_issuer%22:%22https://dev.issuer-backend.eudiw.dev%22,%22credential_configuration_ids%22:[%22eu.europa.ec.eudi.pid_mso_mdoc%22,%22eu.europa.ec.eudi.pid_vc_sd_jwt%22,%22org.iso.18013.5.1.mDL%22],%22grants%22:%7B%22authorization_code%22:%7B%22authorization_server%22:%22https://dev.auth.eudiw.dev/realms/pid-issuer-realm%22%7D%7D%7D
 """
 
 let All_Supported_CredentialOffer = """

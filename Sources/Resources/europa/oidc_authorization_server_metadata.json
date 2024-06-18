@@ -216,9 +216,9 @@
   "claims_parameter_supported": true,
   "scopes_supported": [
     "openid",
-    "eu.europa.ec.eudiw.pid_sd-jwt-vc",
+    "eu.europa.ec.eudi.pid_sd-jwt-vc",
     "web-origins",
-    "eu.europa.ec.eudiw.pid_mso_mdoc",
+    "eu.europa.ec.eudi.pid_mso_mdoc",
     "offline_access",
     "roles"
   ],
