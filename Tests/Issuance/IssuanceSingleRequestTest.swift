@@ -118,7 +118,7 @@ class IssuanceSingleRequestTest: XCTestCase {
           
           let payload: IssuanceRequestPayload = .configurationBased(
             credentialConfigurationIdentifier: try .init(
-              value: "eu.europa.ec.eudiw.pid_mso_mdoc"
+              value: "eu.europa.ec.eudi.pid_mso_mdoc"
             ),
             claimSet: .msoMdoc(claimSetMsoMdoc)
           )
@@ -251,7 +251,7 @@ class IssuanceSingleRequestTest: XCTestCase {
         
         let payload: IssuanceRequestPayload = .configurationBased(
           credentialConfigurationIdentifier: try .init(
-            value: "eu.europa.ec.eudiw.pid_mso_mdoc"
+            value: "eu.europa.ec.eudi.pid_mso_mdoc"
           ),
           claimSet: .msoMdoc(claimSetMsoMdoc)
         )

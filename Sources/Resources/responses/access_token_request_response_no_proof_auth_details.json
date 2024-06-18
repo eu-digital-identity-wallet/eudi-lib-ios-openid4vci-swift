@@ -5,8 +5,8 @@
   "authorization_details": [
     {
       "type": "openid_credential",
-      "credential_configuration_id": "eu.europa.ec.eudiw.pid_mso_mdoc",
-      "credential_identifiers": [ "eu.europa.ec.eudiw.pid_mso_mdoc_1", "eu.europa.ec.eudiw.pid_mso_mdoc_2" ]
+      "credential_configuration_id": "eu.europa.ec.eudi.pid_mso_mdoc",
+      "credential_identifiers": [ "eu.europa.ec.eudi.pid_mso_mdoc_1", "eu.europa.ec.eudi.pid_mso_mdoc_2" ]
     }
   ]
 }
