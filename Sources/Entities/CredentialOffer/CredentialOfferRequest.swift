@@ -46,14 +46,14 @@ public extension CredentialOfferRequest {
 
 private extension CredentialOfferRequest {
     static func parseUrl(_ string: String) throws -> URL {
-    if let url = URL(string: string) {
-      return url
+      if let url = URL(string: string) {
+        return url
 
-    } else if let encodedString = string.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed), let url = URL(string: encodedString) {
-      return url
+      } else if let encodedString = string.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed), let url = URL(string: encodedString) {
+        return url
 
-    } else {
-      throw CredentialOfferRequestError.nonParsableCredentialOfferEndpointUrl(reason: string)
-    }
+      } else {
+        throw CredentialOfferRequestError.nonParsableCredentialOfferEndpointUrl(reason: string)
+      }
   }
 }
