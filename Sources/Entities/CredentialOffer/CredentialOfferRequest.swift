@@ -22,11 +22,9 @@ public enum CredentialOfferRequest {
 
 public extension CredentialOfferRequest {
   init(urlString: String) throws {
-    
-    guard let url = URL(string: urlString) else {
-      throw CredentialOfferRequestError.nonParsableCredentialOfferEndpointUrl(reason: urlString)
-    }
-    
+
+    let url = try Self.parseUrl(urlString)
+
     let parameters = url.queryParameters
     if let byValue = parameters["credential_offer"],
       !byValue.isEmpty {
@@ -43,5 +41,19 @@ public extension CredentialOfferRequest {
     } else {
       self = .fetchByReference(url: url)
      }
+  }
+}
+
+private extension CredentialOfferRequest {
+    static func parseUrl(_ string: String) throws -> URL {
+    if let url = URL(string: string) {
+      return url
+
+    } else if let encodedString = string.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed), let url = URL(string: encodedString) {
+      return url
+
+    } else {
+      throw CredentialOfferRequestError.nonParsableCredentialOfferEndpointUrl(reason: string)
+    }
   }
 }
