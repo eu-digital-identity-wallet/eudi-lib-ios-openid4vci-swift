@@ -38,11 +38,17 @@ public actor AuthorizationServerMetadataResolver: AuthorizationServerMetadataRes
   private let oauthFetcher: Fetcher<AuthorizationServerMetadata>
   
   public init(
+    usesSelfSignedDelegation: Bool = false,
     oidcFetcher: Fetcher<OIDCProviderMetadata> = Fetcher(),
     oauthFetcher: Fetcher<AuthorizationServerMetadata> = Fetcher()
   ) {
-    self.oidcFetcher = oidcFetcher
-    self.oauthFetcher = oauthFetcher
+    var oidc = oidcFetcher
+    oidc.usesSelfSignedDelegation = usesSelfSignedDelegation
+    self.oidcFetcher = oidc
+
+    var oauth = oauthFetcher
+    oauth.usesSelfSignedDelegation = usesSelfSignedDelegation
+    self.oauthFetcher = oauth
   }
   
   /// Resolves client metadata asynchronously.

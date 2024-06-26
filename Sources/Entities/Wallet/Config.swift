@@ -27,15 +27,18 @@ public struct OpenId4VCIConfig {
   public let clientId: ClientId
   public let authFlowRedirectionURI: URL
   public let authorizeIssuanceConfig: AuthorizeIssuanceConfig
-  
+  public let usesSelfSignedDelegation: Bool
+
   public init(
     clientId: ClientId,
     authFlowRedirectionURI: URL,
-    authorizeIssuanceConfig: AuthorizeIssuanceConfig = .favorScopes
+    authorizeIssuanceConfig: AuthorizeIssuanceConfig = .favorScopes,
+    usesSelfSignedDelegation: Bool = false
   ) {
     self.clientId = clientId
     self.authFlowRedirectionURI = authFlowRedirectionURI
     self.authorizeIssuanceConfig = authorizeIssuanceConfig
+    self.usesSelfSignedDelegation = usesSelfSignedDelegation
   }
 }
 

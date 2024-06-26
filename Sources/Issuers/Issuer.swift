@@ -84,10 +84,8 @@ public actor Issuer: IssuerType {
   let config: OpenId4VCIConfig
   
   private let authorizer: AuthorizationServerClientType
-  
   private let issuanceRequester: IssuanceRequesterType
   private let deferredIssuanceRequester: IssuanceRequesterType
-  
   private let notifyIssuer: NotifyIssuerType
   
   public init(
@@ -105,29 +103,39 @@ public actor Issuer: IssuerType {
     self.issuerMetadata = issuerMetadata
     self.config = config
     
+    var authorizationServerParPoster = parPoster
+    authorizationServerParPoster.usesSelfSignedDelegation = config.usesSelfSignedDelegation
+    var authorizationServerTokenPoster = tokenPoster
+    authorizationServerTokenPoster.usesSelfSignedDelegation = config.usesSelfSignedDelegation
     authorizer = try AuthorizationServerClient(
-      parPoster: parPoster,
-      tokenPoster: tokenPoster,
+      parPoster: authorizationServerParPoster,
+      tokenPoster: authorizationServerTokenPoster,
       config: config,
       authorizationServerMetadata: authorizationServerMetadata,
       credentialIssuerIdentifier: issuerMetadata.credentialIssuerIdentifier,
       dpopConstructor: dpopConstructor
     )
     
+    var issuanceRequesterPoster = requesterPoster
+    issuanceRequesterPoster.usesSelfSignedDelegation = config.usesSelfSignedDelegation
     issuanceRequester = IssuanceRequester(
       issuerMetadata: issuerMetadata, 
-      poster: requesterPoster,
+      poster: issuanceRequesterPoster,
       dpopConstructor: dpopConstructor
     )
     
+    var deferredPoster = deferredRequesterPoster
+    deferredPoster.usesSelfSignedDelegation = config.usesSelfSignedDelegation
     deferredIssuanceRequester = IssuanceRequester(
       issuerMetadata: issuerMetadata,
-      poster: deferredRequesterPoster
+      poster: deferredPoster
     )
     
+    var notifyIssuerPoster = notificationPoster
+    notifyIssuerPoster.usesSelfSignedDelegation = config.usesSelfSignedDelegation
     notifyIssuer = NotifyIssuer(
       issuerMetadata: issuerMetadata,
-      poster: notificationPoster
+      poster: notifyIssuerPoster
     )
   }
   

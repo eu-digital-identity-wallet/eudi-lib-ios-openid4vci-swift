@@ -43,8 +43,13 @@ public actor CredentialIssuerMetadataResolver: CredentialIssuerMetadataType {
   
   private let fetcher: Fetcher<CredentialIssuerMetadata>
   
-  public init(fetcher: Fetcher<CredentialIssuerMetadata> = Fetcher()) {
-    self.fetcher = fetcher
+  public init(
+    usesSelfSignedDelegation: Bool = false,
+    fetcher: Fetcher<CredentialIssuerMetadata> = Fetcher()
+  ) {
+    var metaDataFetcher = fetcher
+    metaDataFetcher.usesSelfSignedDelegation = usesSelfSignedDelegation
+    self.fetcher = metaDataFetcher
   }
   
   /// Resolves client metadata asynchronously.
