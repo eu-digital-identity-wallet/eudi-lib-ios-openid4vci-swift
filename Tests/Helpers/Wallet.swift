@@ -31,7 +31,9 @@ extension Wallet {
     let credentialConfigurationIdentifier = try CredentialConfigurationIdentifier(value: identifier)
     let credentialIssuerIdentifier = try CredentialIssuerId(CREDENTIAL_ISSUER_PUBLIC_URL)
     
-    let resolver = CredentialIssuerMetadataResolver()
+    let resolver = CredentialIssuerMetadataResolver(
+        usesSelfSignedDelegation: config.usesSelfSignedDelegation
+    )
     let issuerMetadata = await resolver.resolve(
       source: .credentialIssuer(
         credentialIssuerIdentifier
