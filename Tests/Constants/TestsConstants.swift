@@ -80,8 +80,7 @@ let MDL_CredentialOffer = """
 let config: OpenId4VCIConfig = .init(
   clientId: "wallet-dev",
   authFlowRedirectionURI: URL(string: "urn:ietf:wg:oauth:2.0:oob")!, 
-  authorizeIssuanceConfig: .favorScopes,
-  usesSelfSignedDelegation: true
+  authorizeIssuanceConfig: .favorScopes
 )
 
 public struct ActingUser {

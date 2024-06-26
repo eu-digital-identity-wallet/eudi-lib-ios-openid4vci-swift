@@ -203,8 +203,16 @@ extension Wallet {
     scope: String,
     claimSet: ClaimSet? = nil
   ) async throws -> String {
-    let result = await CredentialOfferRequestResolver()
-      .resolve(
+      let result = await CredentialOfferRequestResolver(
+        usesSelfSignedDelegation: config.usesSelfSignedDelegation,
+        credentialIssuerMetadataResolver: CredentialIssuerMetadataResolver(
+          usesSelfSignedDelegation: config.usesSelfSignedDelegation
+        ),
+        authorizationServerMetadataResolver:
+          AuthorizationServerMetadataResolver(
+            usesSelfSignedDelegation: config.usesSelfSignedDelegation
+          )
+      ).resolve(
         source: try .init(
           urlString: offerUri
         )
@@ -227,8 +235,16 @@ extension Wallet {
     scope: String,
     claimSet: ClaimSet? = nil
   ) async throws -> String {
-    let result = await CredentialOfferRequestResolver()
-      .resolve(
+    let result = await CredentialOfferRequestResolver(
+      usesSelfSignedDelegation: config.usesSelfSignedDelegation,
+      credentialIssuerMetadataResolver: CredentialIssuerMetadataResolver(
+        usesSelfSignedDelegation: config.usesSelfSignedDelegation
+      ),
+      authorizationServerMetadataResolver:
+        AuthorizationServerMetadataResolver(
+          usesSelfSignedDelegation: config.usesSelfSignedDelegation
+        )
+    ).resolve(
         source: try .init(
           urlString: offerUri
         )
