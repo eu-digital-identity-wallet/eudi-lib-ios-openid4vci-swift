@@ -188,8 +188,9 @@ class IssuanceBatchRequestTest: XCTestCase {
     // Given
     let url = "\(CREDENTIAL_ISSUER_PUBLIC_URL)/credentialoffer?credential_offer=\(SdJwtVC_CredentialOffer)"
     
-    guard let offer = try? await CredentialOfferRequestResolver()
-      .resolve(
+      guard let offer = try? await CredentialOfferRequestResolver(
+        usesSelfSignedDelegation: config.usesSelfSignedDelegation
+      ).resolve(
         source: try .init(
           urlString: url
         )
