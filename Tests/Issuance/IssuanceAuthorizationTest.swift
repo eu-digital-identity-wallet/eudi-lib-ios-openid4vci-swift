@@ -415,7 +415,7 @@ class IssuanceAuthorizationTest: XCTestCase {
   
   func testTestIssuerSuccessfulAuthorizationWithPreAuthorizationCodeFlow() async throws {
 
-    /// Replace the url string below with the one you can generate here: https://tester.issuer.eudiw.dev/
+    /// Replace the url string below with the one you can generate here: https://dev.tester.issuer.eudiw.dev/
     let urlString = """
     """
 
@@ -458,7 +458,7 @@ class IssuanceAuthorizationTest: XCTestCase {
         preAuthorizationCode: code.preAuthorizedCode,
         txCode: code.txCode
       ),
-      clientId: "218232426",
+      clientId: "wallet-dev",
       transactionCode: "12345"
     )
 
@@ -484,7 +484,7 @@ class IssuanceAuthorizationTest: XCTestCase {
     let request = try result.get()
     let payload: IssuanceRequestPayload = .configurationBased(
       credentialConfigurationIdentifier: try CredentialConfigurationIdentifier(
-        value: "eu.europa.ec.eudi.loyalty_mdoc"
+        value: offer.credentialConfigurationIdentifiers.first!.value
       ),
       claimSet: nil
     )

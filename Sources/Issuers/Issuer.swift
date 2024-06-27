@@ -230,8 +230,7 @@ public actor Issuer: IssuerType {
             }
         }
         
-        let response =
-        try await authorizer.requestAccessTokenPreAuthFlow(
+        let response = try await authorizer.requestAccessTokenPreAuthFlow(
           preAuthorizedCode: authorisation,
           txCode: txCode,
           clientId: clientId,
