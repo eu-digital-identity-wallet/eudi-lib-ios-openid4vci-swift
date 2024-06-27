@@ -220,16 +220,14 @@ public actor Issuer: IssuerType {
     switch authorizationCode {
     case .preAuthorizationCode(let authorisation, let txCode):
       do {
-        guard let transactionCode else {
-          throw ValidationError.error(reason: "Issuer's grant is pre-authorization code with transaction code required but no transaction code passed")
-        }
-        
-        if txCode.length != transactionCode.count {
-          throw ValidationError.error(reason: "Expected transaction code length is \(txCode.length ?? 0) but code of length \(transactionCode.count) passed")
-        }
-        
-        if txCode.inputMode != .numeric {
-          throw ValidationError.error(reason: "Issuers expects transaction code to be numeric but is not.")
+        if let transactionCode, let txCode {
+            if txCode.length != transactionCode.count {
+              throw ValidationError.error(reason: "Expected transaction code length is \(txCode.length ?? 0) but code of length \(transactionCode.count) passed")
+            }
+
+            if txCode.inputMode != .numeric {
+              throw ValidationError.error(reason: "Issuers expects transaction code to be numeric but is not.")
+            }
         }
         
         let response =

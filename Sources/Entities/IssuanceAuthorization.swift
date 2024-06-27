@@ -19,7 +19,7 @@ public enum IssuanceAuthorization {
   case authorizationCode(authorizationCode: String)
   case preAuthorizationCode(
     preAuthorizedCode: String,
-    txCode: TxCode
+    txCode: TxCode?
   )
 }
 
@@ -38,10 +38,6 @@ public extension IssuanceAuthorization {
     
     guard let preAuthorizationCode else {
       throw ValidationError.error(reason: "Missing preAuthorizationCode")
-    }
-    
-    guard let txCode else {
-      throw ValidationError.error(reason: "Missing txCode")
     }
     
     guard !preAuthorizationCode.isEmpty else {

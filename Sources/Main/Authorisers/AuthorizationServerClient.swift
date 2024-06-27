@@ -41,7 +41,7 @@ public protocol AuthorizationServerClientType {
   
   func requestAccessTokenPreAuthFlow(
     preAuthorizedCode: String,
-    txCode: TxCode,
+    txCode: TxCode?,
     clientId: String,
     transactionCode: String?
   ) async throws -> Result<(IssuanceAccessToken, CNonce?, AuthorizationDetailsIdentifiers?), ValidationError>
@@ -286,7 +286,7 @@ public actor AuthorizationServerClient: AuthorizationServerClientType {
   
   public func requestAccessTokenPreAuthFlow(
     preAuthorizedCode: String,
-    txCode: TxCode,
+    txCode: TxCode?,
     clientId: String,
     transactionCode: String?
   ) async throws -> Result<(IssuanceAccessToken, CNonce?, AuthorizationDetailsIdentifiers?), ValidationError> {
