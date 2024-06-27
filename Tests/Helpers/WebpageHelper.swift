@@ -25,10 +25,10 @@ class WebpageHelper {
     let newCache = URLCache(memoryCapacity: 0, diskCapacity: 0, diskPath: nil)
     let newConfiguration = URLSessionConfiguration.default
     newConfiguration.urlCache = newCache
-    
+    let delegate = SelfSignedSessionDelegate()
     // Create a new URLSession with the modified configuration
-    let newSession = URLSession(configuration: newConfiguration)
-    
+    let newSession = URLSession(configuration: newConfiguration, delegate: delegate, delegateQueue: nil)
+
     return newSession
   }
   
@@ -72,7 +72,10 @@ class WebpageHelper {
     body += "username=\(username)&password=\(password)"
     request.httpBody = body.data(using: .utf8)
     
-    let (_, response) = try await URLSession.shared.data(for: request)
+    let delegate = SelfSignedSessionDelegate()
+    let configuration = URLSessionConfiguration.default
+    let session = URLSession(configuration: configuration, delegate: delegate, delegateQueue: nil)
+    let (_, response) = try await session.data(for: request)
     
     guard let httpResponse = response as? HTTPURLResponse else {
       throw ValidationError.error(reason: "Invalid response")

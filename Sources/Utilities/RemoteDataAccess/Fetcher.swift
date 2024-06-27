@@ -45,6 +45,8 @@ public enum FetchError: LocalizedError {
 
 public protocol Fetching {
   var session: Networking { get set }
+  var usesSelfSignedDelegation: Bool { get set }
+
   associatedtype Element: Decodable
 
   /**
@@ -62,12 +64,16 @@ public protocol Fetching {
 public struct Fetcher<Element: Decodable>: Fetching {
 
   public var session: Networking
-  
+  public var usesSelfSignedDelegation: Bool
   /**
    Initializes a Fetcher instance.
    */
-  public init(session: Networking = URLSession.shared) {
+  public init(
+    session: Networking = URLSession.shared,
+    usesSelfSignedDelegation: Bool = false
+  ) {
     self.session = session
+    self.usesSelfSignedDelegation = usesSelfSignedDelegation
   }
 
   /**
@@ -80,8 +86,17 @@ public struct Fetcher<Element: Decodable>: Fetching {
    */
   public func fetch(url: URL) async -> Result<Element, FetchError> {
     do {
-      let (data, response) = try await self.session.data(from: url)
-      
+      let session: Networking = {
+        if self.usesSelfSignedDelegation {
+          let delegate = SelfSignedSessionDelegate()
+          let configuration = URLSessionConfiguration.default
+          return URLSession(configuration: configuration, delegate: delegate, delegateQueue: nil)
+        } else {
+          return self.session
+        }
+      }()
+      let (data, response) = try await session.data(from: url)
+
       let statusCode = (response as? HTTPURLResponse)?.statusCode ?? 0
       if !statusCode.isWithinRange(200...299) {
         throw FetchError.invalidStatusCode(url, statusCode)
@@ -102,7 +117,17 @@ public struct Fetcher<Element: Decodable>: Fetching {
 
   public func fetchString(url: URL) async throws -> Result<String, FetchError> {
     do {
-      let (data, response) = try await self.session.data(from: url)
+      let session: Networking = {
+        if self.usesSelfSignedDelegation {
+          let delegate = SelfSignedSessionDelegate()
+          let configuration = URLSessionConfiguration.default
+          return URLSession(configuration: configuration, delegate: delegate, delegateQueue: nil)
+        } else {
+          return self.session
+        }
+      }()
+      let (data, response) = try await session.data(from: url)
+
       let statusCode = (response as? HTTPURLResponse)?.statusCode ?? 0
       if !statusCode.isWithinRange(200...299) {
         throw FetchError.invalidStatusCode(url, statusCode)
@@ -114,7 +139,7 @@ public struct Fetcher<Element: Decodable>: Fetching {
       } else {
 
         let error = NSError(
-          domain: "com.example.networking",
+          domain: "com.networking",
           code: 0,
           userInfo: [NSLocalizedDescriptionKey: "Failed to convert data to string"]
         )

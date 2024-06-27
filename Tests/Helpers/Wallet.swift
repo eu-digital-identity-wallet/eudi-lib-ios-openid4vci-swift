@@ -31,7 +31,9 @@ extension Wallet {
     let credentialConfigurationIdentifier = try CredentialConfigurationIdentifier(value: identifier)
     let credentialIssuerIdentifier = try CredentialIssuerId(CREDENTIAL_ISSUER_PUBLIC_URL)
     
-    let resolver = CredentialIssuerMetadataResolver()
+    let resolver = CredentialIssuerMetadataResolver(
+        usesSelfSignedDelegation: config.usesSelfSignedDelegation
+    )
     let issuerMetadata = await resolver.resolve(
       source: .credentialIssuer(
         credentialIssuerIdentifier
@@ -42,7 +44,9 @@ extension Wallet {
     case .success(let metaData):
       if let authorizationServer = metaData?.authorizationServers.first,
          let metaData {
-        let resolver = AuthorizationServerMetadataResolver()
+          let resolver = AuthorizationServerMetadataResolver(
+            usesSelfSignedDelegation: config.usesSelfSignedDelegation
+          )
         let authServerMetadata = await resolver.resolve(url: authorizationServer)
         
         let offer = try CredentialOffer(
@@ -167,7 +171,15 @@ extension Wallet {
     offerUri: String,
     claimSet: ClaimSet? = nil
   ) async throws -> [(String, String)] {
-    let resolver = CredentialOfferRequestResolver()
+    let resolver = CredentialOfferRequestResolver(
+        usesSelfSignedDelegation: config.usesSelfSignedDelegation,
+        credentialIssuerMetadataResolver: CredentialIssuerMetadataResolver(
+          usesSelfSignedDelegation: config.usesSelfSignedDelegation
+        ),
+        authorizationServerMetadataResolver: AuthorizationServerMetadataResolver(
+            usesSelfSignedDelegation: config.usesSelfSignedDelegation
+        )
+    )
     let result = await resolver
       .resolve(
         source: try .init(
@@ -191,8 +203,16 @@ extension Wallet {
     scope: String,
     claimSet: ClaimSet? = nil
   ) async throws -> String {
-    let result = await CredentialOfferRequestResolver()
-      .resolve(
+      let result = await CredentialOfferRequestResolver(
+        usesSelfSignedDelegation: config.usesSelfSignedDelegation,
+        credentialIssuerMetadataResolver: CredentialIssuerMetadataResolver(
+          usesSelfSignedDelegation: config.usesSelfSignedDelegation
+        ),
+        authorizationServerMetadataResolver:
+          AuthorizationServerMetadataResolver(
+            usesSelfSignedDelegation: config.usesSelfSignedDelegation
+          )
+      ).resolve(
         source: try .init(
           urlString: offerUri
         )
@@ -215,8 +235,16 @@ extension Wallet {
     scope: String,
     claimSet: ClaimSet? = nil
   ) async throws -> String {
-    let result = await CredentialOfferRequestResolver()
-      .resolve(
+    let result = await CredentialOfferRequestResolver(
+      usesSelfSignedDelegation: config.usesSelfSignedDelegation,
+      credentialIssuerMetadataResolver: CredentialIssuerMetadataResolver(
+        usesSelfSignedDelegation: config.usesSelfSignedDelegation
+      ),
+      authorizationServerMetadataResolver:
+        AuthorizationServerMetadataResolver(
+          usesSelfSignedDelegation: config.usesSelfSignedDelegation
+        )
+    ).resolve(
         source: try .init(
           urlString: offerUri
         )
