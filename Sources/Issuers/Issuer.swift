@@ -103,39 +103,29 @@ public actor Issuer: IssuerType {
     self.issuerMetadata = issuerMetadata
     self.config = config
     
-    var authorizationServerParPoster = parPoster
-    authorizationServerParPoster.usesSelfSignedDelegation = config.usesSelfSignedDelegation
-    var authorizationServerTokenPoster = tokenPoster
-    authorizationServerTokenPoster.usesSelfSignedDelegation = config.usesSelfSignedDelegation
     authorizer = try AuthorizationServerClient(
-      parPoster: authorizationServerParPoster,
-      tokenPoster: authorizationServerTokenPoster,
+      parPoster: parPoster,
+      tokenPoster: tokenPoster,
       config: config,
       authorizationServerMetadata: authorizationServerMetadata,
       credentialIssuerIdentifier: issuerMetadata.credentialIssuerIdentifier,
       dpopConstructor: dpopConstructor
     )
     
-    var issuanceRequesterPoster = requesterPoster
-    issuanceRequesterPoster.usesSelfSignedDelegation = config.usesSelfSignedDelegation
     issuanceRequester = IssuanceRequester(
       issuerMetadata: issuerMetadata, 
-      poster: issuanceRequesterPoster,
+      poster: requesterPoster,
       dpopConstructor: dpopConstructor
     )
     
-    var deferredPoster = deferredRequesterPoster
-    deferredPoster.usesSelfSignedDelegation = config.usesSelfSignedDelegation
     deferredIssuanceRequester = IssuanceRequester(
       issuerMetadata: issuerMetadata,
-      poster: deferredPoster
+      poster: deferredRequesterPoster
     )
     
-    var notifyIssuerPoster = notificationPoster
-    notifyIssuerPoster.usesSelfSignedDelegation = config.usesSelfSignedDelegation
     notifyIssuer = NotifyIssuer(
       issuerMetadata: issuerMetadata,
-      poster: notifyIssuerPoster
+      poster: notificationPoster
     )
   }
   
