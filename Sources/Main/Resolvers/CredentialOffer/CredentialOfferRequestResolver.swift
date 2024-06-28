@@ -53,15 +53,11 @@ public actor CredentialOfferRequestResolver {
   ///   - credentialIssuerMetadataResolver: An object responsible for resolving credential issuer metadata.
   ///   - authorizationServerMetadataResolver: An object responsible for resolving authorization server metadata.
   public init(
-    usesSelfSignedDelegation: Bool = false,
     fetcher: Fetcher<CredentialOfferRequestObject> = Fetcher(),
     credentialIssuerMetadataResolver: CredentialIssuerMetadataResolver = CredentialIssuerMetadataResolver(),
     authorizationServerMetadataResolver: AuthorizationServerMetadataResolver = AuthorizationServerMetadataResolver()
   ) {
-    var credentialOfferFetcher = fetcher
-    credentialOfferFetcher.usesSelfSignedDelegation = usesSelfSignedDelegation
-    self.fetcher = credentialOfferFetcher
-
+    self.fetcher = fetcher
     self.credentialIssuerMetadataResolver = credentialIssuerMetadataResolver
     self.authorizationServerMetadataResolver = authorizationServerMetadataResolver
   }

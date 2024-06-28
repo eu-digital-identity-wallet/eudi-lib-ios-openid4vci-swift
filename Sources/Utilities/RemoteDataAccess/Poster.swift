@@ -46,7 +46,6 @@ public enum PostError: LocalizedError {
 public protocol PostingType {
   
   var session: Networking { get set }
-  var usesSelfSignedDelegation: Bool { get set }
 
   /**
    Performs a POST request with the provided URLRequest.
@@ -72,17 +71,14 @@ public protocol PostingType {
 public struct Poster: PostingType {
   
   public var session: Networking
-  public var usesSelfSignedDelegation: Bool
 
   /**
    Initializes a Poster instance.
    */
   public init(
-    session: Networking = URLSession.shared,
-    usesSelfSignedDelegation: Bool = false
+    session: Networking = URLSession.shared
   ) {
     self.session = session
-    self.usesSelfSignedDelegation = usesSelfSignedDelegation
   }
   
   /**
@@ -95,16 +91,7 @@ public struct Poster: PostingType {
    */
   public func post<Response: Codable>(request: URLRequest) async -> Result<Response, PostError> {
     do {
-      let session: Networking = {
-        if self.usesSelfSignedDelegation {
-          let delegate = SelfSignedSessionDelegate()
-          let configuration = URLSessionConfiguration.default
-          return URLSession(configuration: configuration, delegate: delegate, delegateQueue: nil)
-        } else {
-          return self.session
-        }
-      }()
-      let (data, response) = try await session.data(for: request)
+      let (data, response) = try await self.session.data(for: request)
       let statusCode = (response as? HTTPURLResponse)?.statusCode ?? 0
       
       if statusCode >= 400 && statusCode < 500 {
@@ -143,16 +130,7 @@ public struct Poster: PostingType {
    */
   public func check(request: URLRequest) async -> Result<Bool, PostError> {
     do {
-      let session: Networking = {
-        if self.usesSelfSignedDelegation {
-          let delegate = SelfSignedSessionDelegate()
-          let configuration = URLSessionConfiguration.default
-          return URLSession(configuration: configuration, delegate: delegate, delegateQueue: nil)
-        } else {
-          return self.session
-        }
-      }()
-      let (_, response) = try await session.data(for: request)
+      let (_, response) = try await self.session.data(for: request)
 
       return .success((response as? HTTPURLResponse)?.statusCode.isWithinRange(200...299) ?? false)
     } catch let error as NSError {
