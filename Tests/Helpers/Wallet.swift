@@ -21,6 +21,30 @@ struct Wallet {
   let actingUser: ActingUser
   let bindingKey: BindingKey
   let dPoPConstructor: DPoPConstructorType?
+  let session: Networking
+
+  init(
+    actingUser: ActingUser,
+    bindingKey: BindingKey,
+    dPoPConstructor: DPoPConstructorType?,
+    session: Networking = Self.walletSession
+  ) {
+    self.actingUser = actingUser
+    self.bindingKey = bindingKey
+    self.dPoPConstructor = dPoPConstructor
+    self.session = session
+  }
+
+  static let walletSession: Networking = {
+    /*let delegate = SelfSignedSessionDelegate()
+    let configuration = URLSessionConfiguration.default
+    return URLSession(
+      configuration: configuration,
+      delegate: delegate,
+      delegateQueue: nil
+    )*/
+    URLSession.shared
+  }()
 }
 
 extension Wallet {
@@ -31,7 +55,9 @@ extension Wallet {
     let credentialConfigurationIdentifier = try CredentialConfigurationIdentifier(value: identifier)
     let credentialIssuerIdentifier = try CredentialIssuerId(CREDENTIAL_ISSUER_PUBLIC_URL)
     
-    let resolver = CredentialIssuerMetadataResolver()
+    let resolver = CredentialIssuerMetadataResolver(
+      fetcher: Fetcher(session: self.session)
+    )
     let issuerMetadata = await resolver.resolve(
       source: .credentialIssuer(
         credentialIssuerIdentifier
@@ -42,7 +68,10 @@ extension Wallet {
     case .success(let metaData):
       if let authorizationServer = metaData?.authorizationServers.first,
          let metaData {
-          let resolver = AuthorizationServerMetadataResolver()
+          let resolver = AuthorizationServerMetadataResolver(
+            oidcFetcher: Fetcher(session: self.session),
+            oauthFetcher: Fetcher(session: self.session)
+          )
         let authServerMetadata = await resolver.resolve(url: authorizationServer)
         
         let offer = try CredentialOffer(
@@ -77,7 +106,12 @@ extension Wallet {
     let issuer = try Issuer(
       authorizationServerMetadata: offer.authorizationServerMetadata,
       issuerMetadata: issuerMetadata,
-      config: config
+      config: config,
+      parPoster: Poster(session: self.session),
+      tokenPoster: Poster(session: self.session),
+      requesterPoster: Poster(session: self.session),
+      deferredRequesterPoster: Poster(session: self.session),
+      notificationPoster: Poster(session: self.session)
     )
     
     let authorized = try await authorizeRequestWithAuthCodeUseCase(
@@ -133,7 +167,12 @@ extension Wallet {
     let issuer = try Issuer(
       authorizationServerMetadata: offer.authorizationServerMetadata,
       issuerMetadata: offer.credentialIssuerMetadata,
-      config: config
+      config: config,
+      parPoster: Poster(session: self.session),
+      tokenPoster: Poster(session: self.session),
+      requesterPoster: Poster(session: self.session),
+      deferredRequesterPoster: Poster(session: self.session),
+      notificationPoster: Poster(session: self.session)
     )
     
     // Authorize with auth code flow
@@ -167,7 +206,16 @@ extension Wallet {
     offerUri: String,
     claimSet: ClaimSet? = nil
   ) async throws -> [(String, String)] {
-    let resolver = CredentialOfferRequestResolver()
+    let resolver = CredentialOfferRequestResolver(
+      fetcher: Fetcher(session: self.session),
+      credentialIssuerMetadataResolver: CredentialIssuerMetadataResolver(
+        fetcher: Fetcher(session: self.session)
+      ),
+      authorizationServerMetadataResolver: AuthorizationServerMetadataResolver(
+        oidcFetcher: Fetcher(session: self.session),
+        oauthFetcher: Fetcher(session: self.session)
+      )
+    )
     let result = await resolver
       .resolve(
         source: try .init(
@@ -191,7 +239,16 @@ extension Wallet {
     scope: String,
     claimSet: ClaimSet? = nil
   ) async throws -> String {
-      let result = await CredentialOfferRequestResolver().resolve(
+      let result = await CredentialOfferRequestResolver(
+        fetcher: Fetcher(session: self.session),
+        credentialIssuerMetadataResolver: CredentialIssuerMetadataResolver(
+          fetcher: Fetcher(session: self.session)
+        ),
+        authorizationServerMetadataResolver: AuthorizationServerMetadataResolver(
+          oidcFetcher: Fetcher(session: self.session),
+          oauthFetcher: Fetcher(session: self.session)
+        )
+      ).resolve(
         source: try .init(
           urlString: offerUri
         )
@@ -214,7 +271,16 @@ extension Wallet {
     scope: String,
     claimSet: ClaimSet? = nil
   ) async throws -> String {
-    let result = await CredentialOfferRequestResolver().resolve(
+    let result = await CredentialOfferRequestResolver(
+      fetcher: Fetcher(session: self.session),
+      credentialIssuerMetadataResolver: CredentialIssuerMetadataResolver(
+        fetcher: Fetcher(session: self.session)
+      ),
+      authorizationServerMetadataResolver: AuthorizationServerMetadataResolver(
+        oidcFetcher: Fetcher(session: self.session),
+        oauthFetcher: Fetcher(session: self.session)
+      )
+    ).resolve(
         source: try .init(
           urlString: offerUri
         )
@@ -246,7 +312,12 @@ extension Wallet {
     let issuer = try Issuer(
       authorizationServerMetadata: offer.authorizationServerMetadata,
       issuerMetadata: offer.credentialIssuerMetadata,
-      config: config
+      config: config,
+      parPoster: Poster(session: self.session),
+      tokenPoster: Poster(session: self.session),
+      requesterPoster: Poster(session: self.session),
+      deferredRequesterPoster: Poster(session: self.session),
+      notificationPoster: Poster(session: self.session)
     )
     
     let authorized = try await authorizeRequestWithAuthCodeUseCase(
@@ -287,6 +358,11 @@ extension Wallet {
       authorizationServerMetadata: offer.authorizationServerMetadata,
       issuerMetadata: offer.credentialIssuerMetadata,
       config: config,
+      parPoster: Poster(session: self.session),
+      tokenPoster: Poster(session: self.session),
+      requesterPoster: Poster(session: self.session),
+      deferredRequesterPoster: Poster(session: self.session),
+      notificationPoster: Poster(session: self.session),
       dpopConstructor: dPoPConstructor
     )
     
