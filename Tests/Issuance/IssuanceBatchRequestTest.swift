@@ -186,21 +186,9 @@ class IssuanceBatchRequestTest: XCTestCase {
   func testBatchCredentialIssuance() async throws {
     
     // Given
-    let url = "\(CREDENTIAL_ISSUER_PUBLIC_URL)/credentialoffer?credential_offer=\(SdJwtVC_CredentialOffer)"
-    
-      guard let offer = try? await CredentialOfferRequestResolver().resolve(
-        source: try .init(
-          urlString: url
-        )
-      ).get() else {
-      XCTAssert(false, "Unable to resolve credential offer")
-      return
-    }
-    
-    // Given
     let privateKey = try KeyController.generateRSAPrivateKey()
     let publicKey = try KeyController.generateRSAPublicKey(from: privateKey)
-    
+
     let alg = JWSAlgorithm(.RS256)
     let publicKeyJWK = try RSAPublicKey(
       publicKey: publicKey,
@@ -208,8 +196,44 @@ class IssuanceBatchRequestTest: XCTestCase {
         "alg": alg.name,
         "use": "enc",
         "kid": UUID().uuidString
-      ])
+    ])
+
+    let bindingKey: BindingKey = .jwk(
+      algorithm: alg,
+      jwk: publicKeyJWK,
+      privateKey: privateKey
+    )
+
+    let wallet = Wallet(
+      actingUser: .init(
+        username: "tneal",
+        password: "password"
+      ),
+      bindingKey: bindingKey,
+      dPoPConstructor: nil,
+      session: Wallet.walletSession
+    )
+
+    let url = "\(CREDENTIAL_ISSUER_PUBLIC_URL)/credentialoffer?credential_offer=\(SdJwtVC_CredentialOffer)"
     
+      guard let offer = try? await CredentialOfferRequestResolver(
+        fetcher: Fetcher(session: wallet.session),
+        credentialIssuerMetadataResolver: CredentialIssuerMetadataResolver(
+          fetcher: Fetcher(session: wallet.session)
+        ),
+        authorizationServerMetadataResolver: AuthorizationServerMetadataResolver(
+          oidcFetcher: Fetcher(session: wallet.session),
+          oauthFetcher: Fetcher(session: wallet.session)
+        )
+      ).resolve(
+        source: try .init(
+          urlString: url
+        )
+      ).get() else {
+      XCTAssert(false, "Unable to resolve credential offer")
+      return
+    }
+
     let spec = IssuanceResponseEncryptionSpec(
       jwk: publicKeyJWK,
       privateKey: privateKey,
@@ -221,22 +245,12 @@ class IssuanceBatchRequestTest: XCTestCase {
     let issuer = try Issuer(
       authorizationServerMetadata: offer.authorizationServerMetadata,
       issuerMetadata: offer.credentialIssuerMetadata,
-      config: config
-    )
-    
-    let bindingKey: BindingKey = .jwk(
-      algorithm: alg,
-      jwk: publicKeyJWK,
-      privateKey: privateKey
-    )
-    
-    let wallet = Wallet(
-      actingUser: .init(
-        username: "tneal",
-        password: "password"
-      ),
-      bindingKey: bindingKey,
-      dPoPConstructor: nil
+      config: config,
+      parPoster: Poster(session: wallet.session),
+      tokenPoster: Poster(session: wallet.session),
+      requesterPoster: Poster(session: wallet.session),
+      deferredRequesterPoster: Poster(session: wallet.session),
+      notificationPoster: Poster(session: wallet.session)
     )
     
     let authorized = try await wallet.authorizeRequestWithAuthCodeUseCase(

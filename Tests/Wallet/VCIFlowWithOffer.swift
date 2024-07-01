@@ -57,7 +57,8 @@ class VCIFlowWithOffer: XCTestCase {
     let wallet = Wallet(
       actingUser: user,
       bindingKey: bindingKey, 
-      dPoPConstructor: nil
+      dPoPConstructor: nil,
+      session: Wallet.walletSession
     )
     
     do {
@@ -189,7 +190,8 @@ class VCIFlowWithOffer: XCTestCase {
     let wallet = Wallet(
       actingUser: user,
       bindingKey: bindingKey,
-      dPoPConstructor: nil
+      dPoPConstructor: nil,
+      session: Wallet.walletSession
     )
     
     do {
