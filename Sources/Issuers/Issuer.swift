@@ -145,9 +145,13 @@ public actor Issuer: IssuerType {
     let authorizationServerSupportsPar = credentialOffer.authorizationServerMetadata.authorizationServerSupportsPar
 
     let state = StateValue().value
-    
+
     if authorizationServerSupportsPar {
       do {
+        let resource: String? = issuerMetadata.authorizationServers.map { _ in
+          credentialOffer.credentialIssuerIdentifier.url.absoluteString
+        }
+
         let result: (
           verifier: PKCEVerifier,
           code: GetAuthorizationCodeURL
@@ -155,7 +159,8 @@ public actor Issuer: IssuerType {
           scopes: scopes,
           credentialConfigurationIdentifiers: credentialConfogurationIdentifiers,
           state: state,
-          issuerState: issuerState
+          issuerState: issuerState,
+          resource: resource
         ).get()
         
         return .success(
