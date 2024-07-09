@@ -52,7 +52,7 @@ public actor AuthorisationService: AuthorisationServiceType {
   ) async throws -> U {
     let post = FormPost(
       additionalHeaders: [
-        ContentType.key.rawValue: ContentType.form.rawValue
+        ContentType.key: ContentType.form.rawValue
       ],
       url: url,
       formData: try request.toDictionary()
@@ -70,7 +70,7 @@ public actor AuthorisationService: AuthorisationServiceType {
   ) async throws -> U {
     let post = FormPost(
       additionalHeaders: [
-        ContentType.key.rawValue: ContentType.form.rawValue
+        ContentType.key: ContentType.form.rawValue
       ].merging(headers, uniquingKeysWith: { _, new in
         new
       }),
@@ -89,7 +89,7 @@ public actor AuthorisationService: AuthorisationServiceType {
     body: [String: Any]
   ) async throws -> U {
     let headers = [
-      ContentType.key.rawValue: ContentType.json.rawValue
+      ContentType.key: ContentType.json.rawValue
     ].merging(headers, uniquingKeysWith: { _, new in
       new
     })
