@@ -53,7 +53,7 @@ public struct IssuanceAccessToken: Codable {
 
 public extension IssuanceAccessToken {
   var authorizationHeader: [String: String] {
-    ["Authorization": "BEARER \(accessToken)"]
+    ["Authorization": "\(TokenType.bearer.rawValue) \(accessToken)"]
   }
   
   func dPoPOrBearerAuthorizationHeader(
@@ -61,13 +61,13 @@ public extension IssuanceAccessToken {
     endpoint: URL?
   ) throws -> [String: String] {
     if tokenType == TokenType.bearer {
-      return ["Authorization": "BEARER \(accessToken)"]
+      return ["Authorization": "\(TokenType.bearer.rawValue) \(accessToken)"]
     } else if let dpopConstructor, tokenType == TokenType.dpop, let endpoint {
       return [
-        "Authorization": "DPoP \(accessToken)",
-        "DPoP": try dpopConstructor.jwt(endpoint: endpoint, accessToken: accessToken)
+        "Authorization": "\(TokenType.dpop.rawValue) \(accessToken)",
+        TokenType.dpop.rawValue: try dpopConstructor.jwt(endpoint: endpoint, accessToken: accessToken)
       ]
     }
-    return ["Authorization": "BEARER \(accessToken)"]
+    return ["Authorization": "\(TokenType.bearer.rawValue) \(accessToken)"]
   }
 }
