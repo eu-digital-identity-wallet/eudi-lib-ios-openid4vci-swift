@@ -24,10 +24,10 @@ public struct FormPost: Request {
  public var method: HTTPMethod { .POST }
 
  /// Additional headers to include in the request.
- public var additionalHeaders: [String: String] = [:]
+ public let additionalHeaders: [String: String]
 
  /// The URL for the request.
- public var url: URL
+ public let url: URL
 
  /// The request body as data.
  public var body: Data? {
