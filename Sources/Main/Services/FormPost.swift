@@ -16,41 +16,36 @@
 import Foundation
 import SwiftyJSON
 
-/// A struct representing a form POST request.
+/// An implementation of form POST ``Request``.
 public struct FormPost: Request {
- public typealias Response = AuthorizationRequest
+  public typealias Response = AuthorizationRequest
 
- /// The HTTP method for the request.
- public var method: HTTPMethod { .POST }
+  // MARK: - Request
+  public var method: HTTPMethod { .POST }
+  public let url: URL
+  public let additionalHeaders: [String: String]
+  public let body: Data?
 
- /// Additional headers to include in the request.
- public let additionalHeaders: [String: String]
+  /// The URL request representation of the DirectPost.
+  var urlRequest: URLRequest {
+    var request = URLRequest(url: url)
+    request.httpMethod = method.rawValue
+    request.httpBody = body
 
- /// The URL for the request.
- public let url: URL
+    // request.allHTTPHeaderFields = additionalHeaders
+    for (key, value) in additionalHeaders {
+      request.addValue(value, forHTTPHeaderField: key)
+    }
 
- /// The request body as data.
- public let body: Data?
-
- /// The URL request representation of the DirectPost.
- var urlRequest: URLRequest {
-   var request = URLRequest(url: url)
-   request.httpMethod = method.rawValue
-   request.httpBody = body
-   
-   // request.allHTTPHeaderFields = additionalHeaders
-   for (key, value) in additionalHeaders {
-     request.addValue(value, forHTTPHeaderField: key)
-   }
-   
-   return request
- }
+    return request
+  }
 
   init(
+    url: URL,
+    /// The content type of the request body.
     contentType: ContentType,
     additionalHeaders: [String: String] = [:],
-    url: URL,
-    /// The form data for the request.
+    /// The form data for the request body.
     formData: [String: Any]
   ) {
     self.additionalHeaders = [
