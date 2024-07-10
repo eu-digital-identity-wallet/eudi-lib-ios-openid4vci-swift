@@ -30,20 +30,7 @@ public struct FormPost: Request {
  public let url: URL
 
  /// The request body as data.
- public var body: Data? {
-   var formDataComponents = URLComponents()
-   formDataComponents.queryItems = formData.toQueryItems()
-   let formDataString = formDataComponents.query
-   
-   if let formDataString, formDataString.isEmpty {
-     return JSON(formData).rawString()?.data(using: .utf8)
-   } else {
-     return formDataString?.data(using: .utf8)
-   }
- }
-
- /// The form data for the request.
- let formData: [String: Any]
+ public let body: Data?
 
  /// The URL request representation of the DirectPost.
  var urlRequest: URLRequest {
@@ -58,5 +45,70 @@ public struct FormPost: Request {
    
    return request
  }
+
+  init(
+    contentType: ContentType,
+    additionalHeaders: [String: String] = [:],
+    url: URL,
+    /// The form data for the request.
+    formData: [String: Any]
+  ) {
+    self.additionalHeaders = [
+      ContentType.key: contentType.rawValue
+    ].merging(additionalHeaders) { (_, new) in new }
+    self.url = url
+    switch contentType {
+    case .form:
+      self.body = FormURLEncoded.body(from: formData)
+    case .json:
+      self.body = try? JSON(formData).rawData()
+    }
+  }
+
 }
 
+private extension FormPost {
+  enum FormURLEncoded {
+    static func body(from formData: [String: Any]) -> Data? {
+      guard !formData.isEmpty else {
+        return nil
+      }
+      var components: [String] = []
+      for (key, value) in formData {
+        if let encodedKey = encoded(string: key),
+           let encodedValue = encoded(any: value) {
+          components.append("\(encodedKey)=\(encodedValue)")
+        }
+      }
+      return components.joined(separator: "&").data(using: .ascii)
+    }
+
+    static func encoded(string: String) -> String? {
+      // See HTML 4.01 Specification, 17.13.4 Form content types: https://www.w3.org/TR/html401/interact/forms.html#h-17.13.4
+      string
+      // Unify line breaks to CR+LF
+        .replacingOccurrences(of: "\r\n", with: "\n")
+        .replacingOccurrences(of: "\n", with: "\r\n")
+      // Percent-encode all reserved characters
+        .addingPercentEncoding(withAllowedCharacters: FormURLEncoded.allowedCharacters)?
+      // Convert spaces to '+' characters
+        .replacingOccurrences(of: " ", with: "+")
+    }
+
+    static func encoded(any: Any?) -> String? {
+      return switch any {
+      case nil: ""
+      case let string as String: encoded(string: string)
+      case let int as Int: encoded(string: String(int))
+      case let number as any Numeric: encoded(string: "\(number)")
+      default: nil
+      }
+    }
+
+    static let allowedCharacters: CharacterSet = {
+      var allowedCharacterSet = CharacterSet.alphanumerics
+      allowedCharacterSet.insert(charactersIn: "-._* ")
+      return allowedCharacterSet
+    }()
+  }
+}
