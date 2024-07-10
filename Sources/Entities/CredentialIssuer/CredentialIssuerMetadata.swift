@@ -19,7 +19,7 @@ import JOSESwift
 
 public struct CredentialIssuerMetadata: Decodable, Equatable {
   public let credentialIssuerIdentifier: CredentialIssuerId
-  public let authorizationServers: [URL]
+  public let authorizationServers: [URL]?
   public let credentialEndpoint: CredentialIssuerEndpoint
   public let batchCredentialEndpoint: CredentialIssuerEndpoint?
   public let deferredCredentialEndpoint: CredentialIssuerEndpoint?
