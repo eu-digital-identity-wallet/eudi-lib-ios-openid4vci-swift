@@ -79,9 +79,9 @@ public actor Issuer: IssuerType {
   
   public var deferredResponseEncryptionSpec: IssuanceResponseEncryptionSpec? = nil
   
-  let authorizationServerMetadata: IdentityAndAccessManagementMetadata
-  let issuerMetadata: CredentialIssuerMetadata
-  let config: OpenId4VCIConfig
+  public let authorizationServerMetadata: IdentityAndAccessManagementMetadata
+  public let issuerMetadata: CredentialIssuerMetadata
+  public let config: OpenId4VCIConfig
   
   private let authorizer: AuthorizationServerClientType
   private let issuanceRequester: IssuanceRequesterType
