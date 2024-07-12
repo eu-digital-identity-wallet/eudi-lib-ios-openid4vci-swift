@@ -25,7 +25,9 @@ public struct CredentialIssuerId: Codable, Equatable {
     }
     
     guard
-      let validURL = URL(string: string)
+      let validURL = URL(string: string),
+      validURL.scheme == "https",
+      validURL.fragment == nil
     else {
       throw CredentialError.genericError
     }

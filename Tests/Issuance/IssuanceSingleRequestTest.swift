@@ -102,7 +102,7 @@ class IssuanceSingleRequestTest: XCTestCase {
       let authorizedRequest = await issuer.requestAccessToken(authorizationCode: authorizationCode)
       
       if case let .success(authorized) = authorizedRequest,
-         case let .noProofRequired(token, _, _) = authorized {
+         case let .noProofRequired(token, _, _, _) = authorized {
         XCTAssert(true, "Got access token: \(token)")
         XCTAssert(true, "Is no proof required")
         
@@ -235,7 +235,7 @@ class IssuanceSingleRequestTest: XCTestCase {
     )
     
     if case let .success(authorized) = unAuthorized,
-       case let .noProofRequired(token, _, _) = authorized {
+       case let .noProofRequired(token, _, _, _) = authorized {
       XCTAssert(true, "Got access token: \(token)")
       XCTAssert(true, "Is no proof required")
       
@@ -363,7 +363,7 @@ class IssuanceSingleRequestTest: XCTestCase {
       let authorizedRequest = await issuer.requestAccessToken(authorizationCode: authorizationCode)
       
       if case let .success(authorized) = authorizedRequest,
-         case let .noProofRequired(token, _, identifiers) = authorized {
+         case let .noProofRequired(token, _, identifiers, _) = authorized {
         XCTAssert(true, "Got access token: \(token)")
         XCTAssert(true, "Is no proof required")
         

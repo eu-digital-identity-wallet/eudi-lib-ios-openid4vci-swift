@@ -37,14 +37,14 @@ public protocol AuthorizationServerClientType {
   func requestAccessTokenAuthFlow(
     authorizationCode: String,
     codeVerifier: String
-  ) async throws -> Result<(IssuanceAccessToken, CNonce?, AuthorizationDetailsIdentifiers?, TokenType?), ValidationError>
+  ) async throws -> Result<(IssuanceAccessToken, CNonce?, AuthorizationDetailsIdentifiers?, TokenType?, Int?), ValidationError>
   
   func requestAccessTokenPreAuthFlow(
     preAuthorizedCode: String,
     txCode: TxCode?,
     clientId: String,
     transactionCode: String?
-  ) async throws -> Result<(IssuanceAccessToken, CNonce?, AuthorizationDetailsIdentifiers?), ValidationError>
+  ) async throws -> Result<(IssuanceAccessToken, CNonce?, AuthorizationDetailsIdentifiers?, Int?), ValidationError>
 }
 
 public actor AuthorizationServerClient: AuthorizationServerClientType {
@@ -249,7 +249,8 @@ public actor AuthorizationServerClient: AuthorizationServerClientType {
     IssuanceAccessToken,
     CNonce?,
     AuthorizationDetailsIdentifiers?,
-    TokenType?
+    TokenType?,
+    Int?
   ), ValidationError> {
     
     let parameters: [String: String] = authCodeFlow(
@@ -267,13 +268,14 @@ public actor AuthorizationServerClient: AuthorizationServerClientType {
     )
     
     switch response {
-    case .success(let tokenType, let accessToken, _, _, _, let nonce, _, let identifiers):
+    case .success(let tokenType, let accessToken, _, let expiresIn, _, let nonce, _, let identifiers):
       return .success(
         (
           try .init(accessToken: accessToken, tokenType: .init(value: tokenType)),
           .init(value: nonce),
           identifiers,
-          TokenType(value: tokenType)
+          TokenType(value: tokenType),
+          expiresIn
         )
       )
     case .failure(let error, let errorDescription):
@@ -289,7 +291,7 @@ public actor AuthorizationServerClient: AuthorizationServerClientType {
     txCode: TxCode?,
     clientId: String,
     transactionCode: String?
-  ) async throws -> Result<(IssuanceAccessToken, CNonce?, AuthorizationDetailsIdentifiers?), ValidationError> {
+  ) async throws -> Result<(IssuanceAccessToken, CNonce?, AuthorizationDetailsIdentifiers?, Int?), ValidationError> {
     let parameters: JSON = try await preAuthCodeFlow(
       preAuthorizedCode: preAuthorizedCode,
       txCode: txCode,
@@ -305,12 +307,13 @@ public actor AuthorizationServerClient: AuthorizationServerClientType {
     )
     
     switch response {
-    case .success(let tokenType, let accessToken, _, _, _, let nonce, _, let identifiers):
+    case .success(let tokenType, let accessToken, _, let expiresIn, _, let nonce, _, let identifiers):
       return .success(
         (
           try .init(accessToken: accessToken, tokenType: .init(value: tokenType)),
           .init(value: nonce),
-          identifiers
+          identifiers,
+          expiresIn
         )
       )
     case .failure(let error, let errorDescription):
