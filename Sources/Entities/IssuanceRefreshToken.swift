@@ -15,7 +15,9 @@
  */
 import Foundation
 
-public struct IssuanceRefreshToken: Codable {
+public struct IssuanceRefreshToken: Codable, CanExpire {
+  public var expiresIn: TimeInterval?
+    
   public let refreshToken: String?
   
   public init(refreshToken: String?) throws {

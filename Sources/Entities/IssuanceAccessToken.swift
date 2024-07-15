@@ -35,19 +35,23 @@ public enum TokenType: String, Codable {
   }
 }
 
-public struct IssuanceAccessToken: Codable {
+public struct IssuanceAccessToken: Codable, CanExpire {
+  public var expiresIn: TimeInterval?
+    
   public let accessToken: String
   public let tokenType: TokenType?
   
   public init(
     accessToken: String,
-    tokenType: TokenType?
+    tokenType: TokenType?,
+    expiresIn: TimeInterval = .zero
   ) throws {
     guard !accessToken.isEmpty else {
       throw ValidationError.error(reason: "Access token cannot be empty")
     }
     self.accessToken = accessToken
     self.tokenType = tokenType
+    self.expiresIn = expiresIn
   }
 }
 

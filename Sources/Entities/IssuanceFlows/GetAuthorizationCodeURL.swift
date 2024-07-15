@@ -26,7 +26,7 @@ public struct GetAuthorizationCodeURL {
     guard let url = URL(string: urlString) else {
       throw ValidationError.invalidUrl(urlString)
     }
-    
+      
     let parameters = url.queryParameters
     guard
       parameters["\(Self.PARAM_CLIENT_ID)"] != nil
