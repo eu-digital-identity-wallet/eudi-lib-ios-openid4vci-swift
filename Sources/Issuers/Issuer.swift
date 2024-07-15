@@ -701,6 +701,19 @@ private extension Issuer {
 
 public extension Issuer {
   
+  static func createDeferredIssuer(
+    deferredCredentialEndpoint: CredentialIssuerEndpoint?,
+    deferredRequesterPoster: PostingType,
+    config: OpenId4VCIConfig
+  ) throws -> Issuer {
+    try Issuer(
+      authorizationServerMetadata: .oauth(.init()),
+      issuerMetadata: .init(deferredCredentialEndpoint: deferredCredentialEndpoint),
+      config: config,
+      deferredRequesterPoster: deferredRequesterPoster
+    )
+  }
+    
   static func createResponseEncryptionSpec(_ issuerResponseEncryptionMetadata: CredentialResponseEncryption) -> IssuanceResponseEncryptionSpec? {
     switch issuerResponseEncryptionMetadata {
     case .notRequired:
