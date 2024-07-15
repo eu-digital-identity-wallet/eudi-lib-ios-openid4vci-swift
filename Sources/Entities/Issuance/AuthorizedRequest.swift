@@ -36,44 +36,43 @@ public extension CanExpire {
 }
 
 public enum AuthorizedRequest {
-    case noProofRequired(
-      accessToken: IssuanceAccessToken,
-      refreshToken: IssuanceRefreshToken?,
-      credentialIdentifiers: AuthorizationDetailsIdentifiers?,
-      timeStamp: TimeInterval
-    )
-    case proofRequired(
-      accessToken: IssuanceAccessToken,
-      refreshToken: IssuanceRefreshToken?,
-      cNonce: CNonce,
-      credentialIdentifiers: AuthorizationDetailsIdentifiers?,
-      timeStamp: TimeInterval
-    )
+  case noProofRequired(
+    accessToken: IssuanceAccessToken,
+    refreshToken: IssuanceRefreshToken?,
+    credentialIdentifiers: AuthorizationDetailsIdentifiers?,
+    timeStamp: TimeInterval
+  )
+  case proofRequired(
+    accessToken: IssuanceAccessToken,
+    refreshToken: IssuanceRefreshToken?,
+    cNonce: CNonce,
+    credentialIdentifiers: AuthorizationDetailsIdentifiers?,
+    timeStamp: TimeInterval
+  )
     
-    
-    public func isAccessTokenExpired(clock: TimeInterval) -> Bool {
-      guard let timeStamp = self.timeStamp else {
-        return true
-      }
-      return accessToken?.isExpired(issued: timeStamp, at: clock) ?? false
+  public func isAccessTokenExpired(clock: TimeInterval) -> Bool {
+    guard let timeStamp = self.timeStamp else {
+      return true
     }
+    return accessToken?.isExpired(issued: timeStamp, at: clock) ?? false
+  }
     
-    public func isRefreshTokenExpired(clock: TimeInterval) -> Bool {
-      guard let timeStamp = self.timeStamp else {
-        return true
-      }
-      return accessToken?.isExpired(
-        issued: timeStamp,
-        at: clock
+  public func isRefreshTokenExpired(clock: TimeInterval) -> Bool {
+    guard let timeStamp = self.timeStamp else {
+      return true
+    }
+    return accessToken?.isExpired(
+      issued: timeStamp,
+      at: clock
       ) ?? false
-    }
- 
-    public var timeStamp: TimeInterval? {
-      switch self {
-      case .noProofRequired(_, _, _, let timeStamp):
-        return timeStamp
-      case .proofRequired(_, _, _, _, let timeStamp):
-        return timeStamp
+  }
+    
+  public var timeStamp: TimeInterval? {
+    switch self {
+    case .noProofRequired(_, _, _, let timeStamp):
+      return timeStamp
+    case .proofRequired(_, _, _, _, let timeStamp):
+      return timeStamp
     }
   }
     
@@ -85,7 +84,7 @@ public enum AuthorizedRequest {
       return nil
     }
   }
-  
+    
   public var proofToken: IssuanceAccessToken? {
     switch self {
     case .noProofRequired:
