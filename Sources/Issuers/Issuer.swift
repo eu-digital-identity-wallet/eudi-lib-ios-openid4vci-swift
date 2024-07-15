@@ -79,9 +79,9 @@ public actor Issuer: IssuerType {
   
   public var deferredResponseEncryptionSpec: IssuanceResponseEncryptionSpec? = nil
   
-  let authorizationServerMetadata: IdentityAndAccessManagementMetadata
-  let issuerMetadata: CredentialIssuerMetadata
-  let config: OpenId4VCIConfig
+  public let authorizationServerMetadata: IdentityAndAccessManagementMetadata
+  public let issuerMetadata: CredentialIssuerMetadata
+  public let config: OpenId4VCIConfig
   
   private let authorizer: AuthorizationServerClientType
   private let issuanceRequester: IssuanceRequesterType
@@ -710,6 +710,19 @@ private extension Issuer {
 
 public extension Issuer {
   
+  static func createDeferredIssuer(
+    deferredCredentialEndpoint: CredentialIssuerEndpoint?,
+    deferredRequesterPoster: PostingType,
+    config: OpenId4VCIConfig
+  ) throws -> Issuer {
+    try Issuer(
+      authorizationServerMetadata: .oauth(.init()),
+      issuerMetadata: .init(deferredCredentialEndpoint: deferredCredentialEndpoint),
+      config: config,
+      deferredRequesterPoster: deferredRequesterPoster
+    )
+  }
+    
   static func createResponseEncryptionSpec(_ issuerResponseEncryptionMetadata: CredentialResponseEncryption) -> IssuanceResponseEncryptionSpec? {
     switch issuerResponseEncryptionMetadata {
     case .notRequired:

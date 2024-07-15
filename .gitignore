@@ -94,3 +94,6 @@ project.json
 
 # Coverage reports
 xcov_output/
+
+# macOS
+.DS_Store
