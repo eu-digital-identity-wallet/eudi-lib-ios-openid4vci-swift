@@ -77,6 +77,20 @@ public struct CredentialIssuerMetadata: Decodable, Equatable {
     self.credentialIdentifiersSupported = credentialIdentifiersSupported
   }
   
+  public init(deferredCredentialEndpoint: CredentialIssuerEndpoint?) throws {
+    try self.init(
+      credentialIssuerIdentifier: .init(""),
+      authorizationServers: [],
+      credentialEndpoint: .init(string: ""),
+      batchCredentialEndpoint: nil,
+      deferredCredentialEndpoint: deferredCredentialEndpoint,
+      notificationEndpoint: nil,
+      credentialConfigurationsSupported: [:],
+      signedMetadata: nil,
+      display: nil
+    )
+  }
+    
   // Implement a custom init(from decoder:) method to handle decoding.
   public init(from decoder: Decoder) throws {
     let container = try decoder.container(keyedBy: CodingKeys.self)
