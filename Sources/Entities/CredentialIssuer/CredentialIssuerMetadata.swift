@@ -79,9 +79,9 @@ public struct CredentialIssuerMetadata: Decodable, Equatable {
   
   public init(deferredCredentialEndpoint: CredentialIssuerEndpoint?) throws {
     try self.init(
-      credentialIssuerIdentifier: .init(""),
+      credentialIssuerIdentifier: .init(Constants.url),
       authorizationServers: [],
-      credentialEndpoint: .init(string: ""),
+      credentialEndpoint: .init(string: Constants.url),
       batchCredentialEndpoint: nil,
       deferredCredentialEndpoint: deferredCredentialEndpoint,
       notificationEndpoint: nil,

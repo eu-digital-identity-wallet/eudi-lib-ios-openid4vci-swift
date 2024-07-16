@@ -716,8 +716,16 @@ public extension Issuer {
     config: OpenId4VCIConfig
   ) throws -> Issuer {
     try Issuer(
-      authorizationServerMetadata: .oauth(.init()),
-      issuerMetadata: .init(deferredCredentialEndpoint: deferredCredentialEndpoint),
+      authorizationServerMetadata: .oauth(
+        .init(
+            authorizationEndpoint: Constants.url,
+            tokenEndpoint: Constants.url,
+            pushedAuthorizationRequestEndpoint: Constants.url
+        )
+      ),
+      issuerMetadata: .init(
+        deferredCredentialEndpoint: deferredCredentialEndpoint
+      ),
       config: config,
       deferredRequesterPoster: deferredRequesterPoster
     )
