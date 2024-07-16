@@ -29,4 +29,6 @@ public struct Constants {
   
   public static let OPENID_SCOPE = "openid"
   public static let TX_CODE_PARAM = "tx_code"
+    
+  public static let url = "https://a.bc"
 }

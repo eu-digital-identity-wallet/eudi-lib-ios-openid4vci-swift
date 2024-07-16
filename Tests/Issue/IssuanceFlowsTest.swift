@@ -28,7 +28,18 @@ class IssuanceFlowsTest: XCTestCase {
     super.tearDown()
   }
   
-  func test() throws {
-    
+  func testDeferredIssuerConstruction() async throws {
+   
+    let issuer = try Issuer.createDeferredIssuer(
+      deferredCredentialEndpoint: .init(string: "https://www.example.com"),
+      deferredRequesterPoster: Poster(),
+      config: .init(
+        clientId: .init(),
+        authFlowRedirectionURI: URL(string: "https://www.example.com")!
+      )
+    )
+      
+    let endPoint = await issuer.issuerMetadata.deferredCredentialEndpoint!.url.absoluteString
+    XCTAssertEqual(endPoint, "https://www.example.com")
   }
 }
