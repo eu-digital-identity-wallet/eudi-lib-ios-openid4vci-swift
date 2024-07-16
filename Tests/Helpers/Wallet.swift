@@ -66,7 +66,7 @@ extension Wallet {
     
     switch issuerMetadata {
     case .success(let metaData):
-      if let authorizationServer = metaData?.authorizationServers.first,
+      if let authorizationServer = metaData?.authorizationServers?.first,
          let metaData {
           let resolver = AuthorizationServerMetadataResolver(
             oidcFetcher: Fetcher(session: self.session),

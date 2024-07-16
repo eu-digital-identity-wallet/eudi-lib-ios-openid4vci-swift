@@ -31,7 +31,8 @@ public protocol AuthorizationServerClientType {
     scopes: [Scope],
     credentialConfigurationIdentifiers: [CredentialConfigurationIdentifier],
     state: String,
-    issuerState: String?
+    issuerState: String?,
+    resource: String?
   ) async throws -> Result<(PKCEVerifier, GetAuthorizationCodeURL), Error>
   
   func requestAccessTokenAuthFlow(
@@ -181,7 +182,8 @@ public actor AuthorizationServerClient: AuthorizationServerClientType {
     scopes: [Scope],
     credentialConfigurationIdentifiers: [CredentialConfigurationIdentifier],
     state: String,
-    issuerState: String?
+    issuerState: String?,
+    resource: String? = nil
   ) async throws -> Result<(PKCEVerifier, GetAuthorizationCodeURL), Error> {
     guard !scopes.isEmpty else {
       throw ValidationError.error(reason: "No scopes provided. Cannot submit par with no scopes.")
@@ -197,6 +199,7 @@ public actor AuthorizationServerClient: AuthorizationServerClientType {
       state: state,
       codeChallenge: PKCEGenerator.generateCodeChallenge(codeVerifier: codeVerifier),
       codeChallengeMethod: CodeChallenge.sha256.rawValue,
+      resource: resource,
       issuerState: issuerState
     )
     
