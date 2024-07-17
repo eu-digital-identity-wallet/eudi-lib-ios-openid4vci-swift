@@ -72,7 +72,12 @@ public extension BindingKey {
           JWTClaimNames.audience: aud,
           JWTClaimNames.nonce: cNonce ?? "",
           JWTClaimNames.issuer: issuer ?? ""
-        ]
+        ].filter { key, value in
+          if let string = value as? String, string.isEmpty {
+            return false
+          }
+          return true
+        }
         
         let payload = Payload(try dictionary.toThrowingJSONData())
         
@@ -126,7 +131,12 @@ public extension BindingKey {
           JWTClaimNames.audience: aud,
           JWTClaimNames.nonce: cNonce ?? "",
           JWTClaimNames.issuer: issuer ?? ""
-        ]
+        ].filter { key, value in
+          if let string = value as? String, string.isEmpty {
+            return false
+          }
+          return true
+        }
         
         let payload = Payload(try dictionary.toThrowingJSONData())
         
