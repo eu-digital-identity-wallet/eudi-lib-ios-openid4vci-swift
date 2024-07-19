@@ -27,15 +27,18 @@ public struct OpenId4VCIConfig {
   public let clientId: ClientId
   public let authFlowRedirectionURI: URL
   public let authorizeIssuanceConfig: AuthorizeIssuanceConfig
-
+  public let usePAR: Bool
+    
   public init(
     clientId: ClientId,
     authFlowRedirectionURI: URL,
-    authorizeIssuanceConfig: AuthorizeIssuanceConfig = .favorScopes
+    authorizeIssuanceConfig: AuthorizeIssuanceConfig = .favorScopes,
+    usePAR: Bool = true
   ) {
     self.clientId = clientId
     self.authFlowRedirectionURI = authFlowRedirectionURI
     self.authorizeIssuanceConfig = authorizeIssuanceConfig
+    self.usePAR = usePAR
   }
 }
 
