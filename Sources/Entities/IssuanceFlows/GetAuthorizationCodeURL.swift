@@ -27,6 +27,10 @@ public struct GetAuthorizationCodeURL {
       throw ValidationError.invalidUrl(urlString)
     }
       
+    guard url.scheme == "https" else {
+      throw ValidationError.nonHttpsUrl(urlString)
+    }
+      
     let parameters = url.queryParameters
     guard
       parameters["\(Self.PARAM_CLIENT_ID)"] != nil
