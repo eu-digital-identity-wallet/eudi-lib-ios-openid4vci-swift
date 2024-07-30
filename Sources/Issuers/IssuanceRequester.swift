@@ -199,7 +199,7 @@ public actor IssuanceRequester: IssuanceRequesterType {
       
       let encodedRequest: [JSON] = try request
         .map { try $0.toDictionary() }
-
+      
       let merged = authorizationHeader.merging(["credential_requests": encodedRequest]) { (_, new) in new }
       
       let response: BatchIssuanceSuccessResponse = try await service.formPost(
@@ -239,6 +239,16 @@ public actor IssuanceRequester: IssuanceRequesterType {
         body: encodedRequest
       )
       return .success(response)
+      
+    } catch PostError.response(let response) {
+      
+      let issuanceError = response.toIssuanceError()
+      
+      if case .deferredCredentialIssuancePending = issuanceError {
+        return .success(.issuancePending(transactionId: transactionId))
+      }
+      
+      return .failure(issuanceError)
       
     } catch PostError.cannotParse(let string) {
       
