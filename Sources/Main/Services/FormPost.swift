@@ -62,41 +62,44 @@ public struct FormPost: Request {
 
 }
 
-private extension FormPost {
-  enum FormURLEncodingError: Swift.Error {
-    case unsupportedKey(String)
+extension FormPost {
+  public enum FormURLEncodingError: Swift.Error {
+    case unsupportedName(String)
     case unsupportedValue(Any?)
   }
 
   // application/x-www-form-urlencoded encoder
-  enum FormURLEncoder {
-    static func body(from formData: [String: Any]) throws -> Data? {
-      guard !formData.isEmpty else {
-        return nil
-      }
-      return try formData.flatMap { key, value in
-        if let collection = value as? [Any?] {
-          // Encode array values as multiple key=value tuples with the same key.
-          // NOTE: This is probably incorrect for application/x-www-form-urlencoded, but it does
-          // reproduce the behaviour of the earlier implementation of FormData that this library
-          // depends on.
-          return try collection.map { value in
-            try encoded(key: key, value: value)
+  private enum FormURLEncoder {
+    static func body(from formData: [String: Any]) throws -> Data {
+      var output = ""
+      for (n, v) in formData {
+        if !output.isEmpty {
+          output.append("&")
+        }
+        if let collection = v as? [Any?] {
+          for v in collection {
+            if !output.isEmpty {
+              output.append("&")
+            }
+            try append(to: &output, name: n, value: v)
           }
         } else {
-          return [try encoded(key: key, value: value)]
+          try append(to: &output, name: n, value: v)
         }
-      }.joined(separator: "&").data(using: .ascii)
+      }
+      return output.data(using: .ascii)!
     }
 
-    static func encoded(key: String, value: Any?) throws -> String {
-      guard let encodedKey = encoded(string: key) else {
-        throw FormURLEncodingError.unsupportedKey(key)
+    static func append(to: inout String, name: String, value: Any?) throws {
+      guard let encodedName = encoded(string: name) else {
+        throw FormURLEncodingError.unsupportedName(name)
       }
       guard let encodedValue = encoded(any: value) else {
         throw FormURLEncodingError.unsupportedValue(value)
       }
-      return "\(encodedKey)=\(encodedValue)"
+      to.append(encodedName)
+      to.append("=")
+      to.append(encodedValue)
     }
 
     static func encoded(string: String) -> String? {
