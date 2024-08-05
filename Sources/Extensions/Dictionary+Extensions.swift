@@ -31,25 +31,6 @@ public extension Dictionary where Key == String, Value == Any {
     return from(JSONfile: URL(fileURLWithPath: path))
   }
   
-  // Converts the dictionary to an array of URLQueryItem objects
-  func toQueryItems() -> [URLQueryItem] {
-    var queryItems: [URLQueryItem] = []
-    for (key, value) in self {
-      if let stringValue = value as? String {
-        queryItems.append(URLQueryItem(name: key, value: stringValue))
-      } else if let numberValue = value as? NSNumber {
-        queryItems.append(URLQueryItem(name: key, value: numberValue.stringValue))
-      } else if let arrayValue = value as? [Any] {
-        let arrayQueryItems = arrayValue.compactMap { (item) -> URLQueryItem? in
-          guard let stringValue = item as? String else { return nil }
-          return URLQueryItem(name: key, value: stringValue)
-        }
-        queryItems.append(contentsOf: arrayQueryItems)
-      }
-    }
-    return queryItems
-  }
-  
   func getValue<T: Codable>(
     for key: String,
     error: LocalizedError

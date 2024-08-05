@@ -109,9 +109,10 @@ public struct Scope: Codable {
 }
 
 public enum ContentType: String {
-  case key = "Content-Type"
   case form = "application/x-www-form-urlencoded"
   case json = "application/json"
+
+  public static let key = "Content-Type"
 }
 
 public struct AccessToken: Codable {
