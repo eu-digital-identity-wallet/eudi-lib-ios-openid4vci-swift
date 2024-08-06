@@ -134,7 +134,7 @@ class IssuanceNotificationTest: XCTestCase {
                 switch result {
                 case .deferred:
                   XCTAssert(false, "Unexpected deferred")
-                case .issued(_, let credential, _):
+                case .issued(let credential, _):
                   XCTAssert(true, "credential: \(credential)")
                   
                   let result = try await issuer.notify(
@@ -277,7 +277,7 @@ class IssuanceNotificationTest: XCTestCase {
                 switch result {
                 case .deferred:
                   XCTAssert(false, "Unexpected deferred")
-                case .issued(_, let credential, _):
+                case .issued(let credential, _):
                   XCTAssert(true, "credential: \(credential)")
                   
                   let result = try await issuer.notify(

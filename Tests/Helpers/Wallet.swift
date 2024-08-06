@@ -491,7 +491,7 @@ extension Wallet {
                 authorized: noProofRequiredState,
                 transactionId: transactionId
               )
-            case .issued(_, let credential, _):
+            case .issued(let credential, _):
               return credential
             }
           } else {
@@ -551,7 +551,7 @@ extension Wallet {
               authorized: authorized,
               transactionId: transactionId
             )
-          case .issued(_, let credential, _):
+          case .issued(let credential, _):
             return credential
           }
         } else {
@@ -581,7 +581,7 @@ extension Wallet {
     switch deferredRequestResponse {
     case .success(let response):
       switch response {
-      case .issued(_, let credential):
+      case .issued(let credential):
         return credential
       case .issuancePending(let transactionId):
         throw ValidationError.error(reason: "Credential not ready yet. Try after \(transactionId.interval ?? 0)")
