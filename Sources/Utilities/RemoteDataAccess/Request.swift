@@ -23,12 +23,17 @@ public enum HTTPMethod: String {
   case PATCH
 }
 
+/// A HTTP request.
 public protocol Request {
   associatedtype Response
 
+  /// The HTTP method for the request.
   var method: HTTPMethod { get }
+  /// The URL for the request.
   var url: URL { get }
+  /// Additional headers to include in the request.
   var additionalHeaders: [String: String] { get }
+  /// The request body as data.
   var body: Data? { get }
 }
 
