@@ -36,7 +36,7 @@ public protocol CredentialIssuerMetadataType {
   /// - Returns: An asynchronous result containing the resolved data or an error.
   func resolve(
     source: InputType
-  ) async -> Result<OutputType?, ErrorType>
+  ) async -> Result<OutputType, ErrorType>
 }
 
 public actor CredentialIssuerMetadataResolver: CredentialIssuerMetadataType {
@@ -57,7 +57,7 @@ public actor CredentialIssuerMetadataResolver: CredentialIssuerMetadataType {
   /// - Returns: An asynchronous result containing the resolved metadata or an error of type ResolvingError.
   public func resolve(
     source: CredentialIssuerSource
-  ) async -> Result<CredentialIssuerMetadata?, Error> {
+  ) async -> Result<CredentialIssuerMetadata, Error> {
     switch source {
     case .credentialIssuer(let issuerId):
 
