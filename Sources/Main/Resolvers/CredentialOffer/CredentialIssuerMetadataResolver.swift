@@ -35,7 +35,7 @@ public protocol CredentialIssuerMetadataType {
   ///   - source: The input source for resolving data.
   /// - Returns: An asynchronous result containing the resolved data or an error.
   func resolve(
-    source: InputType?
+    source: InputType
   ) async -> Result<OutputType?, ErrorType>
 }
 
@@ -56,7 +56,7 @@ public actor CredentialIssuerMetadataResolver: CredentialIssuerMetadataType {
   ///   - source: The input source for resolving metadata.
   /// - Returns: An asynchronous result containing the resolved metadata or an error of type ResolvingError.
   public func resolve(
-    source: CredentialIssuerSource?
+    source: CredentialIssuerSource
   ) async -> Result<CredentialIssuerMetadata?, Error> {
     switch source {
     case .credentialIssuer(let issuerId):
@@ -74,8 +74,6 @@ public actor CredentialIssuerMetadataResolver: CredentialIssuerMetadataType {
         return .success(metaData)
       }
       return .failure(ValidationError.error(reason: "Unable to retrieve metadata"))
-    case .none:
-      return .failure(CredentialError.genericError)
     }
   }
 }
