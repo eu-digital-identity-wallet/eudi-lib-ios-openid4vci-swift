@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 import Foundation
-import JOSESwift
+import JSONWebAlgorithms
 
 public class JOSEEncryptionMethod: JOSEAlgorithm {
   
@@ -65,6 +65,7 @@ public extension JOSEEncryptionMethod {
     case A128GCM = "A128GCM"
     case A192GCM = "A192GCM"
     case A256GCM = "A256GCM"
+    case C20P = "C20P"
     case XC20P = "XC20P"
     
     var name: String {
@@ -85,6 +86,8 @@ public extension JOSEEncryptionMethod {
         return (.OPTIONAL, 192)
       case .A256GCM:
         return (.RECOMMENDED, 256)
+      case .C20P:
+        return (.OPTIONAL, 256)
       case .XC20P:
         return (.OPTIONAL, 256)
       }
@@ -101,6 +104,7 @@ public extension JOSEEncryptionMethod.Family {
   enum JoseEncryptionMethodFamilyType {
     case AES_CBC_HMAC_SHA
     case AES_GCM
+    case CHA_CHA_POLY
   }
   
   static func parse(_ type: JoseEncryptionMethodFamilyType) -> JOSEEncryptionMethod.Family {
@@ -116,6 +120,11 @@ public extension JOSEEncryptionMethod.Family {
         .init(.A128GCM),
         .init(.A192GCM),
         .init(.A256GCM)
+      )
+    case .CHA_CHA_POLY:
+      return .init(
+        .init(.C20P),
+        .init(.XC20P)
       )
     }
   }

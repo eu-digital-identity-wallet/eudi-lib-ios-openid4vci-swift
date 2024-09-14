@@ -15,7 +15,6 @@
  */
 import Foundation
 import XCTest
-import JOSESwift
 
 @testable import OpenID4VCI
 
@@ -44,14 +43,11 @@ class VCIFlowNoOffer: XCTestCase {
     let publicKey = try KeyController.generateECDHPublicKey(from: privateKey)
     
     let alg = JWSAlgorithm(.ES256)
-    let publicKeyJWK = try ECPublicKey(
-      publicKey: publicKey,
-      additionalParameters: [
-        "alg": alg.name,
-        "use": "sig",
-        "kid": UUID().uuidString
-      ])
-    
+    var publicKeyJWK = try publicKey.jwk
+    publicKeyJWK.algorithm = alg.name
+    publicKeyJWK.publicKeyUse = .signature
+    publicKeyJWK.keyID = UUID().uuidString
+
     let bindingKey: BindingKey = .jwk(
       algorithm: alg,
       jwk: publicKeyJWK,
@@ -89,14 +85,11 @@ class VCIFlowNoOffer: XCTestCase {
     let publicKey = try KeyController.generateECDHPublicKey(from: privateKey)
     
     let alg = JWSAlgorithm(.ES256)
-    let publicKeyJWK = try ECPublicKey(
-      publicKey: publicKey,
-      additionalParameters: [
-        "alg": alg.name,
-        "use": "sig",
-        "kid": UUID().uuidString
-      ])
-    
+    var publicKeyJWK = try publicKey.jwk
+    publicKeyJWK.algorithm = alg.name
+    publicKeyJWK.publicKeyUse = .signature
+    publicKeyJWK.keyID = UUID().uuidString
+
     let bindingKey: BindingKey = .jwk(
       algorithm: alg,
       jwk: publicKeyJWK,
@@ -133,14 +126,11 @@ class VCIFlowNoOffer: XCTestCase {
     let publicKey = try KeyController.generateECDHPublicKey(from: privateKey)
     
     let alg = JWSAlgorithm(.ES256)
-    let publicKeyJWK = try ECPublicKey(
-      publicKey: publicKey,
-      additionalParameters: [
-        "alg": alg.name,
-        "use": "sig",
-        "kid": UUID().uuidString
-      ])
-    
+    var publicKeyJWK = try publicKey.jwk
+    publicKeyJWK.algorithm = alg.name
+    publicKeyJWK.publicKeyUse = .signature
+    publicKeyJWK.keyID = UUID().uuidString
+
     let bindingKey: BindingKey = .jwk(
       algorithm: alg,
       jwk: publicKeyJWK,

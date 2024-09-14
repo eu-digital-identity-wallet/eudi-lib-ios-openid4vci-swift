@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 import Foundation
-import JOSESwift
+import JSONWebKey
 
 public enum RequestedCredentialResponseEncryption {
   
@@ -52,7 +52,7 @@ public enum RequestedCredentialResponseEncryption {
   
   // Validate key is for encryption operation
   private static func validateKeyUse(_ encryptionJwk: JWK?) throws {
-    guard encryptionJwk?.parameters["use"] == "enc" else {
+      guard encryptionJwk?.publicKeyUse == .encryption else {
       throw ValidationError.error(reason: "Provided key use is not encryption")
     }
   }

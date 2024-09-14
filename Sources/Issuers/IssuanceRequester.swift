@@ -14,8 +14,9 @@
  * limitations under the License.
  */
 import Foundation
+import JSONWebAlgorithms
+import JSONWebToken
 import SwiftyJSON
-import JOSESwift
 
 public protocol IssuanceRequesterType {
   
@@ -127,7 +128,7 @@ public actor IssuanceRequester: IssuanceRequesterType {
                 privateKey: key
               )
               
-              let response = try JSONDecoder().decode(SingleIssuanceSuccessResponse.self, from: payload.data())
+              let response = try JSONDecoder().decode(SingleIssuanceSuccessResponse.self, from: payload)
               return .success(try response.toDomain())
             }
             
@@ -170,7 +171,7 @@ public actor IssuanceRequester: IssuanceRequesterType {
               contentEncryptionAlgorithm: contentEncryptionAlgorithm,
               privateKey: key
             )
-            let response = try JSONDecoder().decode(SingleIssuanceSuccessResponse.self, from: payload.data())
+            let response = try JSONDecoder().decode(SingleIssuanceSuccessResponse.self, from: payload)
             return .success(try response.toDomain())
           }
         }
@@ -271,7 +272,7 @@ public actor IssuanceRequester: IssuanceRequesterType {
           privateKey: key
         )
         
-        let response = try JSONDecoder().decode(DeferredCredentialIssuanceResponse.self, from: payload.data())
+        let response = try JSONDecoder().decode(DeferredCredentialIssuanceResponse.self, from: payload)
         return .success(response)
       }
       
@@ -339,17 +340,9 @@ private extension IssuanceRequester {
     keyManagementAlgorithm: KeyManagementAlgorithm,
     contentEncryptionAlgorithm: ContentEncryptionAlgorithm,
     privateKey: SecKey
-  ) throws -> Payload {
-    
-    let jwe = try JWE(compactSerialization: jwtString)
-    guard let decrypter = Decrypter(
-      keyManagementAlgorithm: keyManagementAlgorithm,
-      contentEncryptionAlgorithm: contentEncryptionAlgorithm,
-      decryptionKey: privateKey
-    ) else {
-      throw ValidationError.error(reason: "Could not instantiate descypter")
-    }
-    return try jwe.decrypt(using: decrypter)
+  ) throws -> Data {
+    let jwt = try JWT.verify(jwtString: jwtString, recipientKey: privateKey)
+    return jwt.payload
   }
 }
 

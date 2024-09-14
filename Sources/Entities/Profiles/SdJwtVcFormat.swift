@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 import Foundation
+import JSONWebKey
 import SwiftyJSON
-import JOSESwift
 
 public struct SdJwtVcFormat: FormatProfile {
   
@@ -95,13 +95,7 @@ public extension SdJwtVcFormat {
     public func encode(to encoder: Encoder) throws {
       var container = encoder.container(keyedBy: CodingKeys.self)
       try container.encode(proof, forKey: .proof)
-      
-      if let credentialEncryptionJwk = credentialEncryptionJwk as? RSAPublicKey {
-        try container.encode(credentialEncryptionJwk, forKey: .credentialEncryptionJwk)
-      } else if let credentialEncryptionJwk = credentialEncryptionJwk as? ECPublicKey {
-        try container.encode(credentialEncryptionJwk, forKey: .credentialEncryptionJwk)
-      }
-      
+      try container.encode(credentialEncryptionJwk, forKey: .credentialEncryptionJwk)
       try container.encode(credentialResponseEncryptionAlg, forKey: .credentialResponseEncryptionAlg)
       try container.encode(credentialResponseEncryptionMethod, forKey: .credentialResponseEncryptionMethod)
       

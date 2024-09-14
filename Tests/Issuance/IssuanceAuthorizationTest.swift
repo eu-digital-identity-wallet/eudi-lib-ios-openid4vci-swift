@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 import Foundation
+import JSONWebKey
 import XCTest
-import JOSESwift
 
 @testable import OpenID4VCI
 
@@ -372,13 +372,10 @@ class IssuanceAuthorizationTest: XCTestCase {
     let publicKey = try KeyController.generateRSAPublicKey(from: privateKey)
     
     let alg = JWSAlgorithm(.RS256)
-    let publicKeyJWK = try RSAPublicKey(
-      publicKey: publicKey,
-      additionalParameters: [
-        "alg": alg.name,
-        "use": "sig",
-        "kid": UUID().uuidString
-      ])
+    var publicKeyJWK = try publicKey.jwk
+    publicKeyJWK.algorithm = alg.name
+    publicKeyJWK.publicKeyUse = .signature
+    publicKeyJWK.keyID = UUID().uuidString
     
     let bindingKey: BindingKey = .jwk(
       algorithm: alg,
@@ -466,13 +463,10 @@ class IssuanceAuthorizationTest: XCTestCase {
     let publicKey = try KeyController.generateECDHPublicKey(from: privateKey)
 
     let alg = JWSAlgorithm(.ES256)
-    let publicKeyJWK = try ECPublicKey(
-      publicKey: publicKey,
-      additionalParameters: [
-        "alg": alg.name,
-        "use": "sig",
-        "kid": UUID().uuidString
-    ])
+    var publicKeyJWK = try publicKey.jwk
+    publicKeyJWK.algorithm = alg.name
+    publicKeyJWK.publicKeyUse = .signature
+    publicKeyJWK.keyID = UUID().uuidString
 
     let bindingKey: BindingKey = .jwk(
       algorithm: alg,
@@ -529,14 +523,11 @@ class IssuanceAuthorizationTest: XCTestCase {
     let publicKey = try KeyController.generateECDHPublicKey(from: privateKey)
     
     let alg = JWSAlgorithm(.ES256)
-    let jwk = try ECPublicKey(
-      publicKey: publicKey,
-      additionalParameters: [
-        "alg": alg.name,
-        "use": "sig",
-        "kid": UUID().uuidString
-      ])
-    
+    var jwk = try publicKey.jwk
+    jwk.algorithm = alg.name
+    jwk.publicKeyUse = .signature
+    jwk.keyID = UUID().uuidString
+
     let dpopConstructor: DPoPConstructor = .init(
       algorithm: alg,
       jwk: jwk,

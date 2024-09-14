@@ -14,10 +14,10 @@
  * limitations under the License.
  */
 import Foundation
+import JSONWebKey
 import SwiftyJSON
-import JOSESwift
 
-public typealias JWT = String
+public typealias JWTString = String
 
 public struct IssuanceResponseEncryptionSpec {
   public let jwk: JWK?
@@ -39,7 +39,7 @@ public struct IssuanceResponseEncryptionSpec {
 }
 
 public enum Proof: Codable {
-  case jwt(JWT)
+  case jwt(JWTString)
   case cwt(String)
   
   public func type() -> ProofType {
@@ -56,7 +56,7 @@ public enum Proof: Codable {
   public init(from decoder: Decoder) throws {
     let container = try decoder.singleValueContainer()
     
-    if let jwt = try? container.decode(JWT.self) {
+    if let jwt = try? container.decode(JWTString.self) {
       self = .jwt(jwt)
     } else if let cwt = try? container.decode(String.self) {
       self = .cwt(cwt)

@@ -15,7 +15,6 @@
  */
 import Foundation
 import SwiftyJSON
-import JOSESwift
 
 public struct CredentialIssuerMetadata: Decodable, Equatable {
   public let credentialIssuerIdentifier: CredentialIssuerId

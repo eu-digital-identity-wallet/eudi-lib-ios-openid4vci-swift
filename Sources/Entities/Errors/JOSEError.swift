@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 import Foundation
-import JOSESwift
 
 /*
 This enum represents a set of JOSE (Javascript Object Signing and Encryption) errors.
@@ -30,6 +29,7 @@ public enum JOSEError: LocalizedError {
   case invalidVerifier
   case invalidDidIdentifier
   case invalidObjectType
+  case invalidAlgorithm
 
   // A computed property to provide a description for each error case
   public var errorDescription: String? {
@@ -50,68 +50,70 @@ public enum JOSEError: LocalizedError {
       return ".invalidDidIdentifier"
     case .invalidObjectType:
       return ".invalidObjectType"
+    case .invalidAlgorithm:
+      return ".invalidAlgorithm"
     }
   }
 }
 
-extension JOSESwiftError: LocalizedError {
-  
-  public var errorDescription: String? {
-    switch self {
-    case .signingFailed(let description):
-      return ".signingFailed: \(description)"
-    case .verifyingFailed(let description):
-      return ".verifyingFailed: \(description)"
-    case .signatureInvalid:
-      return ".signatureInvalid"
-    case .encryptingFailed(let description):
-      return ".encryptingFailed: \(description)"
-    case .decryptingFailed:
-      return ".decryptingFailed"
-    case .wrongDataEncoding:
-      return ".wrongDataEncoding"
-    case .invalidCompactSerializationComponentCount(let count):
-      return ".invalidCompactSerializationComponentCount: \(count)"
-    case .componentNotValidBase64URL(let component):
-      return ".componentNotValidBase64URL: \(component)"
-    case .componentCouldNotBeInitializedFromData:
-      return ".componentCouldNotBeInitializedFromData"
-    case .couldNotConstructJWK:
-      return ".couldNotConstructJWK"
-    case .modulusNotBase64URLUIntEncoded:
-      return ".modulusNotBase64URLUIntEncoded"
-    case .exponentNotBase64URLUIntEncoded:
-      return ".exponentNotBase64URLUIntEncoded"
-    case .privateExponentNotBase64URLUIntEncoded:
-      return ""
-    case .symmetricKeyNotBase64URLEncoded:
-      return ".symmetricKeyNotBase64URLEncoded"
-    case .xNotBase64URLUIntEncoded:
-      return ".xNotBase64URLUIntEncoded"
-    case .yNotBase64URLUIntEncoded:
-      return ".yNotBase64URLUIntEncoded"
-    case .privateKeyNotBase64URLUIntEncoded:
-      return ".privateKeyNotBase64URLUIntEncoded"
-    case .invalidCurveType:
-      return ".invalidCurveType"
-    case .compressedCurvePointsUnsupported:
-      return ".compressedCurvePointsUnsupported"
-    case .invalidCurvePointOctetLength:
-      return ".invalidCurvePointOctetLength"
-    case .localAuthenticationFailed(let errorCode):
-      return ".localAuthenticationFailed: \(errorCode)"
-    case .compressionFailed:
-      return ".compressionFailed"
-    case .decompressionFailed:
-      return ".decompressionFailed"
-    case .compressionAlgorithmNotSupported:
-      return ".compressionAlgorithmNotSupported"
-    case .rawDataMustBeGreaterThanZero:
-      return ".rawDataMustBeGreaterThanZero"
-    case .compressedDataMustBeGreaterThanZero:
-      return ".compressedDataMustBeGreaterThanZero"
-    case .thumbprintSerialization:
-      return ".thumbprintSerialization"
-    }
-  }
-}
+//extension JOSESwiftError: LocalizedError {
+//  
+//  public var errorDescription: String? {
+//    switch self {
+//    case .signingFailed(let description):
+//      return ".signingFailed: \(description)"
+//    case .verifyingFailed(let description):
+//      return ".verifyingFailed: \(description)"
+//    case .signatureInvalid:
+//      return ".signatureInvalid"
+//    case .encryptingFailed(let description):
+//      return ".encryptingFailed: \(description)"
+//    case .decryptingFailed:
+//      return ".decryptingFailed"
+//    case .wrongDataEncoding:
+//      return ".wrongDataEncoding"
+//    case .invalidCompactSerializationComponentCount(let count):
+//      return ".invalidCompactSerializationComponentCount: \(count)"
+//    case .componentNotValidBase64URL(let component):
+//      return ".componentNotValidBase64URL: \(component)"
+//    case .componentCouldNotBeInitializedFromData:
+//      return ".componentCouldNotBeInitializedFromData"
+//    case .couldNotConstructJWK:
+//      return ".couldNotConstructJWK"
+//    case .modulusNotBase64URLUIntEncoded:
+//      return ".modulusNotBase64URLUIntEncoded"
+//    case .exponentNotBase64URLUIntEncoded:
+//      return ".exponentNotBase64URLUIntEncoded"
+//    case .privateExponentNotBase64URLUIntEncoded:
+//      return ""
+//    case .symmetricKeyNotBase64URLEncoded:
+//      return ".symmetricKeyNotBase64URLEncoded"
+//    case .xNotBase64URLUIntEncoded:
+//      return ".xNotBase64URLUIntEncoded"
+//    case .yNotBase64URLUIntEncoded:
+//      return ".yNotBase64URLUIntEncoded"
+//    case .privateKeyNotBase64URLUIntEncoded:
+//      return ".privateKeyNotBase64URLUIntEncoded"
+//    case .invalidCurveType:
+//      return ".invalidCurveType"
+//    case .compressedCurvePointsUnsupported:
+//      return ".compressedCurvePointsUnsupported"
+//    case .invalidCurvePointOctetLength:
+//      return ".invalidCurvePointOctetLength"
+//    case .localAuthenticationFailed(let errorCode):
+//      return ".localAuthenticationFailed: \(errorCode)"
+//    case .compressionFailed:
+//      return ".compressionFailed"
+//    case .decompressionFailed:
+//      return ".decompressionFailed"
+//    case .compressionAlgorithmNotSupported:
+//      return ".compressionAlgorithmNotSupported"
+//    case .rawDataMustBeGreaterThanZero:
+//      return ".rawDataMustBeGreaterThanZero"
+//    case .compressedDataMustBeGreaterThanZero:
+//      return ".compressedDataMustBeGreaterThanZero"
+//    case .thumbprintSerialization:
+//      return ".thumbprintSerialization"
+//    }
+//  }
+//}
