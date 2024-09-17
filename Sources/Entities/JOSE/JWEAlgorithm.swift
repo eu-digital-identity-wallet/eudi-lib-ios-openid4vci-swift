@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 import Foundation
-import JOSESwift
+import JSONWebAlgorithms
 
 public class JWEAlgorithm: JOSEAlgorithm {
 

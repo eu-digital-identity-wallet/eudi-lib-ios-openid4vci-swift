@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 import Foundation
-import JOSESwift
+import JSONWebKey
 import SwiftyJSON
 
 public let FORMAT_MSO_MDOC = "mso_mdoc"

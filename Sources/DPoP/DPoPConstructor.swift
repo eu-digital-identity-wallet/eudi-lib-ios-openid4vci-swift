@@ -14,7 +14,10 @@
  * limitations under the License.
  */
 import Foundation
-import JOSESwift
+import JSONWebAlgorithms
+import JSONWebKey
+import JSONWebSignature
+import JSONWebToken
 import CryptoKit
 
 public protocol DPoPConstructorType {
@@ -45,45 +48,28 @@ public class DPoPConstructor: DPoPConstructorType {
   }
   
   public func jwt(endpoint: URL, accessToken: String?) throws -> String {
-    
-    let header = try JWSHeader(parameters: [
-      "typ": "dpop+jwt",
-      "alg": algorithm.name,
-      "jwk": jwk.toDictionary()
-    ])
-    
-    var dictionary: [String: Any] = [
-      JWTClaimNames.issuedAt: Int(Date().timeIntervalSince1970.rounded()),
-      JWTClaimNames.htm: Methods.post.rawValue,
-      JWTClaimNames.htu: endpoint.absoluteString,
-      JWTClaimNames.jwtId: String.randomBase64URLString(length: 20)
-    ]
-    
-    if let data = accessToken?.data(using: .utf8) {
-      let hashed = SHA256.hash(data: data)
-      let hash = Data(hashed).base64URLEncodedString()
-      dictionary["ath"] = hash
-    }
-    
-    let payload = Payload(try dictionary.toThrowingJSONData())
-    
-    guard let signatureAlgorithm = SignatureAlgorithm(rawValue: algorithm.name) else {
-      throw CredentialIssuanceError.cryptographicAlgorithmNotSupported
-    }
-    
-    guard let signer = Signer(
-      signingAlgorithm: signatureAlgorithm,
-      key: privateKey
-    ) else {
-      throw ValidationError.error(reason: "Unable to create JWS signer")
-    }
-    
-    let jws = try JWS(
-      header: header,
-      payload: payload,
-      signer: signer
+    let header = DefaultJWSHeaderImpl(
+        algorithm: try algorithm.parseToJoseLibrary(),
+        jwk: jwk,
+        type: "dpop+jwt"
     )
-    
-    return jws.compactSerializedString
+
+    let jwt = try JWT.signed(
+      claims: {
+        IssuedAtClaim(value: Date())
+        JWTIdentifierClaim(value: String.randomBase64URLString(length: 20))
+        StringClaim(key: "htm", value: Methods.post.rawValue)
+        StringClaim(key: "htu", value: endpoint.absoluteString)
+        if let data = accessToken?.data(using: .utf8) {
+          let hashed = SHA256.hash(data: data)
+          let hash = Data(hashed).base64URLEncodedString()
+          StringClaim(key: "ath", value: hash)
+        }
+      },
+      protectedHeader: header,
+      key: privateKey
+    )
+
+    return jwt.jwtString
   }
 }

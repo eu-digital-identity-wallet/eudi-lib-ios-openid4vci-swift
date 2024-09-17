@@ -14,7 +14,10 @@
  * limitations under the License.
  */
 import Foundation
-import JOSESwift
+import JSONWebAlgorithms
+import JSONWebKey
+import JSONWebSignature
+import JSONWebToken
 
 public enum BindingKey {
   
@@ -22,7 +25,7 @@ public enum BindingKey {
   case jwk(
     algorithm: JWSAlgorithm,
     jwk: JWK,
-    privateKey: SecKey,
+    privateKey: KeyRepresentable,
     issuer: String? = nil
   )
   
@@ -60,45 +63,24 @@ public extension BindingKey {
         }
         
         let aud = issuanceRequester.issuerMetadata.credentialIssuerIdentifier.url.absoluteString
-        
-        let header = try JWSHeader(parameters: [
-          "typ": "openid4vci-proof+jwt",
-          "alg": algorithm.name,
-          "jwk": jwk.toDictionary()
-        ])
-        
-        let dictionary: [String: Any] = [
-          JWTClaimNames.issuedAt: Int(Date().timeIntervalSince1970.rounded()),
-          JWTClaimNames.audience: aud,
-          JWTClaimNames.nonce: cNonce ?? "",
-          JWTClaimNames.issuer: issuer ?? ""
-        ].filter { key, value in
-          if let string = value as? String, string.isEmpty {
-            return false
-          }
-          return true
-        }
-        
-        let payload = Payload(try dictionary.toThrowingJSONData())
-        
-        guard let signatureAlgorithm = SignatureAlgorithm(rawValue: algorithm.name) else {
-          throw CredentialIssuanceError.cryptographicAlgorithmNotSupported
-        }
-        
-        guard let signer = Signer(
-          signingAlgorithm: signatureAlgorithm,
-          key: privateKey
-        ) else {
-          throw ValidationError.error(reason: "Unable to create JWS signer")
-        }
-        
-        let jws = try JWS(
-          header: header,
-          payload: payload,
-          signer: signer
+        let header = DefaultJWSHeaderImpl(
+            algorithm: try algorithm.parseToJoseLibrary(),
+            jwk: jwk,
+            type: "openid4vci-proof+jwt"
         )
-        
-        return .jwt(jws.compactSerializedString)
+
+        let jwt = try JWT.signed(
+          claims: {
+            IssuedAtClaim(value: Date())
+            AudienceClaim(value: aud)
+            StringClaim(key: "nonce", value: cNonce ?? "")
+            IssuerClaim(value: issuer ?? "")
+          },
+          protectedHeader: header,
+          key: privateKey
+        )
+
+        return .jwt(jwt.jwtString)
 
       case .sdJwtVc(let spec):
         let suites = spec.proofTypesSupported?["jwt"]?.algorithms.contains { $0 == algorithm.name } ??  true
@@ -119,45 +101,24 @@ public extension BindingKey {
          */
         
         let aud = issuanceRequester.issuerMetadata.credentialIssuerIdentifier.url.absoluteString
-        
-        let header = try JWSHeader(parameters: [
-          "typ": "openid4vci-proof+jwt",
-          "alg": algorithm.name,
-          "jwk": jwk.toDictionary()
-        ])
-        
-        let dictionary: [String: Any] = [
-          JWTClaimNames.issuedAt: Int(Date().timeIntervalSince1970.rounded()),
-          JWTClaimNames.audience: aud,
-          JWTClaimNames.nonce: cNonce ?? "",
-          JWTClaimNames.issuer: issuer ?? ""
-        ].filter { key, value in
-          if let string = value as? String, string.isEmpty {
-            return false
-          }
-          return true
-        }
-        
-        let payload = Payload(try dictionary.toThrowingJSONData())
-        
-        guard let signatureAlgorithm = SignatureAlgorithm(rawValue: algorithm.name) else {
-          throw CredentialIssuanceError.cryptographicAlgorithmNotSupported
-        }
-        
-        guard let signer = Signer(
-          signingAlgorithm: signatureAlgorithm,
-          key: privateKey
-        ) else {
-          throw ValidationError.error(reason: "Unable to create JWS signer")
-        }
-        
-        let jws = try JWS(
-          header: header,
-          payload: payload,
-          signer: signer
+        let header = DefaultJWSHeaderImpl(
+          algorithm: try algorithm.parseToJoseLibrary(),
+          jwk: jwk,
+          type: "openid4vci-proof+jwt"
         )
-        
-        return .jwt(jws.compactSerializedString)
+
+        let jwt = try JWT.signed(
+          claims: {
+            IssuedAtClaim(value: Date())
+            AudienceClaim(value: aud)
+            StringClaim(key: "nonce", value: cNonce ?? "")
+            IssuerClaim(value: issuer ?? "")
+          },
+          protectedHeader: header,
+          key: privateKey
+        )
+
+        return .jwt(jwt.jwtString)
       default: break
       }
       break

@@ -15,7 +15,6 @@
  */
 import Foundation
 import XCTest
-import JOSESwift
 
 @testable import OpenID4VCI
 
@@ -47,14 +46,11 @@ class IssuanceDeferredRequestTest: XCTestCase {
     let publicKey = try KeyController.generateRSAPublicKey(from: privateKey)
     
     let alg = JWSAlgorithm(.RS256)
-    let publicKeyJWK = try RSAPublicKey(
-      publicKey: publicKey,
-      additionalParameters: [
-        "alg": alg.name,
-        "use": "enc",
-        "kid": UUID().uuidString
-      ])
-    
+    var publicKeyJWK = try publicKey.jwk
+    publicKeyJWK.algorithm = alg.name
+    publicKeyJWK.publicKeyUse = .encryption
+    publicKeyJWK.keyID = UUID().uuidString
+
     let spec = IssuanceResponseEncryptionSpec(
       jwk: publicKeyJWK,
       privateKey: privateKey,

@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 import Foundation
+import JSONWebAlgorithms
 
 public class JOSEAlgorithm: Codable, Hashable {
 
@@ -56,5 +57,14 @@ public extension JOSEAlgorithm {
     case RECOMMENDED
     case OPTIONAL
   }
+}
+
+extension JWSAlgorithm {
+    func parseToJoseLibrary() throws -> SigningAlgorithm {
+        guard let alg = SigningAlgorithm(rawValue: name) else {
+            throw JOSEError.invalidAlgorithm
+        }
+        return alg
+    }
 }
 

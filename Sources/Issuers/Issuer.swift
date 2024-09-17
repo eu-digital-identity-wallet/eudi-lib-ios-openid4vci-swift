@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 import Foundation
-import JOSESwift
+import JSONWebKey
 
 public protocol IssuerType {
   
@@ -765,27 +765,21 @@ public extension Issuer {
       privateKey = try? KeyController.generateRSAPrivateKey()
       if let privateKey,
          let publicKey = try? KeyController.generateRSAPublicKey(from: privateKey) {
-        jwk = try? RSAPublicKey(
-          publicKey: publicKey,
-          additionalParameters: [
-            "use": "enc",
-            "kid": UUID().uuidString,
-            "alg": algorithm.name
-          ]
-        )
+          var publicKeyJWK = try? publicKey.jwk
+          publicKeyJWK?.publicKeyUse = .encryption
+          publicKeyJWK?.keyID = UUID().uuidString
+          publicKeyJWK?.algorithm = algorithm.name
+          jwk = publicKeyJWK
       }
     } else if JWEAlgorithm.Family.parse(.ECDH_ES).contains(algorithm) {
       privateKey = try? KeyController.generateECDHPrivateKey()
       if let privateKey,
          let publicKey = try? KeyController.generateECDHPublicKey(from: privateKey) {
-        jwk = try? ECPublicKey(
-          publicKey: publicKey,
-          additionalParameters: [
-            "use": "enc",
-            "kid": UUID().uuidString,
-            "alg": algorithm.name
-          ]
-        )
+          var publicKeyJWK = try? publicKey.jwk
+          publicKeyJWK?.publicKeyUse = .encryption
+          publicKeyJWK?.keyID = UUID().uuidString
+          publicKeyJWK?.algorithm = algorithm.name
+          jwk = publicKeyJWK
       }
     } else {
       privateKey = nil
