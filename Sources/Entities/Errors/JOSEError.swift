@@ -112,6 +112,14 @@ extension JOSESwiftError: LocalizedError {
       return ".compressedDataMustBeGreaterThanZero"
     case .thumbprintSerialization:
       return ".thumbprintSerialization"
+    case .invalidHeaderParameterValue:
+        return ".invalidHeaderParameterValue"
+    case .keyManagementAlgorithmMismatch:
+        return ".keyManagementAlgorithmMismatch"
+    case .contentEncryptionAlgorithmMismatch:
+        return ".contentEncryptionAlgorithmMismatch"
+    case .signingAlgorithmMismatch:
+        return ".signingAlgorithmMismatch"
     }
   }
 }
