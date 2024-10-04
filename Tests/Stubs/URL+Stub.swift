@@ -15,6 +15,7 @@
  */
 import Foundation
 
+extension URL: @retroactive Identifiable {}
 extension URL: Stubbable {
   
   public var id: ObjectIdentifier {
