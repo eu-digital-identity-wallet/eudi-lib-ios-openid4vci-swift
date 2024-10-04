@@ -54,7 +54,7 @@ public actor AuthorizationServerClient: AuthorizationServerClientType {
   public let service: AuthorisationServiceType
   public let parPoster: PostingType
   public let tokenPoster: PostingType
-  public let parEndpoint: URL
+  public let parEndpoint: URL?
   public let authorizationEndpoint: URL
   public let tokenEndpoint: URL
   public let redirectionURI: URL
@@ -107,8 +107,9 @@ public actor AuthorizationServerClient: AuthorizationServerClientType {
       if let pushedAuthorizationRequestEndpoint = data.pushedAuthorizationRequestEndpoint, let url = URL(string: pushedAuthorizationRequestEndpoint) {
         self.parEndpoint = url
       } else {
-        throw ValidationError.error(reason: "In valid authorization endpoint")
+        self.parEndpoint = nil
       }
+      
     case .oauth(let data):
       
       if let tokenEndpoint = data.tokenEndpoint, let url = URL(string: tokenEndpoint) {
@@ -126,7 +127,7 @@ public actor AuthorizationServerClient: AuthorizationServerClientType {
       if let pushedAuthorizationRequestEndpoint = data.pushedAuthorizationRequestEndpoint, let url = URL(string: pushedAuthorizationRequestEndpoint) {
         self.parEndpoint = url
       } else {
-        throw ValidationError.error(reason: "In valid pushed authorization request endpoint")
+        self.parEndpoint = nil
       }
     }
   }
@@ -168,7 +169,7 @@ public actor AuthorizationServerClient: AuthorizationServerClientType {
         ]
       )
     ) else {
-      throw ValidationError.invalidUrl(parEndpoint.absoluteString)
+      throw ValidationError.invalidUrl(parEndpoint?.absoluteString ?? "")
     }
     
     let authorizationCodeURL = try GetAuthorizationCodeURL(
@@ -204,6 +205,9 @@ public actor AuthorizationServerClient: AuthorizationServerClientType {
     )
     
     do {
+      guard let parEndpoint = parEndpoint else {
+        throw ValidationError.error(reason: "Missing PAR endpoint")
+      }
       let response: PushedAuthorizationRequestResponse = try await service.formPost(
         poster: parPoster,
         url: parEndpoint,
