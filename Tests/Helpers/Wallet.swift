@@ -394,23 +394,19 @@ extension Wallet {
     offer: CredentialOffer
   ) async throws -> AuthorizedRequest {
     
-    var pushedAuthorizationRequestEndpoint = ""
+    var pushedAuthorizationRequestEndpoint: String? = nil
     if case let .oidc(metaData) = offer.authorizationServerMetadata {
       if let endpoint = metaData.pushedAuthorizationRequestEndpoint {
         pushedAuthorizationRequestEndpoint = endpoint
-      } else {
-        throw ValidationError.error(reason: "pushedAuthorizationRequestEndpoint is nil")
       }
       
     } else if case let .oauth(metaData) = offer.authorizationServerMetadata {
       if let endpoint = metaData.pushedAuthorizationRequestEndpoint {
         pushedAuthorizationRequestEndpoint = endpoint
-      } else {
-        throw ValidationError.error(reason: "pushedAuthorizationRequestEndpoint is nil")
       }
     }
     
-    print("--> [AUTHORIZATION] Placing PAR to AS server's endpoint \(pushedAuthorizationRequestEndpoint)")
+    print("--> [AUTHORIZATION] Placing PAR to AS server's endpoint \(pushedAuthorizationRequestEndpoint ?? "N/A")")
     
     let parPlaced = try await issuer.pushAuthorizationCodeRequest(
       credentialOffer: offer
@@ -449,7 +445,11 @@ extension Wallet {
            case let .noProofRequired(token, _, _, _) = authorized {
           print("--> [AUTHORIZATION] Authorization code exchanged with access token : \(token.accessToken)")
           
-          let hasExpired = authorized.accessToken?.isExpired(issued: authorized.timeStamp!, at: Date().timeIntervalSinceReferenceDate)
+          if let timeStamp = authorized.timeStamp {
+            _ = authorized.accessToken?.isExpired(
+              issued: timeStamp,
+              at: Date().timeIntervalSinceReferenceDate)
+          }
           return authorized
         }
         
