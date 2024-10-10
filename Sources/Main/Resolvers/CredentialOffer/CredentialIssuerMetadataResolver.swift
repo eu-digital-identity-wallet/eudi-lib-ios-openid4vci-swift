@@ -35,8 +35,8 @@ public protocol CredentialIssuerMetadataType {
   ///   - source: The input source for resolving data.
   /// - Returns: An asynchronous result containing the resolved data or an error.
   func resolve(
-    source: InputType?
-  ) async -> Result<OutputType?, ErrorType>
+    source: InputType
+  ) async -> Result<OutputType, ErrorType>
 }
 
 public actor CredentialIssuerMetadataResolver: CredentialIssuerMetadataType {
@@ -56,26 +56,14 @@ public actor CredentialIssuerMetadataResolver: CredentialIssuerMetadataType {
   ///   - source: The input source for resolving metadata.
   /// - Returns: An asynchronous result containing the resolved metadata or an error of type ResolvingError.
   public func resolve(
-    source: CredentialIssuerSource?
-  ) async -> Result<CredentialIssuerMetadata?, Error> {
-    switch source {
-    case .credentialIssuer(let issuerId):
-
-      let pathComponent1 = ".well-known"
-      let pathComponent2 = "openid-credential-issuer"
-
-      let url = issuerId.url
-        .appendingPathComponent(pathComponent1)
-        .appendingPathComponent(pathComponent2)
-
-      let result = await fetcher.fetch(url: url)
-      let metaData = try? result.get()
-      if let metaData = metaData {
-        return .success(metaData)
+    source: CredentialIssuerSource
+  ) async -> Result<CredentialIssuerMetadata, some Error> {
+      switch source {
+      case .credentialIssuer(let issuerId):
+          let url = issuerId.url
+              .appendingPathComponent(".well-known")
+              .appendingPathComponent("openid-credential-issuer")
+          return await fetcher.fetch(url: url)
       }
-      return .failure(ValidationError.error(reason: "Unable to retrieve metadata"))
-    case .none:
-      return .failure(CredentialError.genericError)
-    }
   }
 }
