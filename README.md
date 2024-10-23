@@ -251,7 +251,7 @@ involved, follow the guidelines found in [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ### Third-party component licenses
 
-* JOSE Support: [JOSESwift](https://github.com/niscy-eudiw/JOSESwift)
+* JOSE Support: [JOSESwift](https://github.com/airsidemobile/JOSESwift)
 * JSON Support: [SwiftyJSON](https://github.com/SwiftyJSON/SwiftyJSON)
 
 ### License details
