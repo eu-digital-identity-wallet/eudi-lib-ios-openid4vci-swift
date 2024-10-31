@@ -21,7 +21,7 @@ public struct CredentialIssuerId: Codable, Equatable {
   public init(_ string: String) throws {
     if let queryItems = URLComponents(string: string)?.queryItems,
        queryItems.count > 0 {
-      throw CredentialError.genericError
+      throw CredentialError.extraneousQueryComponents
     }
     
     guard
@@ -29,7 +29,7 @@ public struct CredentialIssuerId: Codable, Equatable {
       validURL.scheme == "https",
       validURL.fragment == nil
     else {
-      throw CredentialError.genericError
+      throw CredentialError.invalidScheme
     }
     
     self.url = validURL
@@ -43,6 +43,6 @@ public struct CredentialIssuerId: Codable, Equatable {
   public init(from decoder: Decoder) throws {
     let container = try decoder.singleValueContainer()
     let urlString = try container.decode(String.self)
-    url = try URL(string: urlString) ?? { throw ValidationError.error(reason: "Invalid credential_issuer URL")}()
+    try self.init(urlString)
   }
 }

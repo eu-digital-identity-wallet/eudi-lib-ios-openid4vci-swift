@@ -18,4 +18,6 @@ import Foundation
 public enum CredentialError: Error {
   case genericError
   case issuerDoesNotSupportDeferredIssuance
+  case extraneousQueryComponents
+  case invalidScheme
 }
