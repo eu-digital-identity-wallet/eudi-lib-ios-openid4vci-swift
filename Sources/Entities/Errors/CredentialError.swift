@@ -15,7 +15,22 @@
  */
 import Foundation
 
-public enum CredentialError: Error {
+public enum CredentialError: LocalizedError {
   case genericError
   case issuerDoesNotSupportDeferredIssuance
+  case extraneousQueryComponents
+  case invalidScheme
+  
+  public var errorDescription: String? {
+    switch self {
+    case .genericError:
+      return "Something went wrong"
+    case .issuerDoesNotSupportDeferredIssuance:
+      return "Issuer does not support deferred issuance"
+    case .extraneousQueryComponents:
+      return "Extraneous query components"
+    case .invalidScheme:
+      return "Invalid scheme"
+    }
+  }
 }
