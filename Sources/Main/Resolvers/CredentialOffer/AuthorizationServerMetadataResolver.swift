@@ -76,14 +76,15 @@ public actor AuthorizationServerMetadataResolver: AuthorizationServerMetadataRes
     url: URL
   ) async -> OIDCProviderMetadata? {
     
-    //According to the spec https://www.rfc-editor.org/rfc/rfc8414.html#section-3
+    // According to the spec https://www.rfc-editor.org/rfc/rfc8414.html#section-3
     //“.well-known/oauth-authorization-server” need to be inserted after removing the path components first. e.g :
     // https://example.com/.well-known/oauth-authorization-server/path1/path2
     // We provide a fallback that simply appends the components
+    // Note: this fallback mechanism will be removed at a future date
     do {
       guard let insertedUrl = modifyURL(
         url: url,
-        modificationType: .appendPathComponents(".well-known", "openid-configuration")
+        modificationType: .insertPathComponents(".well-known", "openid-configuration")
       ) else {
         return nil
       }
@@ -96,7 +97,7 @@ public actor AuthorizationServerMetadataResolver: AuthorizationServerMetadataRes
       
       guard let appendedUrl = modifyURL(
         url: url,
-        modificationType: .insertPathComponents(".well-known", "openid-configuration")
+        modificationType: .appendPathComponents(".well-known", "openid-configuration")
       ) else {
         return nil
       }
