@@ -46,7 +46,7 @@ class VCIFlowWithOffer: XCTestCase {
     let bindingKey: BindingKey = .jwk(
       algorithm: alg,
       jwk: publicKeyJWK,
-      privateKey: privateKey
+      privateKey: .secKey(privateKey)
     )
     
     let user = ActingUser(
@@ -91,7 +91,7 @@ class VCIFlowWithOffer: XCTestCase {
     let bindingKey: BindingKey = .jwk(
       algorithm: alg,
       jwk: publicKeyJWK,
-      privateKey: privateKey
+      privateKey: .secKey(privateKey)
     )
     
     let user = ActingUser(
@@ -135,7 +135,7 @@ class VCIFlowWithOffer: XCTestCase {
     let bindingKey: BindingKey = .jwk(
       algorithm: alg,
       jwk: publicKeyJWK,
-      privateKey: privateKey
+      privateKey: .secKey(privateKey)
     )
     
     let user = ActingUser(
@@ -179,7 +179,7 @@ class VCIFlowWithOffer: XCTestCase {
     let bindingKey: BindingKey = .jwk(
       algorithm: alg,
       jwk: publicKeyJWK,
-      privateKey: privateKey
+      privateKey: .secKey(privateKey)
     )
     
     let user = ActingUser(
@@ -224,7 +224,7 @@ class VCIFlowWithOffer: XCTestCase {
     let bindingKey: BindingKey = .jwk(
       algorithm: alg,
       jwk: publicKeyJWK,
-      privateKey: privateKey
+      privateKey: .secKey(privateKey)
     )
     
     let user = ActingUser(
@@ -269,7 +269,7 @@ class VCIFlowWithOffer: XCTestCase {
     let bindingKey: BindingKey = .jwk(
       algorithm: alg,
       jwk: publicKeyJWK,
-      privateKey: privateKey
+      privateKey: .secKey(privateKey)
     )
     
     let user = ActingUser(

@@ -22,7 +22,7 @@ public enum BindingKey {
   case jwk(
     algorithm: JWSAlgorithm,
     jwk: JWK,
-    privateKey: SecKey,
+    privateKey: PrivateKeyProxy,
     issuer: String? = nil
   )
 
@@ -31,6 +31,11 @@ public enum BindingKey {
 
   // X509 Binding Key
   case x509(certificate: X509Certificate)
+
+  public enum PrivateKeyProxy {
+    case custom(any SignerProtocol)
+    case secKey(SecKey)
+  }
 }
 
 public extension BindingKey {
@@ -84,11 +89,12 @@ public extension BindingKey {
         guard let signatureAlgorithm = SignatureAlgorithm(rawValue: algorithm.name) else {
           throw CredentialIssuanceError.cryptographicAlgorithmNotSupported
         }
-
-        guard let signer = Signer(
-          signatureAlgorithm: signatureAlgorithm,
-          key: privateKey
-        ) else {
+        let signer: Signer
+        if case let .secKey(secKey) = privateKey, let secKeySigner = Signer(signatureAlgorithm: signatureAlgorithm, key: secKey) {
+          signer = secKeySigner
+        } else if case let .custom(customSigner) = privateKey {
+          signer = Signer(customSigner: customSigner)
+        } else {
           throw ValidationError.error(reason: "Unable to create JWS signer")
         }
 

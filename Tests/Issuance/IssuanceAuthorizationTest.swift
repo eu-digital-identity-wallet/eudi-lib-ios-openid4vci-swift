@@ -383,7 +383,7 @@ class IssuanceAuthorizationTest: XCTestCase {
     let bindingKey: BindingKey = .jwk(
       algorithm: alg,
       jwk: publicKeyJWK,
-      privateKey: privateKey,
+      privateKey: .secKey(privateKey),
       issuer: "218232426"
     )
     
@@ -477,7 +477,7 @@ class IssuanceAuthorizationTest: XCTestCase {
     let bindingKey: BindingKey = .jwk(
       algorithm: alg,
       jwk: publicKeyJWK,
-      privateKey: privateKey,
+      privateKey: .secKey(privateKey),
       issuer: "218232426"
     )
 
@@ -576,7 +576,7 @@ class IssuanceAuthorizationTest: XCTestCase {
     let bindingKey: BindingKey = .jwk(
       algorithm: alg,
       jwk: jwk,
-      privateKey: privateKey,
+      privateKey: .secKey(privateKey),
       issuer: "218232426"
     )
     
