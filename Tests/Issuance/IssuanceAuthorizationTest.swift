@@ -142,7 +142,7 @@ class IssuanceAuthorizationTest: XCTestCase {
     
     switch unAuthorized {
     case .success(let authorizationCode):
-      let authorizedRequest = await issuer.requestAccessToken(authorizationCode: authorizationCode)
+      let authorizedRequest = await issuer.authorizeWithAuthorizationCode(authorizationCode: authorizationCode)
       
       if case let .success(authorized) = authorizedRequest,
          case let .noProofRequired(token, _, _, _) = authorized {
@@ -195,7 +195,7 @@ class IssuanceAuthorizationTest: XCTestCase {
     
     switch unAuthorized {
     case .success(let authorizationCode):
-      let authorizedRequest = await issuer.requestAccessToken(authorizationCode: authorizationCode)
+      let authorizedRequest = await issuer.authorizeWithAuthorizationCode(authorizationCode: authorizationCode)
       if case let .success(authorized) = authorizedRequest,
          case let .proofRequired(token, _, _, _, _) = authorized {
         XCTAssert(true, "Got access token: \(token)")
@@ -247,7 +247,7 @@ class IssuanceAuthorizationTest: XCTestCase {
     
     switch unAuthorized {
     case .success(let authorizationCode):
-      let authorizedRequest = await issuer.requestAccessToken(authorizationCode: authorizationCode)
+      let authorizedRequest = await issuer.authorizeWithAuthorizationCode(authorizationCode: authorizationCode)
       
       switch authorizedRequest {
       case .success:
@@ -323,6 +323,7 @@ class IssuanceAuthorizationTest: XCTestCase {
     
     /// Replace the url string below with the one you can generate here: https://trial.authlete.net/api/offer/issue
     let urlString = """
+    https://trial.authlete.net/api/offer/aCyfhLWvufb5T_BB_aCVhlk1GhnAqKA_tsz_m3v48jI
     """
     
     if urlString.isEmpty {

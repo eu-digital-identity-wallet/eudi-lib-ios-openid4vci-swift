@@ -34,7 +34,7 @@ public protocol IssuerType {
     authorizationCode: IssuanceAuthorization
   ) async -> Result<UnauthorizedRequest, Error>
   
-  func requestAccessToken(
+  func authorizeWithAuthorizationCode(
     authorizationCode: UnauthorizedRequest
   ) async -> Result<AuthorizedRequest, Error>
   
@@ -275,14 +275,14 @@ public actor Issuer: IssuerType {
     }
   }
   
-  public func requestAccessToken(authorizationCode: UnauthorizedRequest) async -> Result<AuthorizedRequest, Error> {
+  public func authorizeWithAuthorizationCode(authorizationCode: UnauthorizedRequest) async -> Result<AuthorizedRequest, Error> {
     switch authorizationCode {
     case .par:
       return .failure(ValidationError.error(reason: ".authorizationCode case is required"))
       
     case .authorizationCode(let request):
       switch request.authorizationCode {
-      case .authorizationCode(authorizationCode: let authorizationCode):
+      case .authorizationCode(let authorizationCode):
         do {
           let response: (
             accessToken: IssuanceAccessToken,
@@ -739,9 +739,16 @@ public extension Issuer {
   static func createResponseEncryptionSpec(_ issuerResponseEncryptionMetadata: CredentialResponseEncryption) -> IssuanceResponseEncryptionSpec? {
     switch issuerResponseEncryptionMetadata {
     case .notRequired:
-      return Self.createResponseEncryptionSpecFrom(algorithmsSupported: [.init(.RSA_OAEP_256)], encryptionMethodsSupported: [.init(.A128CBC_HS256)])
+      return Self.createResponseEncryptionSpecFrom(
+        algorithmsSupported: [.init(.RSA_OAEP_256)],
+        encryptionMethodsSupported: [.init(.A128CBC_HS256)]
+      )
+      
     case let .required(algorithmsSupported, encryptionMethodsSupported):
-      return Self.createResponseEncryptionSpecFrom(algorithmsSupported: algorithmsSupported, encryptionMethodsSupported: encryptionMethodsSupported)
+      return Self.createResponseEncryptionSpecFrom(
+        algorithmsSupported: algorithmsSupported,
+        encryptionMethodsSupported: encryptionMethodsSupported
+      )
     }
   }
   

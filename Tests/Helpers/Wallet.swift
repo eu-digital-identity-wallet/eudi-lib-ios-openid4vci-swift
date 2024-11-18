@@ -439,7 +439,7 @@ extension Wallet {
       
       switch unAuthorized {
       case .success(let request):
-        let authorizedRequest = await issuer.requestAccessToken(authorizationCode: request)
+        let authorizedRequest = await issuer.authorizeWithAuthorizationCode(authorizationCode: request)
         if case let .success(authorized) = authorizedRequest,
            case let .noProofRequired(token, _, _, _) = authorized {
           print("--> [AUTHORIZATION] Authorization code exchanged with access token : \(token.accessToken)")

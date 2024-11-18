@@ -224,7 +224,7 @@ extension IssuanceEncryptionTest {
     }
     
     if case .authorizationCode = unAuthorized {
-      guard let authorizedRequest = try? await issuer.requestAccessToken(authorizationCode: unAuthorized).get() else {
+      guard let authorizedRequest = try? await issuer.authorizeWithAuthorizationCode(authorizationCode: unAuthorized).get() else {
         XCTAssert(false, "Could not get authorized request")
         return nil
       }
@@ -284,7 +284,7 @@ extension IssuanceEncryptionTest {
     }
     
     if case .authorizationCode = unAuthorized {
-      guard let authorizedRequest = try? await issuer.requestAccessToken(authorizationCode: unAuthorized).get() else {
+      guard let authorizedRequest = try? await issuer.authorizeWithAuthorizationCode(authorizationCode: unAuthorized).get() else {
         XCTAssert(false, "Could not get authorized request")
         return nil
       }

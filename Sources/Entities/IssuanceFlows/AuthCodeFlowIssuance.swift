@@ -17,15 +17,27 @@ import Foundation
 
 public enum AuthCodeFlowIssuance {
   // State denoting that the pushed authorization request has been placed successfully and response processed
-  case parRequested(getAuthorizationCodeURL: GetAuthorizationCodeURL, pkceVerifier: PKCEVerifier, state: String)
+  case parRequested(
+    getAuthorizationCodeURL: GetAuthorizationCodeURL,
+    pkceVerifier: PKCEVerifier,
+    state: String
+  )
   
   // State denoting that the caller has followed the URL and response received from the authorization server and processed successfully
-  case authorized(authorizationCode: IssuanceAuthorization, pkceVerifier: PKCEVerifier)
+  case authorized(
+    authorizationCode: IssuanceAuthorization,
+    pkceVerifier: PKCEVerifier
+  )
   
   // State denoting that the access token was requested from the authorization server and response received and processed successfully
-  case accessTokenRetrieved(token: IssuanceAccessToken)
+  case accessTokenRetrieved(
+    token: IssuanceAccessToken
+  )
   
   // State denoting that the certificate issuance was requested and certificate issued and received successfully
-  case issued(issuedAt: Date, certificate: IssuedCertificate)
+  case issued(
+    issuedAt: Date,
+    certificate: IssuedCertificate
+  )
 }
 

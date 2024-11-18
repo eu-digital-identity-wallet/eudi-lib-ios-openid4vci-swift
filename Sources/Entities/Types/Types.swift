@@ -40,14 +40,11 @@ public struct IssuanceResponseEncryptionSpec {
 
 public enum Proof: Codable {
   case jwt(JWT)
-  case cwt(String)
   
   public func type() -> ProofType {
     switch self {
     case .jwt:
       return .jwt
-    case .cwt:
-      return .cwt
     }
   }
   
@@ -58,8 +55,6 @@ public enum Proof: Codable {
     
     if let jwt = try? container.decode(JWT.self) {
       self = .jwt(jwt)
-    } else if let cwt = try? container.decode(String.self) {
-      self = .cwt(cwt)
     } else {
       throw DecodingError.typeMismatch(Proof.self, DecodingError.Context(codingPath: decoder.codingPath, debugDescription: "Invalid proof type"))
     }
@@ -74,8 +69,6 @@ public enum Proof: Codable {
         "proof_type": "jwt",
         "jwt": jwt
       ])
-    case .cwt(let cwt):
-      try container.encode(cwt)
     }
   }
   
@@ -86,8 +79,6 @@ public enum Proof: Codable {
         "proof_type": "jwt",
         "jwt": jwt
       ]
-    case .cwt:
-      throw ValidationError.error(reason: "CWT not supported yet")
     }
   }
 }
