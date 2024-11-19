@@ -16,13 +16,14 @@
 import Foundation
 
 public enum DeferredCredentialIssuanceResponse: Codable {
-  case issued(credential: String)
+  case issued(credential: Credential)
   case issuancePending(transactionId: TransactionId)
   case errored(error: String?, errorDescription: String?)
   
   private enum CodingKeys: String, CodingKey {
     case type
     case credential
+    case credentials
     case transactionId = "transaction_id"
     case error
     case errorDescription = "error_description"
@@ -32,9 +33,14 @@ public enum DeferredCredentialIssuanceResponse: Codable {
     let container = try decoder.container(keyedBy: CodingKeys.self)
     if let transactionId = try? container.decode(String.self, forKey: .transactionId) {
       self = .issuancePending(transactionId: try .init(value: transactionId))
-    } else if let credential = try? container.decode(String.self, forKey: .credential) {
-       self = .issued(credential: credential)
-     } else {
+      
+    } else if let credential = try? container.decode(Credential.self, forKey: .credential) {
+      self = .issued(credential: credential)
+      
+    } else if let credentials = try? container.decode(Credential.self, forKey: .credentials) {
+      self = .issued(credential: credentials)
+      
+    } else {
       self = .errored(
         error: try? container.decode(String.self, forKey: .error),
         errorDescription: try? container.decodeIfPresent(String.self, forKey: .errorDescription)

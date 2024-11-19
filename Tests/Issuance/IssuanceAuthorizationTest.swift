@@ -323,7 +323,6 @@ class IssuanceAuthorizationTest: XCTestCase {
     
     /// Replace the url string below with the one you can generate here: https://trial.authlete.net/api/offer/issue
     let urlString = """
-    https://trial.authlete.net/api/offer/aCyfhLWvufb5T_BB_aCVhlk1GhnAqKA_tsz_m3v48jI
     """
     
     if urlString.isEmpty {
@@ -407,8 +406,13 @@ class IssuanceAuthorizationTest: XCTestCase {
 
     switch requestSingleResult {
     case .success(let request):
-      print(request.credentials.joined(separator: ", "))
-      XCTAssertTrue(true)
+      switch request {
+      case .success(let response):
+        print(response.credentialResponses.map { try! $0.toDictionary() } )
+        XCTAssertTrue(true)
+      default:
+        XCTAssert(false, "Unexpected request type")
+      }
     case .failure(let error):
       XCTAssert(false, error.localizedDescription)
     }
@@ -500,8 +504,13 @@ class IssuanceAuthorizationTest: XCTestCase {
 
     switch requestSingleResult {
     case .success(let request):
-      print(request.credentials.joined(separator: ", "))
-      XCTAssertTrue(true)
+      switch request {
+      case .success(let response):
+        print(response.credentialResponses.map { try! $0.toDictionary() } )
+        XCTAssertTrue(true)
+      default:
+        XCTAssert(false, "Unexpected request type")
+      }
     case .failure(let error):
       XCTAssert(false, error.localizedDescription)
     }
@@ -599,8 +608,13 @@ class IssuanceAuthorizationTest: XCTestCase {
     
     switch requestSingleResult {
     case .success(let request):
-      print(request.credentials.joined(separator: ", "))
-      XCTAssertTrue(true)
+      switch request {
+      case .success(let response):
+        print(response.credentialResponses.map { try! $0.toDictionary() } )
+        XCTAssertTrue(true)
+      default:
+        XCTAssert(false, "Unexpected request type")
+      }
     case .failure(let error):
       XCTAssert(false, error.localizedDescription)
     }

@@ -355,10 +355,21 @@ private extension IssuanceRequester {
 
 private extension SingleIssuanceSuccessResponse {
   func toSingleIssuanceResponse() throws -> CredentialIssuanceResponse {
-    if let credential = credential {
+    if let credential = credential,
+       let string = credential.string {
       return CredentialIssuanceResponse(
-        credentialResponses: [.issued(credential: credential, notificationId: nil)],
-        cNonce: CNonce(value: cNonce, expiresInSeconds: cNonceExpiresInSeconds)
+        credentialResponses: [
+          .issued(
+            format: nil,
+            credential: .string(string),
+            notificationId: nil,
+            additionalInfo: nil
+          )
+        ],
+        cNonce: .init(
+          value: cNonce,
+          expiresInSeconds: cNonceExpiresInSeconds
+        )
       )
     } else if let transactionId = transactionId {
       return CredentialIssuanceResponse(
@@ -373,15 +384,9 @@ private extension SingleIssuanceSuccessResponse {
 
 private extension BatchIssuanceSuccessResponse {
   func toBatchIssuanceResponse() throws -> CredentialIssuanceResponse {
-    func mapResults() throws -> [CredentialIssuanceResponse.Result] {
+    func mapResults() throws -> [IssuedCredential] {
       return try credentialResponses.map { response in
-        if let transactionId = response.transactionId {
-          return .deferred(transactionId: try .init(value: transactionId))
-        } else if let credential = response.credential {
-          return .issued(credential: credential, notificationId: nil)
-        } else {
-          throw CredentialIssuanceError.responseUnparsable("Got success response for issuance but response misses 'transaction_id' and 'certificate' parameters")
-        }
+        throw CredentialIssuanceError.responseUnparsable("Deprecated, will be removed")
       }
     }
     

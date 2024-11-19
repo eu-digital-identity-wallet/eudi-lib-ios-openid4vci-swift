@@ -128,7 +128,7 @@ class IssuanceDeferredRequestTest: XCTestCase {
                 case .deferred(let transactionId):
                   XCTAssert(true, "transaction_id: \(transactionId)")
                   return
-                case .issued(let credential, _):
+                case .issued(let format, let credential, _, _):
                   XCTAssert(false, "credential: \(credential)")
                 }
               } else {

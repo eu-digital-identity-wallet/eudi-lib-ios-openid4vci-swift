@@ -137,7 +137,7 @@ class IssuanceSingleRequestTest: XCTestCase {
                 switch result {
                 case .deferred:
                   XCTAssert(false, "Unexpected deferred")
-                case .issued(let credential, _):
+                case .issued(let format, let credential, _, _):
                   XCTAssert(true, "credential: \(credential)")
                   return
                 }
@@ -270,7 +270,7 @@ class IssuanceSingleRequestTest: XCTestCase {
               switch result {
               case .deferred:
                 XCTAssert(false, "Unexpected deferred")
-              case .issued(let credential, _):
+              case .issued(let format, let credential, _, _):
                 XCTAssert(true, "credential: \(credential)")
                 return
               }
@@ -398,7 +398,7 @@ class IssuanceSingleRequestTest: XCTestCase {
                 switch result {
                 case .deferred:
                   XCTAssert(false, "Unexpected deferred")
-                case .issued(let credential, _):
+                case .issued(let format, let credential, _, _):
                   XCTAssert(true, "credential: \(credential)")
                   return
                 }

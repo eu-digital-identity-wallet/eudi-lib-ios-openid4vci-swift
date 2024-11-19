@@ -51,7 +51,7 @@ extension Wallet {
   func issueByCredentialIdentifier(
     _ identifier: String,
     claimSet: ClaimSet? = nil
-  ) async throws -> String {
+  ) async throws -> Credential {
     let credentialConfigurationIdentifier = try CredentialConfigurationIdentifier(value: identifier)
     let credentialIssuerIdentifier = try CredentialIssuerId(CREDENTIAL_ISSUER_PUBLIC_URL)
     
@@ -99,7 +99,7 @@ extension Wallet {
   private func issueMultipleOfferedCredentialWithProof(
     offer: CredentialOffer,
     claimSet: ClaimSet? = nil
-  ) async throws -> [(String, String)] {
+  ) async throws -> [(String, Credential)] {
     
     let issuerMetadata = offer.credentialIssuerMetadata
     let issuer = try Issuer(
@@ -161,7 +161,7 @@ extension Wallet {
     offer: CredentialOffer,
     credentialConfigurationIdentifier: CredentialConfigurationIdentifier,
     claimSet: ClaimSet? = nil
-  ) async throws -> String {
+  ) async throws -> Credential {
     
     let issuer = try Issuer(
       authorizationServerMetadata: offer.authorizationServerMetadata,
@@ -204,7 +204,7 @@ extension Wallet {
   func issueByCredentialOfferUrlMultipleFormats(
     offerUri: String,
     claimSet: ClaimSet? = nil
-  ) async throws -> [(String, String)] {
+  ) async throws -> [(String, Credential)] {
     let resolver = CredentialOfferRequestResolver(
       fetcher: Fetcher(session: self.session),
       credentialIssuerMetadataResolver: CredentialIssuerMetadataResolver(
@@ -237,7 +237,7 @@ extension Wallet {
     offerUri: String,
     scope: String,
     claimSet: ClaimSet? = nil
-  ) async throws -> String {
+  ) async throws -> Credential {
       let result = await CredentialOfferRequestResolver(
         fetcher: Fetcher(session: self.session),
         credentialIssuerMetadataResolver: CredentialIssuerMetadataResolver(
@@ -269,7 +269,7 @@ extension Wallet {
     offerUri: String,
     scope: String,
     claimSet: ClaimSet? = nil
-  ) async throws -> String {
+  ) async throws -> Credential {
     let result = await CredentialOfferRequestResolver(
       fetcher: Fetcher(session: self.session),
       credentialIssuerMetadataResolver: CredentialIssuerMetadataResolver(
@@ -301,7 +301,7 @@ extension Wallet {
     offer: CredentialOffer,
     scope: String,
     claimSet: ClaimSet? = nil
-  ) async throws -> String {
+  ) async throws -> Credential {
     
     let issuerMetadata = offer.credentialIssuerMetadata
     guard let credentialConfigurationIdentifier = issuerMetadata.credentialsSupported.keys.first(where: { $0.value == scope }) else {
@@ -346,7 +346,7 @@ extension Wallet {
     offer: CredentialOffer,
     scope: String,
     claimSet: ClaimSet? = nil
-  ) async throws -> String {
+  ) async throws -> Credential {
     
     let issuerMetadata = offer.credentialIssuerMetadata
     guard let credentialConfigurationIdentifier = issuerMetadata.credentialsSupported.keys.first(where: { $0.value == scope }) else {
@@ -465,7 +465,7 @@ extension Wallet {
     noProofRequiredState: AuthorizedRequest,
     credentialConfigurationIdentifier: CredentialConfigurationIdentifier,
     claimSet: ClaimSet? = nil
-  ) async throws -> String {
+  ) async throws -> Credential {
     switch noProofRequiredState {
     case .noProofRequired:
       let payload: IssuanceRequestPayload = .configurationBased(
@@ -490,7 +490,7 @@ extension Wallet {
                 authorized: noProofRequiredState,
                 transactionId: transactionId
               )
-            case .issued(let credential, _):
+            case .issued(let format, let credential, _, _):
               return credential
             }
           } else {
@@ -519,7 +519,7 @@ extension Wallet {
     authorized: AuthorizedRequest,
     credentialConfigurationIdentifier: CredentialConfigurationIdentifier?,
     claimSet: ClaimSet? = nil
-  ) async throws -> String {
+  ) async throws -> Credential {
     
     guard let credentialConfigurationIdentifier else {
       throw ValidationError.error(reason: "Credential configuration identifier not found")
@@ -550,7 +550,7 @@ extension Wallet {
               authorized: authorized,
               transactionId: transactionId
             )
-          case .issued(let credential, _):
+          case .issued(let format, let credential, _, _):
             return credential
           }
         } else {
@@ -569,7 +569,7 @@ extension Wallet {
     issuer: Issuer,
     authorized: AuthorizedRequest,
     transactionId: TransactionId
-  ) async throws -> String {
+  ) async throws -> Credential {
     print("--> [ISSUANCE] Got a deferred issuance response from server with transaction_id \(transactionId.value). Retrying issuance...")
     
     let deferredRequestResponse = try await issuer.requestDeferredIssuance(
