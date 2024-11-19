@@ -229,12 +229,11 @@ Specification defines ([section 6.2](https://openid.github.io/OpenID4VCI/openid-
 if `authorization_details` parameter is used in authorization endpoint. Current version of library is not parsing/utilizing this response attribute.
 
 ### Credential Request
-Current version of the library implements integrations with issuer's [Crednetial Endpoint](https://openid.github.io/OpenID4VCI/openid-4-verifiable-credential-issuance-wg-draft.html#name-credential-endpoint),
-[Batch Crednetial Endpoint](https://openid.github.io/OpenID4VCI/openid-4-verifiable-credential-issuance-wg-draft.html#name-batch-credential-endpoint) and
+Current version of the library implements integrations with issuer's [Crednetial Endpoint](https://openid.github.io/OpenID4VCI/openid-4-verifiable-credential-issuance-wg-draft.html#name-credential-endpoint) and
 [Deferred Crednetial Endpoint](https://openid.github.io/OpenID4VCI/openid-4-verifiable-credential-issuance-wg-draft.html#name-deferred-credential-endpoin)
 endpoints.
 
-**NOTE:** Attribute `credential_identifier` of a credential request (single or batch) is not yet supported.
+**NOTE:** Attribute `credential_identifier` of a credential request is not yet supported.
 
 #### Credential Format Profiles
 OpenId4VCI specification defines several extension points to accommodate the differences across Credential formats. The current version of the library fully supports **ISO mDL** profile and gives some initial support for **IETF SD-JWT VC** profile.  

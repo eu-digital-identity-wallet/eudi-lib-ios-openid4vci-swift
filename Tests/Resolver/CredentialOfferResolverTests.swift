@@ -67,7 +67,6 @@ class CredentialOfferResolverTests: XCTestCase {
     switch result {
     case .success(let result):
       XCTAssert(result.credentialIssuerIdentifier.url.absoluteString == "https://credential-issuer.example.com")
-      XCTAssert(result.credentialIssuerMetadata.batchCredentialEndpoint?.url.absoluteString == "https://credential-issuer.example.com/credentials/batch")
       XCTAssert(result.credentialIssuerMetadata.deferredCredentialEndpoint?.url.absoluteString == "https://credential-issuer.example.com/credentials/deferred")
 
     case .failure(let error):
@@ -114,7 +113,6 @@ class CredentialOfferResolverTests: XCTestCase {
     switch result {
     case .success(let result):
       XCTAssert(result.credentialIssuerIdentifier.url.absoluteString == "https://credential-issuer.example.com")
-      XCTAssert(result.credentialIssuerMetadata.batchCredentialEndpoint?.url.absoluteString == "https://credential-issuer.example.com/credentials/batch")
       XCTAssert(result.credentialIssuerMetadata.deferredCredentialEndpoint?.url.absoluteString == "https://credential-issuer.example.com/credentials/deferred")
 
     case .failure(let error):

@@ -60,7 +60,6 @@ public extension MsoMdocClaims {
 
 public enum CredentialIssuanceRequest {
   case single(SingleCredential, IssuanceResponseEncryptionSpec?)
-  case batch([SingleCredential], IssuanceResponseEncryptionSpec?)
 }
 
 public struct DeferredCredentialRequest: Codable {

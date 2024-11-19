@@ -26,11 +26,6 @@ public protocol IssuanceRequesterType {
     request: SingleCredential
   ) async throws -> Result<CredentialIssuanceResponse, Error>
   
-  func placeBatchIssuanceRequest(
-    accessToken: IssuanceAccessToken,
-    request: [SingleCredential]
-  ) async throws -> Result<CredentialIssuanceResponse, Error>
-  
   func placeDeferredCredentialRequest(
     accessToken: IssuanceAccessToken,
     transactionId: TransactionId,
@@ -175,40 +170,6 @@ public actor IssuanceRequester: IssuanceRequesterType {
           }
         }
       }
-      
-    } catch {
-      return .failure(ValidationError.error(reason: error.localizedDescription))
-    }
-  }
-  
-  public func placeBatchIssuanceRequest(
-    accessToken: IssuanceAccessToken,
-    request: [SingleCredential]
-  ) async throws -> Result<CredentialIssuanceResponse, Error> {
-    guard
-      let endpoint = issuerMetadata.batchCredentialEndpoint?.url
-    else {
-      throw CredentialIssuanceError.issuerDoesNotSupportBatchIssuance
-    }
-    
-    do {
-      let authorizationHeader: [String: Any] = try accessToken.dPoPOrBearerAuthorizationHeader(
-        dpopConstructor: dpopConstructor,
-        endpoint: endpoint
-      )
-      
-      let encodedRequest: [JSON] = try request
-        .map { try $0.toDictionary() }
-      
-      let merged = authorizationHeader.merging(["credential_requests": encodedRequest]) { (_, new) in new }
-      
-      let response: BatchIssuanceSuccessResponse = try await service.formPost(
-        poster: poster,
-        url: endpoint,
-        headers: [:],
-        body: merged
-      )
-      return .success(try response.toBatchIssuanceResponse())
       
     } catch {
       return .failure(ValidationError.error(reason: error.localizedDescription))
@@ -379,20 +340,5 @@ private extension SingleIssuanceSuccessResponse {
       
     }
     throw CredentialIssuanceError.responseUnparsable("Got success response for issuance but response misses 'transaction_id' and 'certificate' parameters")
-  }
-}
-
-private extension BatchIssuanceSuccessResponse {
-  func toBatchIssuanceResponse() throws -> CredentialIssuanceResponse {
-    func mapResults() throws -> [IssuedCredential] {
-      return try credentialResponses.map { response in
-        throw CredentialIssuanceError.responseUnparsable("Deprecated, will be removed")
-      }
-    }
-    
-    return CredentialIssuanceResponse(
-      credentialResponses: try mapResults(),
-      cNonce: CNonce(value: cNonce, expiresInSeconds: cNonceExpiresInSeconds)
-    )
   }
 }
