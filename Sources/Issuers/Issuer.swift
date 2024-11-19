@@ -520,7 +520,7 @@ public actor Issuer: IssuerType {
     switch proofRequest {
     case .proofRequired(let token, _, let cNonce, _, _):
       return try await requestIssuance(token: token) {
-        let credentialRequests: [CredentialIssuanceRequest] = try requestPayload.map { identifier in
+        let credentialRequests: [CredentialIssuanceRequest] = try await requestPayload.asyncMap { identifier in
           guard let supportedCredential = issuerMetadata
             .credentialsSupported[identifier.credentialConfigurationIdentifier] else {
             throw ValidationError.error(reason: "Invalid Supported credential for requestBatch")
@@ -528,7 +528,7 @@ public actor Issuer: IssuerType {
           return try supportedCredential.toIssuanceRequest(
             requester: issuanceRequester,
             claimSet: identifier.claimSet,
-            proof: bindingKey.toSupportedProof(
+            proof: try await bindingKey.toSupportedProof(
               issuanceRequester: issuanceRequester,
               credentialSpec: supportedCredential,
               cNonce: cNonce.value
@@ -559,9 +559,9 @@ private extension Issuer {
   
   private func requestIssuance(
     token: IssuanceAccessToken,
-    issuanceRequestSupplier: () throws -> CredentialIssuanceRequest
+    issuanceRequestSupplier: () async throws -> CredentialIssuanceRequest
   ) async throws -> Result<SubmittedRequest, Error> {
-    let credentialRequest = try issuanceRequestSupplier()
+    let credentialRequest = try await issuanceRequestSupplier()
     switch credentialRequest {
     case .single(let single, let encryptionSpec):
       self.deferredResponseEncryptionSpec = encryptionSpec
@@ -674,7 +674,7 @@ private extension Issuer {
       return try supportedCredential.toIssuanceRequest(
         requester: issuanceRequester,
         claimSet: claimSet, 
-        proof: bindingKey?.toSupportedProof(
+        proof: try await bindingKey?.toSupportedProof(
           issuanceRequester: issuanceRequester,
           credentialSpec: supportedCredential,
           cNonce: cNonce?.value
@@ -699,7 +699,7 @@ private extension Issuer {
     }
     
     return try await requestIssuance(token: token) {
-      return try supportedCredential.toIssuanceRequest(
+      return try await supportedCredential.toIssuanceRequest(
         requester: issuanceRequester,
         proof: bindingKey?.toSupportedProof(
           issuanceRequester: issuanceRequester,

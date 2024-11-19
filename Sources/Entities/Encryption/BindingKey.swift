@@ -33,7 +33,7 @@ public enum BindingKey {
   case x509(certificate: X509Certificate)
 
   public enum PrivateKeyProxy {
-    case custom(any SignerProtocol)
+    case custom(any AsyncSignerProtocol)
     case secKey(SecKey)
   }
 }
@@ -44,7 +44,7 @@ public extension BindingKey {
     issuanceRequester: IssuanceRequesterType,
     credentialSpec: CredentialSupported,
     cNonce: String?
-  ) throws -> Proof {
+  ) async throws -> Proof {
     switch self {
     case .jwk(
       let algorithm,
@@ -92,7 +92,10 @@ public extension BindingKey {
         let signer: Signer
         if case let .secKey(secKey) = privateKey, let secKeySigner = Signer(signatureAlgorithm: signatureAlgorithm, key: secKey) {
           signer = secKeySigner
-        } else if case let .custom(customSigner) = privateKey {
+        } else if case let .custom(customAsyncSigner) = privateKey {
+					let signingInput = [header as DataConvertible, payload as DataConvertible].map { $0.data().base64URLEncodedString() }.joined(separator: ".").data(using: .ascii)!
+					let signature = try await customAsyncSigner.signAsync(signingInput)
+					let customSigner = PrecomputedSigner(signature: signature, algorithm: signatureAlgorithm)
           signer = Signer(customSigner: customSigner)
         } else {
           throw ValidationError.error(reason: "Unable to create JWS signer")
@@ -178,4 +181,23 @@ public extension BindingKey {
 
 private extension BindingKey {
 
+}
+
+// we need this because secure are signer is async
+class PrecomputedSigner: JOSESwift.SignerProtocol {
+	var algorithm: JOSESwift.SignatureAlgorithm
+	let signature: Data
+	
+	init(signature: Data, algorithm: JOSESwift.SignatureAlgorithm) {
+		self.algorithm = algorithm
+		self.signature = signature
+	}
+	
+	func sign(_ signingInput: Data) throws -> Data {
+		return signature
+	}
+}
+
+public protocol AsyncSignerProtocol {
+	func signAsync(_ signingInput: Data) async throws -> Data
 }
