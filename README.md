@@ -202,7 +202,7 @@ let payload: IssuanceRequestPayload = .configurationBased(
   credentialConfigurationIdentifier: ...
 )
 
-let requestOutcome = try await issuer.requestSingle(
+let requestOutcome = try await issuer.request(
     proofRequest: ...,
     bindingKey: ...,
     requestPayload: payload,
