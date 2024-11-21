@@ -102,7 +102,7 @@ public struct Scope: Codable {
 public enum ContentType: String {
   case form = "application/x-www-form-urlencoded"
   case json = "application/json"
-
+  
   public static let key = "Content-Type"
 }
 
@@ -238,4 +238,19 @@ public struct TxCode: Codable {
 public enum InputModeTO: String, Codable {
   case text = "text"
   case numeric = "numeric"
+}
+
+public struct ProofsTO: Codable {
+  public let jwtProofs: [String]?
+  
+  public enum CodingKeys: String, CodingKey {
+    case jwtProofs = "jwt"
+  }
+  
+  public init(jwtProofs: [String]? = nil) {
+    guard !(jwtProofs?.isEmpty ?? true) else {
+      fatalError("jwtProofs must be non-empty.")
+    }
+    self.jwtProofs = jwtProofs
+  }
 }
