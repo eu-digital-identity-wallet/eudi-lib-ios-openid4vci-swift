@@ -76,23 +76,25 @@ public extension SingleCredential {
   func toDictionary() throws -> JSON {
     switch self {
     case .msoMdoc(let credential):
+      let proofOrProofs = credential.proofs.proofOrProofs()
       switch credential.requestedCredentialResponseEncryption {
       case .notRequested:
         if let identifier = credential.credentialIdentifier {
-          let dictionary = [
-            "credential_identifier": identifier,
-            "proof": credential.proof != nil ? (try? credential.proof.toDictionary()) : nil
-          ] as [String : Any?]
-          return JSON(dictionary.filter { $0.value != nil })
-          
+          return try JSON.createFrom(
+            proofOrProofs: proofOrProofs,
+            dictionary: [
+              "credential_identifier": identifier
+            ]
+          )
         } else {
-          let dictionary = [
-            "format": MsoMdocFormat.FORMAT,
-            "doctype": credential.docType,
-            "claims": credential.claimSet?.toDictionary(),
-            "proof": credential.proof != nil ? (try? credential.proof.toDictionary()) : nil
-          ] as [String : Any?]
-          return JSON(dictionary.filter { $0.value != nil })
+          return try JSON.createFrom(
+            proofOrProofs: proofOrProofs,
+            dictionary: [
+              "format": MsoMdocFormat.FORMAT,
+              "doctype": credential.docType,
+              "claims": credential.claimSet?.toDictionary()
+            ]
+          )
         }
       case .requested(
         let encryptionJwk,
@@ -101,50 +103,55 @@ public extension SingleCredential {
         let responseEncryptionMethod
       ):
         if let identifier = credential.credentialIdentifier {
-          let dictionary = [
-            "proof": credential.proof != nil ? (try? credential.proof.toDictionary()) : nil,
-            "credential_identifier": identifier,
-            "credential_response_encryption": [
-              "jwk": try encryptionJwk.toDictionary(),
-              "alg": responseEncryptionAlg.name,
-              "enc": responseEncryptionMethod.name
+          return try JSON.createFrom(
+            proofOrProofs: proofOrProofs,
+            dictionary: [
+              "credential_identifier": identifier,
+              "credential_response_encryption": [
+                "jwk": try encryptionJwk.toDictionary(),
+                "alg": responseEncryptionAlg.name,
+                "enc": responseEncryptionMethod.name
+              ]
             ]
-          ] as [String : Any?]
-          return JSON(dictionary.filter { $0.value != nil })
+          )
           
         } else {
-          let dictionary = [
-            "format": MsoMdocFormat.FORMAT,
-            "proof": credential.proof != nil ? (try? credential.proof.toDictionary()) : nil,
-            "doctype": credential.docType,
-            "credential_response_encryption": [
-              "jwk": try encryptionJwk.toDictionary(),
-              "alg": responseEncryptionAlg.name,
-              "enc": responseEncryptionMethod.name
-            ],
-            "claims": credential.claimSet?.toDictionary()
-          ] as [String : Any?]
-          return JSON(dictionary.filter { $0.value != nil })
+          return try JSON.createFrom(
+            proofOrProofs: proofOrProofs,
+            dictionary: [
+              "format": MsoMdocFormat.FORMAT,
+              "doctype": credential.docType,
+              "credential_response_encryption": [
+                "jwk": try encryptionJwk.toDictionary(),
+                "alg": responseEncryptionAlg.name,
+                "enc": responseEncryptionMethod.name
+              ],
+              "claims": credential.claimSet?.toDictionary()
+            ]
+          )
         }
       }
     case .sdJwtVc(let credential):
+      let proofOrProofs = credential.proofs.proofOrProofs()
       switch credential.requestedCredentialResponseEncryption {
       case .notRequested:
         if let identifier = credential.credentialIdentifier {
-          let dictionary = [
-            "proof": credential.proof != nil ? (try? credential.proof.toDictionary()) : nil,
-            "credential_identifier": identifier
-          ] as [String : Any?]
-          return JSON(dictionary.filter { $0.value != nil })
+          return try JSON.createFrom(
+            proofOrProofs: proofOrProofs,
+            dictionary: [
+              "credential_identifier": identifier
+            ]
+          )
           
         } else {
-          let dictionary = [
-            "vct": credential.vct ?? credential.credentialDefinition.type,
-            "proof": credential.proof != nil ? (try? credential.proof.toDictionary()) : nil,
-            "format": SdJwtVcFormat.FORMAT,
-            "claims": credential.credentialDefinition.claims?.toDictionary()
-          ] as [String : Any?]
-          return JSON(dictionary.filter { $0.value != nil })
+          return try JSON.createFrom(
+            proofOrProofs: proofOrProofs,
+            dictionary: [
+              "vct": credential.vct ?? credential.credentialDefinition.type,
+              "format": SdJwtVcFormat.FORMAT,
+              "claims": credential.credentialDefinition.claims?.toDictionary()
+            ]
+          )
         }
       case .requested(
         let encryptionJwk,
@@ -153,88 +160,75 @@ public extension SingleCredential {
         let responseEncryptionMethod
       ):
         if let identifier = credential.credentialIdentifier {
-          let dictionary = [
-            "credential_identifier": identifier,
-            "proof": credential.proof != nil ? (try? credential.proof.toDictionary()) : nil,
-            "credential_response_encryption": [
-              "jwk": try encryptionJwk.toDictionary(),
-              "alg": responseEncryptionAlg.name,
-              "enc": responseEncryptionMethod.name
+          return try JSON.createFrom(
+            proofOrProofs: proofOrProofs,
+            dictionary: [
+              "credential_identifier": identifier,
+              "credential_response_encryption": [
+                "jwk": try encryptionJwk.toDictionary(),
+                "alg": responseEncryptionAlg.name,
+                "enc": responseEncryptionMethod.name
+              ]
             ]
-          ] as [String : Any?]
-          return JSON(dictionary.filter { $0.value != nil })
+          )
           
         } else {
-          let dictionary = [
-            "vct": credential.vct ?? credential.credentialDefinition.type,
-            "format": SdJwtVcFormat.FORMAT,
-            "proof": credential.proof != nil ? (try? credential.proof.toDictionary()) : nil,
-            "credential_response_encryption": [
-              "jwk": try encryptionJwk.toDictionary(),
-              "alg": responseEncryptionAlg.name,
-              "enc": responseEncryptionMethod.name
-            ],
-            "claims": credential.credentialDefinition.claims?.toDictionary()
-          ] as [String : Any?]
-          return JSON(dictionary.filter { $0.value != nil })
+          return try JSON.createFrom(
+            proofOrProofs: proofOrProofs,
+            dictionary: [
+              "vct": credential.vct ?? credential.credentialDefinition.type,
+              "format": SdJwtVcFormat.FORMAT,
+              "credential_response_encryption": [
+                "jwk": try encryptionJwk.toDictionary(),
+                "alg": responseEncryptionAlg.name,
+                "enc": responseEncryptionMethod.name
+              ],
+              "claims": credential.credentialDefinition.claims?.toDictionary()
+            ]
+          )
         }
       }
     }
   }
 }
 
-public struct MsoMdocIssuanceRequest {
-  public let format: String
-  public let proof: ProofType?
-  public let credentialEncryptionJwk: JWK?
-  public let credentialResponseEncryptionAlg: JWEAlgorithm?
-  public let credentialResponseEncryptionMethod: JOSEEncryptionMethod?
-  public let doctype: String
-  public let claims: [Namespace: [ClaimName: CredentialSupported]]
-  
-  public init(
-    format: String,
-    proof: ProofType?,
-    credentialEncryptionJwk: JWK?,
-    credentialResponseEncryptionAlg: JWEAlgorithm?,
-    credentialResponseEncryptionMethod: JOSEEncryptionMethod?,
-    doctype: String,
-    claims: [Namespace: [ClaimName: CredentialSupported]]
-  ) {
-    self.format = format
-    self.proof = proof
-    self.credentialEncryptionJwk = credentialEncryptionJwk
-    self.credentialResponseEncryptionAlg = credentialResponseEncryptionAlg
-    self.credentialResponseEncryptionMethod = credentialResponseEncryptionMethod
-    self.doctype = doctype
-    self.claims = claims
-  }
-  
-  static func create(
-    proof: ProofType?,
-    credentialEncryptionJwk: JWK?,
-    credentialResponseEncryptionAlg: JWEAlgorithm?,
-    credentialResponseEncryptionMethod: JOSEEncryptionMethod?,
-    doctype: String,
-    claims: [Namespace: [ClaimName: CredentialSupported]]
-  ) -> MsoMdocIssuanceRequest {
-    var encryptionMethod = credentialResponseEncryptionMethod
-    if credentialResponseEncryptionAlg != nil && credentialResponseEncryptionMethod == nil {
-      encryptionMethod = JOSEEncryptionMethod(.A128CBC_HS256)
+private extension Array where Element == Proof {
+  func proofOrProofs() -> (Proof?, ProofsTO?) {
+    if self.isEmpty {
+      return (nil, nil)
       
-    } else if credentialResponseEncryptionAlg == nil && credentialResponseEncryptionMethod != nil {
-      fatalError("Credential response encryption algorithm must be specified if Credential response encryption method is provided")
+    } else if self.count == 1 {
+      return (self.first, nil)
+      
+    } else {
+      let jwtProofs = self.compactMap { proof in
+        switch proof {
+        case .jwt(let jwt):
+          return jwt
+        }
+      }
+      let proofsTO = ProofsTO(jwtProofs: jwtProofs)
+      return (nil, proofsTO)
     }
-    
-    return MsoMdocIssuanceRequest(
-      format: "mso_mdoc",
-      proof: proof,
-      credentialEncryptionJwk: credentialEncryptionJwk,
-      credentialResponseEncryptionAlg: credentialResponseEncryptionAlg,
-      credentialResponseEncryptionMethod: encryptionMethod,
-      doctype: doctype,
-      claims: claims
-    )
   }
 }
 
+private extension JSON {
+  static func toJSON(_ tuple: (Proof?, ProofsTO?)) -> JSON? {
+    if let proof = tuple.0 {
+      return try? .init(["proof": proof.toDictionary()])
+    } else if let proofs = tuple.1 {
+      return try? .init(["proofs": proofs.toDictionary()])
+    } else {
+      return nil
+    }
+  }
+  
+  static func createFrom(proofOrProofs: (Proof?, ProofsTO?), dictionary: [String: Any?]) throws -> JSON {
+    var json = Self.toJSON(proofOrProofs)
+    try json?.merge(with: JSON(
+      dictionary.compactMapValues { $0 }
+    ))
+    return json ?? JSON([:])
+  }
+}

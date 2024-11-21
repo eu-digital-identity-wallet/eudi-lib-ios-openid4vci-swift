@@ -19,18 +19,18 @@ import Foundation
 
 struct Wallet {
   let actingUser: ActingUser
-  let bindingKey: BindingKey
+  let bindingKeys: [BindingKey]
   let dPoPConstructor: DPoPConstructorType?
   let session: Networking
 
   init(
     actingUser: ActingUser,
-    bindingKey: BindingKey,
+    bindingKeys: [BindingKey],
     dPoPConstructor: DPoPConstructorType?,
     session: Networking = Self.walletSession
   ) {
     self.actingUser = actingUser
-    self.bindingKey = bindingKey
+    self.bindingKeys = bindingKeys
     self.dPoPConstructor = dPoPConstructor
     self.session = session
   }
@@ -473,7 +473,7 @@ extension Wallet {
         claimSet: claimSet
       )
       let responseEncryptionSpecProvider = { Issuer.createResponseEncryptionSpec($0) }
-      let requestOutcome = try await issuer.requestSingle(
+      let requestOutcome = try await issuer.request(
         noProofRequest: noProofRequiredState,
         requestPayload: payload,
         responseEncryptionSpecProvider: responseEncryptionSpecProvider
@@ -490,7 +490,7 @@ extension Wallet {
                 authorized: noProofRequiredState,
                 transactionId: transactionId
               )
-            case .issued(let format, let credential, _, _):
+            case .issued(_, let credential, _, _):
               return credential
             }
           } else {
@@ -531,9 +531,9 @@ extension Wallet {
     )
     
     let responseEncryptionSpecProvider = { Issuer.createResponseEncryptionSpec($0) }
-    let requestOutcome = try await issuer.requestSingle(
+    let requestOutcome = try await issuer.request(
       proofRequest: authorized,
-      bindingKey: bindingKey,
+      bindingKeys: bindingKeys,
       requestPayload: payload,
       responseEncryptionSpecProvider: responseEncryptionSpecProvider
     )
@@ -550,7 +550,7 @@ extension Wallet {
               authorized: authorized,
               transactionId: transactionId
             )
-          case .issued(let format, let credential, _, _):
+          case .issued(_, let credential, _, _):
             return credential
           }
         } else {

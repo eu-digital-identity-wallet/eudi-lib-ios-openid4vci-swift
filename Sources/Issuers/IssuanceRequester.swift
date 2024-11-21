@@ -332,6 +332,23 @@ private extension SingleIssuanceSuccessResponse {
           expiresInSeconds: cNonceExpiresInSeconds
         )
       )
+    } else if let credentials = credentials,
+              let jsonObject = credentials.array,
+              !jsonObject.isEmpty {
+      return .init(
+        credentialResponses: [
+          .issued(
+            format: nil,
+            credential: .json(JSON(jsonObject)),
+            notificationId: nil,
+            additionalInfo: nil
+          )
+        ],
+        cNonce: .init(
+          value: cNonce,
+          expiresInSeconds: cNonceExpiresInSeconds
+        )
+      )
     } else if let transactionId = transactionId {
       return CredentialIssuanceResponse(
         credentialResponses: [.deferred(transactionId: try .init(value: transactionId))],

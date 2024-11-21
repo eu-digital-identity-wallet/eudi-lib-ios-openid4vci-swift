@@ -65,7 +65,7 @@ class VCIFlowNoOffer: XCTestCase {
     
     let wallet = Wallet(
       actingUser: user,
-      bindingKey: bindingKey, 
+      bindingKeys: [bindingKey],
       dPoPConstructor: nil
     )
     
@@ -110,7 +110,7 @@ class VCIFlowNoOffer: XCTestCase {
     
     let wallet = Wallet(
       actingUser: user,
-      bindingKey: bindingKey,
+      bindingKeys: [bindingKey],
       dPoPConstructor: nil
     )
     
@@ -154,7 +154,7 @@ class VCIFlowNoOffer: XCTestCase {
     
     let wallet = Wallet(
       actingUser: user,
-      bindingKey: bindingKey,
+      bindingKeys: [bindingKey],
       dPoPConstructor: nil
     )
     
@@ -171,6 +171,95 @@ class VCIFlowNoOffer: XCTestCase {
         wallet: wallet,
         claimSet: .msoMdoc(claimSetMsoMdoc)
       )
+    } catch {
+      
+      XCTExpectFailure()
+      XCTAssert(false, error.localizedDescription)
+    }
+    
+    XCTAssert(true)
+  }
+  
+  func testNoOfferMdocDraft14() async throws {
+    
+    let privateKey = try KeyController.generateECDHPrivateKey()
+    let publicKey = try KeyController.generateECDHPublicKey(from: privateKey)
+    
+    let alg = JWSAlgorithm(.ES256)
+    let publicKeyJWK = try ECPublicKey(
+      publicKey: publicKey,
+      additionalParameters: [
+        "alg": alg.name,
+        "use": "sig",
+        "kid": UUID().uuidString
+      ])
+    
+    let bindingKey: BindingKey = .jwk(
+      algorithm: alg,
+      jwk: publicKeyJWK,
+      privateKey: privateKey
+    )
+    
+    let user = ActingUser(
+      username: "tneal",
+      password: "password"
+    )
+    
+    let wallet = Wallet(
+      actingUser: user,
+      bindingKeys: [bindingKey, bindingKey],
+      dPoPConstructor: nil
+    )
+    
+    do {
+      try await walletInitiatedIssuanceNoOfferMdoc(
+        wallet: wallet
+      )
+    } catch {
+      
+      XCTExpectFailure()
+      XCTAssert(false, error.localizedDescription)
+    }
+    
+    XCTAssert(true)
+  }
+  
+  func testNoOfferSdJWTDraft14() async throws {
+    
+    let privateKey = try KeyController.generateECDHPrivateKey()
+    let publicKey = try KeyController.generateECDHPublicKey(from: privateKey)
+    
+    let alg = JWSAlgorithm(.ES256)
+    let publicKeyJWK = try ECPublicKey(
+      publicKey: publicKey,
+      additionalParameters: [
+        "alg": alg.name,
+        "use": "sig",
+        "kid": UUID().uuidString
+      ])
+    
+    let bindingKey: BindingKey = .jwk(
+      algorithm: alg,
+      jwk: publicKeyJWK,
+      privateKey: privateKey
+    )
+    
+    let user = ActingUser(
+      username: "tneal",
+      password: "password"
+    )
+    
+    let wallet = Wallet(
+      actingUser: user,
+      bindingKeys: [bindingKey],
+      dPoPConstructor: nil
+    )
+    
+    do {
+      try await walletInitiatedIssuanceNoOfferSdJwt(
+        wallet: wallet
+      )
+      
     } catch {
       
       XCTExpectFailure()

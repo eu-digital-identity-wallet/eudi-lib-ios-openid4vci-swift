@@ -395,9 +395,9 @@ class IssuanceAuthorizationTest: XCTestCase {
       claimSet: nil
     )
     
-    let requestSingleResult = try await issuer.requestSingle(
+    let requestSingleResult = try await issuer.request(
       proofRequest: request,
-      bindingKey: bindingKey,
+      bindingKeys: [bindingKey],
       requestPayload: payload,
       responseEncryptionSpecProvider: {
         Issuer.createResponseEncryptionSpec($0)
@@ -494,9 +494,9 @@ class IssuanceAuthorizationTest: XCTestCase {
       claimSet: nil
     )
 
-    let requestSingleResult = try await issuer.requestSingle(
+    let requestSingleResult = try await issuer.request(
       proofRequest: request.handleInvalidProof(cNonce: .init(value: UUID().uuidString)!),
-      bindingKey: bindingKey,
+      bindingKeys: [bindingKey],
       requestPayload: payload,
       responseEncryptionSpecProvider: {
         Issuer.createResponseEncryptionSpec($0)
@@ -598,9 +598,9 @@ class IssuanceAuthorizationTest: XCTestCase {
       claimSet: nil
     )
     
-    let requestSingleResult = try await issuer.requestSingle(
+    let requestSingleResult = try await issuer.request(
       proofRequest: request,
-      bindingKey: bindingKey,
+      bindingKeys: [bindingKey],
       requestPayload: payload,
       responseEncryptionSpecProvider: {
         Issuer.createResponseEncryptionSpec($0)

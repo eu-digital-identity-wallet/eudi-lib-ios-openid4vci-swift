@@ -71,7 +71,7 @@ class IssuanceEncryptionTest: XCTestCase {
         ),
         claimSet: nil
       )
-      _ = try await issuer.requestSingle(
+      _ = try await issuer.request(
         noProofRequest: authorizedRequest,
         requestPayload: payload,
         responseEncryptionSpecProvider: { _ in
@@ -124,7 +124,7 @@ class IssuanceEncryptionTest: XCTestCase {
         ),
         claimSet: nil
       )
-      _ = try await issuer.requestSingle(
+      _ = try await issuer.request(
         noProofRequest: authorizedRequest,
         requestPayload: payload,
         responseEncryptionSpecProvider: { _ in
@@ -163,7 +163,7 @@ class IssuanceEncryptionTest: XCTestCase {
         ),
         claimSet: nil
       )
-      _ = try await issuer.requestSingle(
+      _ = try await issuer.request(
         noProofRequest: authorizedRequest,
         requestPayload: payload,
         responseEncryptionSpecProvider: { _ in

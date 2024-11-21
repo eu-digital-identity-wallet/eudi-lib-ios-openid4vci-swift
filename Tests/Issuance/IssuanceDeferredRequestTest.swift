@@ -112,7 +112,7 @@ class IssuanceDeferredRequestTest: XCTestCase {
             ),
             claimSet: nil
           )
-          let result = try await issuer.requestSingle(
+          let result = try await issuer.request(
             noProofRequest: authorized,
             requestPayload: payload,
             responseEncryptionSpecProvider: { _ in

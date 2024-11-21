@@ -25,8 +25,8 @@ public struct SingleIssuanceSuccessResponse: Codable {
   public let cNonceExpiresInSeconds: Int?
   
   enum CodingKeys: String, CodingKey {
-    case credential
-    case credentials
+    case credential = "credential"
+    case credentials = "credentials"
     case transactionId = "transaction_id"
     case notificationId = "notification_id"
     case cNonce = "c_nonce"
@@ -47,6 +47,34 @@ public struct SingleIssuanceSuccessResponse: Codable {
     self.notificationId = notificationId
     self.cNonce = cNonce
     self.cNonceExpiresInSeconds = cNonceExpiresInSeconds
+  }
+  
+  public init(from decoder: Decoder) throws {
+    let container = try decoder.container(keyedBy: CodingKeys.self)
+    
+    // Decode fields
+    credential = try container.decodeIfPresent(JSON.self, forKey: .credential)
+    credentials = try container.decodeIfPresent(JSON.self, forKey: .credentials)
+    transactionId = try container.decodeIfPresent(String.self, forKey: .transactionId)
+    notificationId = try container.decodeIfPresent(String.self, forKey: .notificationId)
+    cNonce = try container.decodeIfPresent(String.self, forKey: .cNonce)
+    cNonceExpiresInSeconds = try container.decodeIfPresent(Int.self, forKey: .cNonceExpiresInSeconds)
+  
+    if transactionId == nil && (credential == nil && credentials == nil) {
+      throw DecodingError.dataCorruptedError(
+        forKey: .credential,
+        in: container,
+        debugDescription: "At least one of 'credential' or 'credentials' must be non-nil."
+      )
+    }
+    
+    if notificationId != nil && (credential == nil && credentials == nil) {
+      throw DecodingError.dataCorruptedError(
+        forKey: .notificationId,
+        in: container,
+        debugDescription: "'notificationId' must not be present if 'credential' is not present."
+      )
+    }
   }
 }
 
@@ -80,7 +108,7 @@ public extension SingleIssuanceSuccessResponse {
         )
       )
     } else if let credentials = credentials,
-              let jsonObject = credentials.dictionary,
+              let jsonObject = credentials.array,
               !jsonObject.isEmpty {
       return .init(
         credentialResponses: [
