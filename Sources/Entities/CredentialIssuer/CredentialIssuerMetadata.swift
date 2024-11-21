@@ -28,6 +28,7 @@ public struct CredentialIssuerMetadata: Decodable, Equatable {
   public let credentialIdentifiersSupported: Bool?
   public let signedMetadata: String?
   public let display: [Display]
+  public let batchCredentialIssuance: BatchCredentialIssuance?
   
   public enum CodingKeys: String, CodingKey {
     case credentialIssuerIdentifier = "credential_issuer"
@@ -43,6 +44,7 @@ public struct CredentialIssuerMetadata: Decodable, Equatable {
     case credentialResponseEncryption = "credential_response_encryption"
     case signedMetadata = "signed_metadata"
     case credentialIdentifiersSupported = "credential_identifiers_supported"
+    case batchCredentialIssuance = "batch_credential_issuance"
   }
   
   public init(
@@ -55,7 +57,8 @@ public struct CredentialIssuerMetadata: Decodable, Equatable {
     credentialConfigurationsSupported: [CredentialConfigurationIdentifier: CredentialSupported],
     signedMetadata: String?,
     display: [Display]?,
-    credentialIdentifiersSupported: Bool? = nil
+    credentialIdentifiersSupported: Bool? = nil,
+    batchCredentialIssuance: BatchCredentialIssuance? = nil
   ) {
     self.credentialIssuerIdentifier = credentialIssuerIdentifier
     self.authorizationServers = authorizationServers
@@ -71,6 +74,7 @@ public struct CredentialIssuerMetadata: Decodable, Equatable {
     self.display = display ?? []
     
     self.credentialIdentifiersSupported = credentialIdentifiersSupported
+    self.batchCredentialIssuance = batchCredentialIssuance
   }
   
   public init(deferredCredentialEndpoint: CredentialIssuerEndpoint?) throws {
@@ -141,6 +145,8 @@ public struct CredentialIssuerMetadata: Decodable, Equatable {
     signedMetadata = try? container.decodeIfPresent(String.self, forKey: .signedMetadata)
     
     credentialIdentifiersSupported = try? container.decodeIfPresent(Bool.self, forKey: .credentialIdentifiersSupported) ?? false
+    
+    batchCredentialIssuance = try? container.decodeIfPresent(BatchCredentialIssuance.self, forKey: .batchCredentialIssuance)
   }
   
   public static func == (lhs: CredentialIssuerMetadata, rhs: CredentialIssuerMetadata) -> Bool {
