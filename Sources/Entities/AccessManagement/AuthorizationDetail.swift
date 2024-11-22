@@ -16,11 +16,11 @@
 import Foundation
 
 public struct AuthorizationType: Codable {
-    public let type: String
-    
-    public init(type: String) {
-        self.type = type
-    }
+  public let type: String
+  
+  public init(type: String) {
+    self.type = type
+  }
 }
 
 public struct AuthorizationDetail: Codable {
