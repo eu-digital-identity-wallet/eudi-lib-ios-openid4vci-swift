@@ -95,7 +95,6 @@ public struct AuthorizationRequest: Codable {
     self.prompt = prompt
     self.dpopJkt = dpopJkt
     self.trustChain = trustChain
-    
     self.issuerState = issuerState
   }
 }

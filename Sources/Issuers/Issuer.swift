@@ -26,7 +26,8 @@ public protocol IssuerType {
     credentialOffer: CredentialOffer,
     authorizationCode: IssuanceAuthorization,
     clientId: String,
-    transactionCode: String?
+    transactionCode: String?,
+    authorizationDetailsInTokenRequest: AuthorizationDetailsInTokenRequest
   ) async -> Result<AuthorizedRequest, Error>
   
   func handleAuthorizationCode(
@@ -35,7 +36,8 @@ public protocol IssuerType {
   ) async -> Result<UnauthorizedRequest, Error>
   
   func authorizeWithAuthorizationCode(
-    authorizationCode: UnauthorizedRequest
+    authorizationCode: UnauthorizedRequest,
+    authorizationDetailsInTokenRequest: AuthorizationDetailsInTokenRequest
   ) async -> Result<AuthorizedRequest, Error>
   
   func request(
@@ -156,7 +158,8 @@ public actor Issuer: IssuerType {
               credentials: try credentials.map { try CredentialIdentifier(value: $0.value) },
               getAuthorizationCodeURL: result.code,
               pkceVerifier: result.verifier,
-              state: state
+              state: state,
+              configurationIds: credentialConfogurationIdentifiers
             )
           )
         )
@@ -181,7 +184,8 @@ public actor Issuer: IssuerType {
               credentials: try credentials.map { try CredentialIdentifier(value: $0.value) },
               getAuthorizationCodeURL: result.code,
               pkceVerifier: result.verifier,
-              state: state
+              state: state,
+              configurationIds: credentialConfogurationIdentifiers
             )
           )
         )
@@ -196,7 +200,8 @@ public actor Issuer: IssuerType {
     credentialOffer: CredentialOffer,
     authorizationCode: IssuanceAuthorization,
     clientId: String,
-    transactionCode: String?
+    transactionCode: String?,
+    authorizationDetailsInTokenRequest: AuthorizationDetailsInTokenRequest = .doNotInclude
   ) async -> Result<AuthorizedRequest, Error> {
     
     switch authorizationCode {
@@ -212,11 +217,17 @@ public actor Issuer: IssuerType {
             }
         }
         
+        let credConfigIdsAsAuthDetails: [CredentialConfigurationIdentifier] = switch authorizationDetailsInTokenRequest {
+        case .doNotInclude: []
+        case .include(let filter): credentialOffer.credentialConfigurationIdentifiers.filter(filter)
+        }
+        
         let response = try await authorizer.requestAccessTokenPreAuthFlow(
           preAuthorizedCode: authorisation,
           txCode: txCode,
           clientId: clientId,
-          transactionCode: transactionCode
+          transactionCode: transactionCode,
+          identifiers: credConfigIdsAsAuthDetails
         )
         
         switch response {
@@ -262,15 +273,25 @@ public actor Issuer: IssuerType {
     }
   }
   
-  public func authorizeWithAuthorizationCode(authorizationCode: UnauthorizedRequest) async -> Result<AuthorizedRequest, Error> {
+  public func authorizeWithAuthorizationCode(
+    authorizationCode: UnauthorizedRequest,
+    authorizationDetailsInTokenRequest: AuthorizationDetailsInTokenRequest = .doNotInclude
+  ) async -> Result<AuthorizedRequest, Error> {
     switch authorizationCode {
     case .par:
-      return .failure(ValidationError.error(reason: ".authorizationCode case is required"))
+      return .failure(
+        ValidationError.error(reason: ".authorizationCode case is required")
+      )
       
     case .authorizationCode(let request):
       switch request.authorizationCode {
       case .authorizationCode(let authorizationCode):
         do {
+          let credConfigIdsAsAuthDetails: [CredentialConfigurationIdentifier] = switch authorizationDetailsInTokenRequest {
+          case .doNotInclude: []
+          case .include(let filter): request.configurationIds.filter(filter)
+          }
+          
           let response: (
             accessToken: IssuanceAccessToken,
             nonce: CNonce?,
@@ -279,7 +300,8 @@ public actor Issuer: IssuerType {
             expiresIn: Int?
           ) = try await authorizer.requestAccessTokenAuthFlow(
             authorizationCode: authorizationCode,
-            codeVerifier: request.pkceVerifier.codeVerifier
+            codeVerifier: request.pkceVerifier.codeVerifier,
+            identifiers: credConfigIdsAsAuthDetails
           ).get()
           
           if let cNonce = response.nonce {
@@ -313,7 +335,8 @@ public actor Issuer: IssuerType {
         } catch {
           return .failure(ValidationError.error(reason: error.localizedDescription))
         }
-      default: return .failure(ValidationError.error(reason: ".authorizationCode case is required"))
+      default: return .failure(
+        ValidationError.error(reason: ".authorizationCode case is required"))
       }
     }
   }
@@ -330,7 +353,8 @@ public actor Issuer: IssuerType {
             try .init(
               credentials: request.credentials,
               authorizationCode: try IssuanceAuthorization(authorizationCode: code),
-              pkceVerifier: request.pkceVerifier
+              pkceVerifier: request.pkceVerifier,
+              configurationIds: request.configurationIds
             )
           )
         )
@@ -356,7 +380,8 @@ public actor Issuer: IssuerType {
               try .init(
                 credentials: request.credentials,
                 authorizationCode: try IssuanceAuthorization(authorizationCode: authorizationCode),
-                pkceVerifier: request.pkceVerifier
+                pkceVerifier: request.pkceVerifier,
+                configurationIds: request.configurationIds
               )
             )
           )
