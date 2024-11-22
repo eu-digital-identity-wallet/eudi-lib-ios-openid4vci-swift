@@ -135,7 +135,8 @@ struct TestsConstants {
       pkceVerifier: (try? .init(
         codeVerifier: "GVaOE~J~xQmkE4aCKm4RNYviYW5QaFiFOxVv-8enIDL",
         codeVerifierMethod: "S256"))!,
-      state: "5A201471-D088-4544-B1E9-5476E5935A95"
+      state: "5A201471-D088-4544-B1E9-5476E5935A95",
+      configurationIds: [try! .init(value: "my_credential_configuration_id")]
     )
   )
   
