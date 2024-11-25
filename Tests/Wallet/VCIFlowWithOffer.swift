@@ -266,10 +266,11 @@ class VCIFlowWithOffer: XCTestCase {
         "kid": UUID().uuidString
       ])
     
+    let privateKeyProxy: PrivateKeyProxy = .secKey(privateKey)
     let bindingKey: BindingKey = .jwk(
       algorithm: alg,
       jwk: publicKeyJWK,
-      privateKey: .secKey(privateKey)
+      privateKey: privateKeyProxy
     )
     
     let user = ActingUser(
@@ -283,7 +284,7 @@ class VCIFlowWithOffer: XCTestCase {
       dPoPConstructor: DPoPConstructor(
         algorithm: alg,
         jwk: publicKeyJWK,
-        privateKey: privateKey
+        privateKey: privateKeyProxy
       )
     )
     

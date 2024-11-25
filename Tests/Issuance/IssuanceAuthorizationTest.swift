@@ -528,6 +528,7 @@ class IssuanceAuthorizationTest: XCTestCase {
     let privateKey = try KeyController.generateECDHPrivateKey()
     let publicKey = try KeyController.generateECDHPublicKey(from: privateKey)
     
+    let privateKeyProxy: PrivateKeyProxy = .secKey(privateKey)
     let alg = JWSAlgorithm(.ES256)
     let jwk = try ECPublicKey(
       publicKey: publicKey,
@@ -540,7 +541,7 @@ class IssuanceAuthorizationTest: XCTestCase {
     let dpopConstructor: DPoPConstructor = .init(
       algorithm: alg,
       jwk: jwk,
-      privateKey: privateKey
+      privateKey: privateKeyProxy
     )
     
     let offer: CredentialOffer = try resolution.get()
