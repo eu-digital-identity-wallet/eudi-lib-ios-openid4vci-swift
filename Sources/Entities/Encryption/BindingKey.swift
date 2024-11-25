@@ -16,7 +16,7 @@
 import Foundation
 import JOSESwift
 
-public enum PrivateKeyProxy {
+public enum SigningKeyProxy {
   case custom(any AsyncSignerProtocol)
   case secKey(SecKey)
 }
@@ -27,7 +27,7 @@ public enum BindingKey {
   case jwk(
     algorithm: JWSAlgorithm,
     jwk: JWK,
-    privateKey: PrivateKeyProxy,
+    privateKey: SigningKeyProxy,
     issuer: String? = nil
   )
 
@@ -173,7 +173,7 @@ extension BindingKey {
   static func createSigner(
     with header: JWSHeader,
     and payload: Payload,
-    for privateKey: PrivateKeyProxy,
+    for privateKey: SigningKeyProxy,
     and signatureAlgorithm: SignatureAlgorithm
   ) async throws -> Signer {
 

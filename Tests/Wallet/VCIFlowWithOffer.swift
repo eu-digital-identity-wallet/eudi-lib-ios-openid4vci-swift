@@ -266,7 +266,7 @@ class VCIFlowWithOffer: XCTestCase {
         "kid": UUID().uuidString
       ])
     
-    let privateKeyProxy: PrivateKeyProxy = .secKey(privateKey)
+    let privateKeyProxy: SigningKeyProxy = .secKey(privateKey)
     let bindingKey: BindingKey = .jwk(
       algorithm: alg,
       jwk: publicKeyJWK,

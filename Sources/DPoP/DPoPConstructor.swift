@@ -36,9 +36,9 @@ public class DPoPConstructor: DPoPConstructorType {
 
   public let algorithm: JWSAlgorithm
   public let jwk: JWK
-  public let privateKey: PrivateKeyProxy
+  public let privateKey: SigningKeyProxy
 
-  public init(algorithm: JWSAlgorithm, jwk: JWK, privateKey: PrivateKeyProxy) {
+  public init(algorithm: JWSAlgorithm, jwk: JWK, privateKey: SigningKeyProxy) {
     self.algorithm = algorithm
     self.jwk = jwk
     self.privateKey = privateKey
