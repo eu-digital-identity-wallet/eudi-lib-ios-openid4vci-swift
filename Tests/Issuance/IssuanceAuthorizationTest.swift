@@ -452,6 +452,7 @@ class IssuanceAuthorizationTest: XCTestCase {
       XCTAssert(false, "Unexpected grant type")
     }
 
+    /// Change the transaction code with the one obtained https://dev.tester.issuer.eudiw.dev/
     let result = await issuer.authorizeWithPreAuthorizationCode(
       credentialOffer: offer,
       authorizationCode: try .init(
