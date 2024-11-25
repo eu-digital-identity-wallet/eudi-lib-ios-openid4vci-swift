@@ -204,7 +204,7 @@ let payload: IssuanceRequestPayload = .configurationBased(
 
 let requestOutcome = try await issuer.request(
     proofRequest: ...,
-    bindingKey: ...,
+    bindingKeys: ..., // BindingKey array
     requestPayload: payload,
     responseEncryptionSpecProvider:  { 
         Issuer.createResponseEncryptionSpec($0) 
