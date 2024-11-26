@@ -18,7 +18,7 @@ import JOSESwift
 import CryptoKit
 
 public protocol DPoPConstructorType {
-  func jwt(endpoint: URL, accessToken: String?) throws -> String
+  func jwt(endpoint: URL, accessToken: String?) async throws -> String
 }
 
 public class DPoPConstructor: DPoPConstructorType {
@@ -36,15 +36,18 @@ public class DPoPConstructor: DPoPConstructorType {
 
   public let algorithm: JWSAlgorithm
   public let jwk: JWK
-  public let privateKey: SecKey
+  public let privateKey: SigningKeyProxy
 
-  public init(algorithm: JWSAlgorithm, jwk: JWK, privateKey: SecKey) {
+  public init(algorithm: JWSAlgorithm, jwk: JWK, privateKey: SigningKeyProxy) {
     self.algorithm = algorithm
     self.jwk = jwk
     self.privateKey = privateKey
   }
 
-  public func jwt(endpoint: URL, accessToken: String?) throws -> String {
+  public func jwt(
+    endpoint: URL,
+    accessToken: String?
+  ) async throws -> String {
 
     let header = try JWSHeader(parameters: [
       "typ": "dpop+jwt",
@@ -71,13 +74,13 @@ public class DPoPConstructor: DPoPConstructorType {
       throw CredentialIssuanceError.cryptographicAlgorithmNotSupported
     }
 
-    guard let signer = Signer(
-      signatureAlgorithm: signatureAlgorithm,
-      key: privateKey
-    ) else {
-      throw ValidationError.error(reason: "Unable to create JWS signer")
-    }
-
+    let signer = try await BindingKey.createSigner(
+      with: header,
+      and: payload,
+      for: privateKey,
+      and: signatureAlgorithm
+    )
+    
     let jws = try JWS(
       header: header,
       payload: payload,

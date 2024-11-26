@@ -16,13 +16,18 @@
 import Foundation
 import JOSESwift
 
+public enum SigningKeyProxy {
+  case custom(any AsyncSignerProtocol)
+  case secKey(SecKey)
+}
+
 public enum BindingKey {
 
   // JWK Binding Key
   case jwk(
     algorithm: JWSAlgorithm,
     jwk: JWK,
-    privateKey: SecKey,
+    privateKey: SigningKeyProxy,
     issuer: String? = nil
   )
 
@@ -39,7 +44,7 @@ public extension BindingKey {
     issuanceRequester: IssuanceRequesterType,
     credentialSpec: CredentialSupported,
     cNonce: String?
-  ) throws -> Proof {
+  ) async throws -> Proof {
     switch self {
     case .jwk(
       let algorithm,
@@ -84,13 +89,13 @@ public extension BindingKey {
         guard let signatureAlgorithm = SignatureAlgorithm(rawValue: algorithm.name) else {
           throw CredentialIssuanceError.cryptographicAlgorithmNotSupported
         }
-
-        guard let signer = Signer(
-          signatureAlgorithm: signatureAlgorithm,
-          key: privateKey
-        ) else {
-          throw ValidationError.error(reason: "Unable to create JWS signer")
-        }
+        
+        let signer: Signer = try await Self.createSigner(
+          with: header,
+          and: payload,
+          for: privateKey,
+          and: signatureAlgorithm
+        )
 
         let jws = try JWS(
           header: header,
@@ -110,13 +115,6 @@ public extension BindingKey {
         guard proofs else {
           throw CredentialIssuanceError.proofTypeNotSupported
         }
-
-        /*
-        let bindings = spec.cryptographicBindingMethodsSupported.contains { $0  == .jwk }
-        guard bindings else {
-          throw CredentialIssuanceError.cryptographicBindingMethodNotSupported
-        }
-         */
 
         let aud = issuanceRequester.issuerMetadata.credentialIssuerIdentifier.url.absoluteString
 
@@ -144,12 +142,12 @@ public extension BindingKey {
           throw CredentialIssuanceError.cryptographicAlgorithmNotSupported
         }
 
-        guard let signer = Signer(
-          signatureAlgorithm: signatureAlgorithm,
-          key: privateKey
-        ) else {
-          throw ValidationError.error(reason: "Unable to create JWS signer")
-        }
+        let signer: Signer = try await Self.createSigner(
+          with: header,
+          and: payload,
+          for: privateKey,
+          and: signatureAlgorithm
+        )
 
         let jws = try JWS(
           header: header,
@@ -170,6 +168,62 @@ public extension BindingKey {
   }
 }
 
-private extension BindingKey {
+extension BindingKey {
 
+  static func createSigner(
+    with header: JWSHeader,
+    and payload: Payload,
+    for privateKey: SigningKeyProxy,
+    and signatureAlgorithm: SignatureAlgorithm
+  ) async throws -> Signer {
+
+    if case let .secKey(secKey) = privateKey,
+       let secKeySigner = Signer(
+        signatureAlgorithm: signatureAlgorithm,
+        key: secKey
+       ) {
+      return secKeySigner
+      
+    } else if case let .custom(customAsyncSigner) = privateKey {
+      let signingInput: Data? = [
+        header as DataConvertible,
+        payload as DataConvertible
+      ].map {
+        $0.data().base64URLEncodedString()
+      }
+      .joined(separator: ".").data(using: .ascii)
+      
+      guard let signingInput = signingInput else {
+        throw ValidationError.error(reason: "Invalid signing input fopr signing data")
+      }
+      
+      let signature = try await customAsyncSigner.signAsync(signingInput)
+      let customSigner = PrecomputedSigner(
+        signature: signature,
+        algorithm: signatureAlgorithm
+      )
+      return Signer(customSigner: customSigner)
+      
+    } else {
+      throw ValidationError.error(reason: "Unable to create JWS signer")
+    }
+  }
+}
+
+class PrecomputedSigner: JOSESwift.SignerProtocol {
+	var algorithm: JOSESwift.SignatureAlgorithm
+	let signature: Data
+	
+	init(signature: Data, algorithm: JOSESwift.SignatureAlgorithm) {
+		self.algorithm = algorithm
+		self.signature = signature
+	}
+	
+	func sign(_ signingInput: Data) throws -> Data {
+		return signature
+	}
+}
+
+public protocol AsyncSignerProtocol {
+	func signAsync(_ signingInput: Data) async throws -> Data
 }

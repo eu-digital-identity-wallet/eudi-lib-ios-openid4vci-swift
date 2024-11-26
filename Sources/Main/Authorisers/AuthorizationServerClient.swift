@@ -351,9 +351,10 @@ public actor AuthorizationServerClient: AuthorizationServerClientType {
 
 private extension AuthorizationServerClient {
   
-  func tokenEndPointHeaders() throws -> [String: String] {
+  func tokenEndPointHeaders() async throws -> [String: String] {
     if let dpopConstructor {
-      return ["DPoP": try dpopConstructor.jwt(endpoint: tokenEndpoint, accessToken: nil)]
+      let jwt = try await dpopConstructor.jwt(endpoint: tokenEndpoint, accessToken: nil)
+      return ["DPoP": jwt]
     } else {
       return [:]
     }

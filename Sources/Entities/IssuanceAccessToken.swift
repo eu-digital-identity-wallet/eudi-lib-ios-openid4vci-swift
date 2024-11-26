@@ -63,13 +63,14 @@ public extension IssuanceAccessToken {
   func dPoPOrBearerAuthorizationHeader(
     dpopConstructor: DPoPConstructorType?,
     endpoint: URL?
-  ) throws -> [String: String] {
+  ) async throws -> [String: String] {
     if tokenType == TokenType.bearer {
       return ["Authorization": "\(TokenType.bearer.rawValue) \(accessToken)"]
     } else if let dpopConstructor, tokenType == TokenType.dpop, let endpoint {
+      let jwt = try await dpopConstructor.jwt(endpoint: endpoint, accessToken: accessToken)
       return [
         "Authorization": "\(TokenType.dpop.rawValue) \(accessToken)",
-        TokenType.dpop.rawValue: try dpopConstructor.jwt(endpoint: endpoint, accessToken: accessToken)
+        TokenType.dpop.rawValue: jwt
       ]
     }
     return ["Authorization": "\(TokenType.bearer.rawValue) \(accessToken)"]

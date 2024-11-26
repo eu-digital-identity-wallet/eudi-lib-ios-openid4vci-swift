@@ -22,7 +22,7 @@ let PID_MsoMdoc_config_id = "eu.europa.ec.eudi.pid_mso_mdoc"
 let PID_SdJwtVC_config_id = "eu.europa.ec.eudi.pid_vc_sd_jwt"
 
 //let CREDENTIAL_ISSUER_PUBLIC_URL = "https://dev.issuer.eudiw.dev"
-//let PID_SdJwtVC_config_id = "eu.europa.ec.eudi.mdl_jwt_vc_json"
+//let PID_SdJwtVC_config_id = "eu.europa.ec.eudi.pid_jwt_vc_json"
 //let PID_MsoMdoc_config_id = "eu.europa.ec.eudi.pid_mdoc"
 //let MDL_config_id = "eu.europa.ec.eudi.mdl_mdoc"
 

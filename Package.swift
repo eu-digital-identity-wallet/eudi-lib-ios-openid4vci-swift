@@ -47,10 +47,6 @@ let package = Package(
           package: "SwiftyJSON"
         ),
         .product(
-          name: "JOSESwift",
-          package: "JOSESwift"
-        ),
-        .product(
           name: "SwiftSoup",
           package: "SwiftSoup"
         )
