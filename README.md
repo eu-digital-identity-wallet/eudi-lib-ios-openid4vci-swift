@@ -18,7 +18,7 @@ the [EUDI Wallet Reference Implementation project description](https://github.co
 ## Overview
 
 This is a Swift library, that supports 
-the [OpenId4VCI (draft 13)](https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html) protocol.
+the [OpenId4VCI (draft 14)](https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html) protocol.
 In particular, the library focuses on the wallet's role in the protocol to:
 - Resolve credential issuer metadata 
 - Resolve metadata of the authorization server protecting issuance services
@@ -204,7 +204,7 @@ let payload: IssuanceRequestPayload = .configurationBased(
 
 let requestOutcome = try await issuer.request(
     proofRequest: ...,
-    bindingKeys: ..., // BindingKey array
+    bindingKeys: ..., // SigningKeyProxy array
     requestPayload: payload,
     responseEncryptionSpecProvider:  { 
         Issuer.createResponseEncryptionSpec($0) 
@@ -240,6 +240,10 @@ OpenId4VCI specification defines several extension points to accommodate the dif
 
 #### Proof Types
 OpenId4VCI specification (draft 14) defines proofs that can be included in a credential issuance request, JWT proof type in particular. The current version of the library supports JWT proof types.
+
+#### Notes
+
+Examples for all of the above are located in the test target of the library.
 
 ## How to contribute
 

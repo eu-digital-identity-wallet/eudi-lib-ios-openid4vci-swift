@@ -495,9 +495,9 @@ private extension Issuer {
   
   private func requestIssuance(
     token: IssuanceAccessToken,
-    issuanceRequestSupplier: () throws -> CredentialIssuanceRequest
+    issuanceRequestSupplier: () async throws -> CredentialIssuanceRequest
   ) async throws -> Result<SubmittedRequest, Error> {
-    let credentialRequest = try issuanceRequestSupplier()
+    let credentialRequest = try await issuanceRequestSupplier()
     switch credentialRequest {
     case .single(let single, let encryptionSpec):
       self.deferredResponseEncryptionSpec = encryptionSpec
@@ -595,7 +595,7 @@ private extension Issuer {
       throw ValidationError.error(reason: "Invalid Supported credential for requestSingle")
     }
     
-    let proofs = try obtainProofs(
+    let proofs = try await obtainProofs(
       authorizedRequest: authorizedRequest,
       batchCredentialIssuance: issuerMetadata.batchCredentialIssuance,
       bindingKeys: bindingKeys,
@@ -628,7 +628,7 @@ private extension Issuer {
       throw ValidationError.error(reason: "Invalid Supported credential for requestSingle")
     }
     
-    let proofs = try obtainProofs(
+    let proofs = try await obtainProofs(
       authorizedRequest: authorizedRequest,
       batchCredentialIssuance: issuerMetadata.batchCredentialIssuance,
       bindingKeys: bindingKeys,
@@ -652,8 +652,8 @@ private extension Issuer {
     bindingKeys: [BindingKey],
     supportedCredential: CredentialSupported,
     cNonce: CNonce?
-  ) throws -> [Proof] {
-    let proofs = (try? bindingKeys.compactMap { try $0.toSupportedProof(
+  ) async throws -> [Proof] {
+    let proofs = await (try? bindingKeys.asyncCompactMap { try await $0.toSupportedProof(
       issuanceRequester: issuanceRequester,
       credentialSpec: supportedCredential,
       cNonce: cNonce?.value

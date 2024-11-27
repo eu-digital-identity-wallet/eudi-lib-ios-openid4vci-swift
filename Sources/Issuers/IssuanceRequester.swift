@@ -64,7 +64,7 @@ public actor IssuanceRequester: IssuanceRequesterType {
     let endpoint = issuerMetadata.credentialEndpoint.url
     
     do {
-      let authorizationHeader: [String: String] = try accessToken.dPoPOrBearerAuthorizationHeader(
+      let authorizationHeader: [String: String] = try await accessToken.dPoPOrBearerAuthorizationHeader(
         dpopConstructor: dpopConstructor,
         endpoint: endpoint
       )
@@ -185,7 +185,7 @@ public actor IssuanceRequester: IssuanceRequesterType {
       throw CredentialError.issuerDoesNotSupportDeferredIssuance
     }
     
-    let authorizationHeader: [String: String] = try accessToken.dPoPOrBearerAuthorizationHeader(
+    let authorizationHeader: [String: String] = try await accessToken.dPoPOrBearerAuthorizationHeader(
       dpopConstructor: dpopConstructor,
       endpoint: deferredCredentialEndpoint.url
     )
@@ -259,7 +259,7 @@ public actor IssuanceRequester: IssuanceRequesterType {
       }
       
       let endpoint = notificationEndpoint.url
-      let authorizationHeader: [String: String] = try accessToken.dPoPOrBearerAuthorizationHeader(
+      let authorizationHeader: [String: String] = try await accessToken.dPoPOrBearerAuthorizationHeader(
         dpopConstructor: dpopConstructor,
         endpoint: endpoint
       )

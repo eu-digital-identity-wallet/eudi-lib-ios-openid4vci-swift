@@ -322,6 +322,16 @@ class IssuanceAuthorizationTest: XCTestCase {
   func testThirdPartyIssuerSuccessfulAuthorizationWithPreAuthorizationCodeFlow() async throws {
     
     /// Replace the url string below with the one you can generate here: https://trial.authlete.net/api/offer/issue
+    /// login/pass: inga (for both)
+    /// Credential Configuration IDs: Just leave "IdentityCredential"
+    /// Authorization Code Grant: unchecked
+    /// Pre-Authorized Code Grant: check
+    ///   Value: 12345
+    ///   Input Mode: numeric
+    ///   Description: "hello world"
+    ///
+    /// Submit
+    ///
     let urlString = """
     """
     
@@ -383,7 +393,7 @@ class IssuanceAuthorizationTest: XCTestCase {
     let bindingKey: BindingKey = .jwk(
       algorithm: alg,
       jwk: publicKeyJWK,
-      privateKey: privateKey,
+      privateKey: .secKey(privateKey),
       issuer: "218232426"
     )
     
@@ -457,6 +467,7 @@ class IssuanceAuthorizationTest: XCTestCase {
       XCTAssert(false, "Unexpected grant type")
     }
 
+    /// Change the transaction code with the one obtained https://dev.tester.issuer.eudiw.dev/
     let result = await issuer.authorizeWithPreAuthorizationCode(
       credentialOffer: offer,
       authorizationCode: try .init(
@@ -482,7 +493,7 @@ class IssuanceAuthorizationTest: XCTestCase {
     let bindingKey: BindingKey = .jwk(
       algorithm: alg,
       jwk: publicKeyJWK,
-      privateKey: privateKey,
+      privateKey: .secKey(privateKey),
       issuer: "218232426"
     )
 
@@ -519,6 +530,16 @@ class IssuanceAuthorizationTest: XCTestCase {
   func testThirdPartyIssuerSuccessfulAuthorizationWithPreAuthorizationCodeFlowWithDPoP() async throws {
     
     /// Replace the url string below with the one you can generate here: https://trial.authlete.net/api/offer/issue
+    /// login/pass: inga (for both)
+    /// Credential Configuration IDs: Just leave "IdentityCredential"
+    /// Authorization Code Grant: unchecked
+    /// Pre-Authorized Code Grant: check
+    ///   Value: 12345
+    ///   Input Mode: numeric
+    ///   Description: "hello world"
+    ///
+    /// Submit
+    ///
     let urlString = """
     """
     if urlString.isEmpty {
@@ -538,6 +559,7 @@ class IssuanceAuthorizationTest: XCTestCase {
     let privateKey = try KeyController.generateECDHPrivateKey()
     let publicKey = try KeyController.generateECDHPublicKey(from: privateKey)
     
+    let privateKeyProxy: SigningKeyProxy = .secKey(privateKey)
     let alg = JWSAlgorithm(.ES256)
     let jwk = try ECPublicKey(
       publicKey: publicKey,
@@ -550,7 +572,7 @@ class IssuanceAuthorizationTest: XCTestCase {
     let dpopConstructor: DPoPConstructor = .init(
       algorithm: alg,
       jwk: jwk,
-      privateKey: privateKey
+      privateKey: privateKeyProxy
     )
     
     let offer: CredentialOffer = try resolution.get()
@@ -586,7 +608,7 @@ class IssuanceAuthorizationTest: XCTestCase {
     let bindingKey: BindingKey = .jwk(
       algorithm: alg,
       jwk: jwk,
-      privateKey: privateKey,
+      privateKey: .secKey(privateKey),
       issuer: "218232426"
     )
     
