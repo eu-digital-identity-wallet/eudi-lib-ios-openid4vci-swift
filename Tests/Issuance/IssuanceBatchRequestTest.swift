@@ -83,7 +83,7 @@ class IssuanceBatchRequestTest: XCTestCase {
       ),
       requesterPoster: Poster(
         session: NetworkingMock(
-          path: "batch_issuance_success_response_credential",
+          path: "batch_credential_issuance_success_response_credentials",
           extension: "json"
         )
       )

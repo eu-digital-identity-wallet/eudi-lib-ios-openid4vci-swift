@@ -21,7 +21,6 @@ public func convertToJsonString(dictionary: [String: Any]) -> String? {
     let jsonString = String(data: jsonData, encoding: .utf8)
     return jsonString
   } catch {
-    print("Error converting dictionary to JSON string: \(error)")
     return nil
   }
 }

@@ -110,7 +110,6 @@ public enum ClaimSet: Codable {
       if !claims.isEmpty {
         for claimName in c {
           if !claims.contains(where: { $0 == claimName}) {
-            print(claimName)
             throw ValidationError.error(reason: "Requested claim name \(claimName) is not supported by issuer")
           }
         }
