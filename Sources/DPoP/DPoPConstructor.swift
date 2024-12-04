@@ -18,7 +18,11 @@ import JOSESwift
 import CryptoKit
 
 public protocol DPoPConstructorType {
-  func jwt(endpoint: URL, accessToken: String?) async throws -> String
+  func jwt(
+    endpoint: URL,
+    accessToken: String?,
+    nonce: Nonce?
+  ) async throws -> String
 }
 
 public class DPoPConstructor: DPoPConstructorType {
@@ -46,7 +50,8 @@ public class DPoPConstructor: DPoPConstructorType {
 
   public func jwt(
     endpoint: URL,
-    accessToken: String?
+    accessToken: String?,
+    nonce: Nonce?
   ) async throws -> String {
 
     let header = try JWSHeader(parameters: [
@@ -61,6 +66,10 @@ public class DPoPConstructor: DPoPConstructorType {
       JWTClaimNames.htu: endpoint.absoluteString,
       JWTClaimNames.jwtId: String.randomBase64URLString(length: 20)
     ]
+    
+    if let nonce {
+      dictionary["nonce"] = nonce.value
+    }
 
     if let data = accessToken?.data(using: .utf8) {
       let hashed = SHA256.hash(data: data)
