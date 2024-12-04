@@ -15,9 +15,9 @@
  */
 import Foundation
 
-extension HTTPURLResponse {
+public extension HTTPURLResponse {
   
-  func valueForHeader(_ header: String) -> String? {
+  private func valueForHeader(_ header: String) -> String? {
     let lowercasedHeader = header.lowercased()
     for (key, value) in allHeaderFields {
       if let keyString = key as? String, keyString.lowercased() == lowercasedHeader {
@@ -28,7 +28,7 @@ extension HTTPURLResponse {
   }
   
   func containsDpopError() -> Bool {
-    guard statusCode == 401,
+    guard statusCode == HTTPStatusCode.unauthorized,
           let wwwAuth = valueForHeader("WWW-Authenticate") else {
       return false
     }

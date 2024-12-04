@@ -116,7 +116,7 @@ public struct Poster: PostingType {
       let httpResponse = (response as? HTTPURLResponse)
       let headers = httpResponse?.allHeaderFields ?? [:]
       
-      if statusCode >= 400 && statusCode < 500 {
+      if statusCode >= HTTPStatusCode.badRequest && statusCode < HTTPStatusCode.internalServerError {
         if let httpResponse,
            httpResponse.containsDpopError(),
            let dPopNonce = headers["DPoP-Nonce"] as? String {
@@ -127,7 +127,7 @@ public struct Poster: PostingType {
           return .failure(.response(object))
         }
         
-      } else if statusCode >= 500 && statusCode < 599 {
+      } else if statusCode >= HTTPStatusCode.internalServerError {
         return .failure(.serverError)
       }
       
@@ -140,7 +140,7 @@ public struct Poster: PostingType {
           )
         )
       } catch {
-        if statusCode == 200, let string = String(data: data, encoding: .utf8) {
+        if statusCode == HTTPStatusCode.ok, let string = String(data: data, encoding: .utf8) {
           return .failure(.cannotParse(string))
         } else {
           return .failure(.networkError(error))
@@ -166,7 +166,9 @@ public struct Poster: PostingType {
     do {
       let (_, response) = try await self.session.data(for: request)
       
-      return .success((response as? HTTPURLResponse)?.statusCode.isWithinRange(200...299) ?? false)
+      return .success((response as? HTTPURLResponse)?.statusCode.isWithinRange(
+        HTTPStatusCode.ok...HTTPStatusCode.imUsed
+      ) ?? false)
     } catch let error as NSError {
       return .failure(.networkError(error))
     } catch {
