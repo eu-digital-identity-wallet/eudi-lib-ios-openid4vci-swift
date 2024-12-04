@@ -23,18 +23,24 @@ public protocol IssuanceRequesterType {
   
   func placeIssuanceRequest(
     accessToken: IssuanceAccessToken,
-    request: SingleCredential
+    request: SingleCredential,
+    dPopNonce: Nonce?,
+    retry: Bool
   ) async throws -> Result<CredentialIssuanceResponse, Error>
   
   func placeDeferredCredentialRequest(
     accessToken: IssuanceAccessToken,
     transactionId: TransactionId,
+    dPopNonce: Nonce?,
+    retry: Bool,
     issuanceResponseEncryptionSpec: IssuanceResponseEncryptionSpec?
   ) async throws -> Result<DeferredCredentialIssuanceResponse, Error>
   
   func notifyIssuer(
     accessToken: IssuanceAccessToken?,
-    notification: NotificationObject
+    notification: NotificationObject,
+    dPopNonce: Nonce?,
+    retry: Bool
   ) async throws -> Result<Void, Error>
 }
 
@@ -59,26 +65,41 @@ public actor IssuanceRequester: IssuanceRequesterType {
   
   public func placeIssuanceRequest(
     accessToken: IssuanceAccessToken,
-    request: SingleCredential
+    request: SingleCredential,
+    dPopNonce: Nonce?,
+    retry: Bool
   ) async throws -> Result<CredentialIssuanceResponse, Error> {
     let endpoint = issuerMetadata.credentialEndpoint.url
     
     do {
       let authorizationHeader: [String: String] = try await accessToken.dPoPOrBearerAuthorizationHeader(
         dpopConstructor: dpopConstructor,
+        dPopNonce: dPopNonce,
         endpoint: endpoint
       )
       
       let encodedRequest: [String: Any] = try request.toDictionary().dictionaryValue
       
-      let response: SingleIssuanceSuccessResponse = try await service.formPost(
+      let response: ResponseWithHeaders<SingleIssuanceSuccessResponse> = try await service.formPost(
         poster: poster,
         url: endpoint,
         headers: authorizationHeader,
         body: encodedRequest
       )
       
-      return .success(try response.toSingleIssuanceResponse())
+      return .success(try response.body.toSingleIssuanceResponse())
+      
+    } catch PostError.useDpopNonce(let nonce) {
+      if retry {
+        return try await placeIssuanceRequest(
+          accessToken: accessToken,
+          request: request,
+          dPopNonce: nonce,
+          retry: false
+        )
+      } else {
+        return .failure(ValidationError.retryFailedAfterDpopNonce)
+      }
       
     } catch PostError.response(let response) {
       return .failure(response.toIssuanceError())
@@ -179,6 +200,8 @@ public actor IssuanceRequester: IssuanceRequesterType {
   public func placeDeferredCredentialRequest(
     accessToken: IssuanceAccessToken,
     transactionId: TransactionId,
+    dPopNonce: Nonce?,
+    retry: Bool,
     issuanceResponseEncryptionSpec: IssuanceResponseEncryptionSpec?
   ) async throws -> Result<DeferredCredentialIssuanceResponse, Error> {
     guard let deferredCredentialEndpoint = issuerMetadata.deferredCredentialEndpoint else {
@@ -187,19 +210,33 @@ public actor IssuanceRequester: IssuanceRequesterType {
     
     let authorizationHeader: [String: String] = try await accessToken.dPoPOrBearerAuthorizationHeader(
       dpopConstructor: dpopConstructor,
+      dPopNonce: dPopNonce,
       endpoint: deferredCredentialEndpoint.url
     )
     
     let encodedRequest: [String: Any] = try JSON(transactionId.toDeferredRequestTO().toDictionary()).dictionaryValue
     
     do {
-      let response: DeferredCredentialIssuanceResponse = try await service.formPost(
+      let response: ResponseWithHeaders<DeferredCredentialIssuanceResponse> = try await service.formPost(
         poster: poster,
         url: deferredCredentialEndpoint.url,
         headers: authorizationHeader,
         body: encodedRequest
       )
-      return .success(response)
+      return .success(response.body)
+      
+    } catch PostError.useDpopNonce(let nonce) {
+      if retry {
+        return try await placeDeferredCredentialRequest(
+          accessToken: accessToken,
+          transactionId: transactionId,
+          dPopNonce: nonce,
+          retry: false,
+          issuanceResponseEncryptionSpec: issuanceResponseEncryptionSpec
+        )
+      } else {
+        return .failure(ValidationError.retryFailedAfterDpopNonce)
+      }
       
     } catch PostError.response(let response) {
       
@@ -246,7 +283,9 @@ public actor IssuanceRequester: IssuanceRequesterType {
   
   public func notifyIssuer(
     accessToken: IssuanceAccessToken?,
-    notification: NotificationObject
+    notification: NotificationObject,
+    dPopNonce: Nonce?,
+    retry: Bool
   ) async throws -> Result<Void, Error> {
     do {
       
@@ -261,6 +300,7 @@ public actor IssuanceRequester: IssuanceRequesterType {
       let endpoint = notificationEndpoint.url
       let authorizationHeader: [String: String] = try await accessToken.dPoPOrBearerAuthorizationHeader(
         dpopConstructor: dpopConstructor,
+        dPopNonce: dPopNonce,
         endpoint: endpoint
       )
       
@@ -272,13 +312,25 @@ public actor IssuanceRequester: IssuanceRequesterType {
       let encodedRequest: [String: Any] = JSON(payload.toDictionary()).dictionaryValue
       
       do {
-        let _: EmptyResponse = try await service.formPost(
+        let _: ResponseWithHeaders<EmptyResponse> = try await service.formPost(
           poster: poster,
           url: endpoint,
           headers: authorizationHeader,
           body: encodedRequest
         )
         return .success(())
+        
+      } catch PostError.useDpopNonce(let nonce) {
+        if retry {
+          return try await notifyIssuer(
+            accessToken: accessToken,
+            notification: notification,
+            dPopNonce: nonce,
+            retry: false
+          )
+        } else {
+          return .failure(ValidationError.retryFailedAfterDpopNonce)
+        }
         
       } catch PostError.response(let response) {
         return .failure(response.toIssuanceError())
