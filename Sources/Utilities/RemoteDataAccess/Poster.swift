@@ -15,12 +15,30 @@
  */
 import Foundation
 
+// Result type for responses with headers
+public struct ResponseWithHeaders<Response> {
+  public let headers: [AnyHashable: Any]
+  public let body: Response
+  
+  public init(headers: [AnyHashable: Any], body: Response) {
+    self.headers = headers
+    self.body = body
+  }
+}
+
+public extension ResponseWithHeaders {
+  func headerValue(forKey key: AnyHashable) -> Any? {
+    return headers[key]
+  }
+}
+
 public enum PostError: LocalizedError {
   case invalidUrl
   case networkError(Error)
   case response(GenericErrorResponse)
   case cannotParse(String)
   case serverError
+  case useDpopNonce(Nonce)
   
   /**
    Provides a localized description of the post error.
@@ -39,6 +57,8 @@ public enum PostError: LocalizedError {
       return "Could not parse: \(string)"
     case .serverError:
       return "Server error"
+    case .useDpopNonce(let nonce):
+      return "Use dPopp Nonce error: \(nonce)"
     }
   }
 }
@@ -46,7 +66,7 @@ public enum PostError: LocalizedError {
 public protocol PostingType {
   
   var session: Networking { get set }
-
+  
   /**
    Performs a POST request with the provided URLRequest.
    
@@ -55,7 +75,7 @@ public protocol PostingType {
    
    - Returns: A Result type with the response data or an error.
    */
-  func post<Response: Codable>(request: URLRequest) async -> Result<Response, PostError>
+  func post<Response: Codable>(request: URLRequest) async -> Result<ResponseWithHeaders<Response>, PostError>
   
   /**
    Performs a POST request with the provided URLRequest.
@@ -71,7 +91,7 @@ public protocol PostingType {
 public struct Poster: PostingType {
   
   public var session: Networking
-
+  
   /**
    Initializes a Poster instance.
    */
@@ -89,22 +109,36 @@ public struct Poster: PostingType {
    
    - Returns: A Result type with the response data or an error.
    */
-  public func post<Response: Codable>(request: URLRequest) async -> Result<Response, PostError> {
+  public func post<Response: Codable>(request: URLRequest) async -> Result<ResponseWithHeaders<Response>, PostError> {
     do {
       let (data, response) = try await self.session.data(for: request)
       let statusCode = (response as? HTTPURLResponse)?.statusCode ?? 0
+      let httpResponse = (response as? HTTPURLResponse)
+      let headers = httpResponse?.allHeaderFields ?? [:]
       
       if statusCode >= 400 && statusCode < 500 {
-        let object = try JSONDecoder().decode(GenericErrorResponse.self, from: data)
-        return .failure(.response(object))
+        if let httpResponse,
+           httpResponse.containsDpopError(),
+           let dPopNonce = headers["DPoP-Nonce"] as? String {
+          return .failure(.useDpopNonce(.init(value: dPopNonce)))
+          
+        } else {
+          let object = try JSONDecoder().decode(GenericErrorResponse.self, from: data)
+          return .failure(.response(object))
+        }
+        
       } else if statusCode >= 500 && statusCode < 599 {
         return .failure(.serverError)
       }
       
       do {
         let object = try JSONDecoder().decode(Response.self, from: data)
-        return .success(object)
-        
+        return .success(
+          ResponseWithHeaders(
+            headers: headers,
+            body: object
+          )
+        )
       } catch {
         if statusCode == 200, let string = String(data: data, encoding: .utf8) {
           return .failure(.cannotParse(string))
@@ -131,7 +165,7 @@ public struct Poster: PostingType {
   public func check(request: URLRequest) async -> Result<Bool, PostError> {
     do {
       let (_, response) = try await self.session.data(for: request)
-
+      
       return .success((response as? HTTPURLResponse)?.statusCode.isWithinRange(200...299) ?? false)
     } catch let error as NSError {
       return .failure(.networkError(error))
