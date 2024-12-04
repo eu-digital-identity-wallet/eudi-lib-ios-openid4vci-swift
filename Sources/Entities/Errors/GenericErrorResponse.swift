@@ -32,10 +32,10 @@ public struct GenericErrorResponse: Codable {
   
   public init(
     error: String,
-    errorDescription: String?,
-    cNonce: String?,
-    cNonceExpiresInSeconds: Int?,
-    interval: Int?
+    errorDescription: String? = nil,
+    cNonce: String? = nil,
+    cNonceExpiresInSeconds: Int? = nil,
+    interval: Int? = nil
   ) {
     self.error = error
     self.errorDescription = errorDescription
