@@ -55,12 +55,14 @@ public protocol IssuerType {
   
   func requestDeferredIssuance(
     proofRequest: AuthorizedRequest,
-    transactionId: TransactionId
+    transactionId: TransactionId,
+    dPopNonce: Nonce?
   ) async throws -> Result<DeferredCredentialIssuanceResponse, Error>
   
   func notify(
     authorizedRequest: AuthorizedRequest,
-    notificationId: NotificationObject
+    notificationId: NotificationObject,
+    dPopNonce: Nonce?
   ) async throws -> Result<Void, Error>
 }
 
@@ -123,7 +125,8 @@ public actor Issuer: IssuerType {
   ) async throws -> Result<UnauthorizedRequest, Error> {
     let credentials = credentialOffer.credentialConfigurationIdentifiers
     let issuerState: String? = switch credentialOffer.grants {
-    case .authorizationCode(let code), .both(let code, _):
+    case .authorizationCode(let code),
+         .both(let code, _):
       code.issuerState
     default:
       nil
@@ -143,13 +146,16 @@ public actor Issuer: IssuerType {
 
         let result: (
           verifier: PKCEVerifier,
-          code: GetAuthorizationCodeURL
+          code: GetAuthorizationCodeURL,
+          dPopNonce: Nonce?
         ) = try await authorizer.submitPushedAuthorizationRequest(
           scopes: scopes,
           credentialConfigurationIdentifiers: credentialConfogurationIdentifiers,
           state: state,
           issuerState: issuerState,
-          resource: resource
+          resource: resource,
+          dpopNonce: nil,
+          retry: true
         ).get()
         
         return .success(
@@ -159,7 +165,8 @@ public actor Issuer: IssuerType {
               getAuthorizationCodeURL: result.code,
               pkceVerifier: result.verifier,
               state: state,
-              configurationIds: credentialConfogurationIdentifiers
+              configurationIds: credentialConfogurationIdentifiers,
+              dpopNonce: result.dPopNonce
             )
           )
         )
@@ -227,11 +234,15 @@ public actor Issuer: IssuerType {
           txCode: txCode,
           clientId: clientId,
           transactionCode: transactionCode,
-          identifiers: credConfigIdsAsAuthDetails
+          identifiers: credConfigIdsAsAuthDetails,
+          dpopNonce: nil,
+          retry: true
         )
         
         switch response {
-        case .success((let accessToken, let nonce, let identifiers, let expiresIn)):
+        case .success(
+          (let accessToken, let nonce, let identifiers, let expiresIn, let dPopNonce)
+        ):
           if let cNonce = nonce {
             return .success(
               .proofRequired(
@@ -243,7 +254,8 @@ public actor Issuer: IssuerType {
                 refreshToken: nil,
                 cNonce: cNonce,
                 credentialIdentifiers: identifiers, 
-                timeStamp: Date().timeIntervalSinceReferenceDate
+                timeStamp: Date().timeIntervalSinceReferenceDate,
+                dPopNonce: dPopNonce
               )
             )
           } else {
@@ -256,7 +268,8 @@ public actor Issuer: IssuerType {
                 ),
                 refreshToken: nil,
                 credentialIdentifiers: identifiers,
-                timeStamp: Date().timeIntervalSinceReferenceDate
+                timeStamp: Date().timeIntervalSinceReferenceDate,
+                dPopNonce: dPopNonce
               )
             )
           }
@@ -297,11 +310,14 @@ public actor Issuer: IssuerType {
             nonce: CNonce?,
             identifiers: AuthorizationDetailsIdentifiers?,
             tokenType: TokenType?,
-            expiresIn: Int?
+            expiresIn: Int?,
+            dPopNonce: Nonce?
           ) = try await authorizer.requestAccessTokenAuthFlow(
             authorizationCode: authorizationCode,
             codeVerifier: request.pkceVerifier.codeVerifier,
-            identifiers: credConfigIdsAsAuthDetails
+            identifiers: credConfigIdsAsAuthDetails,
+            dpopNonce: nil,
+            retry: true
           ).get()
           
           if let cNonce = response.nonce {
@@ -315,7 +331,8 @@ public actor Issuer: IssuerType {
                 refreshToken: nil,
                 cNonce: cNonce,
                 credentialIdentifiers: response.identifiers,
-                timeStamp: Date().timeIntervalSinceReferenceDate
+                timeStamp: Date().timeIntervalSinceReferenceDate,
+                dPopNonce: response.dPopNonce
               )
             )
           } else {
@@ -328,7 +345,8 @@ public actor Issuer: IssuerType {
                 ),
                 refreshToken: nil,
                 credentialIdentifiers: response.identifiers,
-                timeStamp: Date().timeIntervalSinceReferenceDate
+                timeStamp: Date().timeIntervalSinceReferenceDate,
+                dPopNonce: response.dPopNonce
               )
             )
           }
@@ -397,9 +415,9 @@ public actor Issuer: IssuerType {
   
   private func accessToken(from request: AuthorizedRequest) -> IssuanceAccessToken {
     switch request {
-    case .noProofRequired(let token, _, _, _):
+    case .noProofRequired(let token, _, _, _, _):
       return token
-    case .proofRequired(let token, _, _, _, _):
+    case .proofRequired(let token, _, _, _, _, _):
       return token
     }
   }
@@ -408,7 +426,7 @@ public actor Issuer: IssuerType {
     switch request {
     case .noProofRequired:
       return nil
-    case .proofRequired(_, _, let cnonce, _, _):
+    case .proofRequired(_, _, let cnonce, _, _, _):
       return cnonce
     }
   }
@@ -495,6 +513,7 @@ private extension Issuer {
   
   private func requestIssuance(
     token: IssuanceAccessToken,
+    dPopNonce: Nonce?,
     issuanceRequestSupplier: () async throws -> CredentialIssuanceRequest
   ) async throws -> Result<SubmittedRequest, Error> {
     let credentialRequest = try await issuanceRequestSupplier()
@@ -503,7 +522,9 @@ private extension Issuer {
       self.deferredResponseEncryptionSpec = encryptionSpec
       let result = try await issuanceRequester.placeIssuanceRequest(
         accessToken: token,
-        request: single
+        request: single,
+        dPopNonce: dPopNonce,
+        retry: true
       )
       switch result {
       case .success(let response):
@@ -603,7 +624,10 @@ private extension Issuer {
       cNonce: cNonce
     )
     
-    return try await requestIssuance(token: token) {
+    return try await requestIssuance(
+      token: token,
+      dPopNonce: authorizedRequest.dPopNonce
+    ) {
       return try supportedCredential.toIssuanceRequest(
         requester: issuanceRequester,
         claimSet: claimSet, 
@@ -636,7 +660,10 @@ private extension Issuer {
       cNonce: cNonce
     )
     
-    return try await requestIssuance(token: token) {
+    return try await requestIssuance(
+      token: token,
+      dPopNonce: authorizedRequest.dPopNonce
+    ) {
       return try supportedCredential.toIssuanceRequest(
         requester: issuanceRequester,
         proofs: proofs,
@@ -780,7 +807,8 @@ public extension Issuer {
   
   func requestDeferredIssuance(
     proofRequest: AuthorizedRequest,
-    transactionId: TransactionId
+    transactionId: TransactionId,
+    dPopNonce: Nonce?
   ) async throws -> Result<DeferredCredentialIssuanceResponse, Error> {
     
     guard let token = proofRequest.accessToken else {
@@ -790,18 +818,22 @@ public extension Issuer {
     return try await deferredIssuanceRequester.placeDeferredCredentialRequest(
       accessToken: token,
       transactionId: transactionId,
+      dPopNonce: dPopNonce,
+      retry: true,
       issuanceResponseEncryptionSpec: deferredResponseEncryptionSpec
     )
   }
   
   func notify(
     authorizedRequest: AuthorizedRequest,
-    notificationId: NotificationObject
+    notificationId: NotificationObject,
+    dPopNonce: Nonce?
   ) async throws -> Result<Void, Error> {
     
     return try await notifyIssuer.notify(
       authorizedRequest: authorizedRequest,
-      notification: notificationId
+      notification: notificationId,
+      dPopNonce: dPopNonce
     )
   }
 }
