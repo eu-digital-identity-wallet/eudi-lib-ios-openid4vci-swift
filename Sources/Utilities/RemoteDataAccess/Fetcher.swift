@@ -86,7 +86,7 @@ public struct Fetcher<Element: Decodable>: Fetching {
       let (data, response) = try await self.session.data(from: url)
 
       let statusCode = (response as? HTTPURLResponse)?.statusCode ?? 0
-      if !statusCode.isWithinRange(200...299) {
+      if !statusCode.isWithinRange(HTTPStatusCode.ok...HTTPStatusCode.imUsed) {
         throw FetchError.invalidStatusCode(url, statusCode)
       }
       let object = try JSONDecoder().decode(Element.self, from: data)
@@ -108,7 +108,7 @@ public struct Fetcher<Element: Decodable>: Fetching {
       let (data, response) = try await self.session.data(from: url)
 
       let statusCode = (response as? HTTPURLResponse)?.statusCode ?? 0
-      if !statusCode.isWithinRange(200...299) {
+      if !statusCode.isWithinRange(HTTPStatusCode.ok...HTTPStatusCode.imUsed) {
         throw FetchError.invalidStatusCode(url, statusCode)
       }
 

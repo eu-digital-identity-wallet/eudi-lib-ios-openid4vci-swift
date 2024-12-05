@@ -18,6 +18,15 @@ import SwiftyJSON
 
 let OPENID_CREDENTIAL = "openid_credential"
 
+private extension ResponseWithHeaders {
+  func dpopNonce() -> Nonce? {
+    if let nonceValue = headers["DPoP-Nonce"] as? String {
+      return Nonce(value: nonceValue)
+    }
+    return nil
+  }
+}
+
 public protocol AuthorizationServerClientType {
   
   func authorizationRequestUrl(
@@ -32,22 +41,40 @@ public protocol AuthorizationServerClientType {
     credentialConfigurationIdentifiers: [CredentialConfigurationIdentifier],
     state: String,
     issuerState: String?,
-    resource: String?
-  ) async throws -> Result<(PKCEVerifier, GetAuthorizationCodeURL), Error>
+    resource: String?,
+    dpopNonce: Nonce?,
+    retry: Bool
+  ) async throws -> Result<(PKCEVerifier, GetAuthorizationCodeURL, Nonce?), Error>
   
   func requestAccessTokenAuthFlow(
     authorizationCode: String,
     codeVerifier: String,
-    identifiers: [CredentialConfigurationIdentifier]
-  ) async throws -> Result<(IssuanceAccessToken, CNonce?, AuthorizationDetailsIdentifiers?, TokenType?, Int?), ValidationError>
+    identifiers: [CredentialConfigurationIdentifier],
+    dpopNonce: Nonce?,
+    retry: Bool
+  ) async throws -> Result<(
+    IssuanceAccessToken,
+    CNonce?,
+    AuthorizationDetailsIdentifiers?,
+    TokenType?,
+    Int?,
+    Nonce?
+  ), Error>
   
   func requestAccessTokenPreAuthFlow(
     preAuthorizedCode: String,
     txCode: TxCode?,
     clientId: String,
     transactionCode: String?,
-    identifiers: [CredentialConfigurationIdentifier]
-  ) async throws -> Result<(IssuanceAccessToken, CNonce?, AuthorizationDetailsIdentifiers?, Int?), ValidationError>
+    identifiers: [CredentialConfigurationIdentifier],
+    dpopNonce: Nonce?,
+    retry: Bool
+  ) async throws -> Result<(
+    IssuanceAccessToken,
+    CNonce?,
+    AuthorizationDetailsIdentifiers?,
+    Int?,
+    Nonce?), Error>
 }
 
 public actor AuthorizationServerClient: AuthorizationServerClientType {
@@ -186,8 +213,10 @@ public actor AuthorizationServerClient: AuthorizationServerClientType {
     credentialConfigurationIdentifiers: [CredentialConfigurationIdentifier],
     state: String,
     issuerState: String?,
-    resource: String? = nil
-  ) async throws -> Result<(PKCEVerifier, GetAuthorizationCodeURL), Error> {
+    resource: String? = nil,
+    dpopNonce: Nonce? = nil,
+    retry: Bool = true
+  ) async throws -> Result<(PKCEVerifier, GetAuthorizationCodeURL, Nonce?), Error> {
     guard !scopes.isEmpty else {
       throw ValidationError.error(reason: "No scopes provided. Cannot submit par with no scopes.")
     }
@@ -210,15 +239,18 @@ public actor AuthorizationServerClient: AuthorizationServerClientType {
       guard let parEndpoint = parEndpoint else {
         throw ValidationError.error(reason: "Missing PAR endpoint")
       }
-      let response: PushedAuthorizationRequestResponse = try await service.formPost(
+      
+      let response: ResponseWithHeaders<PushedAuthorizationRequestResponse> = try await service.formPost(
         poster: parPoster,
         url: parEndpoint,
-        request: authRequest
+        request: authRequest,
+        headers: tokenEndPointHeaders(
+          dpopNonce: dpopNonce
+        )
       )
       
-      switch response {
+      switch response.body {
       case .success(let requestURI, _):
-        
         let verifier = try PKCEVerifier(
           codeVerifier: codeVerifier,
           codeVerifierMethod: CodeChallenge.sha256.rawValue
@@ -238,30 +270,55 @@ public actor AuthorizationServerClient: AuthorizationServerClientType {
           urlString: urlWithParams.absoluteString
         )
         
-        return .success((verifier, authorizationCodeURL))
+        return .success(
+          (verifier, authorizationCodeURL, response.dpopNonce())
+        )
         
-      case .failure(error: let error, errorDescription: let errorDescription):
+      case .failure(let error, let errorDescription):
         throw CredentialIssuanceError.pushedAuthorizationRequestFailed(
           error: error,
           errorDescription: errorDescription
         )
       }
     } catch {
-      return .failure(error)
+      if let postError = error as? PostError {
+        switch postError {
+        case .useDpopNonce(let nonce):
+          if retry {
+            return try await submitPushedAuthorizationRequest(
+              scopes: scopes,
+              credentialConfigurationIdentifiers: credentialConfigurationIdentifiers,
+              state: state,
+              issuerState: issuerState,
+              dpopNonce: nonce,
+              retry: false
+            )
+          } else {
+            return .failure(ValidationError.retryFailedAfterDpopNonce)
+          }
+        default:
+          return .failure(error)
+        }
+      } else {
+        return .failure(error)
+      }
     }
   }
   
   public func requestAccessTokenAuthFlow(
     authorizationCode: String,
     codeVerifier: String,
-    identifiers: [CredentialConfigurationIdentifier]
+    identifiers: [CredentialConfigurationIdentifier],
+    dpopNonce: Nonce?,
+    retry: Bool
   ) async throws -> Result<(
     IssuanceAccessToken,
     CNonce?,
     AuthorizationDetailsIdentifiers?,
     TokenType?,
-    Int?
-  ), ValidationError> {
+    Int?,
+    Nonce?
+  ), Error> {
     
     let parameters: JSON = authCodeFlow(
       authorizationCode: authorizationCode,
@@ -271,29 +328,64 @@ public actor AuthorizationServerClient: AuthorizationServerClientType {
       identifiers: identifiers
     )
     
-    let response: AccessTokenRequestResponse = try await service.formPost(
-      poster: tokenPoster,
-      url: tokenEndpoint,
-      headers: try tokenEndPointHeaders(),
-      parameters: parameters.toDictionary().convertToDictionaryOfStrings()
-    )
-    
-    switch response {
-    case .success(let tokenType, let accessToken, _, let expiresIn, _, let nonce, _, let identifiers):
-      return .success(
-        (
-          try .init(accessToken: accessToken, tokenType: .init(value: tokenType)),
-          .init(value: nonce),
-          identifiers,
-          TokenType(value: tokenType),
-          expiresIn
+    do {
+      let response: ResponseWithHeaders<AccessTokenRequestResponse> = try await service.formPost(
+        poster: tokenPoster,
+        url: tokenEndpoint,
+        headers: try tokenEndPointHeaders(
+          dpopNonce: dpopNonce
+        ),
+        parameters: parameters.toDictionary().convertToDictionaryOfStrings()
+      )
+      
+      switch response.body {
+      case .success(let tokenType, let accessToken, _, let expiresIn, _, let nonce, _, let identifiers):
+        return .success(
+          (
+            try .init(
+              accessToken: accessToken,
+              tokenType: .init(
+                value: tokenType
+              )
+            ),
+            .init(
+              value: nonce
+            ),
+            identifiers,
+            TokenType(
+              value: tokenType
+            ),
+            expiresIn,
+            response.dpopNonce()
+          )
         )
-      )
-    case .failure(let error, let errorDescription):
-      throw CredentialIssuanceError.pushedAuthorizationRequestFailed(
-        error: error,
-        errorDescription: errorDescription
-      )
+      case .failure(let error, let errorDescription):
+        throw CredentialIssuanceError.pushedAuthorizationRequestFailed(
+          error: error,
+          errorDescription: errorDescription
+        )
+      }
+    } catch {
+      if let postError = error as? PostError {
+        switch postError {
+        case .useDpopNonce(let nonce):
+          if retry {
+            return try await requestAccessTokenAuthFlow(
+              authorizationCode: authorizationCode,
+              codeVerifier: codeVerifier,
+              identifiers: identifiers,
+              dpopNonce: nonce,
+              retry: false
+            )
+          } else {
+            return .failure(ValidationError.retryFailedAfterDpopNonce)
+          }
+        default:
+          return .failure(error)
+        }
+      } else {
+        return .failure(error)
+      }
     }
   }
   
@@ -302,8 +394,15 @@ public actor AuthorizationServerClient: AuthorizationServerClientType {
     txCode: TxCode?,
     clientId: String,
     transactionCode: String?,
-    identifiers: [CredentialConfigurationIdentifier]
-  ) async throws -> Result<(IssuanceAccessToken, CNonce?, AuthorizationDetailsIdentifiers?, Int?), ValidationError> {
+    identifiers: [CredentialConfigurationIdentifier],
+    dpopNonce: Nonce?,
+    retry: Bool
+  ) async throws -> Result<(
+    IssuanceAccessToken,
+    CNonce?,
+    AuthorizationDetailsIdentifiers?,
+    Int?,
+    Nonce?), Error> {
     let parameters: JSON = try await preAuthCodeFlow(
       preAuthorizedCode: preAuthorizedCode,
       txCode: txCode,
@@ -312,28 +411,62 @@ public actor AuthorizationServerClient: AuthorizationServerClientType {
       identifiers: identifiers
     )
     
-    let response: AccessTokenRequestResponse = try await service.formPost(
-      poster: tokenPoster,
-      url: tokenEndpoint,
-      headers: try tokenEndPointHeaders(),
-      parameters: parameters.toDictionary().convertToDictionaryOfStrings()
-    )
-    
-    switch response {
-    case .success(let tokenType, let accessToken, _, let expiresIn, _, let nonce, _, let identifiers):
-      return .success(
-        (
-          try .init(accessToken: accessToken, tokenType: .init(value: tokenType)),
-          .init(value: nonce),
-          identifiers,
-          expiresIn
+    do {
+      let response: ResponseWithHeaders<AccessTokenRequestResponse> = try await service.formPost(
+        poster: tokenPoster,
+        url: tokenEndpoint,
+        headers: try tokenEndPointHeaders(
+          dpopNonce: dpopNonce
+        ),
+        parameters: parameters.toDictionary().convertToDictionaryOfStrings()
+      )
+      
+      switch response.body {
+      case .success(let tokenType, let accessToken, _, let expiresIn, _, let nonce, _, let identifiers):
+        return .success(
+          (
+            try .init(
+              accessToken: accessToken,
+              tokenType: .init(
+                value: tokenType
+              )
+            ),
+            .init(
+              value: nonce
+            ),
+            identifiers,
+            expiresIn,
+            dpopNonce
+          )
         )
-      )
-    case .failure(let error, let errorDescription):
-      throw CredentialIssuanceError.pushedAuthorizationRequestFailed(
-        error: error,
-        errorDescription: errorDescription
-      )
+      case .failure(let error, let errorDescription):
+        throw CredentialIssuanceError.pushedAuthorizationRequestFailed(
+          error: error,
+          errorDescription: errorDescription
+        )
+      }
+    } catch {
+      if let postError = error as? PostError {
+        switch postError {
+        case .useDpopNonce(let nonce):
+          if retry {
+            return try await requestAccessTokenPreAuthFlow(
+              preAuthorizedCode: preAuthorizedCode,
+              txCode: txCode,
+              clientId: clientId,
+              transactionCode: transactionCode,
+              identifiers: identifiers,
+              dpopNonce: nonce,
+              retry: false)
+          } else {
+            return .failure(ValidationError.retryFailedAfterDpopNonce)
+          }
+        default:
+          return .failure(error)
+        }
+      } else {
+        return .failure(error)
+      }
     }
   }
   
@@ -357,9 +490,13 @@ public actor AuthorizationServerClient: AuthorizationServerClientType {
 
 private extension AuthorizationServerClient {
   
-  func tokenEndPointHeaders() async throws -> [String: String] {
+  func tokenEndPointHeaders(dpopNonce: Nonce? = nil) async throws -> [String: String] {
     if let dpopConstructor {
-      let jwt = try await dpopConstructor.jwt(endpoint: tokenEndpoint, accessToken: nil)
+      let jwt = try await dpopConstructor.jwt(
+        endpoint: tokenEndpoint,
+        accessToken: nil,
+        nonce: dpopNonce
+      )
       return ["DPoP": jwt]
     } else {
       return [:]
