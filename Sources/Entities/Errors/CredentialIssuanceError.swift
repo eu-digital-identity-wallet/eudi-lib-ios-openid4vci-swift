@@ -18,7 +18,6 @@ import Foundation
 public enum CredentialIssuanceError: Error, LocalizedError {
   case pushedAuthorizationRequestFailed(error: String, errorDescription: String?)
   case accessTokenRequestFailed(error: String, errorDescription: String?)
-  case issuerDoesNotSupportBatchIssuance
   case responseUnparsable(String)
   case invalidIssuanceRequest(String)
   case cryptographicSuiteNotSupported(String)
@@ -47,8 +46,6 @@ public enum CredentialIssuanceError: Error, LocalizedError {
         .issuanceRequestFailed(_, let errorDescription),
         .invalidProof(_, _, let errorDescription):
       return errorDescription
-    case .issuerDoesNotSupportBatchIssuance:
-      return "Issuer does not support batch issuance"
     case .responseUnparsable(let details):
       return "Response is unparsable. Details: \(details)"
     case .invalidIssuanceRequest(let details):

@@ -258,7 +258,7 @@ public extension W3CJsonLdSignedJwtFormat {
     
     func toIssuanceRequest(
       claimSet: ClaimSet?,
-      proof: Proof?
+      proofs: [Proof]
     ) throws -> CredentialIssuanceRequest {
       throw ValidationError.error(reason: "Not yet implemented")
     }

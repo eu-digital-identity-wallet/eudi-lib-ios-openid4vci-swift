@@ -18,7 +18,7 @@ the [EUDI Wallet Reference Implementation project description](https://github.co
 ## Overview
 
 This is a Swift library, that supports 
-the [OpenId4VCI (draft 13)](https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html) protocol.
+the [OpenId4VCI (draft 14)](https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html) protocol.
 In particular, the library focuses on the wallet's role in the protocol to:
 - Resolve credential issuer metadata 
 - Resolve metadata of the authorization server protecting issuance services
@@ -202,9 +202,9 @@ let payload: IssuanceRequestPayload = .configurationBased(
   credentialConfigurationIdentifier: ...
 )
 
-let requestOutcome = try await issuer.requestSingle(
+let requestOutcome = try await issuer.request(
     proofRequest: ...,
-    bindingKey: ...,
+    bindingKeys: ..., // SigningKeyProxy array
     requestPayload: payload,
     responseEncryptionSpecProvider:  { 
         Issuer.createResponseEncryptionSpec($0) 
@@ -229,18 +229,21 @@ Specification defines ([section 6.2](https://openid.github.io/OpenID4VCI/openid-
 if `authorization_details` parameter is used in authorization endpoint. Current version of library is not parsing/utilizing this response attribute.
 
 ### Credential Request
-Current version of the library implements integrations with issuer's [Crednetial Endpoint](https://openid.github.io/OpenID4VCI/openid-4-verifiable-credential-issuance-wg-draft.html#name-credential-endpoint),
-[Batch Crednetial Endpoint](https://openid.github.io/OpenID4VCI/openid-4-verifiable-credential-issuance-wg-draft.html#name-batch-credential-endpoint) and
+Current version of the library implements integrations with issuer's [Crednetial Endpoint](https://openid.github.io/OpenID4VCI/openid-4-verifiable-credential-issuance-wg-draft.html#name-credential-endpoint) and
 [Deferred Crednetial Endpoint](https://openid.github.io/OpenID4VCI/openid-4-verifiable-credential-issuance-wg-draft.html#name-deferred-credential-endpoin)
 endpoints.
 
-**NOTE:** Attribute `credential_identifier` of a credential request (single or batch) is not yet supported.
+**NOTE:** Attribute `credential_identifier` of a credential request is not yet supported.
 
 #### Credential Format Profiles
 OpenId4VCI specification defines several extension points to accommodate the differences across Credential formats. The current version of the library fully supports **ISO mDL** profile and gives some initial support for **IETF SD-JWT VC** profile.  
 
 #### Proof Types
-OpenId4VCI specification (draft 12) defines two types of proofs that can be included in a credential issuance request, JWT proof type and CWT proof type. Current version of the library supports only JWT proof types
+OpenId4VCI specification (draft 14) defines proofs that can be included in a credential issuance request, JWT proof type in particular. The current version of the library supports JWT proof types.
+
+#### Notes
+
+Examples for all of the above are located in the test target of the library.
 
 ## How to contribute
 

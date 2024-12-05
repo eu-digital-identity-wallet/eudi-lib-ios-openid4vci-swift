@@ -14,12 +14,14 @@
  * limitations under the License.
  */
 import Foundation
+import SwiftyJSON
 
-public enum IssuedCredential {
+public enum IssuedCredential: Codable {
   case issued(
-    format: String,
-    credential: String,
-    notificationId: String
+    format: String?,
+    credential: Credential,
+    notificationId: String?,
+    additionalInfo: JSON?
   )
   case deferred(transactionId: TransactionId)
 }

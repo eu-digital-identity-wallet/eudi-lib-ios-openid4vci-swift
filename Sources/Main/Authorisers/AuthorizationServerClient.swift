@@ -37,14 +37,16 @@ public protocol AuthorizationServerClientType {
   
   func requestAccessTokenAuthFlow(
     authorizationCode: String,
-    codeVerifier: String
+    codeVerifier: String,
+    identifiers: [CredentialConfigurationIdentifier]
   ) async throws -> Result<(IssuanceAccessToken, CNonce?, AuthorizationDetailsIdentifiers?, TokenType?, Int?), ValidationError>
   
   func requestAccessTokenPreAuthFlow(
     preAuthorizedCode: String,
     txCode: TxCode?,
     clientId: String,
-    transactionCode: String?
+    transactionCode: String?,
+    identifiers: [CredentialConfigurationIdentifier]
   ) async throws -> Result<(IssuanceAccessToken, CNonce?, AuthorizationDetailsIdentifiers?, Int?), ValidationError>
 }
 
@@ -191,7 +193,7 @@ public actor AuthorizationServerClient: AuthorizationServerClientType {
     }
     
     let codeVerifier = PKCEGenerator.codeVerifier() ?? ""
-    let authzRequest = AuthorizationRequest(
+    let authRequest = AuthorizationRequest(
       responseType: Self.responseType,
       clientId: config.clientId,
       redirectUri: config.authFlowRedirectionURI.absoluteString,
@@ -211,7 +213,7 @@ public actor AuthorizationServerClient: AuthorizationServerClientType {
       let response: PushedAuthorizationRequestResponse = try await service.formPost(
         poster: parPoster,
         url: parEndpoint,
-        request: authzRequest
+        request: authRequest
       )
       
       switch response {
@@ -251,7 +253,8 @@ public actor AuthorizationServerClient: AuthorizationServerClientType {
   
   public func requestAccessTokenAuthFlow(
     authorizationCode: String,
-    codeVerifier: String
+    codeVerifier: String,
+    identifiers: [CredentialConfigurationIdentifier]
   ) async throws -> Result<(
     IssuanceAccessToken,
     CNonce?,
@@ -260,18 +263,19 @@ public actor AuthorizationServerClient: AuthorizationServerClientType {
     Int?
   ), ValidationError> {
     
-    let parameters: [String: String] = authCodeFlow(
+    let parameters: JSON = authCodeFlow(
       authorizationCode: authorizationCode,
       redirectionURI: redirectionURI,
       clientId: clientId,
-      codeVerifier: codeVerifier
+      codeVerifier: codeVerifier,
+      identifiers: identifiers
     )
-
+    
     let response: AccessTokenRequestResponse = try await service.formPost(
       poster: tokenPoster,
-      url: tokenEndpoint, 
+      url: tokenEndpoint,
       headers: try tokenEndPointHeaders(),
-      parameters: parameters
+      parameters: parameters.toDictionary().convertToDictionaryOfStrings()
     )
     
     switch response {
@@ -297,13 +301,15 @@ public actor AuthorizationServerClient: AuthorizationServerClientType {
     preAuthorizedCode: String,
     txCode: TxCode?,
     clientId: String,
-    transactionCode: String?
+    transactionCode: String?,
+    identifiers: [CredentialConfigurationIdentifier]
   ) async throws -> Result<(IssuanceAccessToken, CNonce?, AuthorizationDetailsIdentifiers?, Int?), ValidationError> {
     let parameters: JSON = try await preAuthCodeFlow(
       preAuthorizedCode: preAuthorizedCode,
       txCode: txCode,
       clientId: clientId,
-      transactionCode: transactionCode
+      transactionCode: transactionCode,
+      identifiers: identifiers
     )
     
     let response: AccessTokenRequestResponse = try await service.formPost(
@@ -364,39 +370,98 @@ private extension AuthorizationServerClient {
     authorizationCode: String,
     redirectionURI: URL,
     clientId: String,
-    codeVerifier: String
-  ) -> [String: String]  {
+    codeVerifier: String,
+    identifiers: [CredentialConfigurationIdentifier]
+  ) -> JSON {
     
-    [
+    var params: [String: String?] = [
       Constants.GRANT_TYPE_PARAM: Self.grantAuthorizationCode,
       Constants.AUTHORIZATION_CODE_PARAM: authorizationCode,
       Constants.REDIRECT_URI_PARAM: redirectionURI.absoluteString,
       Constants.CLIENT_ID_PARAM: clientId,
       Constants.CODE_VERIFIER_PARAM: codeVerifier,
     ]
+    
+    appendAuthorizationDetailsIfValid(
+      to: &params,
+      identifiers: identifiers,
+      type: .init(type: OPENID_CREDENTIAL)
+    )
+    
+    return JSON(params.filter { $0.value != nil })
   }
   
   func preAuthCodeFlow(
     preAuthorizedCode: String,
     txCode: TxCode?,
     clientId: String,
-    transactionCode: String?
+    transactionCode: String?,
+    identifiers: [CredentialConfigurationIdentifier]
   ) async throws -> JSON  {
+    var params: [String: String?] = [
+      Constants.CLIENT_ID_PARAM: clientId,
+      Constants.GRANT_TYPE_PARAM: Constants.GRANT_TYPE_PARAM_VALUE,
+      Constants.PRE_AUTHORIZED_CODE_PARAM: preAuthorizedCode
+    ]
+    
     if txCode != nil {
-      let dictionary: [String: Any?] = [
-        Constants.CLIENT_ID_PARAM: clientId,
-        Constants.GRANT_TYPE_PARAM: Constants.GRANT_TYPE_PARAM_VALUE,
-        Constants.PRE_AUTHORIZED_CODE_PARAM: preAuthorizedCode,
-        Constants.TX_CODE_PARAM: transactionCode
-      ].filter { $0.value != nil }
-      return JSON(dictionary)
-      
-    } else {
-      return [
-        Constants.CLIENT_ID_PARAM: clientId,
-        Constants.GRANT_TYPE_PARAM: Constants.GRANT_TYPE_PARAM_VALUE,
-        Constants.PRE_AUTHORIZED_CODE_PARAM: preAuthorizedCode
-      ]
+      params[Constants.TX_CODE_PARAM] = transactionCode
     }
+    
+    appendAuthorizationDetailsIfValid(
+      to: &params,
+      identifiers: identifiers,
+      type: .init(type: OPENID_CREDENTIAL)
+    )
+    
+    return JSON(params.filter { $0.value != nil })
+  }
+  
+  func appendAuthorizationDetailsIfValid(
+    to params: inout [String: String?],
+    identifiers: [CredentialConfigurationIdentifier],
+    type: AuthorizationType
+  ) {
+    
+    guard !identifiers.isEmpty else { return }
+    
+    let formParameterString = identifiers
+      .convertToAuthorizationDetails(withType: type)
+      .toFormParameterString()
+    
+    if let formParameterString = formParameterString, !formParameterString.isEmpty {
+      params[Constants.AUTHORIZATION_DETAILS] = formParameterString
+    }
+  }
+}
+
+extension Array where Element == CredentialConfigurationIdentifier {
+  func convertToAuthorizationDetails(withType type: AuthorizationType) -> [AuthorizationDetail] {
+    return self.map { identifier in
+      AuthorizationDetail(
+        type: type,
+        locations: [],
+        credentialConfigurationId: identifier.value
+      )
+    }
+  }
+}
+
+extension Array where Element == AuthorizationDetail {
+  func toFormParameterString() -> String? {
+    let encoder = JSONEncoder()
+    encoder.outputFormatting = .sortedKeys
+    
+    do {
+      let jsonData = try encoder.encode(self)
+      if let jsonString = String(data: jsonData, encoding: .utf8) {
+        // URL encode the JSON string
+        if let urlEncoded = jsonString.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) {
+          return urlEncoded
+        }
+      }
+    } catch {}
+    
+    return nil
   }
 }

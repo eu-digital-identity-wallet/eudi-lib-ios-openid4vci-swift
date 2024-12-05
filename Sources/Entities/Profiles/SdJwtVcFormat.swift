@@ -38,7 +38,7 @@ public struct SdJwtVcFormat: FormatProfile {
 public extension SdJwtVcFormat {
   
   struct SdJwtVcSingleCredential: Codable {
-    public let proof: Proof?
+    public let proofs: [Proof]
     public let format: String = SdJwtVcFormat.FORMAT
     public let vct: String?
     public let credentialEncryptionJwk: JWK?
@@ -59,7 +59,7 @@ public extension SdJwtVcFormat {
     }
     
     public init(
-      proof: Proof?,
+      proofs: [Proof],
       vct: String?,
       credentialEncryptionJwk: JWK? = nil,
       credentialEncryptionKey: SecKey? = nil,
@@ -68,7 +68,7 @@ public extension SdJwtVcFormat {
       credentialDefinition: CredentialDefinition,
       credentialIdentifier: CredentialIdentifier?
     ) throws {
-      self.proof = proof
+      self.proofs = proofs
       self.vct = vct
       self.credentialEncryptionJwk = credentialEncryptionJwk
       self.credentialEncryptionKey = credentialEncryptionKey
@@ -94,7 +94,7 @@ public extension SdJwtVcFormat {
     
     public func encode(to encoder: Encoder) throws {
       var container = encoder.container(keyedBy: CodingKeys.self)
-      try container.encode(proof, forKey: .proof)
+      try container.encode(proofs, forKey: .proof)
       
       if let credentialEncryptionJwk = credentialEncryptionJwk as? RSAPublicKey {
         try container.encode(credentialEncryptionJwk, forKey: .credentialEncryptionJwk)
@@ -325,12 +325,12 @@ public extension SdJwtVcFormat {
       responseEncryptionSpec: IssuanceResponseEncryptionSpec?,
       credentialIdentifier: CredentialIdentifier? = nil,
       claimSet: ClaimSet?,
-      proof: Proof?
+      proofs: [Proof]
     ) throws -> CredentialIssuanceRequest {
       try .single(
         .sdJwtVc(
           .init(
-            proof: proof, 
+            proofs: proofs,
             vct: vct,
             credentialEncryptionJwk: responseEncryptionSpec?.jwk,
             credentialEncryptionKey: responseEncryptionSpec?.privateKey,

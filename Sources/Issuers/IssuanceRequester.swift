@@ -26,11 +26,6 @@ public protocol IssuanceRequesterType {
     request: SingleCredential
   ) async throws -> Result<CredentialIssuanceResponse, Error>
   
-  func placeBatchIssuanceRequest(
-    accessToken: IssuanceAccessToken,
-    request: [SingleCredential]
-  ) async throws -> Result<CredentialIssuanceResponse, Error>
-  
   func placeDeferredCredentialRequest(
     accessToken: IssuanceAccessToken,
     transactionId: TransactionId,
@@ -181,40 +176,6 @@ public actor IssuanceRequester: IssuanceRequesterType {
     }
   }
   
-  public func placeBatchIssuanceRequest(
-    accessToken: IssuanceAccessToken,
-    request: [SingleCredential]
-  ) async throws -> Result<CredentialIssuanceResponse, Error> {
-    guard
-      let endpoint = issuerMetadata.batchCredentialEndpoint?.url
-    else {
-      throw CredentialIssuanceError.issuerDoesNotSupportBatchIssuance
-    }
-    
-    do {
-      let authorizationHeader: [String: Any] = try await accessToken.dPoPOrBearerAuthorizationHeader(
-        dpopConstructor: dpopConstructor,
-        endpoint: endpoint
-      )
-      
-      let encodedRequest: [JSON] = try request
-        .map { try $0.toDictionary() }
-      
-      let merged = authorizationHeader.merging(["credential_requests": encodedRequest]) { (_, new) in new }
-      
-      let response: BatchIssuanceSuccessResponse = try await service.formPost(
-        poster: poster,
-        url: endpoint,
-        headers: [:],
-        body: merged
-      )
-      return .success(try response.toBatchIssuanceResponse())
-      
-    } catch {
-      return .failure(ValidationError.error(reason: error.localizedDescription))
-    }
-  }
-  
   public func placeDeferredCredentialRequest(
     accessToken: IssuanceAccessToken,
     transactionId: TransactionId,
@@ -355,10 +316,38 @@ private extension IssuanceRequester {
 
 private extension SingleIssuanceSuccessResponse {
   func toSingleIssuanceResponse() throws -> CredentialIssuanceResponse {
-    if let credential = credential {
+    if let credential = credential,
+       let string = credential.string {
       return CredentialIssuanceResponse(
-        credentialResponses: [.issued(credential: credential, notificationId: nil)],
-        cNonce: CNonce(value: cNonce, expiresInSeconds: cNonceExpiresInSeconds)
+        credentialResponses: [
+          .issued(
+            format: nil,
+            credential: .string(string),
+            notificationId: nil,
+            additionalInfo: nil
+          )
+        ],
+        cNonce: .init(
+          value: cNonce,
+          expiresInSeconds: cNonceExpiresInSeconds
+        )
+      )
+    } else if let credentials = credentials,
+              let jsonObject = credentials.array,
+              !jsonObject.isEmpty {
+      return .init(
+        credentialResponses: [
+          .issued(
+            format: nil,
+            credential: .json(JSON(jsonObject)),
+            notificationId: nil,
+            additionalInfo: nil
+          )
+        ],
+        cNonce: .init(
+          value: cNonce,
+          expiresInSeconds: cNonceExpiresInSeconds
+        )
       )
     } else if let transactionId = transactionId {
       return CredentialIssuanceResponse(
@@ -368,26 +357,5 @@ private extension SingleIssuanceSuccessResponse {
       
     }
     throw CredentialIssuanceError.responseUnparsable("Got success response for issuance but response misses 'transaction_id' and 'certificate' parameters")
-  }
-}
-
-private extension BatchIssuanceSuccessResponse {
-  func toBatchIssuanceResponse() throws -> CredentialIssuanceResponse {
-    func mapResults() throws -> [CredentialIssuanceResponse.Result] {
-      return try credentialResponses.map { response in
-        if let transactionId = response.transactionId {
-          return .deferred(transactionId: try .init(value: transactionId))
-        } else if let credential = response.credential {
-          return .issued(credential: credential, notificationId: nil)
-        } else {
-          throw CredentialIssuanceError.responseUnparsable("Got success response for issuance but response misses 'transaction_id' and 'certificate' parameters")
-        }
-      }
-    }
-    
-    return CredentialIssuanceResponse(
-      credentialResponses: try mapResults(),
-      cNonce: CNonce(value: cNonce, expiresInSeconds: cNonceExpiresInSeconds)
-    )
   }
 }

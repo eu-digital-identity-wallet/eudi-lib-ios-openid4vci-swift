@@ -105,7 +105,7 @@ class IssuanceNotificationTest: XCTestCase {
     
     switch unAuthorized {
     case .success(let authorizationCode):
-      let authorizedRequest = await issuer.requestAccessToken(authorizationCode: authorizationCode)
+      let authorizedRequest = await issuer.authorizeWithAuthorizationCode(authorizationCode: authorizationCode)
       
       if case let .success(authorized) = authorizedRequest,
          case let .noProofRequired(token, _, _, _) = authorized {
@@ -119,7 +119,7 @@ class IssuanceNotificationTest: XCTestCase {
             ),
             claimSet: nil
           )
-          let result = try await issuer.requestSingle(
+          let result = try await issuer.request(
             noProofRequest: authorized,
             requestPayload: payload,
             responseEncryptionSpecProvider: { _ in
@@ -134,7 +134,7 @@ class IssuanceNotificationTest: XCTestCase {
                 switch result {
                 case .deferred:
                   XCTAssert(false, "Unexpected deferred")
-                case .issued(let credential, _):
+                case .issued(let format, let credential, _, _):
                   XCTAssert(true, "credential: \(credential)")
                   
                   let result = try await issuer.notify(
@@ -248,7 +248,7 @@ class IssuanceNotificationTest: XCTestCase {
     
     switch unAuthorized {
     case .success(let authorizationCode):
-      let authorizedRequest = await issuer.requestAccessToken(authorizationCode: authorizationCode)
+      let authorizedRequest = await issuer.authorizeWithAuthorizationCode(authorizationCode: authorizationCode)
       
       if case let .success(authorized) = authorizedRequest,
          case let .noProofRequired(token, _, _, _) = authorized {
@@ -262,7 +262,7 @@ class IssuanceNotificationTest: XCTestCase {
             ),
             claimSet: nil
           )
-          let result = try await issuer.requestSingle(
+          let result = try await issuer.request(
             noProofRequest: authorized,
             requestPayload: payload,
             responseEncryptionSpecProvider: { _ in
@@ -277,7 +277,7 @@ class IssuanceNotificationTest: XCTestCase {
                 switch result {
                 case .deferred:
                   XCTAssert(false, "Unexpected deferred")
-                case .issued(let credential, _):
+                case .issued(let format, let credential, _, _):
                   XCTAssert(true, "credential: \(credential)")
                   
                   let result = try await issuer.notify(

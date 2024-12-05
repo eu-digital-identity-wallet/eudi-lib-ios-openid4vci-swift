@@ -38,7 +38,7 @@ public extension MsoMdocFormat {
   
   struct MsoMdocSingleCredential: Codable {
     public let docType: String
-    public let proof: Proof?
+    public let proofs: [Proof]
     public let credentialEncryptionJwk: JWK?
     public let credentialEncryptionKey: SecKey?
     public let credentialResponseEncryptionAlg: JWEAlgorithm?
@@ -59,7 +59,7 @@ public extension MsoMdocFormat {
     
     public init(
       docType: String,
-      proof: Proof? = nil,
+      proofs: [Proof] = [],
       credentialEncryptionJwk: JWK? = nil,
       credentialEncryptionKey: SecKey? = nil,
       credentialResponseEncryptionAlg: JWEAlgorithm? = nil,
@@ -68,7 +68,7 @@ public extension MsoMdocFormat {
       credentialIdentifier: CredentialIdentifier?
     ) throws {
       self.docType = docType
-      self.proof = proof
+      self.proofs = proofs
       self.credentialEncryptionJwk = credentialEncryptionJwk
       self.credentialEncryptionKey = credentialEncryptionKey
       self.credentialResponseEncryptionAlg = credentialResponseEncryptionAlg
@@ -90,7 +90,7 @@ public extension MsoMdocFormat {
     
     public func encode(to encoder: Encoder) throws {
       var container = encoder.container(keyedBy: CodingKeys.self)
-      try container.encode(proof, forKey: .proof)
+      try container.encode(proofs, forKey: .proof)
       
       if let credentialEncryptionJwk = credentialEncryptionJwk as? RSAPublicKey {
         try container.encode(credentialEncryptionJwk, forKey: .credentialEncryptionJwk)
@@ -333,13 +333,13 @@ public extension MsoMdocFormat {
       responseEncryptionSpec: IssuanceResponseEncryptionSpec?,
       credentialIdentifier: CredentialIdentifier? = nil,
       claimSet: ClaimSet?,
-      proof: Proof?
+      proofs: [Proof]
     ) throws -> CredentialIssuanceRequest {
       try .single(
         .msoMdoc(
           .init(
             docType: docType,
-            proof: proof,
+            proofs: proofs,
             credentialEncryptionJwk: responseEncryptionSpec?.jwk,
             credentialEncryptionKey: responseEncryptionSpec?.privateKey,
             credentialResponseEncryptionAlg: responseEncryptionSpec?.algorithm,

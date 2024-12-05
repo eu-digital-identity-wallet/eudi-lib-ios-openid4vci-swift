@@ -15,16 +15,14 @@
  */
 import Foundation
 
-public struct CredentialIssuanceResponse: Codable {
-  public let credentialResponses: [Result]
+public struct CredentialIssuanceResponse: Decodable {
+  public let credentialResponses: [IssuedCredential]
   public let cNonce: CNonce?
   
-  public enum Result: Codable {
-    case deferred(transactionId: TransactionId)
-    case issued(credential: String, notificationId: NotificationId?)
-  }
-  
-  public init(credentialResponses: [Result], cNonce: CNonce?) {
+  public init(
+    credentialResponses: [IssuedCredential],
+    cNonce: CNonce?
+  ) {
     self.credentialResponses = credentialResponses
     self.cNonce = cNonce
   }
@@ -33,21 +31,8 @@ public struct CredentialIssuanceResponse: Codable {
 public enum SubmittedRequest {
   case success(response: CredentialIssuanceResponse)
   case failed(error: CredentialIssuanceError)
-  case invalidProof(cNonce: CNonce, errorDescription: String?)
-  
-  var credentials: [String] {
-    switch self {
-    case .success(let response):
-      response.credentialResponses.compactMap { result in
-        switch result {
-        case .issued(let credential, _):
-          credential
-        default:
-          nil
-        }
-      }
-    default:
-      []
-    }
-  }
+  case invalidProof(
+    cNonce: CNonce,
+    errorDescription: String?
+  )
 }

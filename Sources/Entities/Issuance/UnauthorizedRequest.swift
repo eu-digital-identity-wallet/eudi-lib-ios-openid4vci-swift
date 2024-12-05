@@ -21,17 +21,20 @@ public struct ParRequested {
   public let getAuthorizationCodeURL: GetAuthorizationCodeURL
   public let pkceVerifier: PKCEVerifier
   public let state: String
+  public let configurationIds: [CredentialConfigurationIdentifier]
   
   public init(
     credentials: [CredentialIdentifier],
     getAuthorizationCodeURL: GetAuthorizationCodeURL,
     pkceVerifier: PKCEVerifier,
-    state: String
+    state: String,
+    configurationIds: [CredentialConfigurationIdentifier]
   ) {
     self.credentials = credentials
     self.getAuthorizationCodeURL = getAuthorizationCodeURL
     self.pkceVerifier = pkceVerifier
     self.state = state
+    self.configurationIds = configurationIds
   }
 }
 
@@ -41,11 +44,13 @@ public struct AuthorizationCodeRetrieved {
   public let credentials: [CredentialIdentifier]
   public let authorizationCode: IssuanceAuthorization
   public let pkceVerifier: PKCEVerifier
+  public let configurationIds: [CredentialConfigurationIdentifier]
   
   public init(
     credentials: [CredentialIdentifier],
     authorizationCode: IssuanceAuthorization,
-    pkceVerifier: PKCEVerifier
+    pkceVerifier: PKCEVerifier,
+    configurationIds: [CredentialConfigurationIdentifier]
   ) throws {
     
     guard case .authorizationCode = authorizationCode else {
@@ -55,6 +60,7 @@ public struct AuthorizationCodeRetrieved {
     self.credentials = credentials
     self.authorizationCode = authorizationCode
     self.pkceVerifier = pkceVerifier
+    self.configurationIds = configurationIds
   }
 }
 

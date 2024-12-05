@@ -15,19 +15,17 @@
  */
 import Foundation
 
-public func convertToJsonString(dictionary: [String: Any]) -> String? {
-  do {
-    let jsonData = try JSONSerialization.data(withJSONObject: dictionary, options: [])
-    let jsonString = String(data: jsonData, encoding: .utf8)
-    return jsonString
-  } catch {
-    return nil
+public struct BatchCredentialIssuance: Codable {
+  public let batchSize: Int
+  
+  enum CodingKeys: String, CodingKey {
+    case batchSize = "batch_size"
   }
-}
-
-public func unwrapOrThrow<T>(_ optional: T?, error: Error) throws -> T {
-  guard let unwrapped = optional else {
-    throw error
+  
+  public init(batchSize: Int) throws {
+    if batchSize <= 0 {
+      throw ValidationError.invalidBatchSize(batchSize)
+    }
+    self.batchSize = batchSize
   }
-  return unwrapped
 }

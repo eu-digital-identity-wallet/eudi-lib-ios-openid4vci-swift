@@ -40,14 +40,11 @@ public struct IssuanceResponseEncryptionSpec {
 
 public enum Proof: Codable {
   case jwt(JWT)
-  case cwt(String)
   
   public func type() -> ProofType {
     switch self {
     case .jwt:
       return .jwt
-    case .cwt:
-      return .cwt
     }
   }
   
@@ -58,8 +55,6 @@ public enum Proof: Codable {
     
     if let jwt = try? container.decode(JWT.self) {
       self = .jwt(jwt)
-    } else if let cwt = try? container.decode(String.self) {
-      self = .cwt(cwt)
     } else {
       throw DecodingError.typeMismatch(Proof.self, DecodingError.Context(codingPath: decoder.codingPath, debugDescription: "Invalid proof type"))
     }
@@ -74,8 +69,6 @@ public enum Proof: Codable {
         "proof_type": "jwt",
         "jwt": jwt
       ])
-    case .cwt(let cwt):
-      try container.encode(cwt)
     }
   }
   
@@ -86,8 +79,6 @@ public enum Proof: Codable {
         "proof_type": "jwt",
         "jwt": jwt
       ]
-    case .cwt:
-      throw ValidationError.error(reason: "CWT not supported yet")
     }
   }
 }
@@ -111,7 +102,7 @@ public struct Scope: Codable {
 public enum ContentType: String {
   case form = "application/x-www-form-urlencoded"
   case json = "application/json"
-
+  
   public static let key = "Content-Type"
 }
 
@@ -157,24 +148,6 @@ public struct CNonce: Codable {
     
     self.value = value
     self.expiresInSeconds = expiresInSeconds
-  }
-}
-
-public struct BatchIssuanceSuccessResponse: Codable {
-  public let credentialResponses: [CertificateIssuanceResponse]
-  public let cNonce: String?
-  public let cNonceExpiresInSeconds: Int?
-  
-  enum CodingKeys: String, CodingKey {
-    case credentialResponses = "credentials"
-    case cNonce = "c_nonce"
-    case cNonceExpiresInSeconds = "c_nonce_expires_in"
-  }
-  
-  public init(credentialResponses: [CertificateIssuanceResponse], cNonce: String?, cNonceExpiresInSeconds: Int?) {
-    self.credentialResponses = credentialResponses
-    self.cNonce = cNonce
-    self.cNonceExpiresInSeconds = cNonceExpiresInSeconds
   }
 }
 
@@ -265,4 +238,19 @@ public struct TxCode: Codable {
 public enum InputModeTO: String, Codable {
   case text = "text"
   case numeric = "numeric"
+}
+
+public struct ProofsTO: Codable {
+  public let jwtProofs: [String]?
+  
+  public enum CodingKeys: String, CodingKey {
+    case jwtProofs = "jwt"
+  }
+  
+  public init(jwtProofs: [String]? = nil) {
+    guard !(jwtProofs?.isEmpty ?? true) else {
+      fatalError("jwtProofs must be non-empty.")
+    }
+    self.jwtProofs = jwtProofs
+  }
 }

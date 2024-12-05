@@ -19,18 +19,18 @@ import Foundation
 
 struct Wallet {
   let actingUser: ActingUser
-  let bindingKey: BindingKey
+  let bindingKeys: [BindingKey]
   let dPoPConstructor: DPoPConstructorType?
   let session: Networking
 
   init(
     actingUser: ActingUser,
-    bindingKey: BindingKey,
+    bindingKeys: [BindingKey],
     dPoPConstructor: DPoPConstructorType?,
     session: Networking = Self.walletSession
   ) {
     self.actingUser = actingUser
-    self.bindingKey = bindingKey
+    self.bindingKeys = bindingKeys
     self.dPoPConstructor = dPoPConstructor
     self.session = session
   }
@@ -51,7 +51,7 @@ extension Wallet {
   func issueByCredentialIdentifier(
     _ identifier: String,
     claimSet: ClaimSet? = nil
-  ) async throws -> String {
+  ) async throws -> Credential {
     let credentialConfigurationIdentifier = try CredentialConfigurationIdentifier(value: identifier)
     let credentialIssuerIdentifier = try CredentialIssuerId(CREDENTIAL_ISSUER_PUBLIC_URL)
     
@@ -99,7 +99,7 @@ extension Wallet {
   private func issueMultipleOfferedCredentialWithProof(
     offer: CredentialOffer,
     claimSet: ClaimSet? = nil
-  ) async throws -> [(String, String)] {
+  ) async throws -> [(String, Credential)] {
     
     let issuerMetadata = offer.credentialIssuerMetadata
     let issuer = try Issuer(
@@ -161,7 +161,7 @@ extension Wallet {
     offer: CredentialOffer,
     credentialConfigurationIdentifier: CredentialConfigurationIdentifier,
     claimSet: ClaimSet? = nil
-  ) async throws -> String {
+  ) async throws -> Credential {
     
     let issuer = try Issuer(
       authorizationServerMetadata: offer.authorizationServerMetadata,
@@ -204,7 +204,7 @@ extension Wallet {
   func issueByCredentialOfferUrlMultipleFormats(
     offerUri: String,
     claimSet: ClaimSet? = nil
-  ) async throws -> [(String, String)] {
+  ) async throws -> [(String, Credential)] {
     let resolver = CredentialOfferRequestResolver(
       fetcher: Fetcher(session: self.session),
       credentialIssuerMetadataResolver: CredentialIssuerMetadataResolver(
@@ -237,7 +237,7 @@ extension Wallet {
     offerUri: String,
     scope: String,
     claimSet: ClaimSet? = nil
-  ) async throws -> String {
+  ) async throws -> Credential {
       let result = await CredentialOfferRequestResolver(
         fetcher: Fetcher(session: self.session),
         credentialIssuerMetadataResolver: CredentialIssuerMetadataResolver(
@@ -269,7 +269,7 @@ extension Wallet {
     offerUri: String,
     scope: String,
     claimSet: ClaimSet? = nil
-  ) async throws -> String {
+  ) async throws -> Credential {
     let result = await CredentialOfferRequestResolver(
       fetcher: Fetcher(session: self.session),
       credentialIssuerMetadataResolver: CredentialIssuerMetadataResolver(
@@ -301,7 +301,7 @@ extension Wallet {
     offer: CredentialOffer,
     scope: String,
     claimSet: ClaimSet? = nil
-  ) async throws -> String {
+  ) async throws -> Credential {
     
     let issuerMetadata = offer.credentialIssuerMetadata
     guard let credentialConfigurationIdentifier = issuerMetadata.credentialsSupported.keys.first(where: { $0.value == scope }) else {
@@ -346,7 +346,7 @@ extension Wallet {
     offer: CredentialOffer,
     scope: String,
     claimSet: ClaimSet? = nil
-  ) async throws -> String {
+  ) async throws -> Credential {
     
     let issuerMetadata = offer.credentialIssuerMetadata
     guard let credentialConfigurationIdentifier = issuerMetadata.credentialsSupported.keys.first(where: { $0.value == scope }) else {
@@ -439,7 +439,7 @@ extension Wallet {
       
       switch unAuthorized {
       case .success(let request):
-        let authorizedRequest = await issuer.requestAccessToken(authorizationCode: request)
+        let authorizedRequest = await issuer.authorizeWithAuthorizationCode(authorizationCode: request)
         if case let .success(authorized) = authorizedRequest,
            case let .noProofRequired(token, _, _, _) = authorized {
           print("--> [AUTHORIZATION] Authorization code exchanged with access token : \(token.accessToken)")
@@ -465,7 +465,7 @@ extension Wallet {
     noProofRequiredState: AuthorizedRequest,
     credentialConfigurationIdentifier: CredentialConfigurationIdentifier,
     claimSet: ClaimSet? = nil
-  ) async throws -> String {
+  ) async throws -> Credential {
     switch noProofRequiredState {
     case .noProofRequired:
       let payload: IssuanceRequestPayload = .configurationBased(
@@ -473,7 +473,7 @@ extension Wallet {
         claimSet: claimSet
       )
       let responseEncryptionSpecProvider = { Issuer.createResponseEncryptionSpec($0) }
-      let requestOutcome = try await issuer.requestSingle(
+      let requestOutcome = try await issuer.request(
         noProofRequest: noProofRequiredState,
         requestPayload: payload,
         responseEncryptionSpecProvider: responseEncryptionSpecProvider
@@ -490,7 +490,7 @@ extension Wallet {
                 authorized: noProofRequiredState,
                 transactionId: transactionId
               )
-            case .issued(let credential, _):
+            case .issued(_, let credential, _, _):
               return credential
             }
           } else {
@@ -519,7 +519,7 @@ extension Wallet {
     authorized: AuthorizedRequest,
     credentialConfigurationIdentifier: CredentialConfigurationIdentifier?,
     claimSet: ClaimSet? = nil
-  ) async throws -> String {
+  ) async throws -> Credential {
     
     guard let credentialConfigurationIdentifier else {
       throw ValidationError.error(reason: "Credential configuration identifier not found")
@@ -531,9 +531,9 @@ extension Wallet {
     )
     
     let responseEncryptionSpecProvider = { Issuer.createResponseEncryptionSpec($0) }
-    let requestOutcome = try await issuer.requestSingle(
+    let requestOutcome = try await issuer.request(
       proofRequest: authorized,
-      bindingKey: bindingKey,
+      bindingKeys: bindingKeys,
       requestPayload: payload,
       responseEncryptionSpecProvider: responseEncryptionSpecProvider
     )
@@ -550,7 +550,7 @@ extension Wallet {
               authorized: authorized,
               transactionId: transactionId
             )
-          case .issued(let credential, _):
+          case .issued(_, let credential, _, _):
             return credential
           }
         } else {
@@ -569,7 +569,7 @@ extension Wallet {
     issuer: Issuer,
     authorized: AuthorizedRequest,
     transactionId: TransactionId
-  ) async throws -> String {
+  ) async throws -> Credential {
     print("--> [ISSUANCE] Got a deferred issuance response from server with transaction_id \(transactionId.value). Retrying issuance...")
     
     let deferredRequestResponse = try await issuer.requestDeferredIssuance(

@@ -142,7 +142,7 @@ class IssuanceAuthorizationTest: XCTestCase {
     
     switch unAuthorized {
     case .success(let authorizationCode):
-      let authorizedRequest = await issuer.requestAccessToken(authorizationCode: authorizationCode)
+      let authorizedRequest = await issuer.authorizeWithAuthorizationCode(authorizationCode: authorizationCode)
       
       if case let .success(authorized) = authorizedRequest,
          case let .noProofRequired(token, _, _, _) = authorized {
@@ -195,7 +195,7 @@ class IssuanceAuthorizationTest: XCTestCase {
     
     switch unAuthorized {
     case .success(let authorizationCode):
-      let authorizedRequest = await issuer.requestAccessToken(authorizationCode: authorizationCode)
+      let authorizedRequest = await issuer.authorizeWithAuthorizationCode(authorizationCode: authorizationCode)
       if case let .success(authorized) = authorizedRequest,
          case let .proofRequired(token, _, _, _, _) = authorized {
         XCTAssert(true, "Got access token: \(token)")
@@ -247,7 +247,7 @@ class IssuanceAuthorizationTest: XCTestCase {
     
     switch unAuthorized {
     case .success(let authorizationCode):
-      let authorizedRequest = await issuer.requestAccessToken(authorizationCode: authorizationCode)
+      let authorizedRequest = await issuer.authorizeWithAuthorizationCode(authorizationCode: authorizationCode)
       
       switch authorizedRequest {
       case .success:
@@ -322,6 +322,16 @@ class IssuanceAuthorizationTest: XCTestCase {
   func testThirdPartyIssuerSuccessfulAuthorizationWithPreAuthorizationCodeFlow() async throws {
     
     /// Replace the url string below with the one you can generate here: https://trial.authlete.net/api/offer/issue
+    /// login/pass: inga (for both)
+    /// Credential Configuration IDs: Just leave "IdentityCredential"
+    /// Authorization Code Grant: unchecked
+    /// Pre-Authorized Code Grant: check
+    ///   Value: 12345
+    ///   Input Mode: numeric
+    ///   Description: "hello world"
+    ///
+    /// Submit
+    ///
     let urlString = """
     """
     
@@ -395,9 +405,9 @@ class IssuanceAuthorizationTest: XCTestCase {
       claimSet: nil
     )
     
-    let requestSingleResult = try await issuer.requestSingle(
+    let requestSingleResult = try await issuer.request(
       proofRequest: request,
-      bindingKey: bindingKey,
+      bindingKeys: [bindingKey],
       requestPayload: payload,
       responseEncryptionSpecProvider: {
         Issuer.createResponseEncryptionSpec($0)
@@ -406,8 +416,13 @@ class IssuanceAuthorizationTest: XCTestCase {
 
     switch requestSingleResult {
     case .success(let request):
-      print(request.credentials.joined(separator: ", "))
-      XCTAssertTrue(true)
+      switch request {
+      case .success(let response):
+        print(response.credentialResponses.map { try! $0.toDictionary() } )
+        XCTAssertTrue(true)
+      default:
+        XCTAssert(false, "Unexpected request type")
+      }
     case .failure(let error):
       XCTAssert(false, error.localizedDescription)
     }
@@ -490,9 +505,9 @@ class IssuanceAuthorizationTest: XCTestCase {
       claimSet: nil
     )
 
-    let requestSingleResult = try await issuer.requestSingle(
+    let requestSingleResult = try await issuer.request(
       proofRequest: request.handleInvalidProof(cNonce: .init(value: UUID().uuidString)!),
-      bindingKey: bindingKey,
+      bindingKeys: [bindingKey],
       requestPayload: payload,
       responseEncryptionSpecProvider: {
         Issuer.createResponseEncryptionSpec($0)
@@ -500,8 +515,13 @@ class IssuanceAuthorizationTest: XCTestCase {
 
     switch requestSingleResult {
     case .success(let request):
-      print(request.credentials.joined(separator: ", "))
-      XCTAssertTrue(true)
+      switch request {
+      case .success(let response):
+        print(response.credentialResponses.map { try! $0.toDictionary() } )
+        XCTAssertTrue(true)
+      default:
+        XCTAssert(false, "Unexpected request type")
+      }
     case .failure(let error):
       XCTAssert(false, error.localizedDescription)
     }
@@ -510,6 +530,16 @@ class IssuanceAuthorizationTest: XCTestCase {
   func testThirdPartyIssuerSuccessfulAuthorizationWithPreAuthorizationCodeFlowWithDPoP() async throws {
     
     /// Replace the url string below with the one you can generate here: https://trial.authlete.net/api/offer/issue
+    /// login/pass: inga (for both)
+    /// Credential Configuration IDs: Just leave "IdentityCredential"
+    /// Authorization Code Grant: unchecked
+    /// Pre-Authorized Code Grant: check
+    ///   Value: 12345
+    ///   Input Mode: numeric
+    ///   Description: "hello world"
+    ///
+    /// Submit
+    ///
     let urlString = """
     """
     if urlString.isEmpty {
@@ -590,9 +620,9 @@ class IssuanceAuthorizationTest: XCTestCase {
       claimSet: nil
     )
     
-    let requestSingleResult = try await issuer.requestSingle(
+    let requestSingleResult = try await issuer.request(
       proofRequest: request,
-      bindingKey: bindingKey,
+      bindingKeys: [bindingKey],
       requestPayload: payload,
       responseEncryptionSpecProvider: {
         Issuer.createResponseEncryptionSpec($0)
@@ -600,8 +630,13 @@ class IssuanceAuthorizationTest: XCTestCase {
     
     switch requestSingleResult {
     case .success(let request):
-      print(request.credentials.joined(separator: ", "))
-      XCTAssertTrue(true)
+      switch request {
+      case .success(let response):
+        print(response.credentialResponses.map { try! $0.toDictionary() } )
+        XCTAssertTrue(true)
+      default:
+        XCTAssert(false, "Unexpected request type")
+      }
     case .failure(let error):
       XCTAssert(false, error.localizedDescription)
     }

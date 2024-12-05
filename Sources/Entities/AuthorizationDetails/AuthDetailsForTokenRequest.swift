@@ -15,19 +15,8 @@
  */
 import Foundation
 
-public func convertToJsonString(dictionary: [String: Any]) -> String? {
-  do {
-    let jsonData = try JSONSerialization.data(withJSONObject: dictionary, options: [])
-    let jsonString = String(data: jsonData, encoding: .utf8)
-    return jsonString
-  } catch {
-    return nil
-  }
+public enum AuthorizationDetailsInTokenRequest {
+  case doNotInclude
+  case include(filter: (CredentialConfigurationIdentifier) -> Bool)
 }
 
-public func unwrapOrThrow<T>(_ optional: T?, error: Error) throws -> T {
-  guard let unwrapped = optional else {
-    throw error
-  }
-  return unwrapped
-}

@@ -29,10 +29,6 @@ public enum CredentialIssuerMetadataValidationError: Error {
   /// - Parameter reason: The reason for the invalidity.
   case invalidCredentialEndpoint(reason: String)
   
-  /// The batch credential endpoint is invalid.
-  /// - Parameter reason: The reason for the invalidity.
-  case invalidBatchCredentialEndpoint(reason: String)
-  
   /// The deferred credential endpoint is invalid.
   /// - Parameter reason: The reason for the invalidity.
   case invalidDeferredCredentialEndpoint(reason: String)

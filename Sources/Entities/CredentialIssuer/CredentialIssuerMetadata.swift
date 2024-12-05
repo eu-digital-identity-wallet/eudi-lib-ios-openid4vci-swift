@@ -21,7 +21,6 @@ public struct CredentialIssuerMetadata: Decodable, Equatable {
   public let credentialIssuerIdentifier: CredentialIssuerId
   public let authorizationServers: [URL]?
   public let credentialEndpoint: CredentialIssuerEndpoint
-  public let batchCredentialEndpoint: CredentialIssuerEndpoint?
   public let deferredCredentialEndpoint: CredentialIssuerEndpoint?
   public let notificationEndpoint: CredentialIssuerEndpoint?
   public let credentialResponseEncryption: CredentialResponseEncryption
@@ -29,12 +28,12 @@ public struct CredentialIssuerMetadata: Decodable, Equatable {
   public let credentialIdentifiersSupported: Bool?
   public let signedMetadata: String?
   public let display: [Display]
+  public let batchCredentialIssuance: BatchCredentialIssuance?
   
   public enum CodingKeys: String, CodingKey {
     case credentialIssuerIdentifier = "credential_issuer"
     case authorizationServers = "authorization_servers"
     case credentialEndpoint = "credential_endpoint"
-    case batchCredentialEndpoint = "batch_credential_endpoint"
     case deferredCredentialEndpoint = "deferred_credential_endpoint"
     case notificationEndpoint = "notification_endpoint"
     case credentialResponseEncryptionAlgorithmsSupported = "credential_response_encryption_alg_values_supported"
@@ -45,26 +44,26 @@ public struct CredentialIssuerMetadata: Decodable, Equatable {
     case credentialResponseEncryption = "credential_response_encryption"
     case signedMetadata = "signed_metadata"
     case credentialIdentifiersSupported = "credential_identifiers_supported"
+    case batchCredentialIssuance = "batch_credential_issuance"
   }
   
   public init(
     credentialIssuerIdentifier: CredentialIssuerId,
     authorizationServers: [URL],
     credentialEndpoint: CredentialIssuerEndpoint,
-    batchCredentialEndpoint: CredentialIssuerEndpoint?,
     deferredCredentialEndpoint: CredentialIssuerEndpoint?,
     notificationEndpoint: CredentialIssuerEndpoint?,
     credentialResponseEncryption: CredentialResponseEncryption = .notRequired,
     credentialConfigurationsSupported: [CredentialConfigurationIdentifier: CredentialSupported],
     signedMetadata: String?,
     display: [Display]?,
-    credentialIdentifiersSupported: Bool? = nil
+    credentialIdentifiersSupported: Bool? = nil,
+    batchCredentialIssuance: BatchCredentialIssuance? = nil
   ) {
     self.credentialIssuerIdentifier = credentialIssuerIdentifier
     self.authorizationServers = authorizationServers
     
     self.credentialEndpoint = credentialEndpoint
-    self.batchCredentialEndpoint = batchCredentialEndpoint
     self.deferredCredentialEndpoint = deferredCredentialEndpoint
     self.notificationEndpoint = notificationEndpoint
     
@@ -75,6 +74,7 @@ public struct CredentialIssuerMetadata: Decodable, Equatable {
     self.display = display ?? []
     
     self.credentialIdentifiersSupported = credentialIdentifiersSupported
+    self.batchCredentialIssuance = batchCredentialIssuance
   }
   
   public init(deferredCredentialEndpoint: CredentialIssuerEndpoint?) throws {
@@ -82,7 +82,6 @@ public struct CredentialIssuerMetadata: Decodable, Equatable {
       credentialIssuerIdentifier: .init(Constants.url),
       authorizationServers: [],
       credentialEndpoint: .init(string: Constants.url),
-      batchCredentialEndpoint: nil,
       deferredCredentialEndpoint: deferredCredentialEndpoint,
       notificationEndpoint: nil,
       credentialConfigurationsSupported: [:],
@@ -102,7 +101,6 @@ public struct CredentialIssuerMetadata: Decodable, Equatable {
     authorizationServers = servers ?? [credentialIssuerIdentifier.url]
     
     credentialEndpoint = try container.decode(CredentialIssuerEndpoint.self, forKey: .credentialEndpoint)
-    batchCredentialEndpoint = try container.decodeIfPresent(CredentialIssuerEndpoint.self, forKey: .batchCredentialEndpoint)
     deferredCredentialEndpoint = try container.decodeIfPresent(CredentialIssuerEndpoint.self, forKey: .deferredCredentialEndpoint)
     notificationEndpoint = try container.decodeIfPresent(CredentialIssuerEndpoint.self, forKey: .notificationEndpoint)
     
@@ -147,6 +145,8 @@ public struct CredentialIssuerMetadata: Decodable, Equatable {
     signedMetadata = try? container.decodeIfPresent(String.self, forKey: .signedMetadata)
     
     credentialIdentifiersSupported = try? container.decodeIfPresent(Bool.self, forKey: .credentialIdentifiersSupported) ?? false
+    
+    batchCredentialIssuance = try? container.decodeIfPresent(BatchCredentialIssuance.self, forKey: .batchCredentialIssuance)
   }
   
   public static func == (lhs: CredentialIssuerMetadata, rhs: CredentialIssuerMetadata) -> Bool {

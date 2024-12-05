@@ -21,6 +21,8 @@ public enum ValidationError: Error, LocalizedError {
   case nonHttpsUrl(String)
   case invalidUrl(String)
   case response(GenericErrorResponse)
+  case invalidBatchSize(Int)
+  case issuerBatchSizeLimitExceeded(Int)
   
   public var errorDescription: String? {
     switch self {
@@ -34,6 +36,10 @@ public enum ValidationError: Error, LocalizedError {
       return "ValidationError:invalidUrl: \(url)"
     case .response(let response):
       return "ValidationError:response: \(response.errorDescription ?? "")"
+    case .invalidBatchSize(let size):
+      return "ValidationError:invalidBatchSize: \(size)"
+    case .issuerBatchSizeLimitExceeded(let size):
+      return "ValidationError:issuerBatchSizeLimitExceeded: \(size)"
     }
   }
 }
