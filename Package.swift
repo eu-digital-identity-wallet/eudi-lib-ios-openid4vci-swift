@@ -13,7 +13,7 @@ let package = Package(
     ),
   ],
   dependencies: [
-    .package(url: "https://github.com/SwiftyJSON/SwiftyJSON.git", from: "4.0.0"),
+    .package(url: "https://github.com/SwiftyJSON/SwiftyJSON.git", from: "5.0.1"),
     .package(url: "https://github.com/scinfu/SwiftSoup.git", from: "2.6.0"),
     .package(
       url: "https://github.com/airsidemobile/JOSESwift.git",
