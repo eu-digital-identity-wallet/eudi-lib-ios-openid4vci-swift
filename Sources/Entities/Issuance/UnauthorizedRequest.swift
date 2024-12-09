@@ -22,19 +22,22 @@ public struct ParRequested {
   public let pkceVerifier: PKCEVerifier
   public let state: String
   public let configurationIds: [CredentialConfigurationIdentifier]
+  public let dpopNonce: Nonce?
   
   public init(
     credentials: [CredentialIdentifier],
     getAuthorizationCodeURL: GetAuthorizationCodeURL,
     pkceVerifier: PKCEVerifier,
     state: String,
-    configurationIds: [CredentialConfigurationIdentifier]
+    configurationIds: [CredentialConfigurationIdentifier],
+    dpopNonce: Nonce? = nil
   ) {
     self.credentials = credentials
     self.getAuthorizationCodeURL = getAuthorizationCodeURL
     self.pkceVerifier = pkceVerifier
     self.state = state
     self.configurationIds = configurationIds
+    self.dpopNonce = dpopNonce
   }
 }
 

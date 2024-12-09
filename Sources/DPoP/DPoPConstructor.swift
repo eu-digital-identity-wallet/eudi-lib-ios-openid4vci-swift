@@ -18,11 +18,17 @@ import JOSESwift
 import CryptoKit
 
 public protocol DPoPConstructorType {
-  func jwt(endpoint: URL, accessToken: String?) async throws -> String
+  func jwt(
+    endpoint: URL,
+    accessToken: String?,
+    nonce: Nonce?
+  ) async throws -> String
 }
 
 public class DPoPConstructor: DPoPConstructorType {
 
+  static let type = "dpop+jwt"
+  
   private enum Methods: String {
     case get = "GET"
     case head = "HEAD"
@@ -46,13 +52,14 @@ public class DPoPConstructor: DPoPConstructorType {
 
   public func jwt(
     endpoint: URL,
-    accessToken: String?
+    accessToken: String?,
+    nonce: Nonce?
   ) async throws -> String {
 
     let header = try JWSHeader(parameters: [
-      "typ": "dpop+jwt",
-      "alg": algorithm.name,
-      "jwk": jwk.toDictionary()
+      JWTClaimNames.type: Self.type,
+      JWTClaimNames.algorithm: algorithm.name,
+      JWTClaimNames.JWK: jwk.toDictionary()
     ])
 
     var dictionary: [String: Any] = [
@@ -61,11 +68,13 @@ public class DPoPConstructor: DPoPConstructorType {
       JWTClaimNames.htu: endpoint.absoluteString,
       JWTClaimNames.jwtId: String.randomBase64URLString(length: 20)
     ]
+    
+    nonce.map { dictionary[JWTClaimNames.nonce] = $0.value }
 
     if let data = accessToken?.data(using: .utf8) {
       let hashed = SHA256.hash(data: data)
       let hash = Data(hashed).base64URLEncodedString()
-      dictionary["ath"] = hash
+      dictionary[JWTClaimNames.ath] = hash
     }
 
     let payload = Payload(try dictionary.toThrowingJSONData())

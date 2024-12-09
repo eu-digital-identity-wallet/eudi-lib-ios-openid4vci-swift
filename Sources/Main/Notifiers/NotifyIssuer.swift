@@ -16,7 +16,11 @@
 import Foundation
 
 public protocol NotifyIssuerType {
-  func notify(authorizedRequest: AuthorizedRequest, notification: NotificationObject) async throws -> Result<Void, Error>
+  func notify(
+    authorizedRequest: AuthorizedRequest,
+    notification: NotificationObject,
+    dPopNonce: Nonce?
+  ) async throws -> Result<Void, Error>
 }
 
 public class NotifyIssuer: NotifyIssuerType {
@@ -34,13 +38,16 @@ public class NotifyIssuer: NotifyIssuerType {
   
   public func notify(
     authorizedRequest: AuthorizedRequest,
-    notification: NotificationObject
+    notification: NotificationObject,
+    dPopNonce: Nonce?
   ) async throws -> Result<Void, Error> {
     
     do {
       return try await issuanceRequester.notifyIssuer(
         accessToken: authorizedRequest.accessToken,
-        notification: notification
+        notification: notification,
+        dPopNonce: dPopNonce,
+        retry: true
       )
     } catch {
       throw error
