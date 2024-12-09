@@ -27,6 +27,8 @@ public protocol DPoPConstructorType {
 
 public class DPoPConstructor: DPoPConstructorType {
 
+  static let type = "dpop+jwt"
+  
   private enum Methods: String {
     case get = "GET"
     case head = "HEAD"
@@ -55,9 +57,9 @@ public class DPoPConstructor: DPoPConstructorType {
   ) async throws -> String {
 
     let header = try JWSHeader(parameters: [
-      "typ": "dpop+jwt",
-      "alg": algorithm.name,
-      "jwk": jwk.toDictionary()
+      JWTClaimNames.type: Self.type,
+      JWTClaimNames.algorithm: algorithm.name,
+      JWTClaimNames.JWK: jwk.toDictionary()
     ])
 
     var dictionary: [String: Any] = [
@@ -67,14 +69,12 @@ public class DPoPConstructor: DPoPConstructorType {
       JWTClaimNames.jwtId: String.randomBase64URLString(length: 20)
     ]
     
-    if let nonce {
-      dictionary["nonce"] = nonce.value
-    }
+    nonce.map { dictionary[JWTClaimNames.nonce] = $0.value }
 
     if let data = accessToken?.data(using: .utf8) {
       let hashed = SHA256.hash(data: data)
       let hash = Data(hashed).base64URLEncodedString()
-      dictionary["ath"] = hash
+      dictionary[JWTClaimNames.ath] = hash
     }
 
     let payload = Payload(try dictionary.toThrowingJSONData())
