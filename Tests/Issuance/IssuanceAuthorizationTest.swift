@@ -333,6 +333,7 @@ class IssuanceAuthorizationTest: XCTestCase {
     /// Submit
     ///
     let urlString = """
+    https://trial.authlete.net/api/offer/Kb83yMR1fAqBmwr2SmCbuVdKMYAhYrv5uMl-_TrCEZ0
     """
     
     if urlString.isEmpty {
