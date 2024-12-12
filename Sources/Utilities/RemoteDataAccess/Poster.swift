@@ -112,18 +112,33 @@ public struct Poster: PostingType {
   public func post<Response: Codable>(request: URLRequest) async -> Result<ResponseWithHeaders<Response>, PostError> {
     do {
       let (data, response) = try await self.session.data(for: request)
-      let statusCode = (response as? HTTPURLResponse)?.statusCode ?? 0
       let httpResponse = (response as? HTTPURLResponse)
+      let statusCode = httpResponse?.statusCode ?? 0
       let headers = httpResponse?.allHeaderFields ?? [:]
       
       if statusCode >= HTTPStatusCode.badRequest && statusCode < HTTPStatusCode.internalServerError {
         if let httpResponse,
            httpResponse.containsDpopError(),
-           let dPopNonce = headers["DPoP-Nonce"] as? String {
-          return .failure(.useDpopNonce(.init(value: dPopNonce)))
-          
+           let dPopNonce = headers[Constants.DPOP_NONCE_HEADER] as? String {
+          return .failure(
+            .useDpopNonce(
+              .init(
+                value: dPopNonce
+              )
+            )
+          )
         } else {
           let object = try JSONDecoder().decode(GenericErrorResponse.self, from: data)
+          if object.error == Constants.USE_DPOP_NONCE,
+             let dPopNonce = headers[Constants.DPOP_NONCE_HEADER] as? String {
+            return .failure(
+              .useDpopNonce(
+                .init(
+                  value: dPopNonce
+                )
+              )
+            )
+          }
           return .failure(.response(object))
         }
         
@@ -134,7 +149,7 @@ public struct Poster: PostingType {
       do {
         let object = try JSONDecoder().decode(Response.self, from: data)
         return .success(
-          ResponseWithHeaders(
+          .init(
             headers: headers,
             body: object
           )
@@ -165,8 +180,9 @@ public struct Poster: PostingType {
   public func check(request: URLRequest) async -> Result<Bool, PostError> {
     do {
       let (_, response) = try await self.session.data(for: request)
+      let httpResponse = (response as? HTTPURLResponse)
       
-      return .success((response as? HTTPURLResponse)?.statusCode.isWithinRange(
+      return .success(httpResponse?.statusCode.isWithinRange(
         HTTPStatusCode.ok...HTTPStatusCode.imUsed
       ) ?? false)
     } catch let error as NSError {
