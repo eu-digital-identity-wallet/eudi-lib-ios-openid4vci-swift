@@ -26,10 +26,10 @@ public let FORMAT_W3C_SIGNED_JWT = "jwt_vc_json"
 public typealias Namespace = String
 public typealias ClaimName = String
 
-public typealias MetadataClaims = [Namespace: [ClaimName: Claim]]
-public extension MetadataClaims {
+public typealias MsoMdocMetadataClaims = [Namespace: [ClaimName: Claim]]
+public extension MsoMdocMetadataClaims {
   init(json: JSON) {
-    var claims = MetadataClaims()
+    var claims = MsoMdocMetadataClaims()
     if let _ = json.dictionaryObject {
       for (namespace, subJSON) in json.dictionaryValue {
         var namespaceClaims = [ClaimName: Claim]()
@@ -50,6 +50,36 @@ public extension MetadataClaims {
         if let dictionary = element as? [String: String] {
           if let key = dictionary.keys.first, let value = dictionary[key] {
             claims[key] = [value: Claim()]
+          }
+        }
+      }
+    }
+    self = claims
+  }
+}
+
+public typealias SdJwtVCMetadataClaims = [ClaimName: Claim]
+public extension SdJwtVCMetadataClaims {
+  init(json: JSON) {
+    var claims = SdJwtVCMetadataClaims()
+    if let _ = json.dictionaryObject {
+      var namespaceClaims = [ClaimName: Claim]()
+      for (claimName, claimJSON) in json.dictionaryValue {
+        let claim = Claim(
+          mandatory: claimJSON["mandatory"].bool,
+          valueType: claimJSON["valuetype"].string,
+          display: claimJSON["display"].arrayValue.compactMap {
+            Display(json: $0)
+          }
+        )
+        namespaceClaims[claimName] = claim
+      }
+      claims = namespaceClaims
+    } else if let jsonArray = json.arrayObject {
+      for element in jsonArray {
+        if let dictionary = element as? [String: String] {
+          if let key = dictionary.keys.first {
+            claims[key] = Claim()
           }
         }
       }
