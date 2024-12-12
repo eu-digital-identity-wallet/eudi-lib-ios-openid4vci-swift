@@ -192,7 +192,7 @@ public extension MsoMdocFormat {
       let display: [Display] = self.display ?? []
       
       let credentialSigningAlgValuesSupported: [String] = self.credentialSigningAlgValuesSupported ?? []
-      let claims: MsoMdocMetadataClaims = claims?.mapValues { namespaceAndClaims in
+      let claims: MsoMdocClaims = claims?.mapValues { namespaceAndClaims in
         namespaceAndClaims.mapValues { claim in
           Claim(
             mandatory: claim.mandatory ?? false,
@@ -229,7 +229,7 @@ public extension MsoMdocFormat {
     public let proofTypesSupported: [String: ProofSigningAlgorithmsSupported]?
     public let display: [Display]
     public let docType: String
-    public let claims: MsoMdocMetadataClaims
+    public let claims: MsoMdocClaims
     public let order: [ClaimName]
     
     var claimList: [String] {
@@ -256,7 +256,7 @@ public extension MsoMdocFormat {
       proofTypesSupported: [String: ProofSigningAlgorithmsSupported]?,
       display: [Display],
       docType: String,
-      claims: MsoMdocMetadataClaims,
+      claims: MsoMdocClaims,
       order: [ClaimName]
     ) {
       self.format = format
@@ -283,7 +283,7 @@ public extension MsoMdocFormat {
       
       display = try container.decode([Display].self, forKey: .display)
       docType = try container.decode(String.self, forKey: .docType)
-      claims = try container.decode(MsoMdocMetadataClaims.self, forKey: .claims)
+      claims = try container.decode(MsoMdocClaims.self, forKey: .claims)
       order = try container.decode([ClaimName].self, forKey: .order)
     }
     
@@ -323,7 +323,7 @@ public extension MsoMdocFormat {
         Display(json: json)
       }
       self.docType = json["doctype"].stringValue
-      self.claims = MsoMdocMetadataClaims(json: json["claims"])
+      self.claims = MsoMdocClaims(json: json["claims"])
       self.order = json["order"].arrayValue.map {
         ClaimName($0.stringValue)
       }

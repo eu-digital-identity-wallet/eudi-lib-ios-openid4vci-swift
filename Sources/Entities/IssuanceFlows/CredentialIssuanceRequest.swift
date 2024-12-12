@@ -26,10 +26,10 @@ public let FORMAT_W3C_SIGNED_JWT = "jwt_vc_json"
 public typealias Namespace = String
 public typealias ClaimName = String
 
-public typealias MsoMdocMetadataClaims = [Namespace: [ClaimName: Claim]]
-public extension MsoMdocMetadataClaims {
+public typealias MsoMdocClaims = [Namespace: [ClaimName: Claim]]
+public extension MsoMdocClaims {
   init(json: JSON) {
-    var claims = MsoMdocMetadataClaims()
+    var claims = MsoMdocClaims()
     if let _ = json.dictionaryObject {
       for (namespace, subJSON) in json.dictionaryValue {
         var namespaceClaims = [ClaimName: Claim]()
