@@ -31,4 +31,7 @@ public struct Constants {
   public static let TX_CODE_PARAM = "tx_code"
     
   public static let url = "https://a.bc"
+  
+  public static let DPOP_NONCE_HEADER = "DPoP-Nonce"
+  public static let USE_DPOP_NONCE = "use_dpop_nonce"
 }
