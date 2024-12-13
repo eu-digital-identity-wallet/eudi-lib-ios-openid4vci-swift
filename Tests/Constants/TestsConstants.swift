@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 import Foundation
+import JOSESwift
+
 @testable import OpenID4VCI
 
 let CREDENTIAL_ISSUER_PUBLIC_URL = "https://dev.issuer-backend.eudiw.dev"
@@ -77,7 +79,7 @@ let MDL_CredentialOffer = """
 
 let config: OpenId4VCIConfig = .init(
   clientId: "wallet-dev",
-  authFlowRedirectionURI: URL(string: "urn:ietf:wg:oauth:2.0:oob")!, 
+  authFlowRedirectionURI: URL(string: "urn:ietf:wg:oauth:2.0:oob")!,
   authorizeIssuanceConfig: .favorScopes
 )
 
@@ -146,7 +148,7 @@ struct TestsConstants {
         path: "credential_issuer_metadata",
         extension: "json"
       )
-    ))
+      ))
     
     let authorizationServerMetadataResolver = AuthorizationServerMetadataResolver(
       oidcFetcher: Fetcher<OIDCProviderMetadata>(session: NetworkingMock(
@@ -179,7 +181,7 @@ struct TestsConstants {
         path: "openid-credential-issuer_no_encryption",
         extension: "json"
       )
-    ))
+      ))
     
     let authorizationServerMetadataResolver = AuthorizationServerMetadataResolver(
       oidcFetcher: Fetcher<OIDCProviderMetadata>(session: NetworkingMock(
@@ -212,7 +214,7 @@ struct TestsConstants {
         path: "openid-credential-issuer_no_encryption_batch",
         extension: "json"
       )
-    ))
+      ))
     
     let authorizationServerMetadataResolver = AuthorizationServerMetadataResolver(
       oidcFetcher: Fetcher<OIDCProviderMetadata>(session: NetworkingMock(
@@ -245,7 +247,7 @@ struct TestsConstants {
         path: "credential_issuer_metadata",
         extension: "json"
       )
-    ))
+      ))
     
     let authorizationServerMetadataResolver = AuthorizationServerMetadataResolver(
       oidcFetcher: Fetcher<OIDCProviderMetadata>(session: NetworkingMock(
@@ -270,5 +272,49 @@ struct TestsConstants {
     return try? await credentialOfferRequestResolver.resolve(
       source: .fetchByReference(url: .stub())
     ).get()
+  }
+}
+
+class TestSinger: AsyncSignerProtocol {
+  let privateKey: SecKey
+  
+  init(privateKey: SecKey) {
+    self.privateKey = privateKey
+  }
+  
+  func signAsync(_ header: Data, _ payload: Data) async throws -> Data {
+    
+    guard
+      let jwsHeader = JWSHeader(header),
+      let algorithm = jwsHeader.algorithm
+    else {
+      throw NSError(
+        domain: "SignerErrorDomain",
+        code: 1,
+        userInfo: [NSLocalizedDescriptionKey: "Unable to create signer"]
+      )
+    }
+    
+    /// Create the signer
+    guard let signer = Signer(
+      signatureAlgorithm: algorithm,
+      key: privateKey
+    ) else {
+      throw NSError(
+        domain: "SignerErrorDomain",
+        code: 1,
+        userInfo: [NSLocalizedDescriptionKey: "Unable to create signer"]
+      )
+    }
+    
+    let jws = try JWS(
+      header: jwsHeader,
+      payload: .init(
+        payload
+      ),
+      signer: signer
+    )
+    
+    return jws.signature
   }
 }
