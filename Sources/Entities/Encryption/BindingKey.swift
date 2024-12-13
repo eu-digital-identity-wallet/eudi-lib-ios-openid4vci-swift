@@ -185,19 +185,12 @@ extension BindingKey {
       return secKeySigner
       
     } else if case let .custom(customAsyncSigner) = privateKey {
-      let signingInput: Data? = [
-        header as DataConvertible,
-        payload as DataConvertible
-      ].map {
-        $0.data().base64URLEncodedString()
-      }
-      .joined(separator: ".").data(using: .ascii)
+      let headerData = header as DataConvertible
+      let signature = try await customAsyncSigner.signAsync(
+        headerData.data(),
+        payload.data()
+      )
       
-      guard let signingInput = signingInput else {
-        throw ValidationError.error(reason: "Invalid signing input fopr signing data")
-      }
-      
-      let signature = try await customAsyncSigner.signAsync(signingInput)
       let customSigner = PrecomputedSigner(
         signature: signature,
         algorithm: signatureAlgorithm
@@ -225,5 +218,5 @@ class PrecomputedSigner: JOSESwift.SignerProtocol {
 }
 
 public protocol AsyncSignerProtocol {
-	func signAsync(_ signingInput: Data) async throws -> Data
+  func signAsync(_ header: Data, _ payload: Data) async throws -> Data
 }
