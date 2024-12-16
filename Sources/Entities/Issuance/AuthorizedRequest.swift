@@ -40,14 +40,16 @@ public enum AuthorizedRequest {
     accessToken: IssuanceAccessToken,
     refreshToken: IssuanceRefreshToken?,
     credentialIdentifiers: AuthorizationDetailsIdentifiers?,
-    timeStamp: TimeInterval
+    timeStamp: TimeInterval,
+    dPopNonce: Nonce?
   )
   case proofRequired(
     accessToken: IssuanceAccessToken,
     refreshToken: IssuanceRefreshToken?,
     cNonce: CNonce,
     credentialIdentifiers: AuthorizationDetailsIdentifiers?,
-    timeStamp: TimeInterval
+    timeStamp: TimeInterval,
+    dPopNonce: Nonce?
   )
     
   public func isAccessTokenExpired(clock: TimeInterval) -> Bool {
@@ -69,16 +71,25 @@ public enum AuthorizedRequest {
     
   public var timeStamp: TimeInterval? {
     switch self {
-    case .noProofRequired(_, _, _, let timeStamp):
+    case .noProofRequired(_, _, _, let timeStamp, _):
       return timeStamp
-    case .proofRequired(_, _, _, _, let timeStamp):
+    case .proofRequired(_, _, _, _, let timeStamp, _):
       return timeStamp
+    }
+  }
+  
+  public var dPopNonce: Nonce? {
+    switch self {
+    case .noProofRequired(_, _, _, _, let dPopNonce):
+      return dPopNonce
+    case .proofRequired(_, _, _, _, _, let dPopNonce):
+      return dPopNonce
     }
   }
     
   public var noProofToken: IssuanceAccessToken? {
     switch self {
-    case .noProofRequired(let accessToken, _, _, _):
+    case .noProofRequired(let accessToken, _, _, _, _):
       return accessToken
     case .proofRequired:
       return nil
@@ -89,7 +100,7 @@ public enum AuthorizedRequest {
     switch self {
     case .noProofRequired:
       return nil
-    case .proofRequired(let accessToken, _, _, _, _):
+    case .proofRequired(let accessToken, _, _, _, _, _):
       return accessToken
     }
   }
@@ -98,9 +109,9 @@ public enum AuthorizedRequest {
 public extension AuthorizedRequest {
   var accessToken: IssuanceAccessToken? {
     switch self {
-    case .noProofRequired(let accessToken, _, _, _):
+    case .noProofRequired(let accessToken, _, _, _, _):
       return accessToken
-    case .proofRequired(let accessToken, _, _, _, _):
+    case .proofRequired(let accessToken, _, _, _, _, _):
       return accessToken
     }
   }
@@ -108,13 +119,14 @@ public extension AuthorizedRequest {
   func handleInvalidProof(cNonce: CNonce) throws -> AuthorizedRequest {
     switch self {
       
-    case .noProofRequired(let accessToken, let refreshToken, let credentialIdentifiers, let timeStamp):
+    case .noProofRequired(let accessToken, let refreshToken, let credentialIdentifiers, let timeStamp, let dPopNonce):
       return .proofRequired(
         accessToken: accessToken,
         refreshToken: refreshToken,
         cNonce: cNonce,
         credentialIdentifiers: credentialIdentifiers,
-        timeStamp: timeStamp
+        timeStamp: timeStamp,
+        dPopNonce: dPopNonce
       )
     default: throw ValidationError.error(reason: "Expected .noProofRequired authorisation request")
     }

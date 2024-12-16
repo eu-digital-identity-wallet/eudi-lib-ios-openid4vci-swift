@@ -151,6 +151,14 @@ public struct CNonce: Codable {
   }
 }
 
+public struct Nonce {
+  public let value: String
+  
+  public init(value: String) {
+    self.value = value
+  }
+}
+
 public struct Claim: Codable {
   public let mandatory: Bool?
   public let valueType: String?

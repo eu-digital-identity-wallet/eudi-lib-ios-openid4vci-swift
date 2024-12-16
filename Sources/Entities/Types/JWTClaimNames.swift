@@ -45,4 +45,8 @@ public extension JWTClaimNames {
   static let nonce = "nonce"
   static let htm = "htm"
   static let htu = "htu"
+  static let ath = "ath"
+  static let type = "typ"
+  static let algorithm = "alg"
+  static let JWK = "jwk"
 }
