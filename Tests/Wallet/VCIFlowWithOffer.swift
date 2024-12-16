@@ -74,6 +74,55 @@ class VCIFlowWithOffer: XCTestCase {
     XCTAssert(true)
   }
   
+  func testWithOfferSdJWTWithSigner() async throws {
+    
+    let privateKey = try KeyController.generateECDHPrivateKey()
+    let publicKey = try KeyController.generateECDHPublicKey(from: privateKey)
+    
+    let alg = JWSAlgorithm(.ES256)
+    let publicKeyJWK = try ECPublicKey(
+      publicKey: publicKey,
+      additionalParameters: [
+        "alg": alg.name,
+        "use": "sig",
+        "kid": UUID().uuidString
+      ])
+    
+    let bindingKey: BindingKey = .jwk(
+      algorithm: alg,
+      jwk: publicKeyJWK,
+      privateKey: .custom(
+        TestSinger(
+          privateKey: privateKey
+        )
+      )
+    )
+    
+    let user = ActingUser(
+      username: "tneal",
+      password: "password"
+    )
+    
+    let wallet = Wallet(
+      actingUser: user,
+      bindingKeys: [bindingKey],
+      dPoPConstructor: nil,
+      session: Wallet.walletSession
+    )
+    
+    do {
+      try await walletInitiatedIssuanceWithOfferSdJWT(
+        wallet: wallet
+      )
+    } catch {
+      
+      XCTExpectFailure()
+      XCTAssert(false, error.localizedDescription)
+    }
+    
+    XCTAssert(true)
+  }
+  
   func testWithOfferMdoc() async throws {
     
     let privateKey = try KeyController.generateECDHPrivateKey()
@@ -413,7 +462,7 @@ private func walletInitiatedIssuanceWithOfferSdJWT(
     scope: PID_SdJwtVC_config_id,
     claimSet: claimSet
   )
-
+  
   print("--> [ISSUANCE] Issued credential: \(credential)")
 }
 
