@@ -37,7 +37,8 @@ public protocol IssuerType {
   
   func authorizeWithAuthorizationCode(
     authorizationCode: UnauthorizedRequest,
-    authorizationDetailsInTokenRequest: AuthorizationDetailsInTokenRequest
+    authorizationDetailsInTokenRequest: AuthorizationDetailsInTokenRequest,
+    nonce: Nonce?
   ) async -> Result<AuthorizedRequest, Error>
   
   func request(
@@ -288,7 +289,8 @@ public actor Issuer: IssuerType {
   
   public func authorizeWithAuthorizationCode(
     authorizationCode: UnauthorizedRequest,
-    authorizationDetailsInTokenRequest: AuthorizationDetailsInTokenRequest = .doNotInclude
+    authorizationDetailsInTokenRequest: AuthorizationDetailsInTokenRequest = .doNotInclude,
+    nonce: Nonce? = nil
   ) async -> Result<AuthorizedRequest, Error> {
     switch authorizationCode {
     case .par:
@@ -316,7 +318,7 @@ public actor Issuer: IssuerType {
             authorizationCode: authorizationCode,
             codeVerifier: request.pkceVerifier.codeVerifier,
             identifiers: credConfigIdsAsAuthDetails,
-            dpopNonce: nil,
+            dpopNonce: nonce,
             retry: true
           ).get()
           
@@ -623,18 +625,17 @@ private extension Issuer {
       supportedCredential: supportedCredential,
       cNonce: cNonce
     )
-    
-    return try await requestIssuance(
-      token: token,
-      dPopNonce: authorizedRequest.dPopNonce
-    ) {
-      return try supportedCredential.toIssuanceRequest(
-        requester: issuanceRequester,
-        claimSet: claimSet, 
-        proofs: proofs,
-        responseEncryptionSpecProvider: responseEncryptionSpecProvider
-      )
-    }
+      return try await requestIssuance(
+        token: token,
+        dPopNonce: authorizedRequest.dPopNonce
+      ) {
+        return try supportedCredential.toIssuanceRequest(
+          requester: issuanceRequester,
+          claimSet: claimSet,
+          proofs: proofs,
+          responseEncryptionSpecProvider: responseEncryptionSpecProvider
+        )
+      }
   }
   
   func identifierBasedRequest(
