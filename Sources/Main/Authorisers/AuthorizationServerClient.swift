@@ -64,7 +64,7 @@ public protocol AuthorizationServerClientType {
   func requestAccessTokenPreAuthFlow(
     preAuthorizedCode: String,
     txCode: TxCode?,
-    clientId: String,
+    client: Client,
     transactionCode: String?,
     identifiers: [CredentialConfigurationIdentifier],
     dpopNonce: Nonce?,
@@ -87,7 +87,7 @@ public actor AuthorizationServerClient: AuthorizationServerClientType {
   public let authorizationEndpoint: URL
   public let tokenEndpoint: URL
   public let redirectionURI: URL
-  public let clientId: String
+  public let client: Client
   public let authorizationServerMetadata: IdentityAndAccessManagementMetadata
   public let credentialIssuerIdentifier: CredentialIssuerId
   public let dpopConstructor: DPoPConstructorType?
@@ -114,7 +114,7 @@ public actor AuthorizationServerClient: AuthorizationServerClientType {
     self.credentialIssuerIdentifier = credentialIssuerIdentifier
     
     self.redirectionURI = config.authFlowRedirectionURI
-    self.clientId = ClientId(config.clientId)
+    self.client = config.client
     
     self.dpopConstructor = dpopConstructor
     
@@ -179,7 +179,7 @@ public actor AuthorizationServerClient: AuthorizationServerClientType {
     
     let authzRequest = AuthorizationRequest(
       responseType: Self.responseType,
-      clientId: config.clientId,
+      clientId: config.client.id,
       redirectUri: config.authFlowRedirectionURI.absoluteString,
       scope: scopes.map { $0.value }.joined(separator: " ").appending(" ").appending(Constants.OPENID_SCOPE),
       credentialConfigurationIds: toAuthorizationDetail(credentialConfigurationIds: credentialConfigurationIdentifiers),
@@ -224,7 +224,7 @@ public actor AuthorizationServerClient: AuthorizationServerClientType {
     let codeVerifier = PKCEGenerator.codeVerifier() ?? ""
     let authRequest = AuthorizationRequest(
       responseType: Self.responseType,
-      clientId: config.clientId,
+      clientId: config.client.id,
       redirectUri: config.authFlowRedirectionURI.absoluteString,
       scope: scopes.map { $0.value }.joined(separator: " "),
       credentialConfigurationIds: toAuthorizationDetail(credentialConfigurationIds: credentialConfigurationIdentifiers),
@@ -239,14 +239,23 @@ public actor AuthorizationServerClient: AuthorizationServerClientType {
       guard let parEndpoint = parEndpoint else {
         throw ValidationError.error(reason: "Missing PAR endpoint")
       }
+
+      let clientAttestationHeaders = clientAttestationHeaders(
+        clientAttestation: try generateClientAttestationIfNeeded(
+          clock: Clock(),
+          authServerId: URL(string: authorizationServerMetadata.issuer ?? "")
+        )
+      )
+      
+      let tokenHeaders = try await tokenEndPointHeaders(
+        dpopNonce: dpopNonce
+      )
       
       let response: ResponseWithHeaders<PushedAuthorizationRequestResponse> = try await service.formPost(
         poster: parPoster,
         url: parEndpoint,
         request: authRequest,
-        headers: tokenEndPointHeaders(
-          dpopNonce: dpopNonce
-        )
+        headers: clientAttestationHeaders + tokenHeaders
       )
       
       switch response.body {
@@ -257,7 +266,7 @@ public actor AuthorizationServerClient: AuthorizationServerClientType {
         )
         
         let queryParams = [
-          GetAuthorizationCodeURL.PARAM_CLIENT_ID: config.clientId,
+          GetAuthorizationCodeURL.PARAM_CLIENT_ID: config.client.id,
           GetAuthorizationCodeURL.PARAM_REQUEST_STATE: state,
           GetAuthorizationCodeURL.PARAM_REQUEST_URI: requestURI
         ]
@@ -323,18 +332,27 @@ public actor AuthorizationServerClient: AuthorizationServerClientType {
     let parameters: JSON = authCodeFlow(
       authorizationCode: authorizationCode,
       redirectionURI: redirectionURI,
-      clientId: clientId,
+      clientId: client.id,
       codeVerifier: codeVerifier,
       identifiers: identifiers
     )
     
     do {
+      let clientAttestationHeaders = clientAttestationHeaders(
+        clientAttestation: try generateClientAttestationIfNeeded(
+          clock: Clock(),
+          authServerId: URL(string: authorizationServerMetadata.issuer ?? "")
+        )
+      )
+      
+      let tokenHeaders = try await tokenEndPointHeaders(
+        dpopNonce: dpopNonce
+      )
+      
       let response: ResponseWithHeaders<AccessTokenRequestResponse> = try await service.formPost(
         poster: tokenPoster,
         url: tokenEndpoint,
-        headers: try tokenEndPointHeaders(
-          dpopNonce: dpopNonce
-        ),
+        headers: clientAttestationHeaders + tokenHeaders,
         parameters: parameters.toDictionary().convertToDictionaryOfStrings()
       )
       
@@ -392,7 +410,7 @@ public actor AuthorizationServerClient: AuthorizationServerClientType {
   public func requestAccessTokenPreAuthFlow(
     preAuthorizedCode: String,
     txCode: TxCode?,
-    clientId: String,
+    client: Client,
     transactionCode: String?,
     identifiers: [CredentialConfigurationIdentifier],
     dpopNonce: Nonce?,
@@ -406,18 +424,27 @@ public actor AuthorizationServerClient: AuthorizationServerClientType {
     let parameters: JSON = try await preAuthCodeFlow(
       preAuthorizedCode: preAuthorizedCode,
       txCode: txCode,
-      clientId: clientId,
+      client: client,
       transactionCode: transactionCode,
       identifiers: identifiers
     )
     
     do {
+      let clientAttestationHeaders = clientAttestationHeaders(
+        clientAttestation: try generateClientAttestationIfNeeded(
+          clock: Clock(),
+          authServerId: URL(string: authorizationServerMetadata.issuer ?? "")
+        )
+      )
+      
+      let tokenHeaders = try await tokenEndPointHeaders(
+        dpopNonce: dpopNonce
+      )
+      
       let response: ResponseWithHeaders<AccessTokenRequestResponse> = try await service.formPost(
         poster: tokenPoster,
         url: tokenEndpoint,
-        headers: try tokenEndPointHeaders(
-          dpopNonce: dpopNonce
-        ),
+        headers: clientAttestationHeaders + tokenHeaders,
         parameters: parameters.toDictionary().convertToDictionaryOfStrings()
       )
       
@@ -453,7 +480,7 @@ public actor AuthorizationServerClient: AuthorizationServerClientType {
             return try await requestAccessTokenPreAuthFlow(
               preAuthorizedCode: preAuthorizedCode,
               txCode: txCode,
-              clientId: clientId,
+              client: client,
               transactionCode: transactionCode,
               identifiers: identifiers,
               dpopNonce: nonce,
@@ -489,6 +516,39 @@ public actor AuthorizationServerClient: AuthorizationServerClientType {
 }
 
 private extension AuthorizationServerClient {
+  
+  func clientAttestationHeaders(
+    clientAttestation: (ClientAttestationJWT, ClientAttestationPoPJWT)?
+  ) -> [String: String] {
+    guard let clientAttestation = clientAttestation else {
+      return [:]
+    }
+    
+    return [
+      "OAuth-Client-Attestation": clientAttestation.0.jws.compactSerializedString,
+      "OAuth-Client-Attestation-PoP": clientAttestation.1.jws.compactSerializedString
+    ]
+  }
+  
+  func generateClientAttestationIfNeeded(
+    clock: ClockType,
+    authServerId: URL?
+  ) throws -> (ClientAttestationJWT, ClientAttestationPoPJWT)? {
+    guard let authServerId = authServerId else {
+      throw ValidationError.error(reason: "authServerId missing for client attestation")
+    }
+    switch client {
+    case .public:
+      return nil
+    case .attested(let attestationJWT, _):
+      let popJWT = try config.clientAttestationPoPBuilder.buildAttestationPoPJWT(
+        for: client,
+        clock: clock,
+        authServerId: authServerId
+      )
+      return (attestationJWT, popJWT)
+    }
+  }
   
   func tokenEndPointHeaders(dpopNonce: Nonce? = nil) async throws -> [String: String] {
     if let dpopConstructor {
@@ -531,12 +591,12 @@ private extension AuthorizationServerClient {
   func preAuthCodeFlow(
     preAuthorizedCode: String,
     txCode: TxCode?,
-    clientId: String,
+    client: Client,
     transactionCode: String?,
     identifiers: [CredentialConfigurationIdentifier]
   ) async throws -> JSON  {
     var params: [String: String?] = [
-      Constants.CLIENT_ID_PARAM: clientId,
+      Constants.CLIENT_ID_PARAM: client.id,
       Constants.GRANT_TYPE_PARAM: Constants.GRANT_TYPE_PARAM_VALUE,
       Constants.PRE_AUTHORIZED_CODE_PARAM: preAuthorizedCode
     ]
