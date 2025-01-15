@@ -19,10 +19,10 @@ import SwiftyJSON
 public struct Display: Codable, Equatable {
   public let name: String?
   public let locale: Locale?
-  let logo: Logo?
-  let description: String?
-  let backgroundColor: String?
-  let textColor: String?
+  public let logo: Logo?
+  public let description: String?
+  public let backgroundColor: String?
+  public let textColor: String?
   
   enum CodingKeys: String, CodingKey {
     case name
@@ -69,8 +69,8 @@ public struct Display: Codable, Equatable {
 public extension Display {
   
   struct Logo: Codable, Equatable {
-    let uri: URL?
-    let alternativeText: String?
+    public let uri: URL?
+    public let alternativeText: String?
     
     enum CodingKeys: String, CodingKey {
       case uri
@@ -95,7 +95,7 @@ public extension Display {
       alternativeText = try? container.decode(String.self, forKey: .alternativeText)
     }
     
-    init(json: JSON) {
+    public init(json: JSON) {
       var uri: URL?
       if let urlString = json["url"].string {
         uri = URL(string: urlString)
