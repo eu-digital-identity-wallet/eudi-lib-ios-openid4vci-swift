@@ -48,12 +48,14 @@ public struct AuthorizationCodeRetrieved {
   public let authorizationCode: IssuanceAuthorization
   public let pkceVerifier: PKCEVerifier
   public let configurationIds: [CredentialConfigurationIdentifier]
+  public let dpopNonce: Nonce?
   
   public init(
     credentials: [CredentialIdentifier],
     authorizationCode: IssuanceAuthorization,
     pkceVerifier: PKCEVerifier,
-    configurationIds: [CredentialConfigurationIdentifier]
+    configurationIds: [CredentialConfigurationIdentifier],
+    dpopNonce: Nonce?
   ) throws {
     
     guard case .authorizationCode = authorizationCode else {
@@ -64,6 +66,7 @@ public struct AuthorizationCodeRetrieved {
     self.authorizationCode = authorizationCode
     self.pkceVerifier = pkceVerifier
     self.configurationIds = configurationIds
+    self.dpopNonce = dpopNonce
   }
 }
 

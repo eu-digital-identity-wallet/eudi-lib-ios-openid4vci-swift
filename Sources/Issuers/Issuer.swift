@@ -316,7 +316,7 @@ public actor Issuer: IssuerType {
             authorizationCode: authorizationCode,
             codeVerifier: request.pkceVerifier.codeVerifier,
             identifiers: credConfigIdsAsAuthDetails,
-            dpopNonce: nil,
+            dpopNonce: request.dpopNonce,
             retry: true
           ).get()
           
@@ -372,7 +372,8 @@ public actor Issuer: IssuerType {
               credentials: request.credentials,
               authorizationCode: try IssuanceAuthorization(authorizationCode: code),
               pkceVerifier: request.pkceVerifier,
-              configurationIds: request.configurationIds
+              configurationIds: request.configurationIds,
+              dpopNonce: request.dpopNonce
             )
           )
         )
@@ -399,7 +400,8 @@ public actor Issuer: IssuerType {
                 credentials: request.credentials,
                 authorizationCode: try IssuanceAuthorization(authorizationCode: authorizationCode),
                 pkceVerifier: request.pkceVerifier,
-                configurationIds: request.configurationIds
+                configurationIds: request.configurationIds,
+                dpopNonce: request.dpopNonce
               )
             )
           )
