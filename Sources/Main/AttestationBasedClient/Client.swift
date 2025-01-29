@@ -42,11 +42,11 @@ public enum Client {
   public init(attestationJWT: ClientAttestationJWT, popJwtSpec: ClientAttestationPoPJWTSpec) throws {
     // Validate clientId
     let clientId = attestationJWT.clientId
-    /*
+
     guard !clientId.isEmpty && !clientId.trimmingCharacters(in: .whitespaces).isEmpty else {
       throw ClientAttestationError.invalidClientId
     }
-     */
+    
     // Validate public key
     guard (attestationJWT.pubKey?.isPublicKey ?? false) else {
       throw ClientAttestationError.missingJwkClaim
