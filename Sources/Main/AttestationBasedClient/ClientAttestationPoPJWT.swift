@@ -36,8 +36,8 @@ public struct ClientAttestationPoPJWT {
     guard payload[JWTClaimNames.issuer].string != nil else {
       throw ClientAttestationError.missingIssuerClaim
     }
-    /*
-    guard payload[JWTClaimNames.expirationTime].string != nil else {
+
+    guard payload[JWTClaimNames.expirationTime].number != nil else {
       throw ClientAttestationError.missingExpirationClaim
     }
     
@@ -48,7 +48,6 @@ public struct ClientAttestationPoPJWT {
     guard payload[JWTClaimNames.audience].string != nil else {
       throw ClientAttestationError.missingExpirationClaim
     }
-     */
   }
 }
 
