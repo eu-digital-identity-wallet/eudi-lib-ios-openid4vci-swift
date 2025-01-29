@@ -60,27 +60,17 @@ class AttestationBasedTests: XCTestCase {
         compactSerialization: TestsConstants.CNF_JWT
       )
     )
+
     XCTAssertNotNil(clientAttestationPop)
+  }
+  
+  func testClientAttestationJWT() async throws {
     
-    let clientAttestation = try ClientAttestationJWT(
-      jws: JWS(
-        compactSerialization: TestsConstants.CNF_JWT
-      )
+    let client = try selfSignedClient(
+      clientId: "wallet-dev",
+      privateKey: try! KeyController.generateECDHPrivateKey()
     )
     
-    let jwk = clientAttestation.pubKey
-    XCTAssertNotNil(jwk)
-    
-    let client: Client? = try? .init(
-      attestationJWT: clientAttestation,
-      popJwtSpec: try .init(
-        signingAlgorithm: .ES256,
-        jwsSigner: .init(
-          signatureAlgorithm: .ES256,
-          key: KeyController.generateECDHPrivateKey()
-        )!
-      )
-    )
     XCTAssertNotNil(client)
   }
 }

@@ -41,8 +41,10 @@ internal func selfSignedClient(
     "clientId": clientId,
     "cnf": [
       "jwk": ECPublicKey(
-        publicKey: try! KeyController.generateECDHPublicKey(from: privateKey)
-      )
+        publicKey: try! KeyController.generateECDHPublicKey(
+          from: privateKey
+        )
+      ).toDictionary()
     ]
   ].toThrowingJSONData())
   
