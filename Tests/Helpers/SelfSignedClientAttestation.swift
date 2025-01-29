@@ -18,14 +18,39 @@ import JOSESwift
 
 @testable import OpenID4VCI
 
-internal func selfSignedClient(privateKey: SecKey) throws -> Client {
-  let algorithm: SignatureAlgorithm = .ES256
-  let header: JWSHeader = .init(algorithm: algorithm)
-  let payload: Payload = .init(Data())
+internal func selfSignedClient(
+  clientId: String,
+  algorithm: SignatureAlgorithm = .ES256,
+  privateKey: SecKey
+) throws -> Client {
+  
+  guard isECPrivateKey(privateKey) else {
+    fatalError("Key shoulb be EC and private")
+  }
+  
+  guard algorithm.isNotMacAlgorithm else {
+    fatalError("MAC not supported")
+  }
+  
+  let header: JWSHeader = .init(
+    algorithm: algorithm
+  )
+  
+  let payload: Payload = try! .init([
+    "iss": clientId,
+    "clientId": clientId,
+    "cnf": [
+      "jwk": ECPublicKey(
+        publicKey: try! KeyController.generateECDHPublicKey(from: privateKey)
+      )
+    ]
+  ].toThrowingJSONData())
+  
   let signer = Signer(
     signatureAlgorithm: algorithm,
     key: privateKey
   )!
+  
   return try .attested(
     attestationJWT: .init(
       jws: .init(
@@ -39,4 +64,15 @@ internal func selfSignedClient(privateKey: SecKey) throws -> Client {
       jwsSigner: signer
     )
   )
+  
+  func isECPrivateKey(_ secKey: SecKey) -> Bool {
+    guard let attributes = SecKeyCopyAttributes(secKey) as? [CFString: Any] else {
+      return false
+    }
+    
+    let isPrivateKey = (attributes[kSecAttrKeyClass] as? String) == (kSecAttrKeyClassPrivate as String)
+    let isECKey = (attributes[kSecAttrKeyType] as? String) == (kSecAttrKeyTypeEC as String)
+    
+    return isPrivateKey && isECKey
+  }
 }

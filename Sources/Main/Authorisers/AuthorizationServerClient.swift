@@ -534,13 +534,13 @@ private extension AuthorizationServerClient {
     clock: ClockType,
     authServerId: URL?
   ) throws -> (ClientAttestationJWT, ClientAttestationPoPJWT)? {
-    guard let authServerId = authServerId else {
-      throw ValidationError.error(reason: "authServerId missing for client attestation")
-    }
     switch client {
     case .public:
       return nil
     case .attested(let attestationJWT, _):
+      guard let authServerId = authServerId else {
+        throw ValidationError.error(reason: "authServerId missing for client attestation")
+      }
       let popJWT = try config.clientAttestationPoPBuilder.buildAttestationPoPJWT(
         for: client,
         clock: clock,
