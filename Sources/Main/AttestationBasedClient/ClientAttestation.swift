@@ -39,7 +39,7 @@ public struct ClientAttestationJWT {
     
     /*
     guard payload[JWTClaimNames.subject].string != nil else {
-      throw AttestationError.missingSubject
+      throw ClientAttestationError.missingSubject
     }
      */
     
@@ -50,11 +50,10 @@ public struct ClientAttestationJWT {
     guard cnf[JWTClaimNames.JWK] != nil else {
       throw ClientAttestationError.missingJwkClaim
     }
-    /*
-    guard payload[JWTClaimNames.expirationTime].string != nil else {
-      throw AttestationError.missingExpirationClaim
+
+    guard payload[JWTClaimNames.expirationTime].number != nil else {
+      throw ClientAttestationError.missingExpirationClaim
     }
-     */
   }
   
   public var clientId: ClientId {

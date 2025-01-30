@@ -39,6 +39,8 @@ internal func selfSignedClient(
   let payload: Payload = try! .init([
     "iss": clientId,
     "clientId": clientId,
+    "sub": clientId,
+    "exp": 1800000000,
     "cnf": [
       "jwk": ECPublicKey(
         publicKey: try! KeyController.generateECDHPublicKey(
