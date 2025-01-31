@@ -49,4 +49,5 @@ public extension JWTClaimNames {
   static let type = "typ"
   static let algorithm = "alg"
   static let JWK = "jwk"
+  static let cnf = "cnf"
 }

@@ -16,6 +16,10 @@
 import Foundation
 import SwiftyJSON
 
+public func + (lhs: [String: String], rhs: [String: String]) -> [String: String] {
+  return lhs.merging(rhs) { (current, new) in new }
+}
+
 public extension Dictionary where Key == String, Value == Any {
   
   func toThrowingJSONData() throws -> Data {

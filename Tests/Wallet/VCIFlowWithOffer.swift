@@ -460,7 +460,8 @@ private func walletInitiatedIssuanceWithOfferSdJWT(
   let credential = try await wallet.issueByCredentialOfferUrl(
     offerUri: url,
     scope: PID_SdJwtVC_config_id,
-    claimSet: claimSet
+    claimSet: claimSet,
+    config: clientConfig
   )
   
   print("--> [ISSUANCE] Issued credential: \(credential)")
@@ -477,7 +478,8 @@ private func walletInitiatedIssuanceWithOfferMDL(
   let credential = try await wallet.issueByCredentialOfferUrl(
     offerUri: url,
     scope: MDL_config_id,
-    claimSet: claimSet
+    claimSet: claimSet,
+    config: clientConfig
   )
   
   print("--> [ISSUANCE] Issued credential : \(credential)")
@@ -494,7 +496,8 @@ private func walletInitiatedIssuanceWithOfferMDL_DPoP(
   let credential = try await wallet.issueByCredentialOfferUrl_DPoP(
     offerUri: url,
     scope: MDL_config_id,
-    claimSet: claimSet
+    claimSet: claimSet,
+    config: clientConfig
   )
   
   print("--> [ISSUANCE] Issued credential : \(credential)")
@@ -511,7 +514,8 @@ private func walletInitiatedIssuanceWithOfferSDJWT_DPoP(
   let credential = try await wallet.issueByCredentialOfferUrl_DPoP(
     offerUri: url,
     scope: PID_SdJwtVC_config_id,
-    claimSet: claimSet
+    claimSet: claimSet,
+    config: clientConfig
   )
   
   print("--> [ISSUANCE] Issued credential : \(credential)")
@@ -528,7 +532,8 @@ private func walletInitiatedIssuanceWithOfferMdoc(
   let credential = try await wallet.issueByCredentialOfferUrl(
     offerUri: url,
     scope: PID_MsoMdoc_config_id,
-    claimSet: claimSet
+    claimSet: claimSet,
+    config: clientConfig
   )
   
   print("--> [ISSUANCE] Issued credential : \(credential)")
@@ -544,7 +549,8 @@ private func walletInitiatedIssuanceWithOfferArray(
   let url = "\(CREDENTIAL_ISSUER_PUBLIC_URL)/credentialoffer?credential_offer=\(All_Supported_CredentialOffer)"
   let credentials = try await wallet.issueByCredentialOfferUrlMultipleFormats(
     offerUri: url,
-    claimSet: claimSet
+    claimSet: claimSet,
+    config: clientConfig
   )
   
   print("--> [ISSUANCE] Issued credentials:")
@@ -569,7 +575,8 @@ private func walletInitiatedIssuanceWithOfferUrl(
   
   let credentials = try await wallet.issueByCredentialOfferUrlMultipleFormats(
     offerUri: url,
-    claimSet: claimSet
+    claimSet: claimSet,
+    config: clientConfig
   )
   
   print("--> [ISSUANCE] Issued credentials:")
