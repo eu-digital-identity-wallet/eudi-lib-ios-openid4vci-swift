@@ -54,6 +54,7 @@ public protocol AuthorizationServerClientType {
     retry: Bool
   ) async throws -> Result<(
     IssuanceAccessToken,
+    IssuanceRefreshToken,
     CNonce?,
     AuthorizationDetailsIdentifiers?,
     TokenType?,
@@ -71,10 +72,25 @@ public protocol AuthorizationServerClientType {
     retry: Bool
   ) async throws -> Result<(
     IssuanceAccessToken,
+    IssuanceRefreshToken,
     CNonce?,
     AuthorizationDetailsIdentifiers?,
     Int?,
     Nonce?), Error>
+  
+  func refreshAccessToken(
+    clientId: String,
+    refreshToken: IssuanceRefreshToken,
+    dpopNonce: Nonce?,
+    retry: Bool
+  ) async throws -> Result<(
+    IssuanceAccessToken,
+    CNonce?,
+    AuthorizationDetailsIdentifiers?,
+    TokenType?,
+    Int?,
+    Nonce?
+  ), Error>
 }
 
 public actor AuthorizationServerClient: AuthorizationServerClientType {
@@ -239,7 +255,7 @@ public actor AuthorizationServerClient: AuthorizationServerClientType {
       guard let parEndpoint = parEndpoint else {
         throw ValidationError.error(reason: "Missing PAR endpoint")
       }
-
+      
       let clientAttestationHeaders = clientAttestationHeaders(
         clientAttestation: try generateClientAttestationIfNeeded(
           clock: Clock(),
@@ -322,6 +338,7 @@ public actor AuthorizationServerClient: AuthorizationServerClientType {
     retry: Bool
   ) async throws -> Result<(
     IssuanceAccessToken,
+    IssuanceRefreshToken,
     CNonce?,
     AuthorizationDetailsIdentifiers?,
     TokenType?,
@@ -357,7 +374,7 @@ public actor AuthorizationServerClient: AuthorizationServerClientType {
       )
       
       switch response.body {
-      case .success(let tokenType, let accessToken, _, let expiresIn, _, let nonce, _, let identifiers):
+      case .success(let tokenType, let accessToken, let refreshToken, let expiresIn, _, let nonce, _, let identifiers):
         return .success(
           (
             try .init(
@@ -365,6 +382,9 @@ public actor AuthorizationServerClient: AuthorizationServerClientType {
               tokenType: .init(
                 value: tokenType
               )
+            ),
+            try .init(
+              refreshToken: refreshToken
             ),
             .init(
               value: nonce
@@ -407,63 +427,65 @@ public actor AuthorizationServerClient: AuthorizationServerClientType {
     }
   }
   
-  public func requestAccessTokenPreAuthFlow(
-    preAuthorizedCode: String,
-    txCode: TxCode?,
-    client: Client,
-    transactionCode: String?,
-    identifiers: [CredentialConfigurationIdentifier],
+  public func refreshAccessToken(
+    clientId: String,
+    refreshToken: IssuanceRefreshToken,
     dpopNonce: Nonce?,
     retry: Bool
   ) async throws -> Result<(
     IssuanceAccessToken,
     CNonce?,
     AuthorizationDetailsIdentifiers?,
+    TokenType?,
     Int?,
-    Nonce?), Error> {
-    let parameters: JSON = try await preAuthCodeFlow(
-      preAuthorizedCode: preAuthorizedCode,
-      txCode: txCode,
-      client: client,
-      transactionCode: transactionCode,
-      identifiers: identifiers
-    )
+    Nonce?
+  ), Error> {
+    
+    let parameters: JSON = JSON([
+      Constants.CLIENT_ID_PARAM: clientId,
+      Constants.GRANT_TYPE_PARAM: Constants.REFRESH_TOKEN,
+      Constants.REFRESH_TOKEN_PARAM: refreshToken.refreshToken
+    ].compactMapValues { $0 })
     
     do {
-      let clientAttestationHeaders = clientAttestationHeaders(
-        clientAttestation: try generateClientAttestationIfNeeded(
-          clock: Clock(),
-          authServerId: URL(string: authorizationServerMetadata.issuer ?? "")
-        )
-      )
-      
-      let tokenHeaders = try await tokenEndPointHeaders(
-        dpopNonce: dpopNonce
-      )
-      
       let response: ResponseWithHeaders<AccessTokenRequestResponse> = try await service.formPost(
         poster: tokenPoster,
         url: tokenEndpoint,
-        headers: clientAttestationHeaders + tokenHeaders,
+        headers: try tokenEndPointHeaders(
+          dpopNonce: dpopNonce
+        ),
         parameters: parameters.toDictionary().convertToDictionaryOfStrings()
       )
       
       switch response.body {
-      case .success(let tokenType, let accessToken, _, let expiresIn, _, let nonce, _, let identifiers):
+      case .success(
+        let tokenType,
+        let accessToken,
+        _,
+        let expiresIn,
+        _,
+        let nonce,
+        _,
+        let identifiers
+      ):
         return .success(
           (
             try .init(
               accessToken: accessToken,
               tokenType: .init(
                 value: tokenType
-              )
+              ),
+              expiresIn: TimeInterval(expiresIn)
             ),
             .init(
               value: nonce
             ),
             identifiers,
+            TokenType(
+              value: tokenType
+            ),
             expiresIn,
-            dpopNonce
+            response.dpopNonce()
           )
         )
       case .failure(let error, let errorDescription):
@@ -477,14 +499,12 @@ public actor AuthorizationServerClient: AuthorizationServerClientType {
         switch postError {
         case .useDpopNonce(let nonce):
           if retry {
-            return try await requestAccessTokenPreAuthFlow(
-              preAuthorizedCode: preAuthorizedCode,
-              txCode: txCode,
-              client: client,
-              transactionCode: transactionCode,
-              identifiers: identifiers,
+            return try await refreshAccessToken(
+              clientId: clientId,
+              refreshToken: refreshToken,
               dpopNonce: nonce,
-              retry: false)
+              retry: false
+            )
           } else {
             return .failure(ValidationError.retryFailedAfterDpopNonce)
           }
@@ -496,6 +516,102 @@ public actor AuthorizationServerClient: AuthorizationServerClientType {
       }
     }
   }
+  
+  public func requestAccessTokenPreAuthFlow(
+    preAuthorizedCode: String,
+    txCode: TxCode?,
+    client: Client,
+    transactionCode: String?,
+    identifiers: [CredentialConfigurationIdentifier],
+    dpopNonce: Nonce?,
+    retry: Bool
+  ) async throws -> Result<(
+    IssuanceAccessToken,
+    IssuanceRefreshToken,
+    CNonce?,
+    AuthorizationDetailsIdentifiers?,
+    Int?,
+    Nonce?), Error> {
+      let parameters: JSON = try await preAuthCodeFlow(
+        preAuthorizedCode: preAuthorizedCode,
+        txCode: txCode,
+        client: client,
+        transactionCode: transactionCode,
+        identifiers: identifiers
+      )
+      
+      do {
+        let clientAttestationHeaders = clientAttestationHeaders(
+          clientAttestation: try generateClientAttestationIfNeeded(
+            clock: Clock(),
+            authServerId: URL(
+              string: authorizationServerMetadata.issuer ?? ""
+            )
+          )
+        )
+        
+        let tokenHeaders = try await tokenEndPointHeaders(
+          dpopNonce: dpopNonce
+        )
+        
+        let response: ResponseWithHeaders<AccessTokenRequestResponse> = try await service.formPost(
+          poster: tokenPoster,
+          url: tokenEndpoint,
+          headers: clientAttestationHeaders + tokenHeaders,
+          parameters: parameters.toDictionary().convertToDictionaryOfStrings()
+        )
+        
+        switch response.body {
+        case .success(let tokenType, let accessToken, let refreshToken, let expiresIn, _, let nonce, _, let identifiers):
+          return .success(
+            (
+              try .init(
+                accessToken: accessToken,
+                tokenType: .init(
+                  value: tokenType
+                )
+              ),
+              try .init(
+                refreshToken: refreshToken
+              ),
+              .init(
+                value: nonce
+              ),
+              identifiers,
+              expiresIn,
+              dpopNonce
+            )
+          )
+        case .failure(let error, let errorDescription):
+          throw CredentialIssuanceError.pushedAuthorizationRequestFailed(
+            error: error,
+            errorDescription: errorDescription
+          )
+        }
+      } catch {
+        if let postError = error as? PostError {
+          switch postError {
+          case .useDpopNonce(let nonce):
+            if retry {
+              return try await requestAccessTokenPreAuthFlow(
+                preAuthorizedCode: preAuthorizedCode,
+                txCode: txCode,
+                client: client,
+                transactionCode: transactionCode,
+                identifiers: identifiers,
+                dpopNonce: nonce,
+                retry: false)
+            } else {
+              return .failure(ValidationError.retryFailedAfterDpopNonce)
+            }
+          default:
+            return .failure(error)
+          }
+        } else {
+          return .failure(error)
+        }
+      }
+    }
   
   func toAuthorizationDetail(
     credentialConfigurationIds: [CredentialConfigurationIdentifier]
@@ -658,7 +774,6 @@ extension Array where Element == AuthorizationDetail {
         }
       }
     } catch {}
-    
     return nil
   }
 }

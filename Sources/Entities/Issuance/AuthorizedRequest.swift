@@ -25,13 +25,13 @@ public extension CanExpire {
     if issued >= at {
       return true
     }
-     
+    
     guard let expiresIn = expiresIn else {
       return false
     }
-     
+    
     let expiration = issued + expiresIn
-    return expiration <= at
+    return expiration >= at
   }
 }
 
@@ -51,14 +51,14 @@ public enum AuthorizedRequest {
     timeStamp: TimeInterval,
     dPopNonce: Nonce?
   )
-    
-  public func isAccessTokenExpired(clock: TimeInterval) -> Bool {
+  
+  public func isAccessTokenExpired(_ from: TimeInterval) -> Bool {
     guard let timeStamp = self.timeStamp else {
       return true
     }
-    return accessToken?.isExpired(issued: timeStamp, at: clock) ?? false
+    return accessToken?.isExpired(issued: timeStamp, at: from) ?? false
   }
-    
+  
   public func isRefreshTokenExpired(clock: TimeInterval) -> Bool {
     guard let timeStamp = self.timeStamp else {
       return true
@@ -66,9 +66,9 @@ public enum AuthorizedRequest {
     return accessToken?.isExpired(
       issued: timeStamp,
       at: clock
-      ) ?? false
+    ) ?? false
   }
-    
+  
   public var timeStamp: TimeInterval? {
     switch self {
     case .noProofRequired(_, _, _, let timeStamp, _):
@@ -86,7 +86,7 @@ public enum AuthorizedRequest {
       return dPopNonce
     }
   }
-    
+  
   public var noProofToken: IssuanceAccessToken? {
     switch self {
     case .noProofRequired(let accessToken, _, _, _, _):
@@ -95,13 +95,22 @@ public enum AuthorizedRequest {
       return nil
     }
   }
-    
+  
   public var proofToken: IssuanceAccessToken? {
     switch self {
     case .noProofRequired:
       return nil
     case .proofRequired(let accessToken, _, _, _, _, _):
       return accessToken
+    }
+  }
+  
+  public var refreshToken: IssuanceRefreshToken? {
+    switch self {
+    case .noProofRequired(_, let refreshToken, _, _, _):
+      return refreshToken
+    case .proofRequired(_, let refreshToken, _, _, _, _):
+      return refreshToken
     }
   }
 }
@@ -132,3 +141,34 @@ public extension AuthorizedRequest {
     }
   }
 }
+
+extension AuthorizedRequest {
+  /// Returns a copy of the current `AuthorizedRequest`, replacing the `accessToken` and `timeStamp`
+  /// - Parameters:
+  ///   - newAccessToken: The new `IssuanceAccessToken` to use.
+  ///   - newTimeStamp: The new `TimeInterval` to use.
+  /// - Returns: A new `AuthorizedRequest` instance with the updated values.
+  func replacing(accessToken newAccessToken: IssuanceAccessToken, timeStamp newTimeStamp: TimeInterval) -> AuthorizedRequest {
+    switch self {
+    case let .noProofRequired(_, refreshToken, credentialIdentifiers, _, dPopNonce):
+      return .noProofRequired(
+        accessToken: newAccessToken,
+        refreshToken: refreshToken,
+        credentialIdentifiers: credentialIdentifiers,
+        timeStamp: newTimeStamp,
+        dPopNonce: dPopNonce
+      )
+      
+    case let .proofRequired(_, refreshToken, cNonce, credentialIdentifiers, _, dPopNonce):
+      return .proofRequired(
+        accessToken: newAccessToken,
+        refreshToken: refreshToken,
+        cNonce: cNonce,
+        credentialIdentifiers: credentialIdentifiers,
+        timeStamp: newTimeStamp,
+        dPopNonce: dPopNonce
+      )
+    }
+  }
+}
+

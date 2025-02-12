@@ -64,6 +64,12 @@ public protocol IssuerType {
     notificationId: NotificationObject,
     dPopNonce: Nonce?
   ) async throws -> Result<Void, Error>
+  
+  func refresh(
+    clientId: String,
+    authorizedRequest: AuthorizedRequest,
+    dPopNonce: Nonce?
+  ) async -> Result<AuthorizedRequest, Error>
 }
 
 public actor Issuer: IssuerType {
@@ -245,17 +251,19 @@ public actor Issuer: IssuerType {
         
         switch response {
         case .success(
-          (let accessToken, let nonce, let identifiers, let expiresIn, let dPopNonce)
+          (let accessToken, let refreshToken, let nonce, let identifiers, let expiresIn, let dPopNonce)
         ):
           if let cNonce = nonce {
             return .success(
               .proofRequired(
-                accessToken: try IssuanceAccessToken(
+                accessToken: try .init(
                   accessToken: accessToken.accessToken,
                   tokenType: accessToken.tokenType,
-                  expiresIn: TimeInterval(expiresIn ?? .zero)
+                  expiresIn: expiresIn?.asTimeInterval ?? .zero
                 ),
-                refreshToken: nil,
+                refreshToken: try .init(
+                  refreshToken: refreshToken.refreshToken
+                ),
                 cNonce: cNonce,
                 credentialIdentifiers: identifiers,
                 timeStamp: Date().timeIntervalSinceReferenceDate,
@@ -268,9 +276,11 @@ public actor Issuer: IssuerType {
                 accessToken: try IssuanceAccessToken(
                   accessToken: accessToken.accessToken,
                   tokenType: accessToken.tokenType,
-                  expiresIn: TimeInterval(expiresIn ?? .zero)
+                  expiresIn: expiresIn?.asTimeInterval ?? .zero
                 ),
-                refreshToken: nil,
+                refreshToken: try .init(
+                  refreshToken: refreshToken.refreshToken
+                ),
                 credentialIdentifiers: identifiers,
                 timeStamp: Date().timeIntervalSinceReferenceDate,
                 dPopNonce: dPopNonce
@@ -311,6 +321,7 @@ public actor Issuer: IssuerType {
           
           let response: (
             accessToken: IssuanceAccessToken,
+            refreshToken: IssuanceRefreshToken,
             nonce: CNonce?,
             identifiers: AuthorizationDetailsIdentifiers?,
             tokenType: TokenType?,
@@ -320,19 +331,21 @@ public actor Issuer: IssuerType {
             authorizationCode: authorizationCode,
             codeVerifier: request.pkceVerifier.codeVerifier,
             identifiers: credConfigIdsAsAuthDetails,
-            dpopNonce: nil,
+            dpopNonce: request.dpopNonce,
             retry: true
           ).get()
           
           if let cNonce = response.nonce {
             return .success(
               .proofRequired(
-                accessToken: try IssuanceAccessToken(
+                accessToken: try .init(
                   accessToken: response.accessToken.accessToken,
                   tokenType: response.tokenType,
                   expiresIn: TimeInterval(response.expiresIn ?? .zero)
                 ),
-                refreshToken: nil,
+                refreshToken: try .init(
+                  refreshToken: response.refreshToken.refreshToken
+                ),
                 cNonce: cNonce,
                 credentialIdentifiers: response.identifiers,
                 timeStamp: Date().timeIntervalSinceReferenceDate,
@@ -342,12 +355,14 @@ public actor Issuer: IssuerType {
           } else {
             return .success(
               .noProofRequired(
-                accessToken: try IssuanceAccessToken(
+                accessToken: try .init(
                   accessToken: response.accessToken.accessToken,
                   tokenType: response.tokenType,
                   expiresIn: TimeInterval(response.expiresIn ?? .zero)
                 ),
-                refreshToken: nil,
+                refreshToken: try .init(
+                  refreshToken: response.refreshToken.refreshToken
+                ),
                 credentialIdentifiers: response.identifiers,
                 timeStamp: Date().timeIntervalSinceReferenceDate,
                 dPopNonce: response.dPopNonce
@@ -376,7 +391,8 @@ public actor Issuer: IssuerType {
               credentials: request.credentials,
               authorizationCode: try IssuanceAuthorization(authorizationCode: code),
               pkceVerifier: request.pkceVerifier,
-              configurationIds: request.configurationIds
+              configurationIds: request.configurationIds,
+              dpopNonce: request.dpopNonce
             )
           )
         )
@@ -403,7 +419,8 @@ public actor Issuer: IssuerType {
                 credentials: request.credentials,
                 authorizationCode: try IssuanceAuthorization(authorizationCode: authorizationCode),
                 pkceVerifier: request.pkceVerifier,
-                configurationIds: request.configurationIds
+                configurationIds: request.configurationIds,
+                dpopNonce: request.dpopNonce
               )
             )
           )
@@ -839,6 +856,37 @@ public extension Issuer {
       notification: notificationId,
       dPopNonce: dPopNonce
     )
+  }
+  
+  func refresh(
+    clientId: String,
+    authorizedRequest: AuthorizedRequest,
+    dPopNonce: Nonce? = nil
+  ) async -> Result<AuthorizedRequest, Error> {
+    
+    if  let refreshToken = authorizedRequest.refreshToken {
+      do {
+        let token = try await authorizer.refreshAccessToken(
+          clientId: clientId,
+          refreshToken: refreshToken,
+          dpopNonce: dPopNonce,
+          retry: true
+        )
+        switch token {
+        case .success((let accessToken, _, _, _, let timeStamp, _)):
+          return .success(authorizedRequest.replacing(
+            accessToken: accessToken,
+            timeStamp: timeStamp?.asTimeInterval ?? .zero
+          )
+        )
+        case .failure(let error):
+          return .failure(error)
+        }
+      } catch {
+        return .failure(error)
+      }
+    }
+    return .success(authorizedRequest)
   }
 }
 
