@@ -19,4 +19,9 @@ public extension Int {
   func isWithinRange(_ range: ClosedRange<Int>) -> Bool {
     return range.contains(self)
   }
+  
+  /// Converts an `Int` to a `TimeInterval` (Double).
+  var asTimeInterval: TimeInterval {
+    return TimeInterval(self)
+  }
 }
