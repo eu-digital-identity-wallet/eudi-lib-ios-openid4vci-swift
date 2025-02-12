@@ -24,21 +24,28 @@ public typealias ClientId = String
 public typealias ClientSecret = String
 
 public struct OpenId4VCIConfig {
-  public let clientId: ClientId
+  public let client: Client
   public let authFlowRedirectionURI: URL
   public let authorizeIssuanceConfig: AuthorizeIssuanceConfig
   public let usePAR: Bool
+  public let dPoPConstructor: DPoPConstructorType?
+  public let clientAttestationPoPBuilder: ClientAttestationPoPBuilder?
+
     
   public init(
-    clientId: ClientId,
+    client: Client,
     authFlowRedirectionURI: URL,
     authorizeIssuanceConfig: AuthorizeIssuanceConfig = .favorScopes,
-    usePAR: Bool = true
+    usePAR: Bool = true,
+    dPoPConstructor: DPoPConstructorType? = nil,
+    clientAttestationPoPBuilder: ClientAttestationPoPBuilder? = nil
   ) {
-    self.clientId = clientId
+    self.client = client
     self.authFlowRedirectionURI = authFlowRedirectionURI
     self.authorizeIssuanceConfig = authorizeIssuanceConfig
     self.usePAR = usePAR
+    self.dPoPConstructor = dPoPConstructor
+    self.clientAttestationPoPBuilder = clientAttestationPoPBuilder
   }
 }
 

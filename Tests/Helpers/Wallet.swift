@@ -20,18 +20,15 @@ import Foundation
 struct Wallet {
   let actingUser: ActingUser
   let bindingKeys: [BindingKey]
-  let dPoPConstructor: DPoPConstructorType?
   let session: Networking
 
   init(
     actingUser: ActingUser,
     bindingKeys: [BindingKey],
-    dPoPConstructor: DPoPConstructorType?,
     session: Networking = Self.walletSession
   ) {
     self.actingUser = actingUser
     self.bindingKeys = bindingKeys
-    self.dPoPConstructor = dPoPConstructor
     self.session = session
   }
 
@@ -50,7 +47,8 @@ struct Wallet {
 extension Wallet {
   func issueByCredentialIdentifier(
     _ identifier: String,
-    claimSet: ClaimSet? = nil
+    claimSet: ClaimSet? = nil,
+    config: OpenId4VCIConfig
   ) async throws -> Credential {
     let credentialConfigurationIdentifier = try CredentialConfigurationIdentifier(value: identifier)
     let credentialIssuerIdentifier = try CredentialIssuerId(CREDENTIAL_ISSUER_PUBLIC_URL)
@@ -85,7 +83,8 @@ extension Wallet {
         return try await issueOfferedCredentialNoProof(
           offer: offer,
           credentialConfigurationIdentifier: credentialConfigurationIdentifier,
-          claimSet: claimSet
+          claimSet: claimSet,
+          config: config
         )
         
       } else {
@@ -98,7 +97,8 @@ extension Wallet {
   
   private func issueMultipleOfferedCredentialWithProof(
     offer: CredentialOffer,
-    claimSet: ClaimSet? = nil
+    claimSet: ClaimSet? = nil,
+    config: OpenId4VCIConfig
   ) async throws -> [(String, Credential)] {
     
     let issuerMetadata = offer.credentialIssuerMetadata
@@ -160,7 +160,8 @@ extension Wallet {
   private func issueOfferedCredentialNoProof(
     offer: CredentialOffer,
     credentialConfigurationIdentifier: CredentialConfigurationIdentifier,
-    claimSet: ClaimSet? = nil
+    claimSet: ClaimSet? = nil,
+    config: OpenId4VCIConfig
   ) async throws -> Credential {
     
     let issuer = try Issuer(
@@ -203,7 +204,8 @@ extension Wallet {
   
   func issueByCredentialOfferUrlMultipleFormats(
     offerUri: String,
-    claimSet: ClaimSet? = nil
+    claimSet: ClaimSet? = nil,
+    config: OpenId4VCIConfig
   ) async throws -> [(String, Credential)] {
     let resolver = CredentialOfferRequestResolver(
       fetcher: Fetcher(session: self.session),
@@ -226,7 +228,8 @@ extension Wallet {
     case .success(let offer):
       return try await issueMultipleOfferedCredentialWithProof(
         offer: offer,
-        claimSet: claimSet
+        claimSet: claimSet,
+        config: config
       )
     case .failure(let error):
       throw ValidationError.error(reason: "Unable to resolve credential offer: \(error.localizedDescription)")
@@ -236,7 +239,8 @@ extension Wallet {
   func issueByCredentialOfferUrl(
     offerUri: String,
     scope: String,
-    claimSet: ClaimSet? = nil
+    claimSet: ClaimSet? = nil,
+    config: OpenId4VCIConfig
   ) async throws -> Credential {
       let result = await CredentialOfferRequestResolver(
         fetcher: Fetcher(session: self.session),
@@ -258,7 +262,8 @@ extension Wallet {
       return try await issueOfferedCredentialWithProof(
         offer: offer,
         scope: scope,
-        claimSet: claimSet
+        claimSet: claimSet,
+        config: config
       )
     case .failure(let error):
       throw ValidationError.error(reason: "Unable to resolve credential offer: \(error.localizedDescription)")
@@ -268,7 +273,8 @@ extension Wallet {
   func issueByCredentialOfferUrl_DPoP(
     offerUri: String,
     scope: String,
-    claimSet: ClaimSet? = nil
+    claimSet: ClaimSet? = nil,
+    config: OpenId4VCIConfig
   ) async throws -> Credential {
     let result = await CredentialOfferRequestResolver(
       fetcher: Fetcher(session: self.session),
@@ -290,7 +296,8 @@ extension Wallet {
       return try await issueOfferedCredentialWithProof_DPoP(
         offer: offer,
         scope: scope,
-        claimSet: claimSet
+        claimSet: claimSet,
+        config: config
       )
     case .failure(let error):
       throw ValidationError.error(reason: "Unable to resolve credential offer: \(error.localizedDescription)")
@@ -300,7 +307,8 @@ extension Wallet {
   private func issueOfferedCredentialWithProof(
     offer: CredentialOffer,
     scope: String,
-    claimSet: ClaimSet? = nil
+    claimSet: ClaimSet? = nil,
+    config: OpenId4VCIConfig
   ) async throws -> Credential {
     
     let issuerMetadata = offer.credentialIssuerMetadata
@@ -345,7 +353,8 @@ extension Wallet {
   private func issueOfferedCredentialWithProof_DPoP(
     offer: CredentialOffer,
     scope: String,
-    claimSet: ClaimSet? = nil
+    claimSet: ClaimSet? = nil,
+    config: OpenId4VCIConfig
   ) async throws -> Credential {
     
     let issuerMetadata = offer.credentialIssuerMetadata
@@ -362,7 +371,7 @@ extension Wallet {
       requesterPoster: Poster(session: self.session),
       deferredRequesterPoster: Poster(session: self.session),
       notificationPoster: Poster(session: self.session),
-      dpopConstructor: dPoPConstructor
+      dpopConstructor: config.dPoPConstructor
     )
     
     let authorized = try await authorizeRequestWithAuthCodeUseCase(

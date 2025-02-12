@@ -60,4 +60,13 @@ public enum IdentityAndAccessManagementMetadata {
       return URL(string: metaData.authorizationEndpoint ?? "")
     }
   }
+  
+  var tokenEndpointAuthMethods: [String] {
+    switch self {
+    case .oidc(let metaData):
+      return metaData.tokenEndpointAuthMethodsSupported ?? []
+    case .oauth(let metaData):
+      return metaData.tokenEndpointAuthMethodsSupported ?? []
+    }
+  }
 }

@@ -57,7 +57,6 @@ class VCIFlowWithOffer: XCTestCase {
     let wallet = Wallet(
       actingUser: user,
       bindingKeys: [bindingKey],
-      dPoPConstructor: nil,
       session: Wallet.walletSession
     )
     
@@ -106,7 +105,6 @@ class VCIFlowWithOffer: XCTestCase {
     let wallet = Wallet(
       actingUser: user,
       bindingKeys: [bindingKey],
-      dPoPConstructor: nil,
       session: Wallet.walletSession
     )
     
@@ -150,8 +148,7 @@ class VCIFlowWithOffer: XCTestCase {
     
     let wallet = Wallet(
       actingUser: user,
-      bindingKeys: [bindingKey],
-      dPoPConstructor: nil
+      bindingKeys: [bindingKey]
     )
     
     do {
@@ -194,8 +191,7 @@ class VCIFlowWithOffer: XCTestCase {
     
     let wallet = Wallet(
       actingUser: user,
-      bindingKeys: [bindingKey],
-      dPoPConstructor: nil
+      bindingKeys: [bindingKey]
     )
     
     do {
@@ -239,7 +235,6 @@ class VCIFlowWithOffer: XCTestCase {
     let wallet = Wallet(
       actingUser: user,
       bindingKeys: [bindingKey],
-      dPoPConstructor: nil,
       session: Wallet.walletSession
     )
     
@@ -283,8 +278,7 @@ class VCIFlowWithOffer: XCTestCase {
     
     let wallet = Wallet(
       actingUser: user,
-      bindingKeys: [bindingKey],
-      dPoPConstructor: nil
+      bindingKeys: [bindingKey]
     )
     
     do {
@@ -329,7 +323,13 @@ class VCIFlowWithOffer: XCTestCase {
     
     let wallet = Wallet(
       actingUser: user,
-      bindingKeys: [bindingKey],
+      bindingKeys: [bindingKey]
+    )
+    
+    let dPoPClientConfig: OpenId4VCIConfig = .init(
+      client: .public(id: "wallet-dev"),
+      authFlowRedirectionURI: URL(string: "urn:ietf:wg:oauth:2.0:oob")!,
+      authorizeIssuanceConfig: .favorScopes,
       dPoPConstructor: DPoPConstructor(
         algorithm: alg,
         jwk: publicKeyJWK,
@@ -339,7 +339,8 @@ class VCIFlowWithOffer: XCTestCase {
     
     do {
       try await walletInitiatedIssuanceWithOfferMDL_DPoP(
-        wallet: wallet
+        wallet: wallet,
+        config: dPoPClientConfig
       )
     } catch {
       
@@ -378,7 +379,13 @@ class VCIFlowWithOffer: XCTestCase {
     
     let wallet = Wallet(
       actingUser: user,
-      bindingKeys: [bindingKey],
+      bindingKeys: [bindingKey]
+    )
+    
+    let dPoPClientConfig: OpenId4VCIConfig = .init(
+      client: .public(id: "wallet-dev"),
+      authFlowRedirectionURI: URL(string: "urn:ietf:wg:oauth:2.0:oob")!,
+      authorizeIssuanceConfig: .favorScopes,
       dPoPConstructor: DPoPConstructor(
         algorithm: alg,
         jwk: publicKeyJWK,
@@ -388,7 +395,8 @@ class VCIFlowWithOffer: XCTestCase {
     
     do {
       try await walletInitiatedIssuanceWithOfferSDJWT_DPoP(
-        wallet: wallet
+        wallet: wallet,
+        config: dPoPClientConfig
       )
     } catch {
       
@@ -427,7 +435,13 @@ class VCIFlowWithOffer: XCTestCase {
     
     let wallet = Wallet(
       actingUser: user,
-      bindingKeys: [bindingKey, bindingKey],
+      bindingKeys: [bindingKey, bindingKey]
+    )
+    
+    let dPoPClientConfig: OpenId4VCIConfig = .init(
+      client: .public(id: "wallet-dev"),
+      authFlowRedirectionURI: URL(string: "urn:ietf:wg:oauth:2.0:oob")!,
+      authorizeIssuanceConfig: .favorScopes,
       dPoPConstructor: DPoPConstructor(
         algorithm: alg,
         jwk: publicKeyJWK,
@@ -437,7 +451,8 @@ class VCIFlowWithOffer: XCTestCase {
     
     do {
       try await walletInitiatedIssuanceWithOfferSDJWT_DPoP(
-        wallet: wallet
+        wallet: wallet,
+        config: dPoPClientConfig
       )
     } catch {
       
@@ -460,7 +475,8 @@ private func walletInitiatedIssuanceWithOfferSdJWT(
   let credential = try await wallet.issueByCredentialOfferUrl(
     offerUri: url,
     scope: PID_SdJwtVC_config_id,
-    claimSet: claimSet
+    claimSet: claimSet,
+    config: clientConfig
   )
   
   print("--> [ISSUANCE] Issued credential: \(credential)")
@@ -477,7 +493,8 @@ private func walletInitiatedIssuanceWithOfferMDL(
   let credential = try await wallet.issueByCredentialOfferUrl(
     offerUri: url,
     scope: MDL_config_id,
-    claimSet: claimSet
+    claimSet: claimSet,
+    config: clientConfig
   )
   
   print("--> [ISSUANCE] Issued credential : \(credential)")
@@ -485,6 +502,7 @@ private func walletInitiatedIssuanceWithOfferMDL(
 
 private func walletInitiatedIssuanceWithOfferMDL_DPoP(
   wallet: Wallet,
+  config: OpenId4VCIConfig,
   claimSet: ClaimSet? = nil
 ) async throws {
   
@@ -494,7 +512,8 @@ private func walletInitiatedIssuanceWithOfferMDL_DPoP(
   let credential = try await wallet.issueByCredentialOfferUrl_DPoP(
     offerUri: url,
     scope: MDL_config_id,
-    claimSet: claimSet
+    claimSet: claimSet,
+    config: config
   )
   
   print("--> [ISSUANCE] Issued credential : \(credential)")
@@ -502,6 +521,7 @@ private func walletInitiatedIssuanceWithOfferMDL_DPoP(
 
 private func walletInitiatedIssuanceWithOfferSDJWT_DPoP(
   wallet: Wallet,
+  config: OpenId4VCIConfig,
   claimSet: ClaimSet? = nil
 ) async throws {
   
@@ -511,7 +531,8 @@ private func walletInitiatedIssuanceWithOfferSDJWT_DPoP(
   let credential = try await wallet.issueByCredentialOfferUrl_DPoP(
     offerUri: url,
     scope: PID_SdJwtVC_config_id,
-    claimSet: claimSet
+    claimSet: claimSet,
+    config: config
   )
   
   print("--> [ISSUANCE] Issued credential : \(credential)")
@@ -528,7 +549,8 @@ private func walletInitiatedIssuanceWithOfferMdoc(
   let credential = try await wallet.issueByCredentialOfferUrl(
     offerUri: url,
     scope: PID_MsoMdoc_config_id,
-    claimSet: claimSet
+    claimSet: claimSet,
+    config: clientConfig
   )
   
   print("--> [ISSUANCE] Issued credential : \(credential)")
@@ -544,7 +566,8 @@ private func walletInitiatedIssuanceWithOfferArray(
   let url = "\(CREDENTIAL_ISSUER_PUBLIC_URL)/credentialoffer?credential_offer=\(All_Supported_CredentialOffer)"
   let credentials = try await wallet.issueByCredentialOfferUrlMultipleFormats(
     offerUri: url,
-    claimSet: claimSet
+    claimSet: claimSet,
+    config: clientConfig
   )
   
   print("--> [ISSUANCE] Issued credentials:")
@@ -569,7 +592,8 @@ private func walletInitiatedIssuanceWithOfferUrl(
   
   let credentials = try await wallet.issueByCredentialOfferUrlMultipleFormats(
     offerUri: url,
-    claimSet: claimSet
+    claimSet: claimSet,
+    config: clientConfig
   )
   
   print("--> [ISSUANCE] Issued credentials:")

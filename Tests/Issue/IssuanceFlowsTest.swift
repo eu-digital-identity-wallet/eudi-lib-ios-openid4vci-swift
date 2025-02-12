@@ -34,7 +34,7 @@ class IssuanceFlowsTest: XCTestCase {
       deferredCredentialEndpoint: .init(string: "https://www.example.com"),
       deferredRequesterPoster: Poster(),
       config: .init(
-        clientId: .init(),
+        client: .public(id: ""),
         authFlowRedirectionURI: URL(string: "https://www.example.com")!
       )
     )
