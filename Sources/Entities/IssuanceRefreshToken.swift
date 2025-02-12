@@ -20,8 +20,9 @@ public struct IssuanceRefreshToken: Codable, CanExpire {
     
   public let refreshToken: String?
   
-  public init(refreshToken: String?) throws {
+  public init(refreshToken: String?, expiresIn: TimeInterval? = nil) throws {
     self.refreshToken = refreshToken
+    self.expiresIn = expiresIn
   }
 }
 
