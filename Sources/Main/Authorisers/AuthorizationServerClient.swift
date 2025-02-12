@@ -259,7 +259,9 @@ public actor AuthorizationServerClient: AuthorizationServerClientType {
       let clientAttestationHeaders = clientAttestationHeaders(
         clientAttestation: try generateClientAttestationIfNeeded(
           clock: Clock(),
-          authServerId: URL(string: authorizationServerMetadata.issuer ?? "")
+          authServerId: URL(
+            string: authorizationServerMetadata.issuer ?? ""
+          )
         )
       )
       
@@ -358,7 +360,9 @@ public actor AuthorizationServerClient: AuthorizationServerClientType {
       let clientAttestationHeaders = clientAttestationHeaders(
         clientAttestation: try generateClientAttestationIfNeeded(
           clock: Clock(),
-          authServerId: URL(string: authorizationServerMetadata.issuer ?? "")
+          authServerId: URL(
+            string: authorizationServerMetadata.issuer ?? ""
+          )
         )
       )
       
@@ -654,10 +658,14 @@ private extension AuthorizationServerClient {
     case .public:
       return nil
     case .attested(let attestationJWT, _):
-      guard let authServerId = authServerId else {
-        throw ValidationError.error(reason: "authServerId missing for client attestation")
+      guard let clientAttestationPoPBuilder = config.clientAttestationPoPBuilder else {
+        return nil
       }
-      let popJWT = try config.clientAttestationPoPBuilder.buildAttestationPoPJWT(
+      
+      guard let authServerId = authServerId else {
+        return nil
+      }
+      let popJWT = try clientAttestationPoPBuilder.buildAttestationPoPJWT(
         for: client,
         clock: clock,
         authServerId: authServerId

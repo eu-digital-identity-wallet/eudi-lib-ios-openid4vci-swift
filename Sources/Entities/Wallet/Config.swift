@@ -29,7 +29,7 @@ public struct OpenId4VCIConfig {
   public let authorizeIssuanceConfig: AuthorizeIssuanceConfig
   public let usePAR: Bool
   public let dPoPConstructor: DPoPConstructorType?
-  public let clientAttestationPoPBuilder: ClientAttestationPoPBuilder
+  public let clientAttestationPoPBuilder: ClientAttestationPoPBuilder?
 
     
   public init(
@@ -38,7 +38,7 @@ public struct OpenId4VCIConfig {
     authorizeIssuanceConfig: AuthorizeIssuanceConfig = .favorScopes,
     usePAR: Bool = true,
     dPoPConstructor: DPoPConstructorType? = nil,
-    clientAttestationPoPBuilder: ClientAttestationPoPBuilder = DefaultClientAttestationPoPBuilder.default
+    clientAttestationPoPBuilder: ClientAttestationPoPBuilder? = nil
   ) {
     self.client = client
     self.authFlowRedirectionURI = authFlowRedirectionURI
