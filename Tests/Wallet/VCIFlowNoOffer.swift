@@ -65,8 +65,7 @@ class VCIFlowNoOffer: XCTestCase {
     
     let wallet = Wallet(
       actingUser: user,
-      bindingKeys: [bindingKey],
-      dPoPConstructor: nil
+      bindingKeys: [bindingKey]
     )
     
     do {
@@ -110,8 +109,7 @@ class VCIFlowNoOffer: XCTestCase {
     
     let wallet = Wallet(
       actingUser: user,
-      bindingKeys: [bindingKey],
-      dPoPConstructor: nil
+      bindingKeys: [bindingKey]
     )
     
     do {
@@ -154,8 +152,7 @@ class VCIFlowNoOffer: XCTestCase {
     
     let wallet = Wallet(
       actingUser: user,
-      bindingKeys: [bindingKey],
-      dPoPConstructor: nil
+      bindingKeys: [bindingKey]
     )
     
     let claimSetMsoMdoc = MsoMdocFormat.MsoMdocClaimSet(
@@ -207,8 +204,7 @@ class VCIFlowNoOffer: XCTestCase {
     
     let wallet = Wallet(
       actingUser: user,
-      bindingKeys: [bindingKey, bindingKey],
-      dPoPConstructor: nil
+      bindingKeys: [bindingKey, bindingKey]
     )
     
     do {
@@ -251,8 +247,7 @@ class VCIFlowNoOffer: XCTestCase {
     
     let wallet = Wallet(
       actingUser: user,
-      bindingKeys: [bindingKey],
-      dPoPConstructor: nil
+      bindingKeys: [bindingKey]
     )
     
     do {
@@ -296,8 +291,7 @@ class VCIFlowNoOffer: XCTestCase {
     
     let wallet = Wallet(
       actingUser: user,
-      bindingKeys: [bindingKey],
-      dPoPConstructor: nil
+      bindingKeys: [bindingKey]
     )
     
     do {

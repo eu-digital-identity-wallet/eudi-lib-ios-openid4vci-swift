@@ -20,18 +20,15 @@ import Foundation
 struct Wallet {
   let actingUser: ActingUser
   let bindingKeys: [BindingKey]
-  let dPoPConstructor: DPoPConstructorType?
   let session: Networking
 
   init(
     actingUser: ActingUser,
     bindingKeys: [BindingKey],
-    dPoPConstructor: DPoPConstructorType?,
     session: Networking = Self.walletSession
   ) {
     self.actingUser = actingUser
     self.bindingKeys = bindingKeys
-    self.dPoPConstructor = dPoPConstructor
     self.session = session
   }
 
@@ -374,7 +371,7 @@ extension Wallet {
       requesterPoster: Poster(session: self.session),
       deferredRequesterPoster: Poster(session: self.session),
       notificationPoster: Poster(session: self.session),
-      dpopConstructor: dPoPConstructor
+      dpopConstructor: config.dPoPConstructor
     )
     
     let authorized = try await authorizeRequestWithAuthCodeUseCase(
