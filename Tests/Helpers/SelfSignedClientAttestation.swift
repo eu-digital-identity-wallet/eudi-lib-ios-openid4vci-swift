@@ -36,11 +36,15 @@ internal func selfSignedClient(
     algorithm: algorithm
   )
   
+  let duration: TimeInterval = 300
+  let now = Date().timeIntervalSince1970
+  let exp = Date().addingTimeInterval(duration).timeIntervalSince1970
   let payload: Payload = try! .init([
     "iss": clientId,
-    "clientId": clientId,
+    "aud": clientId,
     "sub": clientId,
-    "exp": 1800000000,
+    "iat": now,
+    "exp": exp,
     "cnf": [
       "jwk": ECPublicKey(
         publicKey: try! KeyController.generateECDHPublicKey(
@@ -65,6 +69,8 @@ internal func selfSignedClient(
     ),
     popJwtSpec: .init(
       signingAlgorithm: algorithm,
+      duration: duration,
+      typ: "oauth-client-attestation-pop+jwt",
       jwsSigner: signer
     )
   )
