@@ -37,12 +37,6 @@ public struct ClientAttestationJWT {
     }
     self.payload = JSON(jsonObject)
     
-    /*
-    guard payload[JWTClaimNames.subject].string != nil else {
-      throw ClientAttestationError.missingSubject
-    }
-     */
-    
     guard let cnf = payload[JWTClaimNames.cnf].dictionary else {
       throw ClientAttestationError.missingCnfClaim
     }

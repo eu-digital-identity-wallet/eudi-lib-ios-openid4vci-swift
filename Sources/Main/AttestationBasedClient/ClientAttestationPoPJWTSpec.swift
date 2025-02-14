@@ -35,7 +35,7 @@ public struct ClientAttestationPoPJWTSpec {
   
   public let signingAlgorithm: SignatureAlgorithm
   public let duration: TimeInterval
-  public let typ: String?
+  public let typ: String
   public let jwsSigner: Signer
   
   // MARK: - Initializer
@@ -43,7 +43,7 @@ public struct ClientAttestationPoPJWTSpec {
   public init(
     signingAlgorithm: SignatureAlgorithm,
     duration: TimeInterval = 300, // Default to 5 minutes
-    typ: String? = nil,
+    typ: String,
     jwsSigner: Signer
   ) throws {
     // Validate the signing algorithm (must not be MAC)
