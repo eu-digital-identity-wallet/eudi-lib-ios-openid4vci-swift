@@ -29,10 +29,11 @@ public extension HTTPURLResponse {
   
   func containsDpopError() -> Bool {
     guard statusCode == HTTPStatusCode.unauthorized,
-          let wwwAuth = valueForHeader("WWW-Authenticate") else {
+          let wwwAuth = valueForHeader("www-authenticate") else {
       return false
     }
-    return wwwAuth.contains("DPoP") && wwwAuth.contains("error=\"use_dpop_nonce\"")
+    return wwwAuth.containsCaseInsensitive("DPoP") &&
+           wwwAuth.containsCaseInsensitive("error=\"use_dpop_nonce\"")
   }
 }
 
