@@ -121,3 +121,9 @@ public extension Dictionary where Key == String, Value == Any {
     return keySet.isSubset(of: dictionaryKeySet)
   }
 }
+
+extension Dictionary where Key == AnyHashable {
+  func value(forCaseInsensitiveKey key: String) -> Value? {
+    return self.first { ($0.key as? String)?.caseInsensitiveCompare(key) == .orderedSame }?.value
+  }
+}
