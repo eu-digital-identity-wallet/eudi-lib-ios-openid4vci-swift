@@ -20,7 +20,7 @@ let OPENID_CREDENTIAL = "openid_credential"
 
 private extension ResponseWithHeaders {
   func dpopNonce() -> Nonce? {
-    if let nonceValue = headers[Constants.DPOP_NONCE_HEADER] as? String {
+    if let nonceValue = headers.value(forCaseInsensitiveKey: Constants.DPOP_NONCE_HEADER) as? String {
       return Nonce(value: nonceValue)
     }
     return nil
