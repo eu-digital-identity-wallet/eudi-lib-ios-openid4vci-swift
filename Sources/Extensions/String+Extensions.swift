@@ -18,6 +18,21 @@ import CryptoKit
 
 public extension String {
   
+  /// Checks if the string contains another string in a case-insensitive manner.
+  ///
+  /// - Parameter other: The substring to search for.
+  /// - Returns: `true` if the string contains `other`, ignoring case; otherwise, `false`.
+  ///
+  /// ### Example Usage:
+  /// ```swift
+  /// let text = "Hello, Swift Programming!"
+  /// print(text.containsCaseInsensitive("swift")) // true
+  /// print(text.containsCaseInsensitive("python")) // false
+  /// ```
+  func containsCaseInsensitive(_ other: String) -> Bool {
+    return self.range(of: other, options: .caseInsensitive) != nil
+  }
+  
   /// Generates a random Base64URL-encoded string of the specified length.
   ///
   /// - Parameter length: The length of the random string to generate.
