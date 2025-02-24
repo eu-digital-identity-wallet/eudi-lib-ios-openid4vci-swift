@@ -32,7 +32,7 @@ public struct Constants {
     
   public static let url = "https://a.bc"
   
-  public static let DPOP_NONCE_HEADER = "DPoP-Nonce"
+  public static let DPOP_NONCE_HEADER = "dpop-nonce"
   public static let USE_DPOP_NONCE = "use_dpop_nonce"
   
   public static let REFRESH_TOKEN = "refresh_token"
