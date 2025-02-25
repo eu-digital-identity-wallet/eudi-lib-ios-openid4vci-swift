@@ -119,7 +119,7 @@ public struct Poster: PostingType {
       if statusCode >= HTTPStatusCode.badRequest && statusCode < HTTPStatusCode.internalServerError {
         if let httpResponse,
            httpResponse.containsDpopError(),
-           let dPopNonce = headers[Constants.DPOP_NONCE_HEADER] as? String {
+           let dPopNonce = headers.value(forCaseInsensitiveKey: Constants.DPOP_NONCE_HEADER) as? String {
           return .failure(
             .useDpopNonce(
               .init(
@@ -130,7 +130,7 @@ public struct Poster: PostingType {
         } else {
           let object = try JSONDecoder().decode(GenericErrorResponse.self, from: data)
           if object.error == Constants.USE_DPOP_NONCE,
-             let dPopNonce = headers[Constants.DPOP_NONCE_HEADER] as? String {
+             let dPopNonce = headers.value(forCaseInsensitiveKey: Constants.DPOP_NONCE_HEADER) as? String {
             return .failure(
               .useDpopNonce(
                 .init(
