@@ -428,6 +428,138 @@ class IssuanceAuthorizationTest: XCTestCase {
     }
   }
   
+  func testThirdPartyIssuerSuccessfulAuthorizationWithPreAuthorizationCodeFlowAttested() async throws {
+    
+    /// Replace the url string below with the one you can generate here: https://trial.authlete.net/api/offer/issue
+    /// login/pass: inga (for both)
+    /// Credential Configuration IDs: Just leave "IdentityCredential"
+    /// Authorization Code Grant: unchecked
+    /// Pre-Authorized Code Grant: check
+    ///   Value: 12345
+    ///   Input Mode: numeric
+    ///   Description: "hello world"
+    ///
+    /// Submit
+    ///
+    let urlString = """
+    """
+    
+    if urlString.isEmpty {
+      XCTExpectFailure()
+      XCTAssert(false, "urlString cannot be empty")
+      return
+    }
+    
+    let privateKey = try KeyController.generateRSAPrivateKey()
+    let publicKey = try KeyController.generateRSAPublicKey(from: privateKey)
+    let privateKeyProxy: SigningKeyProxy = .secKey(privateKey)
+    
+    let alg = JWSAlgorithm(.RS256)
+    let publicKeyJWK = try RSAPublicKey(
+      publicKey: publicKey,
+      additionalParameters: [
+        "alg": alg.name,
+        "use": "sig",
+        "kid": UUID().uuidString
+      ])
+    
+    let bindingKey: BindingKey = .jwk(
+      algorithm: alg,
+      jwk: publicKeyJWK,
+      privateKey: privateKeyProxy,
+      issuer: "track2_full"
+    )
+    
+    let resolver = CredentialOfferRequestResolver()
+    let resolution = await resolver
+      .resolve(
+        source: try .init(
+          urlString: urlString
+        )
+      )
+    
+    let attestationConfig: OpenId4VCIConfig = .init(
+      client: try! selfSignedClient(
+        clientId: "track2_full",
+        privateKey: try KeyController.generateECDHPrivateKey()
+      ),
+      authFlowRedirectionURI: URL(string: "urn:ietf:wg:oauth:2.0:oob")!,
+      authorizeIssuanceConfig: .favorScopes,
+      dPoPConstructor: DPoPConstructor(
+        algorithm: alg,
+        jwk: publicKeyJWK,
+        privateKey: privateKeyProxy
+      ),
+      clientAttestationPoPBuilder: DefaultClientAttestationPoPBuilder()
+    )
+    
+    let offer: CredentialOffer = try resolution.get()
+    let issuerMetadata = offer.credentialIssuerMetadata
+    let issuer = try Issuer(
+      authorizationServerMetadata: offer.authorizationServerMetadata,
+      issuerMetadata: issuerMetadata,
+      config: attestationConfig,
+      dpopConstructor: attestationConfig.dPoPConstructor
+    )
+    
+    let grants = offer.grants
+    var code: Grants.PreAuthorizedCode!
+    switch grants {
+    case .preAuthorizedCode(let preAuthorizedCode):
+      code = preAuthorizedCode
+    case .both(_, let preAuthorizedCode):
+      code = preAuthorizedCode
+    default:
+      XCTAssert(false, "Unexpected grant type")
+    }
+    
+    let result = await issuer.authorizeWithPreAuthorizationCode(
+      credentialOffer: offer,
+      authorizationCode: try .init(
+        preAuthorizationCode: code.preAuthorizedCode,
+        txCode: code.txCode
+      ),
+      client: attestationConfig.client,
+      transactionCode: "12345",
+      authorizationDetailsInTokenRequest: .include(filter: { _ in true })
+    )
+    
+    switch result {
+    case .success:
+      let request = try result.get()
+      let payload: IssuanceRequestPayload = .configurationBased(
+        credentialConfigurationIdentifier: try CredentialConfigurationIdentifier(
+          value: "IdentityCredential"
+        ),
+        claimSet: nil
+      )
+      
+      let requestSingleResult = try await issuer.request(
+        proofRequest: request,
+        bindingKeys: [bindingKey],
+        requestPayload: payload,
+        responseEncryptionSpecProvider: {
+          Issuer.createResponseEncryptionSpec($0)
+        }
+      )
+
+      switch requestSingleResult {
+      case .success(let request):
+        switch request {
+        case .success(let response):
+          print(response.credentialResponses.map { try! $0.toDictionary() } )
+          XCTAssertTrue(true)
+        default:
+          XCTAssert(false, "Unexpected request type")
+        }
+      case .failure(let error):
+        XCTAssert(false, error.localizedDescription)
+      }
+    case .failure:
+      XCTAssert(false)
+    }
+  }
+  
   func testTestIssuerSuccessfulAuthorizationWithPreAuthorizationCodeFlow() async throws {
 
     /// Replace the url string below with the one you can generate here: https://dev.tester.issuer.eudiw.dev/
