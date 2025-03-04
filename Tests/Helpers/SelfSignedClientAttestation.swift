@@ -32,8 +32,11 @@ internal func selfSignedClient(
     fatalError("MAC not supported")
   }
   
-  let header: JWSHeader = .init(
-    algorithm: algorithm
+  let header: JWSHeader = try! .init(
+    parameters: [
+      "alg": algorithm.rawValue,
+      "typ": "oauth-client-attestation+jwt"
+    ]
   )
   
   let duration: TimeInterval = 300
