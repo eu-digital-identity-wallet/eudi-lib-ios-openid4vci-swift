@@ -43,7 +43,6 @@ public extension MsoMdocFormat {
     public let credentialEncryptionKey: SecKey?
     public let credentialResponseEncryptionAlg: JWEAlgorithm?
     public let credentialResponseEncryptionMethod: JOSEEncryptionMethod?
-    public let claimSet: ClaimSet?
     public let credentialIdentifier: CredentialIdentifier?
     public let requestedCredentialResponseEncryption: RequestedCredentialResponseEncryption
     
@@ -53,7 +52,6 @@ public extension MsoMdocFormat {
       case credentialEncryptionJwk
       case credentialResponseEncryptionAlg
       case credentialResponseEncryptionMethod
-      case claimSet
       case credentialIdentifier
     }
     
@@ -64,7 +62,6 @@ public extension MsoMdocFormat {
       credentialEncryptionKey: SecKey? = nil,
       credentialResponseEncryptionAlg: JWEAlgorithm? = nil,
       credentialResponseEncryptionMethod: JOSEEncryptionMethod? = nil,
-      claimSet: ClaimSet? = nil,
       credentialIdentifier: CredentialIdentifier?
     ) throws {
       self.docType = docType
@@ -73,7 +70,6 @@ public extension MsoMdocFormat {
       self.credentialEncryptionKey = credentialEncryptionKey
       self.credentialResponseEncryptionAlg = credentialResponseEncryptionAlg
       self.credentialResponseEncryptionMethod = credentialResponseEncryptionMethod
-      self.claimSet = claimSet
       self.credentialIdentifier = credentialIdentifier
       
       self.requestedCredentialResponseEncryption = try .init(
@@ -100,42 +96,7 @@ public extension MsoMdocFormat {
       
       try container.encode(credentialResponseEncryptionAlg, forKey: .credentialResponseEncryptionAlg)
       try container.encode(credentialResponseEncryptionMethod, forKey: .credentialResponseEncryptionMethod)
-      try container.encode(claimSet, forKey: .claimSet)
       try container.encode(credentialIdentifier, forKey: .credentialIdentifier)
-    }
-  }
-  
-  struct MsoMdocClaimSet: Codable {
-    public let claims: [(Namespace, ClaimName)]
-    
-    public init(claims: [(Namespace, ClaimName)]) {
-      self.claims = claims
-    }
-    
-    public func encode(to encoder: Encoder) throws {
-      var container = encoder.unkeyedContainer()
-      for (namespace, claimName) in claims {
-        var nestedContainer = container.nestedContainer(keyedBy: CodingKeys.self)
-        try nestedContainer.encode(namespace, forKey: .namespace)
-        try nestedContainer.encode(claimName, forKey: .claimName)
-      }
-    }
-    
-    public init(from decoder: Decoder) throws {
-      var container = try decoder.unkeyedContainer()
-      var decodedClaims: [(Namespace, ClaimName)] = []
-      while !container.isAtEnd {
-        let nestedContainer = try container.nestedContainer(keyedBy: CodingKeys.self)
-        let namespace = try nestedContainer.decode(Namespace.self, forKey: .namespace)
-        let claimName = try nestedContainer.decode(ClaimName.self, forKey: .claimName)
-        decodedClaims.append((namespace, claimName))
-      }
-      claims = decodedClaims
-    }
-    
-    private enum CodingKeys: String, CodingKey {
-      case namespace
-      case claimName
     }
   }
   
@@ -144,11 +105,10 @@ public extension MsoMdocFormat {
     public let scope: String?
     public let cryptographicBindingMethodsSupported: [String]?
     public let credentialSigningAlgValuesSupported: [String]?
-    public let proofTypesSupported: [String: ProofSigningAlgorithmsSupported]?
+    public let proofTypesSupported: [String: ProofTypeSupportedMeta]?
     public let display: [Display]?
     public let docType: String
-    public let claims: [String: [String: Claim]]?
-    public let order: [String]?
+    public let claims: [Claim]
     
     enum CodingKeys: String, CodingKey {
       case format
@@ -159,7 +119,6 @@ public extension MsoMdocFormat {
       case display
       case docType = "doctype"
       case claims
-      case order
     }
     
     public init(
@@ -167,11 +126,10 @@ public extension MsoMdocFormat {
       scope: String? = nil,
       cryptographicBindingMethodsSupported: [String]? = nil,
       credentialSigningAlgValuesSupported: [String]? = nil,
-      proofTypesSupported: [String: ProofSigningAlgorithmsSupported]? = nil,
+      proofTypesSupported: [String: ProofTypeSupportedMeta]? = nil,
       display: [Display]? = nil,
       docType: String,
-      claims: [String : [String : Claim]]? = nil,
-      order: [String]? = nil
+      claims: [Claim] = []
     ) {
       self.format = format
       self.scope = scope
@@ -181,7 +139,6 @@ public extension MsoMdocFormat {
       self.display = display
       self.docType = docType
       self.claims = claims
-      self.order = order
     }
     
     func toDomain() throws -> MsoMdocFormat.CredentialConfiguration {
@@ -192,21 +149,6 @@ public extension MsoMdocFormat {
       let display: [Display] = self.display ?? []
       
       let credentialSigningAlgValuesSupported: [String] = self.credentialSigningAlgValuesSupported ?? []
-      let claims: MsoMdocClaims = claims?.mapValues { namespaceAndClaims in
-        namespaceAndClaims.mapValues { claim in
-          Claim(
-            mandatory: claim.mandatory ?? false,
-            valueType: claim.valueType,
-            display: claim.display?.compactMap {
-              Display(
-                name: $0.name,
-                locale: $0.locale
-              )
-            }
-          )
-        }
-      } ?? [:]
-      
       return .init(
         format: format,
         scope: scope,
@@ -215,8 +157,7 @@ public extension MsoMdocFormat {
         proofTypesSupported: self.proofTypesSupported,
         display: display,
         docType: docType,
-        claims: claims,
-        order: order ?? []
+        claims: claims
       )
     }
   }
@@ -226,15 +167,10 @@ public extension MsoMdocFormat {
     public let scope: String?
     public let cryptographicBindingMethodsSupported: [CryptographicBindingMethod]
     public let credentialSigningAlgValuesSupported: [String]
-    public let proofTypesSupported: [String: ProofSigningAlgorithmsSupported]?
+    public let proofTypesSupported: [String: ProofTypeSupportedMeta]?
     public let display: [Display]
     public let docType: String
-    public let claims: MsoMdocClaims
-    public let order: [ClaimName]
-    
-    var claimList: [String] {
-      claims.values.flatMap { $0 }.map { $0.0 }
-    }
+    public let claims: [Claim]
     
     enum CodingKeys: String, CodingKey {
       case format
@@ -245,7 +181,6 @@ public extension MsoMdocFormat {
       case display
       case docType = "doctype"
       case claims
-      case order
     }
     
     public init(
@@ -253,11 +188,10 @@ public extension MsoMdocFormat {
       scope: String?,
       cryptographicBindingMethodsSupported: [CryptographicBindingMethod],
       credentialSigningAlgValuesSupported: [String],
-      proofTypesSupported: [String: ProofSigningAlgorithmsSupported]?,
+      proofTypesSupported: [String: ProofTypeSupportedMeta]?,
       display: [Display],
       docType: String,
-      claims: MsoMdocClaims,
-      order: [ClaimName]
+      claims: [Claim]
     ) {
       self.format = format
       self.scope = scope
@@ -267,7 +201,6 @@ public extension MsoMdocFormat {
       self.display = display
       self.docType = docType
       self.claims = claims
-      self.order = order
     }
     
     public init(from decoder: Decoder) throws {
@@ -278,13 +211,12 @@ public extension MsoMdocFormat {
       cryptographicBindingMethodsSupported = try container.decode([CryptographicBindingMethod].self, forKey: .cryptographicBindingMethodsSupported)
       credentialSigningAlgValuesSupported = try container.decode([String].self, forKey: .credentialSigningAlgValuesSupported)
       
-      let proofTypes = try? container.decode([String: ProofSigningAlgorithmsSupported].self, forKey: .proofTypesSupported)
+      let proofTypes = try? container.decode([String: ProofTypeSupportedMeta].self, forKey: .proofTypesSupported)
       proofTypesSupported = proofTypes
       
       display = try container.decode([Display].self, forKey: .display)
       docType = try container.decode(String.self, forKey: .docType)
-      claims = try container.decode(MsoMdocClaims.self, forKey: .claims)
-      order = try container.decode([ClaimName].self, forKey: .order)
+      claims = try container.decode([Claim].self, forKey: .claims)
     }
     
     public func encode(to encoder: Encoder) throws {
@@ -298,7 +230,6 @@ public extension MsoMdocFormat {
       try container.encode(display, forKey: .display)
       try container.encode(docType, forKey: .docType)
       try container.encode(claims, forKey: .claims)
-      try container.encode(order, forKey: .order)
     }
     
     init(json: JSON) throws {
@@ -314,7 +245,11 @@ public extension MsoMdocFormat {
       self.proofTypesSupported = json["proof_types_supported"].dictionaryObject?.compactMapValues { values in
         if let types = values as? [String: Any],
            let algorithms = types["proof_signing_alg_values_supported"] as? [String] {
-          return ProofSigningAlgorithmsSupported(algorithms: algorithms)
+          let requirement = types["key_attestations_required"]
+          return .init(
+            algorithms: algorithms,
+            keyAttestationRequirement: try? .init(json: JSON(requirement ?? [:]))
+          )
         }
         return nil
       }
@@ -323,16 +258,14 @@ public extension MsoMdocFormat {
         Display(json: json)
       }
       self.docType = json["doctype"].stringValue
-      self.claims = MsoMdocClaims(json: json["claims"])
-      self.order = json["order"].arrayValue.map {
-        ClaimName($0.stringValue)
-      }
+      
+      let claims = try json["claims"].array?.compactMap({ try Claim(json: $0)}) ?? []
+      self.claims = claims
     }
     
     func toIssuanceRequest(
       responseEncryptionSpec: IssuanceResponseEncryptionSpec?,
       credentialIdentifier: CredentialIdentifier? = nil,
-      claimSet: ClaimSet?,
       proofs: [Proof]
     ) throws -> CredentialIssuanceRequest {
       try .single(
@@ -344,7 +277,6 @@ public extension MsoMdocFormat {
             credentialEncryptionKey: responseEncryptionSpec?.privateKey,
             credentialResponseEncryptionAlg: responseEncryptionSpec?.algorithm,
             credentialResponseEncryptionMethod: responseEncryptionSpec?.encryptionMethod,
-            claimSet: try claimSet?.validate(claims: self.claimList), 
             credentialIdentifier: credentialIdentifier
           )
         ), responseEncryptionSpec

@@ -116,8 +116,7 @@ class IssuanceNotificationTest: XCTestCase {
           let payload: IssuanceRequestPayload = .configurationBased(
             credentialConfigurationIdentifier: try .init(
               value: "eu.europa.ec.eudi.pid_mso_mdoc"
-            ),
-            claimSet: nil
+            )
           )
           let result = try await issuer.request(
             noProofRequest: authorized,
@@ -260,8 +259,7 @@ class IssuanceNotificationTest: XCTestCase {
           let payload: IssuanceRequestPayload = .configurationBased(
             credentialConfigurationIdentifier: try .init(
               value: "eu.europa.ec.eudi.pid_mso_mdoc"
-            ),
-            claimSet: nil
+            )
           )
           let result = try await issuer.request(
             noProofRequest: authorized,

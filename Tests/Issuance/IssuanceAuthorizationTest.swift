@@ -401,8 +401,7 @@ class IssuanceAuthorizationTest: XCTestCase {
     let payload: IssuanceRequestPayload = .configurationBased(
       credentialConfigurationIdentifier: try CredentialConfigurationIdentifier(
         value: "IdentityCredential"
-      ),
-      claimSet: nil
+      )
     )
     
     let requestSingleResult = try await issuer.request(
@@ -530,8 +529,7 @@ class IssuanceAuthorizationTest: XCTestCase {
       let payload: IssuanceRequestPayload = .configurationBased(
         credentialConfigurationIdentifier: try CredentialConfigurationIdentifier(
           value: "IdentityCredential"
-        ),
-        claimSet: nil
+        )
       )
       
       let requestSingleResult = try await issuer.request(
@@ -633,8 +631,7 @@ class IssuanceAuthorizationTest: XCTestCase {
     let payload: IssuanceRequestPayload = .configurationBased(
       credentialConfigurationIdentifier: try CredentialConfigurationIdentifier(
         value: offer.credentialConfigurationIdentifiers.first!.value
-      ),
-      claimSet: nil
+      )
     )
 
     let requestSingleResult = try await issuer.request(
@@ -748,8 +745,7 @@ class IssuanceAuthorizationTest: XCTestCase {
     let payload: IssuanceRequestPayload = .configurationBased(
       credentialConfigurationIdentifier: try CredentialConfigurationIdentifier(
         value: "IdentityCredential"
-      ),
-      claimSet: nil
+      )
     )
     
     let requestSingleResult = try await issuer.request(

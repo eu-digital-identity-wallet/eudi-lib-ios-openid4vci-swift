@@ -109,17 +109,8 @@ class IssuanceBatchRequestTest: XCTestCase {
         
         do {
                     
-          let claimSetMsoMdoc = MsoMdocFormat.MsoMdocClaimSet(
-            claims: [
-              ("org.iso.18013.5.1", "given_name"),
-              ("org.iso.18013.5.1", "family_name"),
-              ("org.iso.18013.5.1", "birth_date")
-            ]
-          )
-          
           let msoMdocPayload: IssuanceRequestPayload = .configurationBased(
-            credentialConfigurationIdentifier: try .init(value: PID_MsoMdoc_config_id),
-            claimSet: .msoMdoc(claimSetMsoMdoc)
+            credentialConfigurationIdentifier: try .init(value: PID_MsoMdoc_config_id)
           )
           
           let result = try await issuer.request(

@@ -23,71 +23,6 @@ public let FORMAT_W3C_JSONLD_DATA_INTEGRITY = "ldp_vc"
 public let FORMAT_W3C_JSONLD_SIGNED_JWT = "jwt_vc_json-ld"
 public let FORMAT_W3C_SIGNED_JWT = "jwt_vc_json"
 
-public typealias Namespace = String
-public typealias ClaimName = String
-
-public typealias MsoMdocClaims = [Namespace: [ClaimName: Claim]]
-public extension MsoMdocClaims {
-  init(json: JSON) {
-    var claims = MsoMdocClaims()
-    if let _ = json.dictionaryObject {
-      for (namespace, subJSON) in json.dictionaryValue {
-        var namespaceClaims = [ClaimName: Claim]()
-        for (claimName, claimJSON) in subJSON.dictionaryValue {
-          let claim = Claim(
-            mandatory: claimJSON["mandatory"].bool,
-            valueType: claimJSON["valuetype"].string,
-            display: claimJSON["display"].arrayValue.compactMap {
-              Display(json: $0)
-            }
-          )
-          namespaceClaims[claimName] = claim
-        }
-        claims[namespace] = namespaceClaims
-      }
-    } else if let jsonArray = json.arrayObject {
-      for element in jsonArray {
-        if let dictionary = element as? [String: String] {
-          if let key = dictionary.keys.first, let value = dictionary[key] {
-            claims[key] = [value: Claim()]
-          }
-        }
-      }
-    }
-    self = claims
-  }
-}
-
-public typealias SdJwtVCMetadataClaims = [ClaimName: Claim]
-public extension SdJwtVCMetadataClaims {
-  init(json: JSON) {
-    var claims = SdJwtVCMetadataClaims()
-    if let _ = json.dictionaryObject {
-      var namespaceClaims = [ClaimName: Claim]()
-      for (claimName, claimJSON) in json.dictionaryValue {
-        let claim = Claim(
-          mandatory: claimJSON["mandatory"].bool,
-          valueType: claimJSON["valuetype"].string,
-          display: claimJSON["display"].arrayValue.compactMap {
-            Display(json: $0)
-          }
-        )
-        namespaceClaims[claimName] = claim
-      }
-      claims = namespaceClaims
-    } else if let jsonArray = json.arrayObject {
-      for element in jsonArray {
-        if let dictionary = element as? [String: String] {
-          if let key = dictionary.keys.first {
-            claims[key] = Claim()
-          }
-        }
-      }
-    }
-    self = claims
-  }
-}
-
 public enum CredentialIssuanceRequest {
   case single(SingleCredential, IssuanceResponseEncryptionSpec?)
 }
@@ -121,8 +56,7 @@ public extension SingleCredential {
             proofOrProofs: proofOrProofs,
             dictionary: [
               "format": MsoMdocFormat.FORMAT,
-              "doctype": credential.docType,
-              "claims": credential.claimSet?.toDictionary()
+              "doctype": credential.docType
             ]
           )
         }
@@ -155,8 +89,7 @@ public extension SingleCredential {
                 "jwk": try encryptionJwk.toDictionary(),
                 "alg": responseEncryptionAlg.name,
                 "enc": responseEncryptionMethod.name
-              ],
-              "claims": credential.claimSet?.toDictionary()
+              ]
             ]
           )
         }
@@ -178,8 +111,7 @@ public extension SingleCredential {
             proofOrProofs: proofOrProofs,
             dictionary: [
               "vct": credential.vct ?? credential.credentialDefinition.type,
-              "format": SdJwtVcFormat.FORMAT,
-              "claims": credential.credentialDefinition.claims?.toDictionary()
+              "format": SdJwtVcFormat.FORMAT
             ]
           )
         }
@@ -212,8 +144,7 @@ public extension SingleCredential {
                 "jwk": try encryptionJwk.toDictionary(),
                 "alg": responseEncryptionAlg.name,
                 "enc": responseEncryptionMethod.name
-              ],
-              "claims": credential.credentialDefinition.claims?.toDictionary()
+              ]
             ]
           )
         }

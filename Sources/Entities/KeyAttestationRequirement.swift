@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 import Foundation
+import SwiftyJSON
 
 public enum KeyAttestationRequirementError: Error {
   case invalidConstraints
@@ -76,5 +77,24 @@ public extension KeyAttestationRequirement {
       keyStorageConstraints: keyStorageConstraints,
       userAuthenticationConstraints: userAuthenticationConstraints
     )
+  }
+  
+  init(json: JSON?) throws {
+    guard let json = json else {
+      self = .notRequired
+      return
+    }
+    
+    let keyStorageConstraints = json[CodingKeys.keyStorageConstraints.rawValue].arrayValue.map { $0.stringValue }
+    let userAuthenticationConstraints = json[CodingKeys.userAuthenticationConstraints.rawValue].arrayValue.map { $0.stringValue }
+    
+    if keyStorageConstraints.isEmpty || userAuthenticationConstraints.isEmpty {
+      self = .notRequired
+    } else {
+      try self.init(
+        keyStorageConstraints: keyStorageConstraints,
+        userAuthenticationConstraints: userAuthenticationConstraints
+      )
+    }
   }
 }

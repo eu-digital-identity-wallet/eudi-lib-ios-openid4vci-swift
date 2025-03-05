@@ -476,13 +476,11 @@ public actor Issuer: IssuerType {
       )
       
     case .configurationBased(
-      let credentialConfigurationIdentifier,
-      let claimSet
+      let credentialConfigurationIdentifier
     ):
       return try await formatBasedRequest(
         authorizedRequest: noProofRequest,
         token: token,
-        claimSet: claimSet,
         credentialConfigurationIdentifier: credentialConfigurationIdentifier,
         responseEncryptionSpecProvider: responseEncryptionSpecProvider
       )
@@ -514,13 +512,11 @@ public actor Issuer: IssuerType {
       )
       
     case .configurationBased(
-      let credentialConfigurationIdentifier,
-      let claimSet
+      let credentialConfigurationIdentifier
     ):
       return try await formatBasedRequest(
         authorizedRequest: proofRequest,
         token: token,
-        claimSet: claimSet,
         bindingKeys: bindingKeys,
         cNonce: cNonce(from: proofRequest),
         credentialConfigurationIdentifier: credentialConfigurationIdentifier,
@@ -625,7 +621,6 @@ private extension Issuer {
   func formatBasedRequest(
     authorizedRequest: AuthorizedRequest,
     token: IssuanceAccessToken,
-    claimSet: ClaimSet?,
     bindingKeys: [BindingKey] = [],
     cNonce: CNonce? = nil,
     credentialConfigurationIdentifier: CredentialConfigurationIdentifier,
@@ -651,7 +646,6 @@ private extension Issuer {
     ) {
       return try supportedCredential.toIssuanceRequest(
         requester: issuanceRequester,
-        claimSet: claimSet,
         proofs: proofs,
         responseEncryptionSpecProvider: responseEncryptionSpecProvider
       )

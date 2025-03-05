@@ -47,7 +47,6 @@ struct Wallet {
 extension Wallet {
   func issueByCredentialIdentifier(
     _ identifier: String,
-    claimSet: ClaimSet? = nil,
     config: OpenId4VCIConfig
   ) async throws -> Credential {
     let credentialConfigurationIdentifier = try CredentialConfigurationIdentifier(value: identifier)
@@ -83,7 +82,6 @@ extension Wallet {
         return try await issueOfferedCredentialNoProof(
           offer: offer,
           credentialConfigurationIdentifier: credentialConfigurationIdentifier,
-          claimSet: claimSet,
           config: config
         )
         
@@ -97,7 +95,6 @@ extension Wallet {
   
   private func issueMultipleOfferedCredentialWithProof(
     offer: CredentialOffer,
-    claimSet: ClaimSet? = nil,
     config: OpenId4VCIConfig
   ) async throws -> [(String, Credential)] {
     
@@ -132,8 +129,7 @@ extension Wallet {
         if let data = try? await noProofRequiredSubmissionUseCase(
           issuer: issuer,
           noProofRequiredState: authorized,
-          credentialConfigurationIdentifier: credentialConfigurationIdentifier, 
-          claimSet: claimSet
+          credentialConfigurationIdentifier: credentialConfigurationIdentifier
         ) {
           return (scope, data)
         } else {
@@ -149,8 +145,7 @@ extension Wallet {
         let data = try await proofRequiredSubmissionUseCase(
           issuer: issuer,
           authorized: authorized,
-          credentialConfigurationIdentifier: credentialConfigurationIdentifier,
-          claimSet: claimSet
+          credentialConfigurationIdentifier: credentialConfigurationIdentifier
         )
         return (scope, data)
       }
@@ -160,7 +155,6 @@ extension Wallet {
   private func issueOfferedCredentialNoProof(
     offer: CredentialOffer,
     credentialConfigurationIdentifier: CredentialConfigurationIdentifier,
-    claimSet: ClaimSet? = nil,
     config: OpenId4VCIConfig
   ) async throws -> Credential {
     
@@ -186,15 +180,13 @@ extension Wallet {
       return try await noProofRequiredSubmissionUseCase(
         issuer: issuer,
         noProofRequiredState: authorized,
-        credentialConfigurationIdentifier: credentialConfigurationIdentifier,
-        claimSet: claimSet
+        credentialConfigurationIdentifier: credentialConfigurationIdentifier
       )
     case .proofRequired:
       return try await proofRequiredSubmissionUseCase(
         issuer: issuer,
         authorized: authorized,
-        credentialConfigurationIdentifier: credentialConfigurationIdentifier,
-        claimSet: claimSet
+        credentialConfigurationIdentifier: credentialConfigurationIdentifier
       )
     }
   }
@@ -204,7 +196,6 @@ extension Wallet {
   
   func issueByCredentialOfferUrlMultipleFormats(
     offerUri: String,
-    claimSet: ClaimSet? = nil,
     config: OpenId4VCIConfig
   ) async throws -> [(String, Credential)] {
     let resolver = CredentialOfferRequestResolver(
@@ -228,7 +219,6 @@ extension Wallet {
     case .success(let offer):
       return try await issueMultipleOfferedCredentialWithProof(
         offer: offer,
-        claimSet: claimSet,
         config: config
       )
     case .failure(let error):
@@ -239,7 +229,6 @@ extension Wallet {
   func issueByCredentialOfferUrl(
     offerUri: String,
     scope: String,
-    claimSet: ClaimSet? = nil,
     config: OpenId4VCIConfig
   ) async throws -> Credential {
       let result = await CredentialOfferRequestResolver(
@@ -262,7 +251,6 @@ extension Wallet {
       return try await issueOfferedCredentialWithProof(
         offer: offer,
         scope: scope,
-        claimSet: claimSet,
         config: config
       )
     case .failure(let error):
@@ -273,7 +261,6 @@ extension Wallet {
   func issueByCredentialOfferUrl_DPoP(
     offerUri: String,
     scope: String,
-    claimSet: ClaimSet? = nil,
     config: OpenId4VCIConfig
   ) async throws -> Credential {
     let result = await CredentialOfferRequestResolver(
@@ -296,7 +283,6 @@ extension Wallet {
       return try await issueOfferedCredentialWithProof_DPoP(
         offer: offer,
         scope: scope,
-        claimSet: claimSet,
         config: config
       )
     case .failure(let error):
@@ -307,7 +293,6 @@ extension Wallet {
   private func issueOfferedCredentialWithProof(
     offer: CredentialOffer,
     scope: String,
-    claimSet: ClaimSet? = nil,
     config: OpenId4VCIConfig
   ) async throws -> Credential {
     
@@ -337,15 +322,13 @@ extension Wallet {
       return try await noProofRequiredSubmissionUseCase(
         issuer: issuer,
         noProofRequiredState: authorized,
-        credentialConfigurationIdentifier: credentialConfigurationIdentifier,
-        claimSet: claimSet
+        credentialConfigurationIdentifier: credentialConfigurationIdentifier
       )
     case .proofRequired:
       return try await proofRequiredSubmissionUseCase(
         issuer: issuer,
         authorized: authorized,
-        credentialConfigurationIdentifier: credentialConfigurationIdentifier,
-        claimSet: claimSet
+        credentialConfigurationIdentifier: credentialConfigurationIdentifier
       )
     }
   }
@@ -353,7 +336,6 @@ extension Wallet {
   private func issueOfferedCredentialWithProof_DPoP(
     offer: CredentialOffer,
     scope: String,
-    claimSet: ClaimSet? = nil,
     config: OpenId4VCIConfig
   ) async throws -> Credential {
     
@@ -384,15 +366,13 @@ extension Wallet {
       return try await noProofRequiredSubmissionUseCase(
         issuer: issuer,
         noProofRequiredState: authorized,
-        credentialConfigurationIdentifier: credentialConfigurationIdentifier,
-        claimSet: claimSet
+        credentialConfigurationIdentifier: credentialConfigurationIdentifier
       )
     case .proofRequired:
       return try await proofRequiredSubmissionUseCase(
         issuer: issuer,
         authorized: authorized,
-        credentialConfigurationIdentifier: credentialConfigurationIdentifier,
-        claimSet: claimSet
+        credentialConfigurationIdentifier: credentialConfigurationIdentifier
       )
     }
   }
@@ -472,14 +452,12 @@ extension Wallet {
   private func noProofRequiredSubmissionUseCase(
     issuer: Issuer,
     noProofRequiredState: AuthorizedRequest,
-    credentialConfigurationIdentifier: CredentialConfigurationIdentifier,
-    claimSet: ClaimSet? = nil
+    credentialConfigurationIdentifier: CredentialConfigurationIdentifier
   ) async throws -> Credential {
     switch noProofRequiredState {
     case .noProofRequired:
       let payload: IssuanceRequestPayload = .configurationBased(
-        credentialConfigurationIdentifier: credentialConfigurationIdentifier,
-        claimSet: claimSet
+        credentialConfigurationIdentifier: credentialConfigurationIdentifier
       )
       let responseEncryptionSpecProvider = { Issuer.createResponseEncryptionSpec($0) }
       let requestOutcome = try await issuer.request(
@@ -509,8 +487,7 @@ extension Wallet {
           return try await proofRequiredSubmissionUseCase(
             issuer: issuer,
             authorized: noProofRequiredState.handleInvalidProof(cNonce: cNonce),
-            credentialConfigurationIdentifier: credentialConfigurationIdentifier,
-            claimSet: claimSet
+            credentialConfigurationIdentifier: credentialConfigurationIdentifier
           )
         case .failed(error: let error):
           throw ValidationError.error(reason: error.localizedDescription)
@@ -526,8 +503,7 @@ extension Wallet {
   private func proofRequiredSubmissionUseCase(
     issuer: Issuer,
     authorized: AuthorizedRequest,
-    credentialConfigurationIdentifier: CredentialConfigurationIdentifier?,
-    claimSet: ClaimSet? = nil
+    credentialConfigurationIdentifier: CredentialConfigurationIdentifier?
   ) async throws -> Credential {
     
     guard let credentialConfigurationIdentifier else {
@@ -535,8 +511,7 @@ extension Wallet {
     }
     
     let payload: IssuanceRequestPayload = .configurationBased(
-      credentialConfigurationIdentifier: credentialConfigurationIdentifier,
-      claimSet: claimSet
+      credentialConfigurationIdentifier: credentialConfigurationIdentifier
     )
     
     let responseEncryptionSpecProvider = { Issuer.createResponseEncryptionSpec($0) }

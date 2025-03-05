@@ -42,53 +42,40 @@ public struct W3CJsonLdDataIntegrityFormat: FormatProfile {
 
 public extension W3CJsonLdDataIntegrityFormat {
   
-  struct W3CJsonLdDataIntegrityClaimSet: Codable {
-    public let claims: [ClaimName: Claim]
-    
-    public init(claims: [ClaimName : Claim]) {
-      self.claims = claims
-    }
-  }
-  
   struct CredentialDefinitionTO: Codable {
     public let context: [String]
     public let type: [String]
-    public let credentialSubject: [String: Claim]?
+    public let claims: [Claim]
     
     enum CodingKeys: String, CodingKey {
       case context = "@context"
       case type
-      case credentialSubject = "credential_subject"
+      case claims
     }
     
     public init(
       context: [String],
       type: [String],
-      credentialSubject: [String : Claim]?
+      claims: [Claim]
     ) {
       self.context = context
       self.type = type
-      self.credentialSubject = credentialSubject
+      self.claims = claims
     }
     
-    public init(json: JSON) {
+    public init(json: JSON) throws {
       context = json["@context"].arrayValue.map { $0.stringValue }
       type = json["type"].arrayValue.map { $0.stringValue }
       
-      if let credentialSubjectDict = json["credential_subject"].dictionaryObject as? [String: [String: Any]] {
-        credentialSubject = credentialSubjectDict.compactMapValues { claimDict in
-          Claim(json: JSON(claimDict))
-        }
-      } else {
-        credentialSubject = nil
-      }
+      let claims = try json["claims"].array?.compactMap({ try Claim(json: $0)}) ?? []
+      self.claims = claims
     }
     
     func toDomain() -> CredentialDefinition {
       CredentialDefinition(
         context: context,
         type: type,
-        credentialSubject: credentialSubject
+        claims: claims
       )
     }
   }
@@ -98,12 +85,11 @@ public extension W3CJsonLdDataIntegrityFormat {
     public let scope: String?
     public let cryptographicBindingMethodsSupported: [String]?
     public let credentialSigningAlgValuesSupported: [String]?
-    public let proofTypesSupported: [String: ProofSigningAlgorithmsSupported]?
+    public let proofTypesSupported: [String: ProofTypeSupportedMeta]?
     public let display: [Display]?
     public let context: [String]
     public let type: [String]
     public let credentialDefinition: CredentialDefinitionTO
-    public let order: [String]?
     
     enum CodingKeys: String, CodingKey {
       case format
@@ -115,7 +101,6 @@ public extension W3CJsonLdDataIntegrityFormat {
       case context = "@context"
       case type
       case credentialDefinition = "credential_definition"
-      case order
     }
     
     public init(
@@ -123,12 +108,11 @@ public extension W3CJsonLdDataIntegrityFormat {
       scope: String? = nil,
       cryptographicBindingMethodsSupported: [String]? = nil,
       credentialSigningAlgValuesSupported: [String]? = nil,
-      proofTypesSupported: [String: ProofSigningAlgorithmsSupported]? = nil,
+      proofTypesSupported: [String: ProofTypeSupportedMeta]? = nil,
       display: [Display]? = nil,
       context: [String] = [],
       type: [String] = [],
-      credentialDefinition: CredentialDefinitionTO,
-      order: [String]? = nil
+      credentialDefinition: CredentialDefinitionTO
     ) {
       self.format = format
       self.scope = scope
@@ -139,7 +123,6 @@ public extension W3CJsonLdDataIntegrityFormat {
       self.context = context
       self.type = type
       self.credentialDefinition = credentialDefinition
-      self.order = order
     }
     
     func toDomain() throws -> W3CJsonLdDataIntegrityFormat.CredentialConfiguration {
@@ -161,8 +144,7 @@ public extension W3CJsonLdDataIntegrityFormat {
         display: display,
         context: context,
         type: type,
-        credentialDefinition: credentialDefinition,
-        order: order ?? []
+        credentialDefinition: credentialDefinition
       )
     }
   }
@@ -171,12 +153,11 @@ public extension W3CJsonLdDataIntegrityFormat {
     public let scope: String?
     public let cryptographicBindingMethodsSupported: [CryptographicBindingMethod]
     public let credentialSigningAlgValuesSupported: [String]
-    public let proofTypesSupported: [String: ProofSigningAlgorithmsSupported]??
+    public let proofTypesSupported: [String: ProofTypeSupportedMeta]??
     public let display: [Display]
     public let context: [String]
     public let type: [String]
     public let credentialDefinition: CredentialDefinition
-    public let order: [ClaimName]
     
     enum CodingKeys: String, CodingKey {
       case scope
@@ -187,19 +168,17 @@ public extension W3CJsonLdDataIntegrityFormat {
       case context = "@context"
       case type
       case credentialDefinition = "credential_definition"
-      case order
     }
     
     public init(
       scope: String?,
       cryptographicBindingMethodsSupported: [CryptographicBindingMethod],
       credentialSigningAlgValuesSupported: [String],
-      proofTypesSupported: [String: ProofSigningAlgorithmsSupported]?,
+      proofTypesSupported: [String: ProofTypeSupportedMeta]?,
       display: [Display],
       context: [String],
       type: [String],
-      credentialDefinition: CredentialDefinition,
-      order: [ClaimName]
+      credentialDefinition: CredentialDefinition
     ) {
       self.scope = scope
       self.cryptographicBindingMethodsSupported = cryptographicBindingMethodsSupported
@@ -209,7 +188,6 @@ public extension W3CJsonLdDataIntegrityFormat {
       self.context = context
       self.type = type
       self.credentialDefinition = credentialDefinition
-      self.order = order
     }
     
     public init(from decoder: Decoder) throws {
@@ -218,12 +196,11 @@ public extension W3CJsonLdDataIntegrityFormat {
       scope = try container.decodeIfPresent(String.self, forKey: .scope)
       cryptographicBindingMethodsSupported = try container.decode([CryptographicBindingMethod].self, forKey: .cryptographicBindingMethodsSupported)
       credentialSigningAlgValuesSupported = try container.decode([String].self, forKey: .credentialSigningAlgValuesSupported)
-      proofTypesSupported = try? container.decode([String: ProofSigningAlgorithmsSupported].self, forKey: .proofTypesSupported)
+      proofTypesSupported = try? container.decode([String: ProofTypeSupportedMeta].self, forKey: .proofTypesSupported)
       display = try container.decode([Display].self, forKey: .display)
       context = try container.decode([String].self, forKey: .context)
       type = try container.decode([String].self, forKey: .type)
       credentialDefinition = try container.decode(CredentialDefinition.self, forKey: .credentialDefinition)
-      order = try container.decode([ClaimName].self, forKey: .order)
     }
     
     public func encode(to encoder: Encoder) throws {
@@ -237,7 +214,6 @@ public extension W3CJsonLdDataIntegrityFormat {
       try container.encode(context, forKey: .context)
       try container.encode(type, forKey: .type)
       try container.encode(credentialDefinition, forKey: .credentialDefinition)
-      try container.encode(order, forKey: .order)
     }
     
     init(json: JSON) throws {
@@ -251,7 +227,11 @@ public extension W3CJsonLdDataIntegrityFormat {
       self.proofTypesSupported = json["proof_types_supported"].dictionaryObject?.compactMapValues { values in
         if let types = values as? [String: Any],
            let algorithms = types["proof_signing_alg_values_supported"] as? [String] {
-          return ProofSigningAlgorithmsSupported(algorithms: algorithms)
+          let requirement = types["key_attestations_required"]
+          return .init(
+            algorithms: algorithms,
+            keyAttestationRequirement: try? .init(json: JSON(requirement ?? [:]))
+          )
         }
         return nil
       }
@@ -264,14 +244,10 @@ public extension W3CJsonLdDataIntegrityFormat {
       self.type = json["type"].arrayValue.map {
         $0.stringValue
       }
-      self.credentialDefinition = CredentialDefinition(json: json["credential_definition"])
-      self.order = json["order"].arrayValue.map {
-        ClaimName($0.stringValue)
-      }
+      self.credentialDefinition = try CredentialDefinition(json: json["credential_definition"])
     }
     
     func toIssuanceRequest(
-      claimSet: ClaimSet?,
       proofs: [Proof]
     ) throws -> CredentialIssuanceRequest {
       throw ValidationError.error(reason: "Not yet implemented")
@@ -281,39 +257,30 @@ public extension W3CJsonLdDataIntegrityFormat {
   struct CredentialDefinition: Codable {
     public let context: [String]
     public let type: [String]
-    public let credentialSubject: [ClaimName: Claim?]?
+    public let claims: [Claim]
     
     enum CodingKeys: String, CodingKey {
       case context = "@context"
       case type
-      case credentialSubject = "credential_subject"
+      case claims = "claims"
     }
     
     public init(
       context: [String],
       type: [String],
-      credentialSubject: [ClaimName : Claim?]?
+      claims: [Claim]
     ) {
       self.context = context
       self.type = type
-      self.credentialSubject = credentialSubject
+      self.claims = claims
     }
     
-    public init(json: JSON) {
+    public init(json: JSON) throws {
       context = json["@context"].arrayValue.map { $0.stringValue }
       type = json["type"].arrayValue.map { $0.stringValue }
       
-      var credentialSubjectDict: [ClaimName: Claim?] = [:]
-      let credentialSubjectJSON = json["credential_subject"]
-      for (key, subJSON): (String, JSON) in credentialSubjectJSON.dictionaryValue {
-        credentialSubjectDict[key] = Claim(
-          mandatory: subJSON["mandatory"].bool,
-          valueType: subJSON["valuetype"].string,
-          display: subJSON["display"].arrayValue.compactMap {
-            Display(json: $0)
-          })
-      }
-      self.credentialSubject = credentialSubjectDict
+      let claims = try json["claims"].array?.compactMap({ try Claim(json: $0)}) ?? []
+      self.claims = claims
     }
   }
 }
@@ -325,7 +292,7 @@ public extension W3CJsonLdDataIntegrityFormat {
     metadata: CredentialIssuerMetadata
   ) throws -> CredentialMetadata {
     
-    let credentialDefinition = CredentialDefinitionTO(json: json).toDomain()
+    let credentialDefinition = try CredentialDefinitionTO(json: json).toDomain()
     
     if let credentialConfigurationsSupported = metadata.credentialsSupported.first(where: { (id, credential) in
       switch credential {

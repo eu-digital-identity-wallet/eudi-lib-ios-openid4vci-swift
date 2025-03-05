@@ -108,19 +108,10 @@ class IssuanceSingleRequestTest: XCTestCase {
         
         do {
           
-          let claimSetMsoMdoc = MsoMdocFormat.MsoMdocClaimSet(
-            claims: [
-              ("org.iso.18013.5.1", "given_name"),
-              ("org.iso.18013.5.1", "family_name"),
-              ("org.iso.18013.5.1", "birth_date")
-            ]
-          )
-          
           let payload: IssuanceRequestPayload = .configurationBased(
             credentialConfigurationIdentifier: try .init(
               value: "eu.europa.ec.eudi.pid_mso_mdoc"
-            ),
-            claimSet: .msoMdoc(claimSetMsoMdoc)
+            )
           )
           let result = try await issuer.request(
             noProofRequest: authorized,
@@ -241,19 +232,10 @@ class IssuanceSingleRequestTest: XCTestCase {
       
       do {
         
-        let claimSetMsoMdoc = MsoMdocFormat.MsoMdocClaimSet(
-          claims: [
-            ("org.iso.18013.5.1", "given_name"),
-            ("org.iso.18013.5.1", "family_name"),
-            ("org.iso.18013.5.1", "birth_date")
-          ]
-        )
-        
         let payload: IssuanceRequestPayload = .configurationBased(
           credentialConfigurationIdentifier: try .init(
             value: "eu.europa.ec.eudi.pid_mso_mdoc"
-          ),
-          claimSet: .msoMdoc(claimSetMsoMdoc)
+          )
         )
         let result = try await issuer.request(
           noProofRequest: authorized,

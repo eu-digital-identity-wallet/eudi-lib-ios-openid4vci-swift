@@ -68,8 +68,7 @@ class IssuanceEncryptionTest: XCTestCase {
       let payload: IssuanceRequestPayload = .configurationBased(
         credentialConfigurationIdentifier: try .init(
           value: "MobileDrivingLicense_msoMdoc"
-        ),
-        claimSet: nil
+        )
       )
       _ = try await issuer.request(
         noProofRequest: authorizedRequest,
@@ -121,8 +120,7 @@ class IssuanceEncryptionTest: XCTestCase {
       let payload: IssuanceRequestPayload = .configurationBased(
         credentialConfigurationIdentifier: try .init(
           value: "MobileDrivingLicense_msoMdoc"
-        ),
-        claimSet: nil
+        )
       )
       _ = try await issuer.request(
         noProofRequest: authorizedRequest,
@@ -160,8 +158,7 @@ class IssuanceEncryptionTest: XCTestCase {
       let payload: IssuanceRequestPayload = .configurationBased(
         credentialConfigurationIdentifier: try .init(
           value: "MobileDrivingLicense_msoMdoc"
-        ),
-        claimSet: nil
+        )
       )
       _ = try await issuer.request(
         noProofRequest: authorizedRequest,

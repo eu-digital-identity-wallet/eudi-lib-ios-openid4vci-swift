@@ -465,8 +465,7 @@ class VCIFlowWithOffer: XCTestCase {
 }
 
 private func walletInitiatedIssuanceWithOfferSdJWT(
-  wallet: Wallet,
-  claimSet: ClaimSet? = nil
+  wallet: Wallet
 ) async throws {
   
   print("[[Scenario: Offer passed to wallet via url]] ")
@@ -475,7 +474,6 @@ private func walletInitiatedIssuanceWithOfferSdJWT(
   let credential = try await wallet.issueByCredentialOfferUrl(
     offerUri: url,
     scope: PID_SdJwtVC_config_id,
-    claimSet: claimSet,
     config: clientConfig
   )
   
@@ -483,8 +481,7 @@ private func walletInitiatedIssuanceWithOfferSdJWT(
 }
 
 private func walletInitiatedIssuanceWithOfferMDL(
-  wallet: Wallet,
-  claimSet: ClaimSet? = nil
+  wallet: Wallet
 ) async throws {
   
   print("[[Scenario: Offer passed to wallet via url]] ")
@@ -493,7 +490,6 @@ private func walletInitiatedIssuanceWithOfferMDL(
   let credential = try await wallet.issueByCredentialOfferUrl(
     offerUri: url,
     scope: MDL_config_id,
-    claimSet: claimSet,
     config: clientConfig
   )
   
@@ -502,8 +498,7 @@ private func walletInitiatedIssuanceWithOfferMDL(
 
 private func walletInitiatedIssuanceWithOfferMDL_DPoP(
   wallet: Wallet,
-  config: OpenId4VCIConfig,
-  claimSet: ClaimSet? = nil
+  config: OpenId4VCIConfig
 ) async throws {
   
   print("[[Scenario: Offer passed to wallet via url]] ")
@@ -512,7 +507,6 @@ private func walletInitiatedIssuanceWithOfferMDL_DPoP(
   let credential = try await wallet.issueByCredentialOfferUrl_DPoP(
     offerUri: url,
     scope: MDL_config_id,
-    claimSet: claimSet,
     config: config
   )
   
@@ -521,8 +515,7 @@ private func walletInitiatedIssuanceWithOfferMDL_DPoP(
 
 private func walletInitiatedIssuanceWithOfferSDJWT_DPoP(
   wallet: Wallet,
-  config: OpenId4VCIConfig,
-  claimSet: ClaimSet? = nil
+  config: OpenId4VCIConfig
 ) async throws {
   
   print("[[Scenario: Offer passed to wallet via url]] ")
@@ -531,7 +524,6 @@ private func walletInitiatedIssuanceWithOfferSDJWT_DPoP(
   let credential = try await wallet.issueByCredentialOfferUrl_DPoP(
     offerUri: url,
     scope: PID_SdJwtVC_config_id,
-    claimSet: claimSet,
     config: config
   )
   
@@ -539,8 +531,7 @@ private func walletInitiatedIssuanceWithOfferSDJWT_DPoP(
 }
 
 private func walletInitiatedIssuanceWithOfferMdoc(
-  wallet: Wallet,
-  claimSet: ClaimSet? = nil
+  wallet: Wallet
 ) async throws {
   
   print("[[Scenario: Offer passed to wallet via url]] ")
@@ -549,7 +540,6 @@ private func walletInitiatedIssuanceWithOfferMdoc(
   let credential = try await wallet.issueByCredentialOfferUrl(
     offerUri: url,
     scope: PID_MsoMdoc_config_id,
-    claimSet: claimSet,
     config: clientConfig
   )
   
@@ -557,8 +547,7 @@ private func walletInitiatedIssuanceWithOfferMdoc(
 }
 
 private func walletInitiatedIssuanceWithOfferArray(
-  wallet: Wallet,
-  claimSet: ClaimSet? = nil
+  wallet: Wallet
 ) async throws {
   
   print("[[Scenario: Offer passed to wallet via url]] ")
@@ -566,7 +555,6 @@ private func walletInitiatedIssuanceWithOfferArray(
   let url = "\(CREDENTIAL_ISSUER_PUBLIC_URL)/credentialoffer?credential_offer=\(All_Supported_CredentialOffer)"
   let credentials = try await wallet.issueByCredentialOfferUrlMultipleFormats(
     offerUri: url,
-    claimSet: claimSet,
     config: clientConfig
   )
   
@@ -578,8 +566,7 @@ private func walletInitiatedIssuanceWithOfferArray(
 
 private func walletInitiatedIssuanceWithOfferUrl(
   wallet: Wallet,
-  url: String,
-  claimSet: ClaimSet? = nil
+  url: String
 ) async throws {
   
   guard !url.isEmpty else {
@@ -592,7 +579,6 @@ private func walletInitiatedIssuanceWithOfferUrl(
   
   let credentials = try await wallet.issueByCredentialOfferUrlMultipleFormats(
     offerUri: url,
-    claimSet: claimSet,
     config: clientConfig
   )
   
