@@ -161,30 +161,33 @@ public struct Nonce {
 
 public struct Claim: Codable {
   public let mandatory: Bool?
-  public let valueType: String?
   public let display: [Display]?
+  public let path: ClaimPath
   
   enum CodingKeys: String, CodingKey {
     case mandatory
-    case valueType = "value_type"
     case display
+    case path
   }
   
   public init() {
     self.mandatory = nil
-    self.valueType = nil
     self.display = nil
+    self.path = .init([])
   }
   
-  public init(mandatory: Bool?, valueType: String?, display: [Display]?) {
+  public init(
+    mandatory: Bool?,
+    display: [Display]?,
+    path: ClaimPath = .init([])
+  ) {
     self.mandatory = mandatory
-    self.valueType = valueType
     self.display = display
+    self.path = path
   }
   
-  init(json: JSON) {
+  init(json: JSON) throws {
     mandatory = json["mandatory"].bool
-    valueType = json["value_type"].string
     
     if let displayArray = json["display"].array {
       display = displayArray.map { displayJson in
@@ -193,6 +196,8 @@ public struct Claim: Codable {
     } else {
       display = nil
     }
+    
+    self.path = try ClaimPath(json: json["path"])
   }
 }
 
