@@ -22,6 +22,7 @@ public struct CredentialIssuerMetadata: Decodable, Equatable {
   public let authorizationServers: [URL]?
   public let credentialEndpoint: CredentialIssuerEndpoint
   public let deferredCredentialEndpoint: CredentialIssuerEndpoint?
+  public let nonceEndpoint: CredentialIssuerEndpoint?
   public let notificationEndpoint: CredentialIssuerEndpoint?
   public let credentialResponseEncryption: CredentialResponseEncryption
   public let credentialsSupported: [CredentialConfigurationIdentifier: CredentialSupported]
@@ -35,6 +36,7 @@ public struct CredentialIssuerMetadata: Decodable, Equatable {
     case authorizationServers = "authorization_servers"
     case credentialEndpoint = "credential_endpoint"
     case deferredCredentialEndpoint = "deferred_credential_endpoint"
+    case nonceEndpoint = "nonce_endpoint"
     case notificationEndpoint = "notification_endpoint"
     case credentialResponseEncryptionAlgorithmsSupported = "credential_response_encryption_alg_values_supported"
     case credentialResponseEncryptionMethodsSupported = "credential_response_encryption_enc_values_supported"
@@ -52,6 +54,7 @@ public struct CredentialIssuerMetadata: Decodable, Equatable {
     authorizationServers: [URL],
     credentialEndpoint: CredentialIssuerEndpoint,
     deferredCredentialEndpoint: CredentialIssuerEndpoint?,
+    nonceEndpoint: CredentialIssuerEndpoint?,
     notificationEndpoint: CredentialIssuerEndpoint?,
     credentialResponseEncryption: CredentialResponseEncryption = .notRequired,
     credentialConfigurationsSupported: [CredentialConfigurationIdentifier: CredentialSupported],
@@ -65,6 +68,7 @@ public struct CredentialIssuerMetadata: Decodable, Equatable {
     
     self.credentialEndpoint = credentialEndpoint
     self.deferredCredentialEndpoint = deferredCredentialEndpoint
+    self.nonceEndpoint = nonceEndpoint
     self.notificationEndpoint = notificationEndpoint
     
     self.credentialResponseEncryption = credentialResponseEncryption
@@ -83,6 +87,7 @@ public struct CredentialIssuerMetadata: Decodable, Equatable {
       authorizationServers: [],
       credentialEndpoint: .init(string: Constants.url),
       deferredCredentialEndpoint: deferredCredentialEndpoint,
+      nonceEndpoint: nil,
       notificationEndpoint: nil,
       credentialConfigurationsSupported: [:],
       signedMetadata: nil,
@@ -102,6 +107,7 @@ public struct CredentialIssuerMetadata: Decodable, Equatable {
     
     credentialEndpoint = try container.decode(CredentialIssuerEndpoint.self, forKey: .credentialEndpoint)
     deferredCredentialEndpoint = try container.decodeIfPresent(CredentialIssuerEndpoint.self, forKey: .deferredCredentialEndpoint)
+    nonceEndpoint = try container.decodeIfPresent(CredentialIssuerEndpoint.self, forKey: .nonceEndpoint)
     notificationEndpoint = try container.decodeIfPresent(CredentialIssuerEndpoint.self, forKey: .notificationEndpoint)
     
     credentialResponseEncryption = (try? container.decode(CredentialResponseEncryption.self, forKey: .credentialResponseEncryption)) ?? .notRequired
