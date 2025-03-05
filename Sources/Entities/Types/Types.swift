@@ -262,3 +262,38 @@ public struct ProofsTO: Codable {
     self.jwtProofs = jwtProofs
   }
 }
+
+public struct BackgroundImage: Codable, Equatable {
+  public let url: URL
+  
+  public init(uri: String) throws {
+    guard let url = URL(string: uri) else {
+      throw BackgroundImageError.invalidURL
+    }
+    self.url = url
+  }
+  
+  public init(json: JSON) throws {
+    let uri = json["uri"].stringValue
+    try self.init(uri: uri)
+  }
+  
+  enum CodingKeys: String, CodingKey {
+    case uri
+  }
+  
+  public init(from decoder: Decoder) throws {
+    let container = try decoder.container(keyedBy: CodingKeys.self)
+    let uri = try container.decode(String.self, forKey: .uri)
+    try self.init(uri: uri)
+  }
+  
+  public func encode(to encoder: Encoder) throws {
+    var container = encoder.container(keyedBy: CodingKeys.self)
+    try container.encode(url.absoluteString, forKey: .uri)
+  }
+}
+
+public enum BackgroundImageError: Error {
+  case invalidURL
+}
