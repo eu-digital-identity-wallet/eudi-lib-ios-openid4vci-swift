@@ -15,14 +15,23 @@
  */
 import Foundation
 
-public struct ProofSigningAlgorithmsSupported: Codable {
-  public let algorithms: [String]
+public struct ProofTypeSupportedMeta: Codable {
   
-  public init(algorithms: [String]) {
-    self.algorithms = algorithms
+  public let algorithms: [String]
+  public let keyAttestationRequirement: KeyAttestationRequirement?
+  
+  enum CodingKeys: String, CodingKey {
+    case algorithms = "proof_signing_alg_values_supported"
+    case keyAttestationRequirement = "key_attestations_required"
   }
   
-  private enum CodingKeys: String, CodingKey {
-    case algorithms = "proof_signing_alg_values_supported"
+  public init(
+    algorithms: [String],
+    keyAttestationRequirement: KeyAttestationRequirement? = nil
+  ) {
+    self.algorithms = algorithms
+    self.keyAttestationRequirement = keyAttestationRequirement
   }
 }
+
+

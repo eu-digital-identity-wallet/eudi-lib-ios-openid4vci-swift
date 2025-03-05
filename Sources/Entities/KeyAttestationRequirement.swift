@@ -19,14 +19,48 @@ public enum KeyAttestationRequirementError: Error {
   case invalidConstraints
 }
 
-public enum KeyAttestationRequirement {
-
+public enum KeyAttestationRequirement: Codable {
+  
   case notRequired
   case requiredNoConstraints
   case required(
     keyStorageConstraints: [String],
     userAuthenticationConstraints: [String]
   )
+  
+  private enum CodingKeys: String, CodingKey {
+    case keyStorageConstraints = "key_storage"
+    case userAuthenticationConstraints = "user_authentication"
+  }
+  
+  public init(from decoder: Decoder) throws {
+    let container = try decoder.container(keyedBy: CodingKeys.self)
+    
+    if let keyStorageConstraints = try? container.decode([String].self, forKey: .keyStorageConstraints),
+       let userAuthenticationConstraints = try? container.decode([String].self, forKey: .userAuthenticationConstraints) {
+      guard !keyStorageConstraints.isEmpty, !userAuthenticationConstraints.isEmpty else {
+        throw KeyAttestationRequirementError.invalidConstraints
+      }
+      self = .required(
+        keyStorageConstraints: keyStorageConstraints,
+        userAuthenticationConstraints: userAuthenticationConstraints
+      )
+    } else {
+      self = .notRequired
+    }
+  }
+  
+  public func encode(to encoder: Encoder) throws {
+    var container = encoder.container(keyedBy: CodingKeys.self)
+    
+    switch self {
+    case .notRequired, .requiredNoConstraints:
+      break
+    case .required(let keyStorageConstraints, let userAuthenticationConstraints):
+      try container.encode(keyStorageConstraints, forKey: .keyStorageConstraints)
+      try container.encode(userAuthenticationConstraints, forKey: .userAuthenticationConstraints)
+    }
+  }
 }
 
 public extension KeyAttestationRequirement {
