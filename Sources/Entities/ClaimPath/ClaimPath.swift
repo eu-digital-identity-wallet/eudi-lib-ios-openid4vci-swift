@@ -159,7 +159,7 @@ public enum ClaimPathElement: Equatable, Hashable, Sendable {
   }
 }
 
-extension ClaimPath: Decodable {
+extension ClaimPath: Codable {
   public init(from decoder: Decoder) throws {
     let container = try decoder.singleValueContainer()
     let jsonArray = try container.decode([JSON].self)
@@ -176,6 +176,50 @@ extension ClaimPath: Decodable {
           in: container,
           debugDescription: "Invalid ClaimPathElement type"
         )
+      }
+    }
+    
+    self.init(elements)
+  }
+  
+  public func encode(to encoder: Encoder) throws {
+    var container = encoder.singleValueContainer()
+    try container.encode(value.map { $0.encodeToJSON() })
+  }
+}
+
+extension ClaimPathElement {
+  /// Encodes the `ClaimPathElement` to a JSON-compatible representation.
+  func encodeToJSON() -> JSON {
+    switch self {
+    case .allArrayElements:
+      return JSON.null
+    case .arrayElement(let index):
+      return JSON(index)
+    case .claim(let name):
+      return JSON(name)
+    }
+  }
+}
+
+public extension ClaimPath {
+  /// Initializes a `ClaimPath` from a `SwiftyJSON` array.
+  /// - Parameter json: A `JSON` array representing the claim path.
+  /// - Throws: An error if the JSON is invalid.
+  init(json: JSON) throws {
+    guard let jsonArray = json.array else {
+      throw ClaimPathError.invalidJsonPointerFormat("Expected an array")
+    }
+    
+    let elements = try jsonArray.map { jsonElement in
+      if let intValue = jsonElement.int {
+        return ClaimPathElement.arrayElement(index: intValue)
+      } else if jsonElement.null != nil {
+        return ClaimPathElement.allArrayElements
+      } else if let stringValue = jsonElement.string {
+        return ClaimPathElement.claim(name: stringValue)
+      } else {
+        throw ClaimPathError.invalidJsonPointerFormat("Invalid ClaimPathElement type")
       }
     }
     
