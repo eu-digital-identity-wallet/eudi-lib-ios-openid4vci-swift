@@ -19,7 +19,7 @@ import JOSESwift
 
 public struct SdJwtVcFormat: FormatProfile {
   
-  static let FORMAT = "vc+sd-jwt"
+  static let FORMAT = "dc+sd-jwt"
   
   public let type: String
   public let scope: String?

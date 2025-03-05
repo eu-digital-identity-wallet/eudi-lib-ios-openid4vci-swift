@@ -146,7 +146,7 @@ public actor AuthorizationServerClient: AuthorizationServerClientType {
       if let authorizationEndpoint = data.authorizationEndpoint, let url = URL(string: authorizationEndpoint) {
         self.authorizationEndpoint = url
       } else {
-        throw ValidationError.error(reason: "In valid authorization endpoint")
+        throw ValidationError.error(reason: "Invalid authorization endpoint")
       }
       
       if let pushedAuthorizationRequestEndpoint = data.pushedAuthorizationRequestEndpoint, let url = URL(string: pushedAuthorizationRequestEndpoint) {
