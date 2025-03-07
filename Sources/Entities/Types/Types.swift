@@ -83,7 +83,7 @@ public enum Proof: Codable {
   }
 }
 
-public struct Scope: Codable {
+public struct Scope: Codable, Sendable {
   public let value: String
   
   public init(_ value: String?) throws {
@@ -136,21 +136,6 @@ public struct RefreshToken: Codable {
   }
 }
 
-public struct CNonce: Codable {
-  public let value: String
-  public let expiresInSeconds: Int?
-  
-  public init?(value: String?, expiresInSeconds: Int? = 5) {
-    guard let value else { return nil }
-    if value.isEmpty {
-      return nil
-    }
-    
-    self.value = value
-    self.expiresInSeconds = expiresInSeconds
-  }
-}
-
 public struct Nonce {
   public let value: String
   
@@ -159,7 +144,7 @@ public struct Nonce {
   }
 }
 
-public struct Claim: Codable {
+public struct Claim: Codable, Sendable {
   public let mandatory: Bool?
   public let display: [Display]?
   public let path: ClaimPath
@@ -268,7 +253,7 @@ public struct ProofsTO: Codable {
   }
 }
 
-public struct BackgroundImage: Codable, Equatable {
+public struct BackgroundImage: Codable, Equatable, Sendable {
   public let url: URL
   
   public init(uri: String) throws {

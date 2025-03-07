@@ -16,7 +16,7 @@
 import Foundation
 import SwiftyJSON
 
-public struct Display: Codable, Equatable {
+public struct Display: Codable, Equatable, Sendable {
   public let name: String?
   public let locale: Locale?
   public let logo: Logo?
@@ -74,7 +74,7 @@ public struct Display: Codable, Equatable {
 
 public extension Display {
   
-  struct Logo: Codable, Equatable {
+  struct Logo: Codable, Equatable, Sendable {
     public let uri: URL?
     public let alternativeText: String?
     
