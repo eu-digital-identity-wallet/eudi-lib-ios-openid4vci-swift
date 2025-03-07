@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 import Foundation
-import JOSESwift
+@preconcurrency import JOSESwift
 
 enum ClientAttestationPoPJWTSpecError: Error, LocalizedError {
   case invalidAlgorithm
@@ -30,7 +30,7 @@ enum ClientAttestationPoPJWTSpecError: Error, LocalizedError {
   }
 }
 
-public struct ClientAttestationPoPJWTSpec {
+public struct ClientAttestationPoPJWTSpec: Sendable {
   // MARK: - Properties
   
   public let signingAlgorithm: SignatureAlgorithm

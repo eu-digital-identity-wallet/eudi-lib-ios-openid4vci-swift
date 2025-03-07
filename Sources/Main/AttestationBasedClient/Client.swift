@@ -16,7 +16,7 @@
 import Foundation
 import JOSESwift
 
-public enum Client {
+public enum Client: Sendable {
   
   /// Represents a Public client
   case `public`(id: ClientId)

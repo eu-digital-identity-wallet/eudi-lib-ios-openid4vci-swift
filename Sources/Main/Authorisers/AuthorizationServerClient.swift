@@ -27,7 +27,7 @@ private extension ResponseWithHeaders {
   }
 }
 
-public protocol AuthorizationServerClientType {
+public protocol AuthorizationServerClientType: Sendable {
   
   func authorizationRequestUrl(
     scopes: [Scope],

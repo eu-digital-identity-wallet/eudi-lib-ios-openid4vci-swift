@@ -15,7 +15,7 @@
  */
 import Foundation
 
-public struct CNonceResponse: Codable {
+public struct CNonceResponse: Codable, Sendable {
   let cNonce: String
   
   enum CodingKeys: String, CodingKey {
@@ -23,7 +23,7 @@ public struct CNonceResponse: Codable {
   }
 }
 
-public protocol NonceEndpointClientType {
+public protocol NonceEndpointClientType: Sendable {
   func getNonce() async throws -> Result<CNonceResponse, Error>
 }
 

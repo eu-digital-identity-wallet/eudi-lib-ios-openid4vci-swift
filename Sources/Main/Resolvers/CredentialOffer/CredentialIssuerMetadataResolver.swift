@@ -15,16 +15,16 @@
  */
 import Foundation
 
-public enum CredentialIssuerSource {
+public enum CredentialIssuerSource: Sendable {
   case credentialIssuer(CredentialIssuerId)
 }
 
 public protocol CredentialIssuerMetadataType {
   /// The input type for resolving a type.
-  associatedtype InputType
+  associatedtype InputType: Sendable
 
   /// The output type for resolved type. Must be Codable and Equatable.
-  associatedtype OutputType: Decodable, Equatable
+  associatedtype OutputType: Decodable, Equatable, Sendable
 
   /// The error type for resolving type. Must conform to the Error protocol.
   associatedtype ErrorType: Error

@@ -15,7 +15,7 @@
  */
 import Foundation
 
-public final class ClientAuthenticationMethod: Hashable {
+public final class ClientAuthenticationMethod: Hashable, Sendable {
   // MARK: - Properties
   public let value: String
   
