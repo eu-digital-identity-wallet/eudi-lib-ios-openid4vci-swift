@@ -17,7 +17,7 @@ import Foundation
 import SwiftyJSON
 import JOSESwift
 
-public struct CredentialIssuerMetadata: Decodable, Equatable {
+public struct CredentialIssuerMetadata: Decodable, Equatable, Sendable {
   public let credentialIssuerIdentifier: CredentialIssuerId
   public let authorizationServers: [URL]?
   public let credentialEndpoint: CredentialIssuerEndpoint
