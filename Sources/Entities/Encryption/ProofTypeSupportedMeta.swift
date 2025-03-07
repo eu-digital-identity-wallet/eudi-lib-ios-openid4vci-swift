@@ -15,7 +15,7 @@
  */
 import Foundation
 
-public struct ProofTypeSupportedMeta: Codable {
+public struct ProofTypeSupportedMeta: Codable, Sendable {
   
   public let algorithms: [String]
   public let keyAttestationRequirement: KeyAttestationRequirement?
