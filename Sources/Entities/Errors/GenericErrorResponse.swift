@@ -18,29 +18,21 @@ import Foundation
 public struct GenericErrorResponse: Codable {
   public let error: String
   public let errorDescription: String?
-  public let cNonce: String?
-  public let cNonceExpiresInSeconds: Int?
   public let interval: Int?
   
   private enum CodingKeys: String, CodingKey {
     case error
     case errorDescription = "error_description"
-    case cNonce = "c_nonce"
-    case cNonceExpiresInSeconds = "c_nonce_expires_in"
     case interval
   }
   
   public init(
     error: String,
     errorDescription: String? = nil,
-    cNonce: String? = nil,
-    cNonceExpiresInSeconds: Int? = nil,
     interval: Int? = nil
   ) {
     self.error = error
     self.errorDescription = errorDescription
-    self.cNonce = cNonce
-    self.cNonceExpiresInSeconds = cNonceExpiresInSeconds
     self.interval = interval
   }
 }
@@ -50,16 +42,9 @@ public extension GenericErrorResponse {
   func toIssuanceError() -> CredentialIssuanceError {
     switch error {
     case "invalid_proof":
-      if let cNonce {
-        return .invalidProof(
-          cNonce: cNonce,
-          cNonceExpiresIn: cNonceExpiresInSeconds,
-          errorDescription: errorDescription
-        )
-        
-      } else {
-        return .responseUnparsable("Issuer responded with invalid_proof error but no c_nonce was provided")
-      }
+      return .invalidProof(
+        errorDescription: errorDescription
+      )
     case "issuance_pending":
       return .deferredCredentialIssuancePending(interval: interval)
     case "invalid_token": return .invalidToken
