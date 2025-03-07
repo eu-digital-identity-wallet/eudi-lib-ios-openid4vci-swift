@@ -54,7 +54,7 @@ public enum JOSEError: LocalizedError {
   }
 }
 
-extension JOSESwiftError: LocalizedError {
+extension JOSESwiftError: @retroactive LocalizedError {
   
   public var errorDescription: String? {
     switch self {
