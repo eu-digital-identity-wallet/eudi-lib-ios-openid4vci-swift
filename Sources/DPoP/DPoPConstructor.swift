@@ -14,10 +14,10 @@
  * limitations under the License.
  */
 import Foundation
-import JOSESwift
+@preconcurrency import JOSESwift
 import CryptoKit
 
-public protocol DPoPConstructorType {
+public protocol DPoPConstructorType: Sendable {
   func jwt(
     endpoint: URL,
     accessToken: String?,
@@ -25,7 +25,7 @@ public protocol DPoPConstructorType {
   ) async throws -> String
 }
 
-public class DPoPConstructor: DPoPConstructorType {
+public final class DPoPConstructor: DPoPConstructorType {
 
   static let type = "dpop+jwt"
   
