@@ -35,110 +35,22 @@ public extension CanExpire {
   }
 }
 
-public enum AuthorizedRequest {
-  case noProofRequired(
-    accessToken: IssuanceAccessToken,
-    refreshToken: IssuanceRefreshToken?,
-    credentialIdentifiers: AuthorizationDetailsIdentifiers?,
-    timeStamp: TimeInterval,
-    dPopNonce: Nonce?
-  )
-  case proofRequired(
-    accessToken: IssuanceAccessToken,
-    refreshToken: IssuanceRefreshToken?,
-    cNonce: CNonce,
-    credentialIdentifiers: AuthorizationDetailsIdentifiers?,
-    timeStamp: TimeInterval,
-    dPopNonce: Nonce?
-  )
+public struct AuthorizedRequest: Sendable {
+  public let accessToken: IssuanceAccessToken
+  public let refreshToken: IssuanceRefreshToken?
+  public let credentialIdentifiers: AuthorizationDetailsIdentifiers?
+  public let timeStamp: TimeInterval
+  public let dPopNonce: Nonce?
   
   public func isAccessTokenExpired(_ from: TimeInterval) -> Bool {
-    guard let timeStamp = self.timeStamp else {
-      return true
-    }
-    return accessToken?.isExpired(issued: timeStamp, at: from) ?? false
+    return accessToken.isExpired(issued: timeStamp, at: from)
   }
   
   public func isRefreshTokenExpired(clock: TimeInterval) -> Bool {
-    guard let timeStamp = self.timeStamp else {
-      return true
-    }
-    return accessToken?.isExpired(
+    return accessToken.isExpired(
       issued: timeStamp,
       at: clock
-    ) ?? false
-  }
-  
-  public var timeStamp: TimeInterval? {
-    switch self {
-    case .noProofRequired(_, _, _, let timeStamp, _):
-      return timeStamp
-    case .proofRequired(_, _, _, _, let timeStamp, _):
-      return timeStamp
-    }
-  }
-  
-  public var dPopNonce: Nonce? {
-    switch self {
-    case .noProofRequired(_, _, _, _, let dPopNonce):
-      return dPopNonce
-    case .proofRequired(_, _, _, _, _, let dPopNonce):
-      return dPopNonce
-    }
-  }
-  
-  public var noProofToken: IssuanceAccessToken? {
-    switch self {
-    case .noProofRequired(let accessToken, _, _, _, _):
-      return accessToken
-    case .proofRequired:
-      return nil
-    }
-  }
-  
-  public var proofToken: IssuanceAccessToken? {
-    switch self {
-    case .noProofRequired:
-      return nil
-    case .proofRequired(let accessToken, _, _, _, _, _):
-      return accessToken
-    }
-  }
-  
-  public var refreshToken: IssuanceRefreshToken? {
-    switch self {
-    case .noProofRequired(_, let refreshToken, _, _, _):
-      return refreshToken
-    case .proofRequired(_, let refreshToken, _, _, _, _):
-      return refreshToken
-    }
-  }
-}
-
-public extension AuthorizedRequest {
-  var accessToken: IssuanceAccessToken? {
-    switch self {
-    case .noProofRequired(let accessToken, _, _, _, _):
-      return accessToken
-    case .proofRequired(let accessToken, _, _, _, _, _):
-      return accessToken
-    }
-  }
-  
-  func handleInvalidProof(cNonce: CNonce) throws -> AuthorizedRequest {
-    switch self {
-      
-    case .noProofRequired(let accessToken, let refreshToken, let credentialIdentifiers, let timeStamp, let dPopNonce):
-      return .proofRequired(
-        accessToken: accessToken,
-        refreshToken: refreshToken,
-        cNonce: cNonce,
-        credentialIdentifiers: credentialIdentifiers,
-        timeStamp: timeStamp,
-        dPopNonce: dPopNonce
-      )
-    default: throw ValidationError.error(reason: "Expected .noProofRequired authorisation request")
-    }
+    )
   }
 }
 
@@ -149,26 +61,13 @@ extension AuthorizedRequest {
   ///   - newTimeStamp: The new `TimeInterval` to use.
   /// - Returns: A new `AuthorizedRequest` instance with the updated values.
   func replacing(accessToken newAccessToken: IssuanceAccessToken, timeStamp newTimeStamp: TimeInterval) -> AuthorizedRequest {
-    switch self {
-    case let .noProofRequired(_, refreshToken, credentialIdentifiers, _, dPopNonce):
-      return .noProofRequired(
-        accessToken: newAccessToken,
-        refreshToken: refreshToken,
-        credentialIdentifiers: credentialIdentifiers,
-        timeStamp: newTimeStamp,
-        dPopNonce: dPopNonce
-      )
-      
-    case let .proofRequired(_, refreshToken, cNonce, credentialIdentifiers, _, dPopNonce):
-      return .proofRequired(
-        accessToken: newAccessToken,
-        refreshToken: refreshToken,
-        cNonce: cNonce,
-        credentialIdentifiers: credentialIdentifiers,
-        timeStamp: newTimeStamp,
-        dPopNonce: dPopNonce
-      )
-    }
+    return .init(
+      accessToken: newAccessToken,
+      refreshToken: refreshToken,
+      credentialIdentifiers: credentialIdentifiers,
+      timeStamp: newTimeStamp,
+      dPopNonce: dPopNonce
+    )
   }
 }
 

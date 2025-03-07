@@ -15,24 +15,20 @@
  */
 import Foundation
 
-public struct CredentialIssuanceResponse: Decodable {
+public struct CredentialIssuanceResponse: Decodable, Sendable {
   public let credentialResponses: [IssuedCredential]
-  public let cNonce: CNonce?
   
   public init(
-    credentialResponses: [IssuedCredential],
-    cNonce: CNonce?
+    credentialResponses: [IssuedCredential]
   ) {
     self.credentialResponses = credentialResponses
-    self.cNonce = cNonce
   }
 }
 
-public enum SubmittedRequest {
+public enum SubmittedRequest: Sendable {
   case success(response: CredentialIssuanceResponse)
   case failed(error: CredentialIssuanceError)
   case invalidProof(
-    cNonce: CNonce,
     errorDescription: String?
   )
 }

@@ -16,7 +16,7 @@
 import Foundation
 
 /// Enum representing different types of issuance request payloads.
-public enum IssuanceRequestPayload {
+public enum IssuanceRequestPayload: Sendable {
   
   /// Payload type for requests based on credential identifiers.
   ///

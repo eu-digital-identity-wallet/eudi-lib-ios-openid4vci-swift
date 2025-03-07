@@ -15,7 +15,7 @@
  */
 import Foundation
 
-public struct AuthorizationServerMetadata: Codable, Equatable {
+public struct AuthorizationServerMetadata: Codable, Equatable, Sendable {
   public let issuer, authorizationEndpoint, tokenEndpoint, introspectionEndpoint: String?
   public let jwksURI: String?
   public let grantTypesSupported, responseTypesSupported, requestObjectSigningAlgValuesSupported, requestObjectEncryptionAlgValuesSupported: [String]?

@@ -15,7 +15,7 @@
  */
 import Foundation
 
-public struct PKCEVerifier {
+public struct PKCEVerifier: Sendable {
   public let codeVerifier: String
   public let codeVerifierMethod: String
   

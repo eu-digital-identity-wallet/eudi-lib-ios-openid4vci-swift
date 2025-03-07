@@ -15,7 +15,7 @@
  */
 import Foundation
 
-public struct AuthorizationRequest: Codable {
+public struct AuthorizationRequest: Codable, Sendable {
   public let responseType: String?
   public let clientId: String?
   public let redirectUri: String?

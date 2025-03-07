@@ -15,7 +15,7 @@
  */
 import Foundation
 
-public struct CredentialIdentifier: Codable, Hashable {
+public struct CredentialIdentifier: Codable, Hashable, Sendable {
   public let value: String
   
   public init(value: String) throws {

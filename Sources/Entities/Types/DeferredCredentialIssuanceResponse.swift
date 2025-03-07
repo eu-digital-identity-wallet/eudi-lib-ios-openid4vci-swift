@@ -15,7 +15,7 @@
  */
 import Foundation
 
-public enum DeferredCredentialIssuanceResponse: Codable {
+public enum DeferredCredentialIssuanceResponse: Codable, Sendable {
   case issued(credential: Credential)
   case issuancePending(transactionId: TransactionId)
   case errored(error: String?, errorDescription: String?)

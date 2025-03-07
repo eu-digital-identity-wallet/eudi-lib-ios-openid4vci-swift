@@ -15,7 +15,7 @@
  */
 import Foundation
 
-public struct NotificationId: Codable {
+public struct NotificationId: Codable, Sendable {
   public let value: String
   
   public init(value: String) throws {
@@ -26,7 +26,7 @@ public struct NotificationId: Codable {
   }
 }
 
-public struct NotificationObject {
+public struct NotificationObject: Sendable {
   public let id: NotificationId
   public let event: NotifiedEvent
   public let eventDescription: String?
@@ -42,7 +42,7 @@ public struct NotificationObject {
   }
 }
 
-public enum NotifiedEvent: String {
+public enum NotifiedEvent: String, Sendable {
   case credentialAccepted = "CREDENTIAL_ACCEPTED"
   case credentialFailure = "CREDENTIAL_FAILURE"
   case credentialDeleted = "CREDENTIAL_DELETED"

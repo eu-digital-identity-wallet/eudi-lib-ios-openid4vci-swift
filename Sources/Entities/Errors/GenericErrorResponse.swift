@@ -15,7 +15,7 @@
  */
 import Foundation
 
-public struct GenericErrorResponse: Codable {
+public struct GenericErrorResponse: Codable, Sendable {
   public let error: String
   public let errorDescription: String?
   public let interval: Int?

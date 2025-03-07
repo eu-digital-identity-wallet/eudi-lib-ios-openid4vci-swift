@@ -15,7 +15,7 @@
  */
 import Foundation
 
-public enum IssuanceAuthorization {
+public enum IssuanceAuthorization: Sendable {
   case authorizationCode(authorizationCode: String)
   case preAuthorizationCode(
     preAuthorizedCode: String,

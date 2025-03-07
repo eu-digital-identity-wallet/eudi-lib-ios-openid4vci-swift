@@ -13,10 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import Foundation
-import JOSESwift
+@preconcurrency import Foundation
+@preconcurrency import JOSESwift
 
-public enum RequestedCredentialResponseEncryption {
+public enum RequestedCredentialResponseEncryption: Sendable {
   
   // No encryption is requested
   case notRequested

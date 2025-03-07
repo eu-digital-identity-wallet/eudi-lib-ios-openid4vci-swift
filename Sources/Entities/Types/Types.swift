@@ -13,13 +13,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import Foundation
+@preconcurrency import Foundation
 import SwiftyJSON
-import JOSESwift
+@preconcurrency import JOSESwift
 
 public typealias JWT = String
 
-public struct IssuanceResponseEncryptionSpec {
+public struct IssuanceResponseEncryptionSpec: Sendable {
   public let jwk: JWK?
   public let privateKey: SecKey?
   public let algorithm: JWEAlgorithm
@@ -38,7 +38,7 @@ public struct IssuanceResponseEncryptionSpec {
   }
 }
 
-public enum Proof: Codable {
+public enum Proof: Codable, Sendable {
   case jwt(JWT)
   
   public func type() -> ProofType {
@@ -136,7 +136,7 @@ public struct RefreshToken: Codable {
   }
 }
 
-public struct Nonce {
+public struct Nonce: Sendable {
   public let value: String
   
   public init(value: String) {
@@ -198,7 +198,7 @@ public struct DeferredIssuanceRequestTO: Codable {
   }
 }
 
-public enum TxCodeInputMode: String, Codable {
+public enum TxCodeInputMode: String, Codable, Sendable {
   case numeric
   case text
   
@@ -211,7 +211,7 @@ public enum TxCodeInputMode: String, Codable {
   }
 }
 
-public struct TxCode: Codable {
+public struct TxCode: Codable, Sendable {
   public let inputMode: TxCodeInputMode
   public let length: Int?
   public let description: String?

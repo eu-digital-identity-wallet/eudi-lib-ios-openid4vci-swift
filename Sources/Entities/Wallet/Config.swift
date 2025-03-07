@@ -15,7 +15,7 @@
  */
 import Foundation
 
-public enum AuthorizeIssuanceConfig {
+public enum AuthorizeIssuanceConfig: Sendable {
   case favorScopes
   case authorizationDetails
 }
@@ -23,7 +23,7 @@ public enum AuthorizeIssuanceConfig {
 public typealias ClientId = String
 public typealias ClientSecret = String
 
-public struct OpenId4VCIConfig {
+public struct OpenId4VCIConfig: Sendable {
   public let client: Client
   public let authFlowRedirectionURI: URL
   public let authorizeIssuanceConfig: AuthorizeIssuanceConfig

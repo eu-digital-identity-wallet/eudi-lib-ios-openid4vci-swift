@@ -14,7 +14,22 @@
  * limitations under the License.
  */
 import Foundation
+import JOSESwift
 
-public struct EmptyResponse: Codable, Sendable {
-  public init() {}
+public protocol CertificateChainTrust {
+  func isTrusted(chain: [X509Certificate])
 }
+
+public enum IssuerTrust {
+
+  case byPublicKey(jwk: JWK)
+  case byCertificateChain(certificateChainTrust: CertificateChainTrust)
+}
+
+public enum IssuerMetadataPolicy {
+
+  case requireSigned(issuerTrust: IssuerTrust)
+  case preferSigned(issuerTrust: IssuerTrust)
+  case ignoreSigned
+}
+

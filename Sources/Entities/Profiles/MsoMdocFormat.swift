@@ -13,9 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import Foundation
+@preconcurrency import Foundation
 import SwiftyJSON
-import JOSESwift
+@preconcurrency import JOSESwift
 
 public struct MsoMdocFormat: FormatProfile {
   static let FORMAT = "mso_mdoc"
@@ -36,7 +36,7 @@ public struct MsoMdocFormat: FormatProfile {
 
 public extension MsoMdocFormat {
   
-  struct MsoMdocSingleCredential: Codable {
+  struct MsoMdocSingleCredential: Codable, Sendable {
     public let docType: String
     public let proofs: [Proof]
     public let credentialEncryptionJwk: JWK?

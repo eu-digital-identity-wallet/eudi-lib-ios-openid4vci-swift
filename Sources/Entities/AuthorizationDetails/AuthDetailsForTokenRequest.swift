@@ -15,8 +15,8 @@
  */
 import Foundation
 
-public enum AuthorizationDetailsInTokenRequest {
+public enum AuthorizationDetailsInTokenRequest: Sendable {
   case doNotInclude
-  case include(filter: (CredentialConfigurationIdentifier) -> Bool)
+  case include(filter: @Sendable (CredentialConfigurationIdentifier) -> Bool)
 }
 

@@ -15,7 +15,7 @@
  */
 import Foundation
 
-public struct TransactionId: Codable {
+public struct TransactionId: Codable, Sendable {
   public let value: String
   public let interval: Int?
   

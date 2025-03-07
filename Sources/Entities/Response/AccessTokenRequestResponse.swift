@@ -18,15 +18,13 @@ import SwiftyJSON
 
 public typealias AuthorizationDetailsIdentifiers = [CredentialConfigurationIdentifier: [CredentialIdentifier]]
 
-public enum AccessTokenRequestResponse: Codable {
+public enum AccessTokenRequestResponse: Codable, Sendable {
   case success(
     tokenType: String?,
     accessToken: String,
     refreshToken: String?,
     expiresIn: Int,
     scope: String?,
-    cNonce: String?,
-    cNonceExpiresIn: Int?,
     authorizationDetails: AuthorizationDetailsIdentifiers?
   )
   case failure(
@@ -41,8 +39,6 @@ public enum AccessTokenRequestResponse: Codable {
     case expiresIn = "expires_in"
     case scope
     case error
-    case cNonce = "c_nonce"
-    case cNonceExpiresIn = "c_nonce_expires_in"
     case errorDescription = "error_description"
     case authorizationDetails = "authorization_details"
   }
@@ -82,8 +78,6 @@ public enum AccessTokenRequestResponse: Codable {
         refreshToken: refeshToken,
         expiresIn: expiresIn,
         scope: try? container.decode(String.self, forKey: .scope),
-        cNonce: try? container.decode(String.self, forKey: .cNonce),
-        cNonceExpiresIn: try? container.decode(Int.self, forKey: .cNonceExpiresIn),
         authorizationDetails: (authorizationDetails.isEmpty ? nil : authorizationDetails)
       )
     } else if let error = try? container.decode(String.self, forKey: .error),
@@ -109,8 +103,6 @@ public enum AccessTokenRequestResponse: Codable {
       refreshToken,
       expiresIn,
       scope,
-      cNonce,
-      cNonceExpiresIn,
       _
     ):
       try container.encode(tokenType, forKey: .tokenType)
@@ -118,8 +110,6 @@ public enum AccessTokenRequestResponse: Codable {
       try container.encode(refreshToken, forKey: .refreshToken)
       try container.encode(expiresIn, forKey: .expiresIn)
       try container.encode(scope, forKey: .scope)
-      try container.encode(cNonce, forKey: .cNonce)
-      try container.encode(cNonceExpiresIn, forKey: .cNonceExpiresIn)
     case let .failure(error, errorDescription):
       try container.encode(error, forKey: .error)
       try container.encode(errorDescription, forKey: .errorDescription)

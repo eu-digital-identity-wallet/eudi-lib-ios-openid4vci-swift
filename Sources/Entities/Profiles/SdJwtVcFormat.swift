@@ -13,9 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import Foundation
+@preconcurrency import Foundation
 import SwiftyJSON
-import JOSESwift
+@preconcurrency import JOSESwift
 
 public struct SdJwtVcFormat: FormatProfile {
   
@@ -37,7 +37,7 @@ public struct SdJwtVcFormat: FormatProfile {
 
 public extension SdJwtVcFormat {
   
-  struct SdJwtVcSingleCredential: Codable {
+  struct SdJwtVcSingleCredential: Codable, Sendable {
     public let proofs: [Proof]
     public let format: String = SdJwtVcFormat.FORMAT
     public let vct: String?
@@ -108,7 +108,7 @@ public extension SdJwtVcFormat {
       try container.encode(credentialDefinition, forKey: .credentialDefinition)
     }
     
-    public struct CredentialDefinition: Codable {
+    public struct CredentialDefinition: Codable, Sendable {
       public let type: String
       public let claims: [Claim]
       

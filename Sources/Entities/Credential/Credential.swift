@@ -14,9 +14,9 @@
  * limitations under the License.
  */
 import Foundation
-import SwiftyJSON
+@preconcurrency import SwiftyJSON
 
-public enum Credential: Codable {
+public enum Credential: Codable, Sendable {
   case string(String)
   case json(JSON)
   

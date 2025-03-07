@@ -23,7 +23,7 @@ public let FORMAT_W3C_JSONLD_DATA_INTEGRITY = "ldp_vc"
 public let FORMAT_W3C_JSONLD_SIGNED_JWT = "jwt_vc_json-ld"
 public let FORMAT_W3C_SIGNED_JWT = "jwt_vc_json"
 
-public enum CredentialIssuanceRequest {
+public enum CredentialIssuanceRequest: Sendable {
   case single(SingleCredential, IssuanceResponseEncryptionSpec?)
 }
 
@@ -32,7 +32,7 @@ public struct DeferredCredentialRequest: Codable {
   let token: IssuanceAccessToken
 }
 
-public enum SingleCredential {
+public enum SingleCredential: Sendable {
   case msoMdoc(MsoMdocFormat.MsoMdocSingleCredential)
   case sdJwtVc(SdJwtVcFormat.SdJwtVcSingleCredential)
 }
@@ -48,7 +48,7 @@ public extension SingleCredential {
           return try JSON.createFrom(
             proofOrProofs: proofOrProofs,
             dictionary: [
-              "credential_identifier": identifier
+              "credential_identifier": identifier.value
             ]
           )
         } else {
@@ -70,7 +70,7 @@ public extension SingleCredential {
           return try JSON.createFrom(
             proofOrProofs: proofOrProofs,
             dictionary: [
-              "credential_identifier": identifier,
+              "credential_identifier": identifier.value,
               "credential_response_encryption": [
                 "jwk": try encryptionJwk.toDictionary(),
                 "alg": responseEncryptionAlg.name,
@@ -102,7 +102,9 @@ public extension SingleCredential {
           return try JSON.createFrom(
             proofOrProofs: proofOrProofs,
             dictionary: [
-              "credential_identifier": identifier
+              "vct": credential.vct ?? credential.credentialDefinition.type,
+              "credential_identifier": identifier.value,
+              "format": SdJwtVcFormat.FORMAT
             ]
           )
           
@@ -125,7 +127,7 @@ public extension SingleCredential {
           return try JSON.createFrom(
             proofOrProofs: proofOrProofs,
             dictionary: [
-              "credential_identifier": identifier,
+              "credential_identifier": identifier.value,
               "credential_response_encryption": [
                 "jwk": try encryptionJwk.toDictionary(),
                 "alg": responseEncryptionAlg.name,
@@ -186,10 +188,10 @@ private extension JSON {
   }
   
   static func createFrom(proofOrProofs: (Proof?, ProofsTO?), dictionary: [String: Any?]) throws -> JSON {
-    var json = Self.toJSON(proofOrProofs)
-    try json?.merge(with: JSON(
+    var json: JSON = Self.toJSON(proofOrProofs) ?? JSON([:])
+    try json.merge(with: JSON(
       dictionary.compactMapValues { $0 }
     ))
-    return json ?? JSON([:])
+    return json
   }
 }

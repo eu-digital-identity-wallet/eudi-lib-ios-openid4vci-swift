@@ -16,7 +16,7 @@
 import Foundation
 
 /// State denoting that the pushed authorization request has been placed successfully and response processed
-public struct ParRequested {
+public struct ParRequested: Sendable {
   public let credentials: [CredentialIdentifier]
   public let getAuthorizationCodeURL: GetAuthorizationCodeURL
   public let pkceVerifier: PKCEVerifier
@@ -43,7 +43,7 @@ public struct ParRequested {
 
 /// State denoting that caller has followed the GetAuthorizationCodeURL URL and response received
 /// from the authorization server and processed successfully.
-public struct AuthorizationCodeRetrieved {
+public struct AuthorizationCodeRetrieved: Sendable {
   public let credentials: [CredentialIdentifier]
   public let authorizationCode: IssuanceAuthorization
   public let pkceVerifier: PKCEVerifier
@@ -70,7 +70,7 @@ public struct AuthorizationCodeRetrieved {
   }
 }
 
-public enum UnauthorizedRequest {
+public enum UnauthorizedRequest: Sendable {
   case par(ParRequested)
   case authorizationCode(AuthorizationCodeRetrieved)
 }

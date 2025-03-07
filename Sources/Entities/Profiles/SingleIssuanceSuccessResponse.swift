@@ -14,9 +14,9 @@
  * limitations under the License.
  */
 import Foundation
-import SwiftyJSON
+@preconcurrency import SwiftyJSON
 
-public struct SingleIssuanceSuccessResponse: Codable {
+public struct SingleIssuanceSuccessResponse: Codable, Sendable {
   public let credential: JSON?
   public let credentials: [JSON]?
   public let transactionId: String?

@@ -13,15 +13,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import Foundation
-import JOSESwift
+@preconcurrency import Foundation
+@preconcurrency import JOSESwift
 
-public enum SigningKeyProxy {
+public enum SigningKeyProxy: Sendable {
   case custom(any AsyncSignerProtocol)
   case secKey(SecKey)
 }
 
-public enum BindingKey {
+public enum BindingKey: Sendable {
 
   // JWK Binding Key
   case jwk(
@@ -217,6 +217,6 @@ class PrecomputedSigner: JOSESwift.SignerProtocol {
 	}
 }
 
-public protocol AsyncSignerProtocol {
+public protocol AsyncSignerProtocol: Sendable {
   func signAsync(_ header: Data, _ payload: Data) async throws -> Data
 }
