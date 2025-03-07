@@ -20,7 +20,7 @@ public enum KeyAttestationRequirementError: Error {
   case invalidConstraints
 }
 
-public enum KeyAttestationRequirement: Codable {
+public enum KeyAttestationRequirement: Codable, Sendable {
   
   case notRequired
   case requiredNoConstraints
