@@ -55,7 +55,6 @@ public protocol AuthorizationServerClientType {
   ) async throws -> Result<(
     IssuanceAccessToken,
     IssuanceRefreshToken,
-    CNonce?,
     AuthorizationDetailsIdentifiers?,
     TokenType?,
     Int?,
@@ -73,7 +72,6 @@ public protocol AuthorizationServerClientType {
   ) async throws -> Result<(
     IssuanceAccessToken,
     IssuanceRefreshToken,
-    CNonce?,
     AuthorizationDetailsIdentifiers?,
     Int?,
     Nonce?), Error>
@@ -85,7 +83,6 @@ public protocol AuthorizationServerClientType {
     retry: Bool
   ) async throws -> Result<(
     IssuanceAccessToken,
-    CNonce?,
     AuthorizationDetailsIdentifiers?,
     TokenType?,
     Int?,
@@ -341,7 +338,6 @@ public actor AuthorizationServerClient: AuthorizationServerClientType {
   ) async throws -> Result<(
     IssuanceAccessToken,
     IssuanceRefreshToken,
-    CNonce?,
     AuthorizationDetailsIdentifiers?,
     TokenType?,
     Int?,
@@ -378,7 +374,7 @@ public actor AuthorizationServerClient: AuthorizationServerClientType {
       )
       
       switch response.body {
-      case .success(let tokenType, let accessToken, let refreshToken, let expiresIn, _, let nonce, _, let identifiers):
+      case .success(let tokenType, let accessToken, let refreshToken, let expiresIn, _, let identifiers):
         return .success(
           (
             try .init(
@@ -389,9 +385,6 @@ public actor AuthorizationServerClient: AuthorizationServerClientType {
             ),
             try .init(
               refreshToken: refreshToken
-            ),
-            .init(
-              value: nonce
             ),
             identifiers,
             TokenType(
@@ -438,7 +431,6 @@ public actor AuthorizationServerClient: AuthorizationServerClientType {
     retry: Bool
   ) async throws -> Result<(
     IssuanceAccessToken,
-    CNonce?,
     AuthorizationDetailsIdentifiers?,
     TokenType?,
     Int?,
@@ -468,8 +460,6 @@ public actor AuthorizationServerClient: AuthorizationServerClientType {
         _,
         let expiresIn,
         _,
-        let nonce,
-        _,
         let identifiers
       ):
         return .success(
@@ -480,9 +470,6 @@ public actor AuthorizationServerClient: AuthorizationServerClientType {
                 value: tokenType
               ),
               expiresIn: TimeInterval(expiresIn)
-            ),
-            .init(
-              value: nonce
             ),
             identifiers,
             TokenType(
@@ -532,10 +519,10 @@ public actor AuthorizationServerClient: AuthorizationServerClientType {
   ) async throws -> Result<(
     IssuanceAccessToken,
     IssuanceRefreshToken,
-    CNonce?,
     AuthorizationDetailsIdentifiers?,
     Int?,
-    Nonce?), Error> {
+    Nonce?
+  ), Error> {
       let parameters: JSON = try await preAuthCodeFlow(
         preAuthorizedCode: preAuthorizedCode,
         txCode: txCode,
@@ -566,7 +553,7 @@ public actor AuthorizationServerClient: AuthorizationServerClientType {
         )
         
         switch response.body {
-        case .success(let tokenType, let accessToken, let refreshToken, let expiresIn, _, let nonce, _, let identifiers):
+        case .success(let tokenType, let accessToken, let refreshToken, let expiresIn, _, let identifiers):
           return .success(
             (
               try .init(
@@ -577,9 +564,6 @@ public actor AuthorizationServerClient: AuthorizationServerClientType {
               ),
               try .init(
                 refreshToken: refreshToken
-              ),
-              .init(
-                value: nonce
               ),
               identifiers,
               expiresIn,
