@@ -18,7 +18,7 @@ import Foundation
 /**
   A custom `URLSessionDelegate` implementation to handle self-signed certificates.
 */
-class SelfSignedSessionDelegate: NSObject, URLSessionDelegate {
+final class SelfSignedSessionDelegate: NSObject, URLSessionDelegate {
   /**
     Handles the URL authentication challenge and provides a credential for self-signed certificates.
 

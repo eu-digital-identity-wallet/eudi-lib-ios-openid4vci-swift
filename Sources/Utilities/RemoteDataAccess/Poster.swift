@@ -15,9 +15,11 @@
  */
 import Foundation
 
+extension AnyHashable: @retroactive @unchecked Sendable {}
+
 // Result type for responses with headers
-public struct ResponseWithHeaders<Response> {
-  public let headers: [AnyHashable: Any]
+public struct ResponseWithHeaders<Response: Sendable>: Sendable {
+  nonisolated(unsafe) public let headers: [AnyHashable: Any]
   public let body: Response
   
   public init(headers: [AnyHashable: Any], body: Response) {
@@ -63,7 +65,7 @@ public enum PostError: LocalizedError {
   }
 }
 
-public protocol PostingType {
+public protocol PostingType: Sendable {
   
   var session: Networking { get set }
   
