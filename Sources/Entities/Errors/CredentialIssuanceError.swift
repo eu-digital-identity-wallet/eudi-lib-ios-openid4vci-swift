@@ -35,7 +35,7 @@ public enum CredentialIssuanceError: Error, LocalizedError {
   case unsupportedCredentialType
   case unsupportedCredentialFormat
   case invalidEncryptionParameters
-  case invalidProof(cNonce: String, cNonceExpiresIn: Int?, errorDescription: String?)
+  case invalidProof(errorDescription: String?)
   case deferredCredentialIssuancePending(interval: Int?)
   case notificationFailed(reason: String)
   
@@ -44,7 +44,7 @@ public enum CredentialIssuanceError: Error, LocalizedError {
     case .pushedAuthorizationRequestFailed(_, let errorDescription),
         .accessTokenRequestFailed(_, let errorDescription),
         .issuanceRequestFailed(_, let errorDescription),
-        .invalidProof(_, _, let errorDescription):
+        .invalidProof(let errorDescription):
       return errorDescription
     case .responseUnparsable(let details):
       return "Response is unparsable. Details: \(details)"
