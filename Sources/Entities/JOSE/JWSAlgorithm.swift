@@ -15,7 +15,7 @@
  */
 import Foundation
 
-public class JWSAlgorithm: JOSEAlgorithm {
+public class JWSAlgorithm: JOSEAlgorithm, @unchecked Sendable {
 
   public init(_ type: AlgorithmType) {
     super.init(name: type.name, requirement: type.requirement)

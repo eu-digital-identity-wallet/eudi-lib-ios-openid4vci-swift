@@ -16,7 +16,7 @@
 import Foundation
 import JOSESwift
 
-public class JOSEEncryptionMethod: JOSEAlgorithm {
+public class JOSEEncryptionMethod: JOSEAlgorithm, @unchecked Sendable {
   
   public private(set) var cekBitLength: Int = 0
   
