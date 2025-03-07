@@ -149,7 +149,7 @@ public extension W3CJsonLdDataIntegrityFormat {
     }
   }
   
-  struct CredentialConfiguration: Codable {
+  struct CredentialConfiguration: Codable, Sendable {
     public let scope: String?
     public let cryptographicBindingMethodsSupported: [CryptographicBindingMethod]
     public let credentialSigningAlgValuesSupported: [String]
@@ -254,7 +254,7 @@ public extension W3CJsonLdDataIntegrityFormat {
     }
   }
   
-  struct CredentialDefinition: Codable {
+  struct CredentialDefinition: Codable, Sendable {
     public let context: [String]
     public let type: [String]
     public let claims: [Claim]

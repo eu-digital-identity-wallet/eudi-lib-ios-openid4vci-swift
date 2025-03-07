@@ -162,7 +162,7 @@ public extension MsoMdocFormat {
     }
   }
   
-  struct CredentialConfiguration: Codable {
+  struct CredentialConfiguration: Codable, Sendable {
     public let format: String?
     public let scope: String?
     public let cryptographicBindingMethodsSupported: [CryptographicBindingMethod]

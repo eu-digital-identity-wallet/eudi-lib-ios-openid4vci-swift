@@ -223,7 +223,7 @@ public extension SdJwtVcFormat {
     }
   }
   
-  struct CredentialConfiguration: Codable {
+  struct CredentialConfiguration: Codable, Sendable {
     public let scope: String?
     public let vct: String?
     public let cryptographicBindingMethodsSupported: [CryptographicBindingMethod]
@@ -347,7 +347,7 @@ public extension SdJwtVcFormat {
     }
   }
   
-  struct CredentialDefinition: Codable {
+  struct CredentialDefinition: Codable, Sendable {
     public let type: String
     public let claims: [Claim]
     
