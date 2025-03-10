@@ -101,9 +101,8 @@ class IssuanceSingleRequestTest: XCTestCase {
     case .success(let authorizationCode):
       let authorizedRequest = await issuer.authorizeWithAuthorizationCode(authorizationCode: authorizationCode)
       
-      if case let .success(authorized) = authorizedRequest,
-         case let .noProofRequired(token, _, _, _, _) = authorized {
-        XCTAssert(true, "Got access token: \(token)")
+      if case let .success(authorized) = authorizedRequest {
+        XCTAssert(true, "Got access token: \(authorized.accessToken)")
         XCTAssert(true, "Is no proof required")
         
         do {
@@ -113,8 +112,9 @@ class IssuanceSingleRequestTest: XCTestCase {
               value: "eu.europa.ec.eudi.pid_mso_mdoc"
             )
           )
-          let result = try await issuer.request(
-            noProofRequest: authorized,
+          let result = try await issuer.requestCredential(
+            request: authorized,
+            bindingKeys: [],
             requestPayload: payload,
             responseEncryptionSpecProvider: { _ in
               spec
@@ -138,7 +138,7 @@ class IssuanceSingleRequestTest: XCTestCase {
             case .failed(let error):
               XCTAssert(false, error.localizedDescription)
               
-            case .invalidProof(_, let errorDescription):
+            case .invalidProof(let errorDescription):
               XCTAssert(false, errorDescription!)
             }
             XCTAssert(false, "Unexpected request")
@@ -225,9 +225,8 @@ class IssuanceSingleRequestTest: XCTestCase {
       transactionCode: "12345"
     )
     
-    if case let .success(authorized) = unAuthorized,
-       case let .noProofRequired(token, _, _, _, _) = authorized {
-      XCTAssert(true, "Got access token: \(token)")
+    if case let .success(authorized) = unAuthorized {
+      XCTAssert(true, "Got access token: \(authorized.accessToken)")
       XCTAssert(true, "Is no proof required")
       
       do {
@@ -237,8 +236,9 @@ class IssuanceSingleRequestTest: XCTestCase {
             value: "eu.europa.ec.eudi.pid_mso_mdoc"
           )
         )
-        let result = try await issuer.request(
-          noProofRequest: authorized,
+        let result = try await issuer.requestCredential(
+          request: authorized,
+          bindingKeys: [],
           requestPayload: payload,
           responseEncryptionSpecProvider: { _ in
             spec
@@ -262,7 +262,7 @@ class IssuanceSingleRequestTest: XCTestCase {
           case .failed(let error):
             XCTAssert(false, error.localizedDescription)
             
-          case .invalidProof(_, let errorDescription):
+          case .invalidProof(let errorDescription):
             XCTAssert(false, errorDescription!)
           }
           XCTAssert(false, "Unexpected request")
@@ -344,17 +344,17 @@ class IssuanceSingleRequestTest: XCTestCase {
     case .success(let authorizationCode):
       let authorizedRequest = await issuer.authorizeWithAuthorizationCode(authorizationCode: authorizationCode)
       
-      if case let .success(authorized) = authorizedRequest,
-         case let .noProofRequired(token, _, identifiers, _, _) = authorized {
-        XCTAssert(true, "Got access token: \(token)")
+      if case let .success(authorized) = authorizedRequest {
+        XCTAssert(true, "Got access token: \(authorized.accessToken)")
         XCTAssert(true, "Is no proof required")
         
-        guard 
-          let value = identifiers?.keys.first?.value,
+        guard
+          let identifiers = authorized.credentialIdentifiers,
+          let value = identifiers.keys.first?.value,
           let credentialConfigurationIdentifier: CredentialConfigurationIdentifier = try? .init(
           value: value
           ),
-          let credentialIdentifier = identifiers?.values.first?.first
+          let credentialIdentifier = identifiers.values.first?.first
         else {
           XCTAssert(false, "Expected credential identifiers")
           return
@@ -367,10 +367,12 @@ class IssuanceSingleRequestTest: XCTestCase {
             credentialIdentifier: credentialIdentifier
           )
           
-          let result = try await issuer.request(
-            noProofRequest: authorized,
+          let result = try await issuer.requestCredential(
+            request: authorized,
+            bindingKeys: [],
             requestPayload: payload,
-            responseEncryptionSpecProvider: { _ in spec })
+            responseEncryptionSpecProvider: { _ in spec }
+          )
           
           switch result {
           case .success(let request):
@@ -390,7 +392,7 @@ class IssuanceSingleRequestTest: XCTestCase {
             case .failed(let error):
               XCTAssert(false, error.localizedDescription)
               
-            case .invalidProof(_, let errorDescription):
+            case .invalidProof(let errorDescription):
               XCTAssert(false, errorDescription!)
             }
             XCTAssert(false, "Unexpected request")

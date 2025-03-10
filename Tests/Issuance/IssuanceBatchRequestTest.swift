@@ -102,9 +102,8 @@ class IssuanceBatchRequestTest: XCTestCase {
     case .success(let authorizationCode):
       let authorizedRequest = await issuer.authorizeWithAuthorizationCode(authorizationCode: authorizationCode)
       
-      if case let .success(authorized) = authorizedRequest,
-         case let .noProofRequired(token, _, _, _, _) = authorized {
-        XCTAssert(true, "Got access token: \(token)")
+      if case let .success(authorized) = authorizedRequest {
+        XCTAssert(true, "Got access token: \(authorized.accessToken)")
         XCTAssert(true, "Is no proof required")
         
         do {
@@ -113,8 +112,9 @@ class IssuanceBatchRequestTest: XCTestCase {
             credentialConfigurationIdentifier: try .init(value: PID_MsoMdoc_config_id)
           )
           
-          let result = try await issuer.request(
-            noProofRequest: authorized,
+          let result = try await issuer.requestCredential(
+            request: authorized,
+            bindingKeys: [],
             requestPayload: msoMdocPayload,
             responseEncryptionSpecProvider: { _ in
               spec
@@ -138,7 +138,7 @@ class IssuanceBatchRequestTest: XCTestCase {
             case .failed(let error):
               XCTAssert(false, error.localizedDescription)
               
-            case .invalidProof(_, let errorDescription):
+            case .invalidProof(let errorDescription):
               XCTAssert(false, errorDescription!)
             }
             XCTAssert(false, "Unexpected request")

@@ -17,6 +17,7 @@ import Foundation
 
 @testable import OpenID4VCI
 
+extension NotificationObject: Identifiable {}
 extension NotificationObject: Stubbable {
   public var id: ObjectIdentifier {
     ObjectIdentifier(NSObject())

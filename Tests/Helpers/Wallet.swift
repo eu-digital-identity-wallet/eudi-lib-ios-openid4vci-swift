@@ -79,7 +79,7 @@ extension Wallet {
           grants: nil,
           authorizationServerMetadata: try authServerMetadata.get()
         )
-        return try await issueOfferedCredentialNoProof(
+        return try await issueOfferedCredential(
           offer: offer,
           credentialConfigurationIdentifier: credentialConfigurationIdentifier,
           config: config
@@ -115,44 +115,20 @@ extension Wallet {
       offer: offer
     )
     
-    switch authorized {
-    case .noProofRequired:
-      return try await offer
-        .credentialIssuerMetadata
-        .credentialsSupported
-        .filter { offer.credentialConfigurationIdentifiers.contains($0.key) }
-        .asyncCompactMap { (credentialConfigurationIdentifier, supportedCredential) in
-        guard let scope = issuerMetadata.credentialsSupported[credentialConfigurationIdentifier]?.getScope() else {
-          throw ValidationError.error(reason: "Cannot find scope for \(credentialConfigurationIdentifier)")
-        }
-
-        if let data = try? await noProofRequiredSubmissionUseCase(
-          issuer: issuer,
-          noProofRequiredState: authorized,
-          credentialConfigurationIdentifier: credentialConfigurationIdentifier
-        ) {
-          return (scope, data)
-        } else {
-          return nil
-        }
+    return try await offer.credentialIssuerMetadata.credentialsSupported.asyncCompactMap { (credentialConfigurationIdentifier, supportedCredential) in
+      guard let scope = issuerMetadata.credentialsSupported[credentialConfigurationIdentifier]?.getScope() else {
+        throw ValidationError.error(reason: "Cannot find scope for \(credentialConfigurationIdentifier)")
       }
-      
-    case .proofRequired:
-      return try await offer.credentialIssuerMetadata.credentialsSupported.asyncCompactMap { (credentialConfigurationIdentifier, supportedCredential) in
-        guard let scope = issuerMetadata.credentialsSupported[credentialConfigurationIdentifier]?.getScope() else {
-          throw ValidationError.error(reason: "Cannot find scope for \(credentialConfigurationIdentifier)")
-        }
-        let data = try await proofRequiredSubmissionUseCase(
-          issuer: issuer,
-          authorized: authorized,
-          credentialConfigurationIdentifier: credentialConfigurationIdentifier
-        )
-        return (scope, data)
-      }
+      let data = try await submissionUseCase(
+        issuer: issuer,
+        authorized: authorized,
+        credentialConfigurationIdentifier: credentialConfigurationIdentifier
+      )
+      return (scope, data)
     }
   }
   
-  private func issueOfferedCredentialNoProof(
+  private func issueOfferedCredential(
     offer: CredentialOffer,
     credentialConfigurationIdentifier: CredentialConfigurationIdentifier,
     config: OpenId4VCIConfig
@@ -166,7 +142,8 @@ extension Wallet {
       tokenPoster: Poster(session: self.session),
       requesterPoster: Poster(session: self.session),
       deferredRequesterPoster: Poster(session: self.session),
-      notificationPoster: Poster(session: self.session)
+      notificationPoster: Poster(session: self.session),
+      noncePoster: Poster(session: self.session)
     )
     
     // Authorize with auth code flow
@@ -175,20 +152,11 @@ extension Wallet {
       offer: offer
     )
     
-    switch authorized {
-    case .noProofRequired:
-      return try await noProofRequiredSubmissionUseCase(
-        issuer: issuer,
-        noProofRequiredState: authorized,
-        credentialConfigurationIdentifier: credentialConfigurationIdentifier
-      )
-    case .proofRequired:
-      return try await proofRequiredSubmissionUseCase(
-        issuer: issuer,
-        authorized: authorized,
-        credentialConfigurationIdentifier: credentialConfigurationIdentifier
-      )
-    }
+    return try await submissionUseCase(
+      issuer: issuer,
+      authorized: authorized,
+      credentialConfigurationIdentifier: credentialConfigurationIdentifier
+    )
   }
 }
 
@@ -317,20 +285,11 @@ extension Wallet {
       offer: offer
     )
     
-    switch authorized {
-    case .noProofRequired:
-      return try await noProofRequiredSubmissionUseCase(
-        issuer: issuer,
-        noProofRequiredState: authorized,
-        credentialConfigurationIdentifier: credentialConfigurationIdentifier
-      )
-    case .proofRequired:
-      return try await proofRequiredSubmissionUseCase(
-        issuer: issuer,
-        authorized: authorized,
-        credentialConfigurationIdentifier: credentialConfigurationIdentifier
-      )
-    }
+    return try await submissionUseCase(
+      issuer: issuer,
+      authorized: authorized,
+      credentialConfigurationIdentifier: credentialConfigurationIdentifier
+    )
   }
   
   private func issueOfferedCredentialWithProof_DPoP(
@@ -361,20 +320,11 @@ extension Wallet {
       offer: offer
     )
     
-    switch authorized {
-    case .noProofRequired:
-      return try await noProofRequiredSubmissionUseCase(
-        issuer: issuer,
-        noProofRequiredState: authorized,
-        credentialConfigurationIdentifier: credentialConfigurationIdentifier
-      )
-    case .proofRequired:
-      return try await proofRequiredSubmissionUseCase(
-        issuer: issuer,
-        authorized: authorized,
-        credentialConfigurationIdentifier: credentialConfigurationIdentifier
-      )
-    }
+    return try await submissionUseCase(
+      issuer: issuer,
+      authorized: authorized,
+      credentialConfigurationIdentifier: credentialConfigurationIdentifier
+    )
   }
   
   func authorizeRequestWithAuthCodeUseCase(
@@ -429,15 +379,14 @@ extension Wallet {
       switch unAuthorized {
       case .success(let request):
         let authorizedRequest = await issuer.authorizeWithAuthorizationCode(authorizationCode: request)
-        if case let .success(authorized) = authorizedRequest,
-           case let .noProofRequired(token, _, _, _, _) = authorized {
-          print("--> [AUTHORIZATION] Authorization code exchanged with access token : \(token.accessToken)")
+        if case let .success(authorized) = authorizedRequest {
+          print("--> [AUTHORIZATION] Authorization code exchanged with access token : \(authorized.accessToken)")
           
-          if let timeStamp = authorized.timeStamp {
-            _ = authorized.accessToken?.isExpired(
-              issued: timeStamp,
-              at: Date().timeIntervalSinceReferenceDate)
-          }
+          _ = authorized.accessToken.isExpired(
+            issued: authorized.timeStamp,
+            at: Date().timeIntervalSinceReferenceDate
+          )
+          
           return authorized
         }
         
@@ -449,58 +398,7 @@ extension Wallet {
     throw  ValidationError.error(reason: "Failed to get push authorization code request")
   }
   
-  private func noProofRequiredSubmissionUseCase(
-    issuer: Issuer,
-    noProofRequiredState: AuthorizedRequest,
-    credentialConfigurationIdentifier: CredentialConfigurationIdentifier
-  ) async throws -> Credential {
-    switch noProofRequiredState {
-    case .noProofRequired:
-      let payload: IssuanceRequestPayload = .configurationBased(
-        credentialConfigurationIdentifier: credentialConfigurationIdentifier
-      )
-      let responseEncryptionSpecProvider = { Issuer.createResponseEncryptionSpec($0) }
-      let requestOutcome = try await issuer.request(
-        noProofRequest: noProofRequiredState,
-        requestPayload: payload,
-        responseEncryptionSpecProvider: responseEncryptionSpecProvider
-      )
-      switch requestOutcome {
-      case .success(let request):
-        switch request {
-        case .success(let response):
-          if let result = response.credentialResponses.first {
-            switch result {
-            case .deferred(let transactionId):
-              return try await deferredCredentialUseCase(
-                issuer: issuer,
-                authorized: noProofRequiredState,
-                transactionId: transactionId
-              )
-            case .issued(_, let credential, _, _):
-              return credential
-            }
-          } else {
-            throw ValidationError.error(reason: "No credential response results available")
-          }
-        case .invalidProof(let cNonce, _):
-          return try await proofRequiredSubmissionUseCase(
-            issuer: issuer,
-            authorized: noProofRequiredState.handleInvalidProof(cNonce: cNonce),
-            credentialConfigurationIdentifier: credentialConfigurationIdentifier
-          )
-        case .failed(error: let error):
-          throw ValidationError.error(reason: error.localizedDescription)
-        }
-        
-      case .failure(let error):
-        throw ValidationError.error(reason: error.localizedDescription)
-      }
-    default: throw ValidationError.error(reason: "Illegal noProofRequiredState case")
-    }
-  }
-  
-  private func proofRequiredSubmissionUseCase(
+  private func submissionUseCase(
     issuer: Issuer,
     authorized: AuthorizedRequest,
     credentialConfigurationIdentifier: CredentialConfigurationIdentifier?
@@ -514,13 +412,13 @@ extension Wallet {
       credentialConfigurationIdentifier: credentialConfigurationIdentifier
     )
     
-    let responseEncryptionSpecProvider = { Issuer.createResponseEncryptionSpec($0) }
-    let requestOutcome = try await issuer.request(
-      proofRequest: authorized,
+    let requestOutcome = try await issuer.requestCredential(
+      request: authorized,
       bindingKeys: bindingKeys,
-      requestPayload: payload,
-      responseEncryptionSpecProvider: responseEncryptionSpecProvider
-    )
+      requestPayload: payload
+    ) {
+      Issuer.createResponseEncryptionSpec($0)
+    }
     
     switch requestOutcome {
     case .success(let request):
@@ -556,7 +454,7 @@ extension Wallet {
   ) async throws -> Credential {
     print("--> [ISSUANCE] Got a deferred issuance response from server with transaction_id \(transactionId.value). Retrying issuance...")
     
-    let deferredRequestResponse = try await issuer.requestDeferredIssuance(
+    let deferredRequestResponse = try await issuer.requestDeferredCredential(
       proofRequest: authorized,
       transactionId: transactionId,
       dPopNonce: nil
