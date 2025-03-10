@@ -30,7 +30,7 @@ public struct OpenId4VCIConfig: Sendable {
   public let usePAR: Bool
   public let dPoPConstructor: DPoPConstructorType?
   public let clientAttestationPoPBuilder: ClientAttestationPoPBuilder?
-
+  public let issuerMetadataPolicy: IssuerMetadataPolicy
     
   public init(
     client: Client,
@@ -38,7 +38,8 @@ public struct OpenId4VCIConfig: Sendable {
     authorizeIssuanceConfig: AuthorizeIssuanceConfig = .favorScopes,
     usePAR: Bool = true,
     dPoPConstructor: DPoPConstructorType? = nil,
-    clientAttestationPoPBuilder: ClientAttestationPoPBuilder? = nil
+    clientAttestationPoPBuilder: ClientAttestationPoPBuilder? = nil,
+    issuerMetadataPolicy: IssuerMetadataPolicy = .ignoreSigned
   ) {
     self.client = client
     self.authFlowRedirectionURI = authFlowRedirectionURI
@@ -46,6 +47,7 @@ public struct OpenId4VCIConfig: Sendable {
     self.usePAR = usePAR
     self.dPoPConstructor = dPoPConstructor
     self.clientAttestationPoPBuilder = clientAttestationPoPBuilder
+    self.issuerMetadataPolicy = issuerMetadataPolicy
   }
 }
 
