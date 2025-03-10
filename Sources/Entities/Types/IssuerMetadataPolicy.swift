@@ -14,20 +14,19 @@
  * limitations under the License.
  */
 import Foundation
-import JOSESwift
+@preconcurrency import JOSESwift
 
-public protocol CertificateChainTrust {
-  func isTrusted(chain: [X509Certificate])
+public protocol CertificateChainTrust: Sendable {
+  func isTrusted(chain: [String])
+  func isSigned(base64Key: String)
 }
 
-public enum IssuerTrust {
-
+public enum IssuerTrust: Sendable {
   case byPublicKey(jwk: JWK)
   case byCertificateChain(certificateChainTrust: CertificateChainTrust)
 }
 
-public enum IssuerMetadataPolicy {
-
+public enum IssuerMetadataPolicy: Sendable {
   case requireSigned(issuerTrust: IssuerTrust)
   case preferSigned(issuerTrust: IssuerTrust)
   case ignoreSigned
