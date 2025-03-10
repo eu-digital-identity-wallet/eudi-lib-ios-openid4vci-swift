@@ -180,7 +180,8 @@ struct TestsConstants {
     )
     
     return try? await credentialOfferRequestResolver.resolve(
-      source: .fetchByReference(url: .stub())
+      source: .fetchByReference(url: .stub()),
+      policy: .ignoreSigned
     ).get()
   }
   
@@ -213,7 +214,8 @@ struct TestsConstants {
     )
     
     return try? await credentialOfferRequestResolver.resolve(
-      source: .fetchByReference(url: .stub())
+      source: .fetchByReference(url: .stub()),
+      policy: .ignoreSigned
     ).get()
   }
   
@@ -246,7 +248,8 @@ struct TestsConstants {
     )
     
     return try? await credentialOfferRequestResolver.resolve(
-      source: .fetchByReference(url: .stub())
+      source: .fetchByReference(url: .stub()),
+      policy: .ignoreSigned
     ).get()
   }
   
@@ -279,7 +282,8 @@ struct TestsConstants {
     )
     
     return try? await credentialOfferRequestResolver.resolve(
-      source: .fetchByReference(url: .stub())
+      source: .fetchByReference(url: .stub()),
+      policy: .ignoreSigned
     ).get()
   }
   
