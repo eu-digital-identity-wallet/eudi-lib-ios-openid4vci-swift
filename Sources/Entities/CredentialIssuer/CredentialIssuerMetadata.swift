@@ -130,7 +130,7 @@ public struct CredentialIssuerMetadata: Decodable, Equatable, Sendable {
         case W3CSignedJwtFormat.FORMAT:
           let profile = try W3CSignedJwtFormat.CredentialConfiguration(json: credJson)
           mapIdentifierCredential[credentialIdentifier] = .w3CSignedJwt(profile)
-        case SdJwtVcFormat.FORMAT:
+        case SdJwtVcFormat.FORMAT, SdJwtVcFormat.LEGACY_FORMAT:
           let profile = try SdJwtVcFormat.CredentialConfiguration(json: credJson)
           mapIdentifierCredential[credentialIdentifier] = .sdJwtVc(profile)
         case W3CJsonLdSignedJwtFormat.FORMAT:
