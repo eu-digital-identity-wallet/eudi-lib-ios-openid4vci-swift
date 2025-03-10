@@ -63,7 +63,7 @@ public extension CredentialSupported {
   func toIssuanceRequest(
     requester: IssuanceRequesterType,
     proofs: [Proof] = [],
-    credentialIdentifier: CredentialIdentifier? = nil,
+    issuancePayload: IssuanceRequestPayload,
     responseEncryptionSpecProvider: (_ issuerResponseEncryptionMetadata: CredentialResponseEncryption) -> IssuanceResponseEncryptionSpec?
   ) throws -> CredentialIssuanceRequest {
     switch self {
@@ -90,7 +90,7 @@ public extension CredentialSupported {
      
       return try credentialConfiguration.toIssuanceRequest(
         responseEncryptionSpec: issuerEncryption.notRequired ? nil : responseEncryptionSpec,
-        credentialIdentifier: credentialIdentifier,
+        requestPayload: issuancePayload,
         proofs: proofs
       )
 
@@ -117,7 +117,7 @@ public extension CredentialSupported {
      
       return try credentialConfiguration.toIssuanceRequest(
         responseEncryptionSpec: issuerEncryption.notRequired ? nil : responseEncryptionSpec,
-        credentialIdentifier: credentialIdentifier,
+        requestPayload: issuancePayload,
         proofs: proofs
       )
     default:
