@@ -45,6 +45,7 @@ public extension MsoMdocFormat {
     public let credentialResponseEncryptionMethod: JOSEEncryptionMethod?
     public let credentialIdentifier: CredentialIdentifier?
     public let requestedCredentialResponseEncryption: RequestedCredentialResponseEncryption
+    public let requestPayload: IssuanceRequestPayload
     
     enum CodingKeys: String, CodingKey {
       case doctype
@@ -53,6 +54,7 @@ public extension MsoMdocFormat {
       case credentialResponseEncryptionAlg
       case credentialResponseEncryptionMethod
       case credentialIdentifier
+      case requestPayload
     }
     
     public init(
@@ -62,7 +64,8 @@ public extension MsoMdocFormat {
       credentialEncryptionKey: SecKey? = nil,
       credentialResponseEncryptionAlg: JWEAlgorithm? = nil,
       credentialResponseEncryptionMethod: JOSEEncryptionMethod? = nil,
-      credentialIdentifier: CredentialIdentifier?
+      credentialIdentifier: CredentialIdentifier? = nil,
+      requestPayload: IssuanceRequestPayload
     ) throws {
       self.docType = docType
       self.proofs = proofs
@@ -70,7 +73,9 @@ public extension MsoMdocFormat {
       self.credentialEncryptionKey = credentialEncryptionKey
       self.credentialResponseEncryptionAlg = credentialResponseEncryptionAlg
       self.credentialResponseEncryptionMethod = credentialResponseEncryptionMethod
+      
       self.credentialIdentifier = credentialIdentifier
+      self.requestPayload = requestPayload
       
       self.requestedCredentialResponseEncryption = try .init(
         encryptionJwk: credentialEncryptionJwk,
@@ -97,6 +102,13 @@ public extension MsoMdocFormat {
       try container.encode(credentialResponseEncryptionAlg, forKey: .credentialResponseEncryptionAlg)
       try container.encode(credentialResponseEncryptionMethod, forKey: .credentialResponseEncryptionMethod)
       try container.encode(credentialIdentifier, forKey: .credentialIdentifier)
+      
+      switch requestPayload {
+      case .identifierBased(_, let credentialIdentifier):
+        try container.encode(credentialIdentifier, forKey: .credentialIdentifier)
+      case .configurationBased(let credentialConfigurationIdentifier):
+        try container.encode(credentialConfigurationIdentifier, forKey: .credentialIdentifier)
+      }
     }
   }
   
@@ -266,6 +278,7 @@ public extension MsoMdocFormat {
     func toIssuanceRequest(
       responseEncryptionSpec: IssuanceResponseEncryptionSpec?,
       credentialIdentifier: CredentialIdentifier? = nil,
+      requestPayload: IssuanceRequestPayload,
       proofs: [Proof]
     ) throws -> CredentialIssuanceRequest {
       try .single(
@@ -277,7 +290,7 @@ public extension MsoMdocFormat {
             credentialEncryptionKey: responseEncryptionSpec?.privateKey,
             credentialResponseEncryptionAlg: responseEncryptionSpec?.algorithm,
             credentialResponseEncryptionMethod: responseEncryptionSpec?.encryptionMethod,
-            credentialIdentifier: credentialIdentifier
+            requestPayload: requestPayload
           )
         ), responseEncryptionSpec
       )

@@ -20,6 +20,7 @@ import SwiftyJSON
 public struct SdJwtVcFormat: FormatProfile {
   
   static let FORMAT = "dc+sd-jwt"
+  static let LEGACY_FORMAT = "vc+sd-jwt"
   
   public let type: String
   public let scope: String?
@@ -48,6 +49,7 @@ public extension SdJwtVcFormat {
     public let credentialDefinition: CredentialDefinition
     public let requestedCredentialResponseEncryption: RequestedCredentialResponseEncryption
     public let credentialIdentifier: CredentialIdentifier?
+    public let requestPayload: IssuanceRequestPayload
     
     enum CodingKeys: String, CodingKey {
       case proof
@@ -56,6 +58,7 @@ public extension SdJwtVcFormat {
       case credentialResponseEncryptionMethod
       case credentialDefinition
       case credentialIdentifier
+      case requestPayload
     }
     
     public init(
@@ -66,7 +69,8 @@ public extension SdJwtVcFormat {
       credentialResponseEncryptionAlg: JWEAlgorithm? = nil,
       credentialResponseEncryptionMethod: JOSEEncryptionMethod? = nil,
       credentialDefinition: CredentialDefinition,
-      credentialIdentifier: CredentialIdentifier?
+      credentialIdentifier: CredentialIdentifier? = nil,
+      requestPayload: IssuanceRequestPayload
     ) throws {
       self.proofs = proofs
       self.vct = vct
@@ -79,6 +83,7 @@ public extension SdJwtVcFormat {
         claims: credentialDefinition.claims
       )
       self.credentialIdentifier = credentialIdentifier
+      self.requestPayload = requestPayload
       
       self.requestedCredentialResponseEncryption = try .init(
         encryptionJwk: credentialEncryptionJwk,
@@ -106,6 +111,13 @@ public extension SdJwtVcFormat {
       try container.encode(credentialResponseEncryptionMethod, forKey: .credentialResponseEncryptionMethod)
       
       try container.encode(credentialDefinition, forKey: .credentialDefinition)
+      
+      switch requestPayload {
+      case .identifierBased(_, let credentialIdentifier):
+        try container.encode(credentialIdentifier, forKey: .credentialIdentifier)
+      case .configurationBased(let credentialConfigurationIdentifier):
+        try container.encode(credentialConfigurationIdentifier, forKey: .credentialIdentifier)
+      }
     }
     
     public struct CredentialDefinition: Codable, Sendable {
@@ -325,6 +337,7 @@ public extension SdJwtVcFormat {
     func toIssuanceRequest(
       responseEncryptionSpec: IssuanceResponseEncryptionSpec?,
       credentialIdentifier: CredentialIdentifier? = nil,
+      requestPayload: IssuanceRequestPayload,
       proofs: [Proof]
     ) throws -> CredentialIssuanceRequest {
       try .single(
@@ -340,7 +353,7 @@ public extension SdJwtVcFormat {
               type: credentialDefinition.type,
               claims: claims
             ),
-            credentialIdentifier: credentialIdentifier
+            requestPayload: requestPayload
           )
         ), responseEncryptionSpec
       )
