@@ -60,7 +60,8 @@ class CredentialOfferResolverTests: XCTestCase {
     
     // When
     let result = await credentialOfferRequestResolver.resolve(
-      source: .fetchByReference(url: .stub())
+      source: .fetchByReference(url: .stub()),
+      policy: .ignoreSigned
     )
     
     // Then
@@ -106,7 +107,8 @@ class CredentialOfferResolverTests: XCTestCase {
     
     // When
     let result = await credentialOfferRequestResolver.resolve(
-      source: .fetchByReference(url: .stub())
+      source: .fetchByReference(url: .stub()),
+      policy: .ignoreSigned
     )
     
     // Then
@@ -152,7 +154,8 @@ class CredentialOfferResolverTests: XCTestCase {
     
     // When
     let result = await credentialOfferRequestResolver.resolve(
-      source: .fetchByReference(url: .stub())
+      source: .fetchByReference(url: .stub()),
+      policy: .ignoreSigned
     )
     
     // Then

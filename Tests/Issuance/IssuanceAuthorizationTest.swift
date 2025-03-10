@@ -343,7 +343,8 @@ class IssuanceAuthorizationTest: XCTestCase {
       .resolve(
         source: try .init(
           urlString: urlString
-        )
+        ),
+        policy: .ignoreSigned
       )
     
     let offer: CredentialOffer = try resolution.get()
@@ -471,7 +472,8 @@ class IssuanceAuthorizationTest: XCTestCase {
       .resolve(
         source: try .init(
           urlString: urlString
-        )
+        ),
+        policy: .ignoreSigned
       )
     
     let attestationConfig: OpenId4VCIConfig = .init(
@@ -572,7 +574,8 @@ class IssuanceAuthorizationTest: XCTestCase {
       .resolve(
         source: try .init(
           urlString: urlString
-        )
+        ),
+        policy: .ignoreSigned
       )
 
     let offer: CredentialOffer = try resolution.get()
@@ -679,7 +682,8 @@ class IssuanceAuthorizationTest: XCTestCase {
       .resolve(
         source: try .init(
           urlString: urlString
-        )
+        ),
+        policy: .ignoreSigned
       )
     
     let privateKey = try KeyController.generateECDHPrivateKey()

@@ -55,10 +55,11 @@ extension Wallet {
     let resolver = CredentialIssuerMetadataResolver(
       fetcher: Fetcher(session: self.session)
     )
-    let issuerMetadata = await resolver.resolve(
+    let issuerMetadata = try await resolver.resolve(
       source: .credentialIssuer(
         credentialIssuerIdentifier
-      )
+      ),
+      policy: config.issuerMetadataPolicy
     )
     
     switch issuerMetadata {
@@ -180,7 +181,8 @@ extension Wallet {
       .resolve(
         source: try .init(
           urlString: offerUri
-        )
+        ),
+        policy: config.issuerMetadataPolicy
       )
     
     switch result {
@@ -211,7 +213,8 @@ extension Wallet {
       ).resolve(
         source: try .init(
           urlString: offerUri
-        )
+        ),
+        policy: config.issuerMetadataPolicy
       )
     
     switch result {
@@ -243,7 +246,8 @@ extension Wallet {
     ).resolve(
         source: try .init(
           urlString: offerUri
-        )
+        ),
+        policy: config.issuerMetadataPolicy
       )
     
     switch result {
