@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 import Foundation
+@preconcurrency import JOSESwift
 
 public enum CredentialIssuerSource: Sendable {
   case credentialIssuer(CredentialIssuerId)
@@ -22,21 +23,22 @@ public enum CredentialIssuerSource: Sendable {
 public protocol CredentialIssuerMetadataType {
   /// The input type for resolving a type.
   associatedtype InputType: Sendable
-
+  
   /// The output type for resolved type. Must be Codable and Equatable.
   associatedtype OutputType: Decodable, Equatable, Sendable
-
+  
   /// The error type for resolving type. Must conform to the Error protocol.
   associatedtype ErrorType: Error
-
+  
   /// Resolves type asynchronously.
   ///
   /// - Parameters:
   ///   - source: The input source for resolving data.
   /// - Returns: An asynchronous result containing the resolved data or an error.
   func resolve(
-    source: InputType
-  ) async -> Result<OutputType, ErrorType>
+    source: InputType,
+    policy: IssuerMetadataPolicy
+  ) async throws -> Result<OutputType, ErrorType>
 }
 
 public actor CredentialIssuerMetadataResolver: CredentialIssuerMetadataType {
@@ -52,18 +54,109 @@ public actor CredentialIssuerMetadataResolver: CredentialIssuerMetadataType {
   /// Resolves client metadata asynchronously.
   ///
   /// - Parameters:
-  ///   - fetcher: The fetcher object responsible for fetching metadata. Default value is Fetcher<ClientMetaData>().
   ///   - source: The input source for resolving metadata.
+  ///   - policy: The issuer metadata policy
   /// - Returns: An asynchronous result containing the resolved metadata or an error of type ResolvingError.
   public func resolve(
-    source: CredentialIssuerSource
-  ) async -> Result<CredentialIssuerMetadata, some Error> {
-      switch source {
-      case .credentialIssuer(let issuerId):
-          let url = issuerId.url
-              .appendingPathComponent(".well-known")
-              .appendingPathComponent("openid-credential-issuer")
-          return await fetcher.fetch(url: url)
+    source: CredentialIssuerSource,
+    policy: IssuerMetadataPolicy
+  ) async throws -> Result<CredentialIssuerMetadata, some Error> {
+    switch source {
+    case .credentialIssuer(let issuerId):
+      let url = issuerId.url
+        .appendingPathComponent(".well-known")
+        .appendingPathComponent("openid-credential-issuer")
+      let result = await fetcher.fetch(url: url)
+      
+      switch result {
+      case .success(let metadata):
+        switch policy {
+        case .requireSigned(let issuerTrust):
+          try await parseAndVerifySignedMetadata(
+            metadata.signedMetadata,
+            issuerTrust: issuerTrust,
+            issuerId: issuerId
+          )
+          return result
+          
+        case .preferSigned(let issuerTrust):
+          try? await parseAndVerifySignedMetadata(
+            metadata.signedMetadata,
+            issuerTrust: issuerTrust,
+            issuerId: issuerId
+          )
+          return result
+        case .ignoreSigned: return result
+        }
+      case .failure(let error):
+        return .failure(error)
       }
+    }
+  }
+}
+
+private extension CredentialIssuerMetadataResolver {
+  func parseAndVerifySignedMetadata(
+    _ metadata: String?,
+    issuerTrust: IssuerTrust,
+    issuerId: CredentialIssuerId
+  ) async throws {
+    guard
+      let metadata,
+      let jws = try? JWS(compactSerialization: metadata),
+      let x5c = jws.header.x5c
+    else {
+      throw CredentialIssuerMetadataError.missingSignedMetadata
+    }
+    
+    try await issuerTrust.verify(
+      jws: jws,
+      chain: x5c
+    )
+  }
+}
+
+private extension IssuerTrust {
+  
+  @discardableResult
+  func verify(
+    jws: JWS,
+    chain: [String]
+  ) async throws -> JWS {
+    switch self {
+    case .byPublicKey(let jwk):
+      let algorithm: SignatureAlgorithm
+      switch jwk.keyType {
+      case .RSA:
+        algorithm = .RS256
+      case .EC:
+        algorithm = .ES256
+      default:
+        throw CredentialIssuerMetadataError.invalidSignedMetadata(
+          "Unsupported key type: \(jwk.keyType)"
+        )
+      }
+      
+      guard
+        let key = try JWKSecKeyConverter(jwk: jwk).secKey(),
+        let verifier: Verifier = .init(
+          signatureAlgorithm: algorithm,
+          key: key
+        ) else {
+        throw CredentialIssuerMetadataError.invalidSignedMetadata(
+          "Failed to create verifier"
+        )
+      }
+      return try jws.validate(using: verifier)
+      
+    case .byCertificateChain(let certificateChainTrust):
+      guard certificateChainTrust.isTrustedAndVerified(chain: chain) else {
+        throw CredentialIssuerMetadataError.invalidSignedMetadata(
+          "Failed to create verifier"
+        )
+      }
+      
+      return jws
+    }
   }
 }

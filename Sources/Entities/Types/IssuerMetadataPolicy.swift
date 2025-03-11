@@ -17,8 +17,7 @@ import Foundation
 @preconcurrency import JOSESwift
 
 public protocol CertificateChainTrust: Sendable {
-  func isTrusted(chain: [String])
-  func isSigned(base64Key: String)
+  func isTrustedAndVerified(chain: [String]) -> Bool
 }
 
 public enum IssuerTrust: Sendable {
