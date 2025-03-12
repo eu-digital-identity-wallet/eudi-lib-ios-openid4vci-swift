@@ -459,7 +459,7 @@ extension Wallet {
     print("--> [ISSUANCE] Got a deferred issuance response from server with transaction_id \(transactionId.value). Retrying issuance...")
     
     let deferredRequestResponse = try await issuer.requestDeferredCredential(
-      proofRequest: authorized,
+      request: authorized,
       transactionId: transactionId,
       dPopNonce: nil
     )

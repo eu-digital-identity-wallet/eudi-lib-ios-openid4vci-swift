@@ -48,7 +48,7 @@ public protocol IssuerType {
   ) async throws -> Result<SubmittedRequest, Error>
   
   func requestDeferredCredential(
-    proofRequest: AuthorizedRequest,
+    request: AuthorizedRequest,
     transactionId: TransactionId,
     dPopNonce: Nonce?
   ) async throws -> Result<DeferredCredentialIssuanceResponse, Error>
@@ -742,13 +742,13 @@ public extension Issuer {
   }
   
   func requestDeferredCredential(
-    proofRequest: AuthorizedRequest,
+    request: AuthorizedRequest,
     transactionId: TransactionId,
     dPopNonce: Nonce?
   ) async throws -> Result<DeferredCredentialIssuanceResponse, Error> {
     
     return try await deferredIssuanceRequester.placeDeferredCredentialRequest(
-      accessToken: proofRequest.accessToken,
+      accessToken: request.accessToken,
       transactionId: transactionId,
       dPopNonce: dPopNonce,
       retry: true,
