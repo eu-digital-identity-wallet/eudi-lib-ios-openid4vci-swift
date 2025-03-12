@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 import Foundation
-@preconcurrency import JOSESwift
 import CryptoKit
+@preconcurrency import JOSESwift
 
 public protocol DPoPConstructorType: Sendable {
   func jwt(
