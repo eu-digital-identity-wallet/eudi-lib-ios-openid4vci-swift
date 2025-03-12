@@ -98,7 +98,7 @@ struct JWKSecKeyConverter {
     // Ensure the JWK has all required RSA parameters.
     guard
       let nBase64 = jwk["n"],
-        let eBase64 = jwk["e"]
+      let eBase64 = jwk["e"]
     else {
       return nil
     }
