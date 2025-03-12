@@ -199,14 +199,17 @@ class CredentialOfferResolverTests: XCTestCase {
     switch result {
     case .success(let result):
       XCTAssert(result.credentialIssuerIdentifier.url.absoluteString == "https://credential-issuer.example.com")
-
+      XCTAssert(result.nonceEndpoint!.url.absoluteString == "https://credential-issuer.example.com/nonce")
+      
       let credentialSupported = result.credentialsSupported[try! .init(value: "MobileDrivingLicense_msoMdoc")]!
+      
+      XCTAssert(result.credentialsSupported.count == 4)
       
       switch credentialSupported {
       case .msoMdoc(let credential):
         let claims = credential.claims
         XCTAssert(claims.count == 4)
-        XCTAssert(claims[0].path == ClaimPath([.claim(name: "org.iso.18013.5.1"), .claim(name: "given_name")]))
+        XCTAssert(claims[0].path == ClaimPath.claim("org.iso.18013.5.1").claim("given_name"))
         
       default:
         XCTFail("Expecting mso mdoc")
