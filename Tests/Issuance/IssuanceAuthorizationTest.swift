@@ -329,7 +329,6 @@ class IssuanceAuthorizationTest: XCTestCase {
     /// Submit
     ///
     let urlString = """
-    https://trial.authlete.net/api/offer/QTG7viqCTBZbYz16SijtmAXpcSMc-9uL-rCcJOJMRK8
     """
     
     if urlString.isEmpty {
@@ -671,6 +670,7 @@ class IssuanceAuthorizationTest: XCTestCase {
     ///
     let urlString = """
     """
+    
     if urlString.isEmpty {
       XCTExpectFailure()
       XCTAssert(false, "urlString cannot be empty")

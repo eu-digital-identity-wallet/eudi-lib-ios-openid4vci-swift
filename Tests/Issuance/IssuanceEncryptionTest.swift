@@ -133,7 +133,7 @@ class IssuanceEncryptionTest: XCTestCase {
       )
       
       XCTAssert(false)
-    } catch CredentialIssuanceError.responseEncryptionMethodNotSupportedByIssuer {
+    } catch CredentialIssuanceError.responseEncryptionAlgorithmNotSupportedByIssuer {
       XCTAssert(true)
       
     } catch {
@@ -171,11 +171,10 @@ class IssuanceEncryptionTest: XCTestCase {
         }
       )
       
-    } catch CredentialIssuanceError.responseEncryptionAlgorithmNotSupportedByIssuer {
+    } catch CredentialIssuanceError.responseEncryptionMethodNotSupportedByIssuer {
       XCTAssert(true)
       
     } catch {
-      print(error.localizedDescription)
       XCTAssert(false, error.localizedDescription)
     }
   }

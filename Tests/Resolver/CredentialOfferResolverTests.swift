@@ -70,6 +70,15 @@ class CredentialOfferResolverTests: XCTestCase {
       XCTAssert(result.credentialIssuerIdentifier.url.absoluteString == "https://credential-issuer.example.com")
       XCTAssert(result.credentialIssuerMetadata.deferredCredentialEndpoint?.url.absoluteString == "https://credential-issuer.example.com/credentials/deferred")
 
+      let grants = result.grants!
+      switch grants {
+      case .preAuthorizedCode(let code):
+        XCTAssert(code.preAuthorizedCode == "123456")
+        XCTAssert(code.txCode?.length == 6)
+        
+      default:
+        XCTFail()
+      }
     case .failure(let error):
       XCTAssert(false, error.localizedDescription)
     }
@@ -165,6 +174,45 @@ class CredentialOfferResolverTests: XCTestCase {
 
     case .failure(let error):
       XCTAssert(true, error.localizedDescription)
+    }
+  }
+  
+  func testCredentialIssuerParsingWithStandardData() async throws {
+    
+    // Given
+    let credentialIssuerMetadataResolver = CredentialIssuerMetadataResolver(
+      fetcher: Fetcher<CredentialIssuerMetadata>(session: NetworkingMock(
+        path: "credential_issuer_metadata",
+        extension: "json"
+      )
+    ))
+    
+    // When
+    let result = try await credentialIssuerMetadataResolver.resolve(
+      source: .credentialIssuer(
+        try .init("https://credential-issuer.example.com")
+      ),
+      policy: .ignoreSigned
+    )
+    
+    // Then
+    switch result {
+    case .success(let result):
+      XCTAssert(result.credentialIssuerIdentifier.url.absoluteString == "https://credential-issuer.example.com")
+
+      let credentialSupported = result.credentialsSupported[try! .init(value: "MobileDrivingLicense_msoMdoc")]!
+      
+      switch credentialSupported {
+      case .msoMdoc(let credential):
+        let claims = credential.claims
+        XCTAssert(claims.count == 4)
+        XCTAssert(claims[0].path == ClaimPath([.claim(name: "org.iso.18013.5.1"), .claim(name: "given_name")]))
+        
+      default:
+        XCTFail("Expecting mso mdoc")
+      }
+    case .failure(let error):
+      XCTAssert(false, error.localizedDescription)
     }
   }
 }

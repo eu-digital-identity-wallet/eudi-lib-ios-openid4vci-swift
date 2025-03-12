@@ -151,7 +151,7 @@ struct JWKSecKeyConverter {
     return Data(sequence + modulusField + exponentField)
   }
   
-  private func encodeASN1Length(_ length: Int) -> [UInt8] {
+  internal func encodeASN1Length(_ length: Int) -> [UInt8] {
     if length < 0x80 {
       return [UInt8(length)]
     } else {

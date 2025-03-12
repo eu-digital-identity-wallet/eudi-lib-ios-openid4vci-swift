@@ -335,8 +335,6 @@ class VCIFlowNoOffer: XCTestCase {
         config: clientConfig
       )
       
-      print(credential)
-      
     } catch {
       
       XCTExpectFailure()
@@ -381,8 +379,6 @@ class VCIFlowNoOffer: XCTestCase {
         PID_MsoMdoc_config_id,
         config: clientConfig
       )
-      
-      print(credential)
       
     } catch {
       

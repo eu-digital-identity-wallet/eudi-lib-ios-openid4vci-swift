@@ -95,7 +95,8 @@ extension FormPost {
         throw FormURLEncodingError.unsupportedName(name)
       }
       guard let encodedValue = encoded(any: value) else {
-        throw FormURLEncodingError.unsupportedValue(value as? String)
+        let unsupportedValue: String = (value as? String) ?? ""
+        throw FormURLEncodingError.unsupportedValue(unsupportedValue)
       }
       to.append(encodedName)
       to.append("=")
