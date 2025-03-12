@@ -15,7 +15,7 @@
  */
 import Foundation
 
-public protocol CanExpire {
+public protocol CanExpire: Sendable {
   var expiresIn: TimeInterval? { get }
   func isExpired(issued: TimeInterval, at: TimeInterval) -> Bool
 }
@@ -42,7 +42,9 @@ public struct AuthorizedRequest: Sendable {
   public let timeStamp: TimeInterval
   public let dPopNonce: Nonce?
   
-  public func isAccessTokenExpired(_ from: TimeInterval) -> Bool {
+  public func isAccessTokenExpired(
+    _ from: TimeInterval = Date().timeIntervalSince1970
+  ) -> Bool {
     return accessToken.isExpired(issued: timeStamp, at: from)
   }
   
