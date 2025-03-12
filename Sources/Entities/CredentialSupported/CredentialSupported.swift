@@ -26,7 +26,7 @@ public enum CredentialSupported: Codable, Sendable {
 
 public extension CredentialSupported {
   
-  func supportsProofTypes() -> Bool {
+  internal func supportsProofTypes() -> Bool {
     switch self {
     case .scope:
       return false
