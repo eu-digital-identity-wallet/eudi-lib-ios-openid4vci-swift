@@ -16,12 +16,26 @@
 import Foundation
 import JOSESwift
 
+/// A protocol defining the operations required for an issuer in the credential issuance process.
 public protocol IssuerType {
   
+  /// Initiates an authorization request using a credential offer.
+  ///
+  /// - Parameter credentialOffer: The credential offer containing necessary details for authorization.
+  /// - Returns: A result containing either an `UnauthorizedRequest` if the request is successful or an `Error` otherwise.
   func pushAuthorizationCodeRequest(
     credentialOffer: CredentialOffer
   ) async throws -> Result<UnauthorizedRequest, Error>
   
+  /// Authorizes a request using a pre-authorization code.
+  ///
+  /// - Parameters:
+  ///   - credentialOffer: The credential offer used for authorization.
+  ///   - authorizationCode: The pre-authorization code provided by the issuer.
+  ///   - client: The client making the authorization request.
+  ///   - transactionCode: An optional transaction code, if applicable.
+  ///   - authorizationDetailsInTokenRequest: Additional authorization details for the token request.
+  /// - Returns: A result containing either an `AuthorizedRequest` if authorization succeeds or an `Error` otherwise.
   func authorizeWithPreAuthorizationCode(
     credentialOffer: CredentialOffer,
     authorizationCode: IssuanceAuthorization,
@@ -30,16 +44,36 @@ public protocol IssuerType {
     authorizationDetailsInTokenRequest: AuthorizationDetailsInTokenRequest
   ) async -> Result<AuthorizedRequest, Error>
   
+  /// Handles the authorization code and updates the request status.
+  ///
+  /// - Parameters:
+  ///   - parRequested: The unauthorized request that needs authorization.
+  ///   - authorizationCode: The authorization code issued by the issuer.
+  /// - Returns: A result containing either an updated `UnauthorizedRequest` or an `Error`.
   func handleAuthorizationCode(
     parRequested: UnauthorizedRequest,
     authorizationCode: IssuanceAuthorization
   ) async -> Result<UnauthorizedRequest, Error>
   
+  /// Completes the authorization process using an authorization code.
+  ///
+  /// - Parameters:
+  ///   - authorizationCode: The unauthorized request containing the authorization code.
+  ///   - authorizationDetailsInTokenRequest: Additional authorization details for the token request.
+  /// - Returns: A result containing either an `AuthorizedRequest` if successful or an `Error` otherwise.
   func authorizeWithAuthorizationCode(
     authorizationCode: UnauthorizedRequest,
     authorizationDetailsInTokenRequest: AuthorizationDetailsInTokenRequest
   ) async -> Result<AuthorizedRequest, Error>
   
+  /// Requests credential issuance after authorization.
+  ///
+  /// - Parameters:
+  ///   - request: The authorized request to proceed with credential issuance.
+  ///   - bindingKeys: A list of binding keys used for secure binding of the credential.
+  ///   - requestPayload: The payload required for the credential issuance.
+  ///   - responseEncryptionSpecProvider: A closure providing the encryption specifications for the response.
+  /// - Returns: A result containing either a `SubmittedRequest` if successful or an `Error` otherwise.
   func requestCredential(
     request: AuthorizedRequest,
     bindingKeys: [BindingKey],
@@ -47,24 +81,46 @@ public protocol IssuerType {
     responseEncryptionSpecProvider: @Sendable (_ issuerResponseEncryptionMetadata: CredentialResponseEncryption) -> IssuanceResponseEncryptionSpec?
   ) async throws -> Result<SubmittedRequest, Error>
   
+  /// Requests a deferred credential issuance.
+  ///
+  /// - Parameters:
+  ///   - request: The authorized request for credential issuance.
+  ///   - transactionId: The transaction ID associated with the request.
+  ///   - dPopNonce: An optional nonce for DPoP security.
+  /// - Returns: A result containing either a `DeferredCredentialIssuanceResponse` if successful or an `Error` otherwise.
   func requestDeferredCredential(
     request: AuthorizedRequest,
     transactionId: TransactionId,
     dPopNonce: Nonce?
   ) async throws -> Result<DeferredCredentialIssuanceResponse, Error>
   
+  /// Sends a notification related to the credential issuance process.
+  ///
+  /// - Parameters:
+  ///   - authorizedRequest: The authorized request linked to the notification.
+  ///   - notificationId: The ID of the notification.
+  ///   - dPopNonce: An optional nonce for DPoP security.
+  /// - Returns: A result containing either `Void` if successful or an `Error` otherwise.
   func notify(
     authorizedRequest: AuthorizedRequest,
     notificationId: NotificationObject,
     dPopNonce: Nonce?
   ) async throws -> Result<Void, Error>
   
+  /// Refreshes an authorized request.
+  ///
+  /// - Parameters:
+  ///   - clientId: The ID of the client requesting a refresh.
+  ///   - authorizedRequest: The existing authorized request to be refreshed.
+  ///   - dPopNonce: An optional nonce for DPoP security.
+  /// - Returns: A result containing either a new `AuthorizedRequest` if successful or an `Error` otherwise.
   func refresh(
     clientId: String,
     authorizedRequest: AuthorizedRequest,
     dPopNonce: Nonce?
   ) async -> Result<AuthorizedRequest, Error>
 }
+
 
 public actor Issuer: IssuerType {
   
@@ -791,7 +847,7 @@ public extension Issuer {
             accessToken: accessToken,
             timeStamp: timeStamp?.asTimeInterval ?? .zero
           )
-        )
+          )
         case .failure(let error):
           return .failure(error)
         }
