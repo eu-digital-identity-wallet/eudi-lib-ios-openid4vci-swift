@@ -37,6 +37,7 @@ public struct MsoMdocFormat: FormatProfile {
 public extension MsoMdocFormat {
   
   struct MsoMdocSingleCredential: Codable, Sendable {
+    public let scope: String?
     public let docType: String
     public let proofs: [Proof]
     public let credentialEncryptionJwk: JWK?
@@ -46,8 +47,10 @@ public extension MsoMdocFormat {
     public let credentialIdentifier: CredentialIdentifier?
     public let requestedCredentialResponseEncryption: RequestedCredentialResponseEncryption
     public let requestPayload: IssuanceRequestPayload
+    public let display: [Display]
     
     enum CodingKeys: String, CodingKey {
+      case scope
       case doctype
       case proof
       case credentialEncryptionJwk
@@ -55,9 +58,11 @@ public extension MsoMdocFormat {
       case credentialResponseEncryptionMethod
       case credentialIdentifier
       case requestPayload
+      case display
     }
     
     public init(
+      scope: String?,
       docType: String,
       proofs: [Proof] = [],
       credentialEncryptionJwk: JWK? = nil,
@@ -65,8 +70,10 @@ public extension MsoMdocFormat {
       credentialResponseEncryptionAlg: JWEAlgorithm? = nil,
       credentialResponseEncryptionMethod: JOSEEncryptionMethod? = nil,
       credentialIdentifier: CredentialIdentifier? = nil,
-      requestPayload: IssuanceRequestPayload
+      requestPayload: IssuanceRequestPayload,
+      display: [Display] = []
     ) throws {
+      self.scope = scope
       self.docType = docType
       self.proofs = proofs
       self.credentialEncryptionJwk = credentialEncryptionJwk
@@ -83,6 +90,8 @@ public extension MsoMdocFormat {
         responseEncryptionAlg: credentialResponseEncryptionAlg,
         responseEncryptionMethod: credentialResponseEncryptionMethod
       )
+      
+      self.display = display
     }
     
     public init(from decoder: Decoder) throws {
@@ -284,13 +293,15 @@ public extension MsoMdocFormat {
       try .single(
         .msoMdoc(
           .init(
+            scope: scope,
             docType: docType,
             proofs: proofs,
             credentialEncryptionJwk: responseEncryptionSpec?.jwk,
             credentialEncryptionKey: responseEncryptionSpec?.privateKey,
             credentialResponseEncryptionAlg: responseEncryptionSpec?.algorithm,
             credentialResponseEncryptionMethod: responseEncryptionSpec?.encryptionMethod,
-            requestPayload: requestPayload
+            requestPayload: requestPayload,
+            display: display
           )
         ), responseEncryptionSpec
       )
