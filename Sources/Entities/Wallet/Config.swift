@@ -15,23 +15,53 @@
  */
 import Foundation
 
+/// Configuration options for issuance.
 public enum AuthorizeIssuanceConfig: Sendable {
+  /// Favor the use of scopes.
   case favorScopes
+  /// Use authorization details instead of scopes.
   case authorizationDetails
 }
 
+/// A type alias representing a Client ID.
 public typealias ClientId = String
+
+/// A type alias representing a Client Secret.
 public typealias ClientSecret = String
 
+/// Configuration for OpenID4VCI.
 public struct OpenId4VCIConfig: Sendable {
+  
+  /// The client used for OpenID4VCI operations.
   public let client: Client
+  
+  /// The URI to which the authentication flow should redirect.
   public let authFlowRedirectionURI: URL
+  
+  /// Configuration specifying how issuance authorization should be handled.
   public let authorizeIssuanceConfig: AuthorizeIssuanceConfig
+  
+  /// Whether to use PAR.
   public let usePAR: Bool
+  
+  /// An optional constructor for DPoP (Demonstration of Proof-of-Possession) tokens.
   public let dPoPConstructor: DPoPConstructorType?
+  
+  /// An optional builder for client attestation proof-of-possession tokens.
   public let clientAttestationPoPBuilder: ClientAttestationPoPBuilder?
+  
+  /// Policy defining how issuer metadata should be handled.
   public let issuerMetadataPolicy: IssuerMetadataPolicy
-    
+  
+  /// Initializes an `OpenId4VCIConfig` instance with the given parameters.
+  /// - Parameters:
+  ///   - client: The client used for OpenID4VCI operations.
+  ///   - authFlowRedirectionURI: The URI to which the authentication flow should redirect.
+  ///   - authorizeIssuanceConfig: Specifies how issuance authorization should be handled (default: `.favorScopes`).
+  ///   - usePAR: Whether to use Pushed Authorization Requests (default: `true`).
+  ///   - dPoPConstructor: An optional DPoP constructor (default: `nil`).
+  ///   - clientAttestationPoPBuilder: An optional client attestation PoP builder (default: `nil`).
+  ///   - issuerMetadataPolicy: Policy defining how issuer metadata should be handled (default: `.ignoreSigned`).
   public init(
     client: Client,
     authFlowRedirectionURI: URL,
@@ -50,4 +80,3 @@ public struct OpenId4VCIConfig: Sendable {
     self.issuerMetadataPolicy = issuerMetadataPolicy
   }
 }
-
