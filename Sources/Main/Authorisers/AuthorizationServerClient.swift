@@ -27,8 +27,18 @@ private extension ResponseWithHeaders {
   }
 }
 
+/// A protocol defining the interface for an authorization server client.
+/// This client is responsible for handling authorization requests, token exchanges, and refresh flows.
 public protocol AuthorizationServerClientType: Sendable {
   
+  /// Generates a URL for initiating the authorization request.
+  ///
+  /// - Parameters:
+  ///   - scopes: The requested authorization scopes.
+  ///   - credentialConfigurationIdentifiers: Identifiers for the credential configurations.
+  ///   - state: A unique state parameter
+  ///   - issuerState: Optional issuer-specific state parameter.
+  /// - Returns: A result containing a `PKCEVerifier` and an authorization URL, or an error if the operation fails.
   func authorizationRequestUrl(
     scopes: [Scope],
     credentialConfigurationIdentifiers: [CredentialConfigurationIdentifier],
@@ -36,6 +46,17 @@ public protocol AuthorizationServerClientType: Sendable {
     issuerState: String?
   ) async throws -> Result<(PKCEVerifier, GetAuthorizationCodeURL), Error>
   
+  /// Submits a pushed authorization request (PAR).
+  ///
+  /// - Parameters:
+  ///   - scopes: The requested authorization scopes.
+  ///   - credentialConfigurationIdentifiers: Identifiers for the credential configurations.
+  ///   - state: A unique state parameter
+  ///   - issuerState: Optional issuer-specific state parameter.
+  ///   - resource: An optional resource identifier.
+  ///   - dpopNonce: An optional nonce for DPoP (Demonstrating Proof-of-Possession).
+  ///   - retry: A flag indicating whether to retry on failure.
+  /// - Returns: A result containing a `PKCEVerifier`, an authorization URL, and an optional nonce, or an error if the operation fails.
   func submitPushedAuthorizationRequest(
     scopes: [Scope],
     credentialConfigurationIdentifiers: [CredentialConfigurationIdentifier],
@@ -46,6 +67,15 @@ public protocol AuthorizationServerClientType: Sendable {
     retry: Bool
   ) async throws -> Result<(PKCEVerifier, GetAuthorizationCodeURL, Nonce?), Error>
   
+  /// Requests an access token using an authorization code.
+  ///
+  /// - Parameters:
+  ///   - authorizationCode: The authorization code received from the authorization server.
+  ///   - codeVerifier: The PKCE code verifier.
+  ///   - identifiers: Identifiers for the credential configurations.
+  ///   - dpopNonce: An optional nonce for DPoP.
+  ///   - retry: A flag indicating whether to retry on failure.
+  /// - Returns: A result containing the access token, refresh token, authorization details, token type, expiration time, and an optional nonce, or an error if the operation fails.
   func requestAccessTokenAuthFlow(
     authorizationCode: String,
     codeVerifier: String,
@@ -61,6 +91,17 @@ public protocol AuthorizationServerClientType: Sendable {
     Nonce?
   ), Error>
   
+  /// Requests an access token using a pre-authorized code.
+  ///
+  /// - Parameters:
+  ///   - preAuthorizedCode: The pre-authorized code provided by the authorization server.
+  ///   - txCode: An optional transaction code.
+  ///   - client: The client making the request.
+  ///   - transactionCode: An optional transaction code string.
+  ///   - identifiers: Identifiers for the credential configurations.
+  ///   - dpopNonce: An optional nonce for DPoP.
+  ///   - retry: A flag indicating whether to retry on failure.
+  /// - Returns: A result containing the access token, refresh token, authorization details, expiration time, and an optional nonce, or an error if the operation fails.
   func requestAccessTokenPreAuthFlow(
     preAuthorizedCode: String,
     txCode: TxCode?,
@@ -74,8 +115,17 @@ public protocol AuthorizationServerClientType: Sendable {
     IssuanceRefreshToken,
     AuthorizationDetailsIdentifiers?,
     Int?,
-    Nonce?), Error>
+    Nonce?
+  ), Error>
   
+  /// Refreshes an access token using a refresh token.
+  ///
+  /// - Parameters:
+  ///   - clientId: The client ID used for authentication.
+  ///   - refreshToken: The refresh token issued previously.
+  ///   - dpopNonce: An optional nonce for DPoP.
+  ///   - retry: A flag indicating whether to retry on failure.
+  /// - Returns: A result containing the new access token, authorization details, token type, expiration time, and an optional nonce, or an error if the operation fails.
   func refreshAccessToken(
     clientId: String,
     refreshToken: IssuanceRefreshToken,
@@ -89,6 +139,7 @@ public protocol AuthorizationServerClientType: Sendable {
     Nonce?
   ), Error>
 }
+
 
 public actor AuthorizationServerClient: AuthorizationServerClientType {
   
