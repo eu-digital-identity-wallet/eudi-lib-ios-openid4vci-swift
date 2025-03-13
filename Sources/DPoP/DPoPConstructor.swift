@@ -17,7 +17,15 @@ import Foundation
 import CryptoKit
 @preconcurrency import JOSESwift
 
+/// A protocol defining the construction of a DPoP (Demonstrating Proof-of-Possession) JWT.
 public protocol DPoPConstructorType: Sendable {
+  /// Generates a DPoP JWT for a given endpoint.
+  /// - Parameters:
+  ///   - endpoint: The URL endpoint for which the JWT is being generated.
+  ///   - accessToken: An optional access token to be included in the JWT.
+  ///   - nonce: An optional nonce value to prevent replay attacks.
+  /// - Returns: A DPoP JWT as a `String`.
+  /// - Throws: An error if the JWT creation fails.
   func jwt(
     endpoint: URL,
     accessToken: String?,
@@ -25,10 +33,13 @@ public protocol DPoPConstructorType: Sendable {
   ) async throws -> String
 }
 
+/// A concrete implementation of `DPoPConstructorType`.
 public final class DPoPConstructor: DPoPConstructorType {
 
+  /// The type of the JWT token.
   static let type = "dpop+jwt"
   
+  /// HTTP methods supported for JWT claims.
   private enum Methods: String {
     case get = "GET"
     case head = "HEAD"
@@ -40,16 +51,33 @@ public final class DPoPConstructor: DPoPConstructorType {
     case trace = "TRACE"
   }
 
+  /// The cryptographic algorithm used for signing the JWT.
   public let algorithm: JWSAlgorithm
+  
+  /// The JSON Web Key (JWK) used for JWT verification.
   public let jwk: JWK
+  
+  /// The private key used for signing the JWT.
   public let privateKey: SigningKeyProxy
 
+  /// Initializes a new `DPoPConstructor`.
+  /// - Parameters:
+  ///   - algorithm: The signing algorithm to use.
+  ///   - jwk: The JWK used in the JWT header.
+  ///   - privateKey: The private key for signing the JWT.
   public init(algorithm: JWSAlgorithm, jwk: JWK, privateKey: SigningKeyProxy) {
     self.algorithm = algorithm
     self.jwk = jwk
     self.privateKey = privateKey
   }
 
+  /// Generates a DPoP JWT for the given endpoint.
+  /// - Parameters:
+  ///   - endpoint: The URL for which the JWT is being generated.
+  ///   - accessToken: An optional access token to be included in the JWT.
+  ///   - nonce: An optional nonce value to mitigate replay attacks.
+  /// - Returns: A signed DPoP JWT as a `String`.
+  /// - Throws: An error if JWT creation fails.
   public func jwt(
     endpoint: URL,
     accessToken: String?,
@@ -69,8 +97,10 @@ public final class DPoPConstructor: DPoPConstructorType {
       JWTClaimNames.jwtId: String.randomBase64URLString(length: 20)
     ]
     
+    // Add nonce if available
     nonce.map { dictionary[JWTClaimNames.nonce] = $0.value }
 
+    // Compute the access token hash if provided
     if let data = accessToken?.data(using: .utf8) {
       let hashed = SHA256.hash(data: data)
       let hash = Data(hashed).base64URLEncodedString()
@@ -83,6 +113,7 @@ public final class DPoPConstructor: DPoPConstructorType {
       throw CredentialIssuanceError.cryptographicAlgorithmNotSupported
     }
 
+    // Create a signer for the JWT
     let signer = try await BindingKey.createSigner(
       with: header,
       and: payload,
