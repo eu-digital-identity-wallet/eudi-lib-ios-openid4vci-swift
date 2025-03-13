@@ -39,6 +39,7 @@ public struct SdJwtVcFormat: FormatProfile {
 public extension SdJwtVcFormat {
   
   struct SdJwtVcSingleCredential: Codable, Sendable {
+    public let scope: String?
     public let proofs: [Proof]
     public let format: String = SdJwtVcFormat.FORMAT
     public let vct: String?
@@ -50,18 +51,23 @@ public extension SdJwtVcFormat {
     public let requestedCredentialResponseEncryption: RequestedCredentialResponseEncryption
     public let credentialIdentifier: CredentialIdentifier?
     public let requestPayload: IssuanceRequestPayload
+    public let display: [Display]
     
     enum CodingKeys: String, CodingKey {
+      case scope
       case proof
+      case format
       case credentialEncryptionJwk
       case credentialResponseEncryptionAlg
       case credentialResponseEncryptionMethod
       case credentialDefinition
       case credentialIdentifier
       case requestPayload
+      case display
     }
     
     public init(
+      scope: String?,
       proofs: [Proof],
       vct: String?,
       credentialEncryptionJwk: JWK? = nil,
@@ -70,8 +76,10 @@ public extension SdJwtVcFormat {
       credentialResponseEncryptionMethod: JOSEEncryptionMethod? = nil,
       credentialDefinition: CredentialDefinition,
       credentialIdentifier: CredentialIdentifier? = nil,
-      requestPayload: IssuanceRequestPayload
+      requestPayload: IssuanceRequestPayload,
+      display: [Display] = []
     ) throws {
+      self.scope = scope
       self.proofs = proofs
       self.vct = vct
       self.credentialEncryptionJwk = credentialEncryptionJwk
@@ -91,6 +99,8 @@ public extension SdJwtVcFormat {
         responseEncryptionAlg: credentialResponseEncryptionAlg,
         responseEncryptionMethod: credentialResponseEncryptionMethod
       )
+      
+      self.display = display
     }
     
     public init(from decoder: Decoder) throws {
@@ -343,6 +353,7 @@ public extension SdJwtVcFormat {
       try .single(
         .sdJwtVc(
           .init(
+            scope: scope,
             proofs: proofs,
             vct: vct,
             credentialEncryptionJwk: responseEncryptionSpec?.jwk,
@@ -353,7 +364,8 @@ public extension SdJwtVcFormat {
               type: credentialDefinition.type,
               claims: claims
             ),
-            requestPayload: requestPayload
+            requestPayload: requestPayload,
+            display: display
           )
         ), responseEncryptionSpec
       )
