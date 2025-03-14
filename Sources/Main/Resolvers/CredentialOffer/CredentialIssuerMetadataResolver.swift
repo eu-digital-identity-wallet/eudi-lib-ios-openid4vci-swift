@@ -152,11 +152,30 @@ private extension IssuerTrust {
     case .byCertificateChain(let certificateChainTrust):
       guard certificateChainTrust.isTrustedAndVerified(chain: chain) else {
         throw CredentialIssuerMetadataError.invalidSignedMetadata(
-          "Failed to create verifier"
+          "Failed to verify chain (.byCertificateChain)"
         )
       }
       
-      return jws
+      guard
+        let first = chain.first,
+        let key = SecCertificate.publicKey(fromPem: first),
+        let algorithm: SignatureAlgorithm = switch key.keyAlgorithm() {
+          case "RSA": .RS256
+          case "EC": .ES256
+          default: nil
+        },
+        let verifier: Verifier = .init(
+          signatureAlgorithm: algorithm,
+          key: key
+        )
+      else {
+        throw CredentialIssuerMetadataError.invalidSignedMetadata(
+          "Failed to create verifier (.byCertificateChain)"
+        )
+      }
+      
+      let verifiedJWS = try jws.validate(using: verifier)
+      return verifiedJWS
     }
   }
 }
