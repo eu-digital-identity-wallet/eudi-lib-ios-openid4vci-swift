@@ -158,7 +158,7 @@ private extension IssuerTrust {
       
       guard
         let first = chain.first,
-        let key = SecCertificate.publicKey(fromPem: first),
+        let key = SecCertificateUtilities.publicKey(fromPem: first),
         let algorithm: SignatureAlgorithm = switch key.keyAlgorithm() {
           case "RSA": .RS256
           case "EC": .ES256
