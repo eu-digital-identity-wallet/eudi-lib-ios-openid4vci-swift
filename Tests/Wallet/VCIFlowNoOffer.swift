@@ -330,7 +330,7 @@ class VCIFlowNoOffer: XCTestCase {
     )
     
     do {
-      let credential = try await wallet.issueByCredentialIdentifier(
+      let _ = try await wallet.issueByCredentialIdentifier(
         PID_SdJwtVC_config_id,
         config: clientConfig
       )
@@ -375,7 +375,7 @@ class VCIFlowNoOffer: XCTestCase {
     )
     
     do {
-      let credential = try await wallet.issueByCredentialIdentifier(
+      let _ = try await wallet.issueByCredentialIdentifier(
         PID_MsoMdoc_config_id,
         config: clientConfig
       )
