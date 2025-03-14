@@ -150,7 +150,7 @@ private extension IssuerTrust {
       return try jws.validate(using: verifier)
       
     case .byCertificateChain(let certificateChainTrust):
-      guard certificateChainTrust.isTrustedAndVerified(chain: chain) else {
+      guard certificateChainTrust.isValid(chain: chain) else {
         throw CredentialIssuerMetadataError.invalidSignedMetadata(
           "Failed to verify chain (.byCertificateChain)"
         )

@@ -23,7 +23,7 @@ public protocol CertificateChainTrust: Sendable {
   ///
   /// - Parameter chain: An array of certificate strings representing the certificate chain.
   /// - Returns: `true` if the certificate chain is trusted and verified, otherwise `false`.
-  func isTrustedAndVerified(chain: [String]) -> Bool
+  func isValid(chain: [String]) -> Bool
 }
 
 /// Defines how the issuer's trust is determined.
