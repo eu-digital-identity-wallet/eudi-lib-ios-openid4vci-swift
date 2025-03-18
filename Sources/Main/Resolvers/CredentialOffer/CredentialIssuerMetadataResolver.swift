@@ -161,22 +161,58 @@ private extension IssuerTrust {
         let first = chain.first,
         let key = utilities.publicKey(fromPem: first),
         let algorithm: SignatureAlgorithm = switch key.keyAlgorithm() {
-          case "RSA": .RS256
-          case "EC": .ES256
-          default: nil
+        case "RSA": .RS256
+        case "EC": .ES256
+        default: nil
         },
-        let verifier: Verifier = .init(
-          signatureAlgorithm: algorithm,
-          key: key
-        )
+      let verifier: Verifier = .init(
+        signatureAlgorithm: algorithm,
+        key: key
+      )
       else {
         throw CredentialIssuerMetadataError.invalidSignedMetadata(
           "Failed to create verifier (.byCertificateChain)"
         )
       }
       
-      let verifiedJWS = try jws.validate(using: verifier)
+      let verifiedJWS = try jws
+        .validate(using: verifier)
+        .validateSignedMetadataClaims()
+      
       return verifiedJWS
     }
+  }
+}
+
+private extension JWS {
+  
+  /// Validates the required claims: `iat`, `iss`, and `sub`
+  /// - Returns: `self` if all claims are present and valid, throws otherwise.
+  func validateSignedMetadataClaims() throws -> JWS {
+    
+    let data = self.payload.data()
+    /// Decode Payload (Assuming it's a JSON object)
+    guard
+      let json = try JSONSerialization.jsonObject(
+        with: data,
+        options: []
+      ) as? [String: Any]
+    else {
+      throw CredentialIssuerMetadataError.invalidSignedMetadata(
+        "Unable to decode JWS"
+      )
+    }
+    
+    /// Validate required claims
+    guard
+      let _ = json[JWTClaimNames.issuedAt] as? TimeInterval,
+      let _ = json[JWTClaimNames.issuer] as? String,
+      let _ = json[JWTClaimNames.subject] as? String
+    else {
+      throw CredentialIssuerMetadataError.invalidSignedMetadata(
+        "Expected claims not found in signed metadata"
+      )
+    }
+    return self
   }
 }
