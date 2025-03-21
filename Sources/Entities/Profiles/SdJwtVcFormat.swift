@@ -340,7 +340,9 @@ public extension SdJwtVcFormat {
       
       self.credentialDefinition = try CredentialDefinition(json: json["credential_definition"])
       
-      let claims = try json["claims"].array?.compactMap({ try Claim(json: $0)}) ?? []
+      let claims = json["claims"].array?.compactMap({
+        try? Claim(json: $0)
+      }) ?? []
       self.claims = claims
     }
     
