@@ -526,7 +526,7 @@ class IssuanceAuthorizationTest: XCTestCase {
       let request = try result.get()
       let payload: IssuanceRequestPayload = .configurationBased(
         credentialConfigurationIdentifier: try CredentialConfigurationIdentifier(
-          value: "IdentityCredential"
+          value: "org.iso.18013.5.1.mDL"
         )
       )
       
