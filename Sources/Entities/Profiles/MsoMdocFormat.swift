@@ -280,7 +280,9 @@ public extension MsoMdocFormat {
       }
       self.docType = json["doctype"].stringValue
       
-      let claims = try json["claims"].array?.compactMap({ try Claim(json: $0)}) ?? []
+      let claims = json["claims"].array?.compactMap({
+        try? Claim(json: $0)
+      }) ?? []
       self.claims = claims
     }
     
