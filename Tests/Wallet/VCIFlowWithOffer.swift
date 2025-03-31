@@ -284,7 +284,7 @@ class VCIFlowWithOffer: XCTestCase {
     do {
       try await walletInitiatedIssuanceWithOfferUrl(
         wallet: wallet,
-        url: SECONDARY_CREDENTIAL_OFFER_QR_CODE_URL.removingPercentEncoding!
+        url: CREDENTIAL_OFFER_QR_CODE_URL.removingPercentEncoding!
       )
     } catch {
       

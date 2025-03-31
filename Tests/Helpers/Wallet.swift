@@ -116,10 +116,15 @@ extension Wallet {
       offer: offer
     )
     
-    return try await offer.credentialIssuerMetadata.credentialsSupported.asyncCompactMap { (credentialConfigurationIdentifier, supportedCredential) in
+    return try await offer.credentialIssuerMetadata.credentialsSupported.filter({ (key: CredentialConfigurationIdentifier, value: CredentialSupported) in
+      offer.credentialConfigurationIdentifiers.contains { id in
+        key == id
+      }
+    }).asyncCompactMap { (credentialConfigurationIdentifier, supportedCredential) in
       guard let scope = issuerMetadata.credentialsSupported[credentialConfigurationIdentifier]?.getScope() else {
         throw ValidationError.error(reason: "Cannot find scope for \(credentialConfigurationIdentifier)")
       }
+      
       let data = try await submissionUseCase(
         issuer: issuer,
         authorized: authorized,

@@ -18,7 +18,7 @@
 
 @testable import OpenID4VCI
 
-let CREDENTIAL_ISSUER_PUBLIC_URL = "https://issuer-backend.eudiw.dev"
+let CREDENTIAL_ISSUER_PUBLIC_URL = "https://dev.issuer-backend.eudiw.dev"
 let MDL_config_id = "org.iso.18013.5.1.mDL"
 let PID_MsoMdoc_config_id = "eu.europa.ec.eudi.pid_mso_mdoc"
 let PID_SdJwtVC_config_id = "eu.europa.ec.eudi.pid_vc_sd_jwt"
