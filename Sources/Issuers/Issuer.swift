@@ -408,7 +408,7 @@ public actor Issuer: IssuerType {
           .authorizationCode(
             try .init(
               credentials: request.credentials,
-              authorizationCode: try IssuanceAuthorization(authorizationCode: code),
+              authorizationCode: try .init(authorizationCode: code),
               pkceVerifier: request.pkceVerifier,
               configurationIds: request.configurationIds,
               dpopNonce: request.dpopNonce
@@ -416,7 +416,9 @@ public actor Issuer: IssuerType {
           )
         )
       } catch {
-        return .failure(ValidationError.error(reason: error.localizedDescription))
+        return .failure(
+          ValidationError.error(reason: error.localizedDescription)
+        )
       }
     case .authorizationCode(_):
       return .failure(ValidationError.error(reason: ".par is required"))
