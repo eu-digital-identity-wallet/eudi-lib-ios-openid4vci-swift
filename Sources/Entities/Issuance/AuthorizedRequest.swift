@@ -42,6 +42,20 @@ public struct AuthorizedRequest: Sendable {
   public let timeStamp: TimeInterval
   public let dPopNonce: Nonce?
   
+  public init(
+    accessToken: IssuanceAccessToken,
+    refreshToken: IssuanceRefreshToken?,
+    credentialIdentifiers: AuthorizationDetailsIdentifiers?,
+    timeStamp: TimeInterval,
+    dPopNonce: Nonce?
+  ) {
+    self.accessToken = accessToken
+    self.refreshToken = refreshToken
+    self.credentialIdentifiers = credentialIdentifiers
+    self.timeStamp = timeStamp
+    self.dPopNonce = dPopNonce
+  }
+  
   public func isAccessTokenExpired(
     _ from: TimeInterval = Date().timeIntervalSince1970
   ) -> Bool {
