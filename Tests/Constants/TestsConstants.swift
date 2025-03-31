@@ -37,6 +37,10 @@ let CREDENTIAL_OFFER_QR_CODE_URL = """
 eudi-openid4ci://credentialsOffer?credential_offer=%7B%22credential_issuer%22:%22https://dev.issuer-backend.eudiw.dev%22,%22credential_configuration_ids%22:[%22eu.europa.ec.eudi.pid_mso_mdoc%22,%22eu.europa.ec.eudi.pid_vc_sd_jwt%22,%22org.iso.18013.5.1.mDL%22],%22grants%22:%7B%22authorization_code%22:%7B%22authorization_server%22:%22https://dev.auth.eudiw.dev/realms/pid-issuer-realm%22%7D%7D%7D
 """
 
+let SECONDARY_CREDENTIAL_OFFER_QR_CODE_URL = """
+eudi-openid4ci://credentialsOffer?credential_offer=%7B%22credential_issuer%22:%22https://dev.issuer.eudiw.dev%22,%22credential_configuration_ids%22:[%22eu.europa.ec.eudi.pid_mdoc%22,%22eu.europa.ec.eudi.pid_jwt_vc_json%22,%22eu.europa.ec.eudi.mdl_mdoc%22],%22grants%22:%7B%22authorization_code%22:%7B%22authorization_server%22:%22https://dev.auth.eudiw.dev/realms/pid-issuer-realm%22%7D%7D%7D
+"""
+
 let All_Supported_CredentialOffer = """
     {
       "credential_issuer": "\(CREDENTIAL_ISSUER_PUBLIC_URL)",
