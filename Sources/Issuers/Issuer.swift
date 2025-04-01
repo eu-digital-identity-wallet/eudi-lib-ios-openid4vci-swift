@@ -188,6 +188,10 @@ public actor Issuer: IssuerType {
     }
   }
   
+  public func setDeferredResponseEncryptionSpec(_ deferredResponseEncryptionSpec: IssuanceResponseEncryptionSpec?) {
+    self.deferredResponseEncryptionSpec = deferredResponseEncryptionSpec
+  }
+  
   public func pushAuthorizationCodeRequest(
     credentialOffer: CredentialOffer
   ) async throws -> Result<UnauthorizedRequest, Error> {
