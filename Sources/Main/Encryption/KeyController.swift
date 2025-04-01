@@ -19,6 +19,44 @@ import CryptoKit
 
 public class KeyController {
   
+  public static func generateECPrivateKey(with data: Data) throws -> SecKey? {
+        
+    // Define the key attributes
+    let attributes: [CFString: Any] = [
+      kSecAttrKeyType: kSecAttrKeyTypeECSECPrimeRandom,
+      kSecAttrKeyClass: kSecAttrKeyClassPrivate
+    ]
+    
+    // Create the SecKey object
+    var error: Unmanaged<CFError>?
+    guard let secKey = SecKeyCreateWithData(data as CFData, attributes as CFDictionary, &error) else {
+      if let error = error?.takeRetainedValue() {
+        print("Failed to create SecKey:", error)
+      }
+      return nil
+    }
+    return secKey
+  }
+  
+  public static func generateRSAPrivateKey(with data: Data) throws -> SecKey? {
+        
+    // Define the key attributes
+    let attributes: [CFString: Any] = [
+      kSecAttrKeyType: kSecAttrKeyTypeRSA,
+      kSecAttrKeyClass: kSecAttrKeyClassPrivate
+    ]
+    
+    // Create the SecKey object
+    var error: Unmanaged<CFError>?
+    guard let secKey = SecKeyCreateWithData(data as CFData, attributes as CFDictionary, &error) else {
+      if let error = error?.takeRetainedValue() {
+        print("Failed to create SecKey:", error)
+      }
+      return nil
+    }
+    return secKey
+  }
+  
   public static func generateHardcodedRSAPrivateKey() throws -> SecKey? {
     
     // Convert PEM key to Data

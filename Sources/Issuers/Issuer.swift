@@ -744,7 +744,8 @@ public extension Issuer {
   
   static func createResponseEncryptionSpecFrom(
     algorithmsSupported: [JWEAlgorithm],
-    encryptionMethodsSupported: [JOSEEncryptionMethod]
+    encryptionMethodsSupported: [JOSEEncryptionMethod],
+    privateKeyData: Data? = nil
   ) -> IssuanceResponseEncryptionSpec? {
     let firstAsymmetricAlgorithm = algorithmsSupported.first {
       JWEAlgorithm.Family.parse(.ASYMMETRIC).contains($0)
@@ -759,7 +760,11 @@ public extension Issuer {
     let privateKey: SecKey?
     var jwk: JWK? = nil
     if JWEAlgorithm.Family.parse(.RSA).contains(algorithm) {
-      privateKey = try? KeyController.generateRSAPrivateKey()
+      privateKey = if let privateKeyData {
+        try? KeyController.generateRSAPrivateKey(with: privateKeyData)
+      } else {
+        try? KeyController.generateRSAPrivateKey()
+      }
       if let privateKey,
          let publicKey = try? KeyController.generateRSAPublicKey(from: privateKey) {
         jwk = try? RSAPublicKey(
@@ -772,7 +777,11 @@ public extension Issuer {
         )
       }
     } else if JWEAlgorithm.Family.parse(.ECDH_ES).contains(algorithm) {
-      privateKey = try? KeyController.generateECDHPrivateKey()
+      privateKey = if let privateKeyData {
+        try? KeyController.generateECPrivateKey(with: privateKeyData)
+      } else {
+        try? KeyController.generateECDHPrivateKey()
+      }
       if let privateKey,
          let publicKey = try? KeyController.generateECDHPublicKey(from: privateKey) {
         jwk = try? ECPublicKey(
