@@ -726,18 +726,23 @@ public extension Issuer {
     )
   }
   
-  static func createResponseEncryptionSpec(_ issuerResponseEncryptionMetadata: CredentialResponseEncryption) -> IssuanceResponseEncryptionSpec? {
+  static func createResponseEncryptionSpec(
+    _ issuerResponseEncryptionMetadata: CredentialResponseEncryption,
+    privateKeyData: Data? = nil
+  ) -> IssuanceResponseEncryptionSpec? {
     switch issuerResponseEncryptionMetadata {
     case .notRequired:
       return Self.createResponseEncryptionSpecFrom(
         algorithmsSupported: [.init(.RSA_OAEP_256)],
-        encryptionMethodsSupported: [.init(.A128CBC_HS256)]
+        encryptionMethodsSupported: [.init(.A128CBC_HS256)],
+        privateKeyData: privateKeyData
       )
       
     case let .required(algorithmsSupported, encryptionMethodsSupported):
       return Self.createResponseEncryptionSpecFrom(
         algorithmsSupported: algorithmsSupported,
-        encryptionMethodsSupported: encryptionMethodsSupported
+        encryptionMethodsSupported: encryptionMethodsSupported,
+        privateKeyData: privateKeyData
       )
     }
   }
