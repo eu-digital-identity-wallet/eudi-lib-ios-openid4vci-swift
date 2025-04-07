@@ -256,9 +256,7 @@ public actor AuthorizationServerClient: AuthorizationServerClientType {
     guard let urlWithParams = authorizationEndpoint.appendingQueryParameters(
       try authzRequest.toDictionary().convertToDictionaryOfStrings(
         excludingKeys: [
-          "credential_configuration_ids",
-          "code_challenge",
-          "code_challenge_method"
+          "credential_configuration_ids"
         ]
       )
     ) else {
