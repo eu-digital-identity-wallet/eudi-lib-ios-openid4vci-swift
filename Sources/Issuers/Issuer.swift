@@ -69,7 +69,7 @@ public protocol IssuerType {
     clientId: String,
     authorizedRequest: AuthorizedRequest,
     dPopNonce: Nonce?
-  ) async -> Result<AuthorizedRequest, Error>
+  ) async -> Result<(AuthorizedRequest, CNonce?), Error>
 }
 
 public actor Issuer: IssuerType {
@@ -862,7 +862,7 @@ public extension Issuer {
     clientId: String,
     authorizedRequest: AuthorizedRequest,
     dPopNonce: Nonce? = nil
-  ) async -> Result<AuthorizedRequest, Error> {
+  ) async -> Result<(AuthorizedRequest, CNonce?), Error> {
     
     if  let refreshToken = authorizedRequest.refreshToken {
       do {
@@ -873,10 +873,11 @@ public extension Issuer {
           retry: true
         )
         switch token {
-        case .success((let accessToken, _, _, _, let timeStamp, _)):
-          return .success(authorizedRequest.replacing(
+        case .success((let accessToken, let cnonce, _, _, let timeStamp, _)):
+          return .success((authorizedRequest.replacing(
             accessToken: accessToken,
             timeStamp: timeStamp?.asTimeInterval ?? .zero
+          ),cnonce
           )
         )
         case .failure(let error):
@@ -886,7 +887,7 @@ public extension Issuer {
         return .failure(error)
       }
     }
-    return .success(authorizedRequest)
+    return .success((authorizedRequest, nil))
   }
 }
 
