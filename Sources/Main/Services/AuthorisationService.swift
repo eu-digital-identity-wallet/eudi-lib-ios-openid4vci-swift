@@ -16,33 +16,33 @@
 import Foundation
 
 /// A protocol for an authorization service.
-public protocol AuthorisationServiceType {
+public protocol AuthorisationServiceType: Sendable {
   /// Posts a response and returns a generic result.
-  func formPost<T: Codable, U: Codable>(
+  func formPost<T: Codable & Sendable, U: Codable & Sendable>(
     poster: PostingType,
     url: URL,
     request: T
   ) async throws -> ResponseWithHeaders<U>
   
-  func formPost<T: Codable, U: Codable>(
+  func formPost<T: Codable & Sendable, U: Codable & Sendable>(
     poster: PostingType,
     url: URL,
     request: T,
     headers: [String: String]
   ) async throws -> ResponseWithHeaders<U>
   
-  func formPost<U: Codable>(
+  func formPost<U: Codable & Sendable>(
     poster: PostingType,
     url: URL,
     headers: [String: String],
     parameters: [String: String]
   ) async throws -> ResponseWithHeaders<U>
   
-  func formPost<U: Codable>(
+  func formPost<U: Codable & Sendable>(
     poster: PostingType,
     url: URL,
     headers: [String: String],
-    body: [String: Any]
+    body: [String: any Sendable]
   ) async throws -> ResponseWithHeaders<U>
 }
 
@@ -105,7 +105,7 @@ public actor AuthorisationService: AuthorisationServiceType {
     poster: PostingType,
     url: URL,
     headers: [String: String],
-    body: [String: Any]
+    body: [String: any Sendable]
   ) async throws -> ResponseWithHeaders<U> {
     let post = try FormPost(
       url: url,

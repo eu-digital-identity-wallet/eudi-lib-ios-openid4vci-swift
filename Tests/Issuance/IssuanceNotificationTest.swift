@@ -107,20 +107,19 @@ class IssuanceNotificationTest: XCTestCase {
     case .success(let authorizationCode):
       let authorizedRequest = await issuer.authorizeWithAuthorizationCode(authorizationCode: authorizationCode)
       
-      if case let .success(authorized) = authorizedRequest,
-         case let .noProofRequired(token, _, _, _, _) = authorized {
-        XCTAssert(true, "Got access token: \(token)")
+      if case let .success(authorized) = authorizedRequest {
+        XCTAssert(true, "Got access token: \(authorized.accessToken)")
         XCTAssert(true, "Is no proof required")
         
         do {
           let payload: IssuanceRequestPayload = .configurationBased(
             credentialConfigurationIdentifier: try .init(
               value: "eu.europa.ec.eudi.pid_mso_mdoc"
-            ),
-            claimSet: nil
+            )
           )
-          let result = try await issuer.request(
-            noProofRequest: authorized,
+          let result = try await issuer.requestCredential(
+            request: authorized,
+            bindingKeys: [],
             requestPayload: payload,
             responseEncryptionSpecProvider: { _ in
               spec
@@ -134,7 +133,7 @@ class IssuanceNotificationTest: XCTestCase {
                 switch result {
                 case .deferred:
                   XCTAssert(false, "Unexpected deferred")
-                case .issued(let format, let credential, _, _):
+                case .issued(_, let credential, _, _):
                   XCTAssert(true, "credential: \(credential)")
                   
                   let result = try await issuer.notify(
@@ -157,7 +156,7 @@ class IssuanceNotificationTest: XCTestCase {
             case .failed(let error):
               XCTAssert(false, error.localizedDescription)
               
-            case .invalidProof(_, let errorDescription):
+            case .invalidProof(let errorDescription):
               XCTAssert(false, errorDescription!)
             }
             XCTAssert(false, "Unexpected request")
@@ -251,20 +250,19 @@ class IssuanceNotificationTest: XCTestCase {
     case .success(let authorizationCode):
       let authorizedRequest = await issuer.authorizeWithAuthorizationCode(authorizationCode: authorizationCode)
       
-      if case let .success(authorized) = authorizedRequest,
-         case let .noProofRequired(token, _, _, _, _) = authorized {
-        XCTAssert(true, "Got access token: \(token)")
+      if case let .success(authorized) = authorizedRequest {
+        XCTAssert(true, "Got access token: \(authorized.accessToken)")
         XCTAssert(true, "Is no proof required")
         
         do {
           let payload: IssuanceRequestPayload = .configurationBased(
             credentialConfigurationIdentifier: try .init(
               value: "eu.europa.ec.eudi.pid_mso_mdoc"
-            ),
-            claimSet: nil
+            )
           )
-          let result = try await issuer.request(
-            noProofRequest: authorized,
+          let result = try await issuer.requestCredential(
+            request: authorized,
+            bindingKeys: [],
             requestPayload: payload,
             responseEncryptionSpecProvider: { _ in
               spec
@@ -278,7 +276,7 @@ class IssuanceNotificationTest: XCTestCase {
                 switch result {
                 case .deferred:
                   XCTAssert(false, "Unexpected deferred")
-                case .issued(let format, let credential, _, _):
+                case .issued(_, let credential, _, _):
                   XCTAssert(true, "credential: \(credential)")
                   
                   let result = try await issuer.notify(
@@ -301,7 +299,7 @@ class IssuanceNotificationTest: XCTestCase {
             case .failed(let error):
               XCTAssert(false, error.localizedDescription)
               
-            case .invalidProof(_, let errorDescription):
+            case .invalidProof(let errorDescription):
               XCTAssert(false, errorDescription!)
             }
             XCTAssert(false, "Unexpected request")

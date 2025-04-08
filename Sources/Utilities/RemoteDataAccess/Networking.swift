@@ -17,7 +17,7 @@ import Foundation
 
 extension URLSession: Networking {}
 
-public protocol Networking {
+public protocol Networking: Sendable {
   func data(
     from url: URL
   ) async throws -> (Data, URLResponse)

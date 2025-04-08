@@ -15,7 +15,7 @@
  */
 import Foundation
 
-public enum TokenType: String, Codable {
+public enum TokenType: String, Codable, Sendable {
   case bearer = "Bearer"
   case dpop = "DPoP"
   
@@ -35,7 +35,7 @@ public enum TokenType: String, Codable {
   }
 }
 
-public struct IssuanceAccessToken: Codable, CanExpire {
+public struct IssuanceAccessToken: Codable, CanExpire, Sendable {
   public var expiresIn: TimeInterval?
     
   public let accessToken: String

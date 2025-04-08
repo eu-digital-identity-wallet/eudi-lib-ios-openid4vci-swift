@@ -14,13 +14,29 @@
  * limitations under the License.
  */
 import Foundation
-import SwiftyJSON
 import JOSESwift
+@preconcurrency import SwiftyJSON
 
-public protocol IssuanceRequesterType {
+/// A protocol defining the behavior for requesting credential issuance from an issuer.
+/// Conforming types must implement methods to place issuance requests, request deferred credentials,
+/// and notifications.
+///
+/// This protocol is `Sendable`, making it safe for concurrent use.
+///
+public protocol IssuanceRequesterType: Sendable {
   
+  /// Metadata about the credential issuer.
   var issuerMetadata: CredentialIssuerMetadata { get }
   
+  /// Places a request for credential issuance.
+  ///
+  /// - Parameters:
+  ///   - accessToken: The access token used to authorize the request.
+  ///   - request: The credential request object containing issuance details.
+  ///   - dPopNonce: An optional nonce for DPoP (Demonstrating Proof-of-Possession).
+  ///   - retry: A flag indicating whether the request should be retried on failure.
+  /// - Returns: A `Result` containing either a `CredentialIssuanceResponse` or an `Error`.
+  /// - Throws: An error if the issuance request fails.
   func placeIssuanceRequest(
     accessToken: IssuanceAccessToken,
     request: SingleCredential,
@@ -28,6 +44,16 @@ public protocol IssuanceRequesterType {
     retry: Bool
   ) async throws -> Result<CredentialIssuanceResponse, Error>
   
+  /// Places a request for a deferred credential issuance.
+  ///
+  /// - Parameters:
+  ///   - accessToken: The access token used to authorize the request.
+  ///   - transactionId: The identifier for the issuance transaction.
+  ///   - dPopNonce: An optional nonce for DPoP (Demonstrating Proof-of-Possession).
+  ///   - retry: A flag indicating whether the request should be retried on failure.
+  ///   - issuanceResponseEncryptionSpec: Optional encryption specifications for securing the response.
+  /// - Returns: A `Result` containing either a `DeferredCredentialIssuanceResponse` or an `Error`.
+  /// - Throws: An error if the deferred issuance request fails.
   func placeDeferredCredentialRequest(
     accessToken: IssuanceAccessToken,
     transactionId: TransactionId,
@@ -36,6 +62,15 @@ public protocol IssuanceRequesterType {
     issuanceResponseEncryptionSpec: IssuanceResponseEncryptionSpec?
   ) async throws -> Result<DeferredCredentialIssuanceResponse, Error>
   
+  /// Sends a notification to the credential issuer.
+  ///
+  /// - Parameters:
+  ///   - accessToken: An optional access token for authorization.
+  ///   - notification: The notification object containing relevant details.
+  ///   - dPopNonce: An optional nonce for DPoP (Demonstrating Proof-of-Possession).
+  ///   - retry: A flag indicating whether the notification should be retried on failure.
+  /// - Returns: A `Result` indicating success (`Void`) or an `Error`.
+  /// - Throws: An error if the notification request fails.
   func notifyIssuer(
     accessToken: IssuanceAccessToken?,
     notification: NotificationObject,
@@ -78,7 +113,7 @@ public actor IssuanceRequester: IssuanceRequesterType {
         endpoint: endpoint
       )
       
-      let encodedRequest: [String: Any] = try request.toDictionary().dictionaryValue
+      let encodedRequest: [String: any Sendable] = try request.toPayload().dictionaryValue
       
       let response: ResponseWithHeaders<SingleIssuanceSuccessResponse> = try await service.formPost(
         poster: poster,
@@ -214,7 +249,7 @@ public actor IssuanceRequester: IssuanceRequesterType {
       endpoint: deferredCredentialEndpoint.url
     )
     
-    let encodedRequest: [String: Any] = try JSON(transactionId.toDeferredRequestTO().toDictionary()).dictionaryValue
+    let encodedRequest: [String: any Sendable] = try JSON(transactionId.toDeferredRequestTO().toDictionary()).dictionaryValue
     
     do {
       let response: ResponseWithHeaders<DeferredCredentialIssuanceResponse> = try await service.formPost(
@@ -309,7 +344,7 @@ public actor IssuanceRequester: IssuanceRequesterType {
         event: notification.event,
         eventDescription: notification.eventDescription
       )
-      let encodedRequest: [String: Any] = JSON(payload.toDictionary()).dictionaryValue
+      let encodedRequest: [String: any Sendable] = JSON(payload.toDictionary()).dictionaryValue
       
       do {
         let _: ResponseWithHeaders<EmptyResponse> = try await service.formPost(
@@ -378,33 +413,25 @@ private extension SingleIssuanceSuccessResponse {
             notificationId: nil,
             additionalInfo: nil
           )
-        ],
-        cNonce: .init(
-          value: cNonce,
-          expiresInSeconds: cNonceExpiresInSeconds
-        )
+        ]
       )
     } else if let credentials = credentials,
-              let jsonObject = credentials.array,
-              !jsonObject.isEmpty {
+       !credentials.isEmpty {
       return .init(
         credentialResponses: [
           .issued(
             format: nil,
-            credential: .json(JSON(jsonObject)),
+            credential: .json(JSON(credentials)),
             notificationId: nil,
             additionalInfo: nil
           )
-        ],
-        cNonce: .init(
-          value: cNonce,
-          expiresInSeconds: cNonceExpiresInSeconds
-        )
+        ]
       )
     } else if let transactionId = transactionId {
       return CredentialIssuanceResponse(
-        credentialResponses: [.deferred(transactionId: try .init(value: transactionId))],
-        cNonce:  CNonce(value: cNonce!, expiresInSeconds: cNonceExpiresInSeconds)
+        credentialResponses: [
+          .deferred(transactionId: try .init(value: transactionId))
+        ]
       )
       
     }

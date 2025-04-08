@@ -16,7 +16,7 @@
 import Foundation
 
 // Grant, conforming to Codable.
-public struct GrantsDTO: Codable {
+public struct GrantsDTO: Codable, Sendable {
   // Properties for authorization code and pre-authorization code.
   public let authorizationCode: AuthorizationCode?
   public let preAuthorizationCode: PreAuthorizationCode?
@@ -40,7 +40,7 @@ public struct GrantsDTO: Codable {
 public extension GrantsDTO {
   
   // AuthorizationCode, conforming to Codable.
-  struct AuthorizationCode: Codable, Equatable {
+  struct AuthorizationCode: Codable, Equatable, Sendable {
     // Property representing issuer state.
     let issuerState: String?
     
@@ -60,7 +60,7 @@ public extension GrantsDTO {
   }
   
   // Define another nested struct named PreAuthorizationCode, conforming to Codable.
-  struct PreAuthorizationCode: Codable {
+  struct PreAuthorizationCode: Codable, Sendable {
     public let preAuthorizedCode: String?
     public let txCode: TxCode?
     

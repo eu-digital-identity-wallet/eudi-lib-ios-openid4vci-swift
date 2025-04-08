@@ -28,7 +28,7 @@ public struct Clock: ClockType {
   }
 }
 
-public protocol ClientAttestationPoPBuilder {
+public protocol ClientAttestationPoPBuilder: Sendable {
   /// Builds a PoP JWT
   /// - Parameters:
   ///   - client: The `Attested` client for which to create the PoP JWT.

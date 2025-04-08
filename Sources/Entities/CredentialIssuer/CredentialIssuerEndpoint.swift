@@ -15,7 +15,7 @@
  */
 import Foundation
 
-public struct CredentialIssuerEndpoint: Codable, Equatable {
+public struct CredentialIssuerEndpoint: Codable, Equatable, Sendable {
   public let url: URL
   
   init(string: String) throws {

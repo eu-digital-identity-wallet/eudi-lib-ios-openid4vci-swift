@@ -68,11 +68,11 @@ class IssuanceEncryptionTest: XCTestCase {
       let payload: IssuanceRequestPayload = .configurationBased(
         credentialConfigurationIdentifier: try .init(
           value: "MobileDrivingLicense_msoMdoc"
-        ),
-        claimSet: nil
+        )
       )
-      _ = try await issuer.request(
-        noProofRequest: authorizedRequest,
+      _ = try await issuer.requestCredential(
+        request: authorizedRequest,
+        bindingKeys: [],
         requestPayload: payload,
         responseEncryptionSpecProvider: { _ in
           return spec
@@ -121,11 +121,11 @@ class IssuanceEncryptionTest: XCTestCase {
       let payload: IssuanceRequestPayload = .configurationBased(
         credentialConfigurationIdentifier: try .init(
           value: "MobileDrivingLicense_msoMdoc"
-        ),
-        claimSet: nil
+        )
       )
-      _ = try await issuer.request(
-        noProofRequest: authorizedRequest,
+      _ = try await issuer.requestCredential(
+        request: authorizedRequest,
+        bindingKeys: [],
         requestPayload: payload,
         responseEncryptionSpecProvider: { _ in
           return spec
@@ -133,7 +133,7 @@ class IssuanceEncryptionTest: XCTestCase {
       )
       
       XCTAssert(false)
-    } catch CredentialIssuanceError.responseEncryptionMethodNotSupportedByIssuer {
+    } catch CredentialIssuanceError.responseEncryptionAlgorithmNotSupportedByIssuer {
       XCTAssert(true)
       
     } catch {
@@ -160,22 +160,21 @@ class IssuanceEncryptionTest: XCTestCase {
       let payload: IssuanceRequestPayload = .configurationBased(
         credentialConfigurationIdentifier: try .init(
           value: "MobileDrivingLicense_msoMdoc"
-        ),
-        claimSet: nil
+        )
       )
-      _ = try await issuer.request(
-        noProofRequest: authorizedRequest,
+      _ = try await issuer.requestCredential(
+        request: authorizedRequest,
+        bindingKeys: [],
         requestPayload: payload,
         responseEncryptionSpecProvider: { _ in
           return spec
         }
       )
       
-    } catch CredentialIssuanceError.responseEncryptionAlgorithmNotSupportedByIssuer {
+    } catch CredentialIssuanceError.responseEncryptionMethodNotSupportedByIssuer {
       XCTAssert(true)
       
     } catch {
-      print(error.localizedDescription)
       XCTAssert(false, error.localizedDescription)
     }
   }

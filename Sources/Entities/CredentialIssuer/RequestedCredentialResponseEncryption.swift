@@ -13,10 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import Foundation
-import JOSESwift
+@preconcurrency import Foundation
+@preconcurrency import JOSESwift
 
-public enum RequestedCredentialResponseEncryption {
+public enum RequestedCredentialResponseEncryption: Sendable {
   
   // No encryption is requested
   case notRequested
@@ -43,13 +43,6 @@ public enum RequestedCredentialResponseEncryption {
     }
   }
   
-  // Validate algorithm matches key
-  private static func validateKeyAlgorithmMatch(_ encryptionJwk: JWK?, _ responseEncryptionAlg: JWEAlgorithm?) throws {
-    /*guard encryptionJwk.keyType == KeyType.forAlgorithm(responseEncryptionAlg) else {
-      throw ValidationError.error(reason: "Encryption key and encryption algorithm do not match")
-    }*/
-  }
-  
   // Validate key is for encryption operation
   private static func validateKeyUse(_ encryptionJwk: JWK?) throws {
     guard encryptionJwk?.parameters["use"] == "enc" else {
@@ -64,7 +57,6 @@ public enum RequestedCredentialResponseEncryption {
     responseEncryptionMethod: JOSEEncryptionMethod?
   ) throws {
     try validateAlgorithm(responseEncryptionAlg)
-    try validateKeyAlgorithmMatch(encryptionJwk, responseEncryptionAlg)
     try validateKeyUse(encryptionJwk)
   }
   

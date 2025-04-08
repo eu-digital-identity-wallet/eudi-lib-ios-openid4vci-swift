@@ -15,15 +15,9 @@
  */
 import Foundation
 
-
-public struct ProofSigningAlgorithmsSupported: Codable {
-  public let algorithms: [String]
-  
-  public init(algorithms: [String]) {
-    self.algorithms = algorithms
-  }
-  
-  private enum CodingKeys: String, CodingKey {
-    case algorithms = "proof_signing_alg_values_supported"
-  }
+enum CredentialProofsRequirement {
+  case proofNotRequired
+  case proofRequiredWithoutCNonce
+  case proofRequiredWithCNonce
 }
+

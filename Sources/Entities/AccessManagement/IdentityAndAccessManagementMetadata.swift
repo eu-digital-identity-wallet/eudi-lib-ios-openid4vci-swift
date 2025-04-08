@@ -15,7 +15,7 @@
  */
 import Foundation
 
-public enum IdentityAndAccessManagementMetadata {
+public enum IdentityAndAccessManagementMetadata: Sendable {
   case oidc(OIDCProviderMetadata)
   case oauth(AuthorizationServerMetadata)
   

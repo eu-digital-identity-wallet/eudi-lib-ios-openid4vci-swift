@@ -15,7 +15,7 @@
  */
 import Foundation
 
-public class JOSEAlgorithm: Codable, Hashable {
+public class JOSEAlgorithm: Codable, Hashable, @unchecked Sendable {
 
   public static func == (lhs: JOSEAlgorithm, rhs: JOSEAlgorithm) -> Bool {
     lhs.name == rhs.name
@@ -51,7 +51,7 @@ public class JOSEAlgorithm: Codable, Hashable {
 }
 
 public extension JOSEAlgorithm {
-  enum Requirement: Codable, Hashable {
+  enum Requirement: Codable, Hashable, Sendable {
     case REQUIRED
     case RECOMMENDED
     case OPTIONAL

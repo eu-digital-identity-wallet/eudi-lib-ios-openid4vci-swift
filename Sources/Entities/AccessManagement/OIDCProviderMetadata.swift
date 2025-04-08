@@ -15,7 +15,7 @@
  */
 import Foundation
 
-public struct OIDCProviderMetadata: Codable, Equatable {
+public struct OIDCProviderMetadata: Codable, Equatable, Sendable {
   public let issuer, authorizationEndpoint, tokenEndpoint, introspectionEndpoint: String?
   public let userinfoEndpoint, endSessionEndpoint: String?
   public let frontchannelLogoutSessionSupported, frontchannelLogoutSupported: Bool?
@@ -171,7 +171,7 @@ public struct OIDCProviderMetadata: Codable, Equatable {
 
 // MARK: - MtlsEndpointAliases
 
-public struct MtlsEndpointAliases: Codable {
+public struct MtlsEndpointAliases: Codable, Sendable {
   public let tokenEndpoint, revocationEndpoint, introspectionEndpoint, deviceAuthorizationEndpoint: String
   public let registrationEndpoint, userinfoEndpoint, pushedAuthorizationRequestEndpoint, backchannelAuthenticationEndpoint: String
   

@@ -15,7 +15,7 @@
  */
 import Foundation
 
-public enum ProofType: Decodable {
+public enum ProofType: Decodable, Sendable {
   case jwt
   case ldpVp
   case unsupported

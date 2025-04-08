@@ -69,7 +69,8 @@ public actor CredentialOfferRequestResolver {
   ///   - source: The input source for resolving metadata.
   /// - Returns: An asynchronous result containing the resolved metadata or an error of type ResolvingError.
   public func resolve(
-    source: CredentialOfferRequest?
+    source: CredentialOfferRequest?,
+    policy: IssuerMetadataPolicy
   ) async -> Result<CredentialOffer, Error> {
     guard let source = source else { return .failure(ValidationError.error(reason: "Invalid source")) }
     do {
@@ -82,7 +83,10 @@ public actor CredentialOfferRequestResolver {
         }
         
         let credentialIssuerId = try CredentialIssuerId(credentialOfferRequestObject.credentialIssuer)
-        guard let credentialIssuerMetadata = try? await credentialIssuerMetadataResolver.resolve(source: .credentialIssuer(credentialIssuerId)).get() else {
+        guard let credentialIssuerMetadata = try? await credentialIssuerMetadataResolver.resolve(
+          source: .credentialIssuer(credentialIssuerId),
+          policy: policy
+        ).get() else {
           return .failure(ValidationError.error(reason: "Invalid credential metadata"))
         }
         
@@ -103,7 +107,10 @@ public actor CredentialOfferRequestResolver {
         let credentialOfferRequestObject = try? result.get()
         if let credentialOfferRequestObject = credentialOfferRequestObject {
           let credentialIssuerId = try CredentialIssuerId(credentialOfferRequestObject.credentialIssuer)
-          guard let credentialIssuerMetadata = try? await credentialIssuerMetadataResolver.resolve(source: .credentialIssuer(credentialIssuerId)).get() else {
+          guard let credentialIssuerMetadata = try? await credentialIssuerMetadataResolver.resolve(
+            source: .credentialIssuer(credentialIssuerId),
+            policy: policy
+          ).get() else {
             return .failure(ValidationError.error(reason: "Invalid credential metadata"))
           }
           

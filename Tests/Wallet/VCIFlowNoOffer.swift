@@ -155,18 +155,9 @@ class VCIFlowNoOffer: XCTestCase {
       bindingKeys: [bindingKey]
     )
     
-    let claimSetMsoMdoc = MsoMdocFormat.MsoMdocClaimSet(
-      claims: [
-        ("org.iso.18013.5.1", "given_name"),
-        ("org.iso.18013.5.1", "family_name"),
-        ("org.iso.18013.5.1", "birth_date")
-      ]
-    )
-    
     do {
       try await walletInitiatedIssuanceNoOfferMDL(
-        wallet: wallet,
-        claimSet: .msoMdoc(claimSetMsoMdoc)
+        wallet: wallet
       )
     } catch {
       
@@ -177,7 +168,7 @@ class VCIFlowNoOffer: XCTestCase {
     XCTAssert(true)
   }
   
-  func testNoOfferMdocDraft14() async throws {
+  func testNoOfferMdocMultipleProofs() async throws {
     
     let privateKey = try KeyController.generateECDHPrivateKey()
     let publicKey = try KeyController.generateECDHPublicKey(from: privateKey)
@@ -220,7 +211,7 @@ class VCIFlowNoOffer: XCTestCase {
     XCTAssert(true)
   }
   
-  func testNoOfferSdJWTDraft14() async throws {
+  func testNoOfferSdJWTSingleProof() async throws {
     
     let privateKey = try KeyController.generateECDHPrivateKey()
     let publicKey = try KeyController.generateECDHPublicKey(from: privateKey)
@@ -307,18 +298,106 @@ class VCIFlowNoOffer: XCTestCase {
     
     XCTAssert(true)
   }
+  
+  func testSDJWT15() async throws {
+    
+    let privateKey = try KeyController.generateECDHPrivateKey()
+    let publicKey = try KeyController.generateECDHPublicKey(from: privateKey)
+    
+    let alg = JWSAlgorithm(.ES256)
+    let publicKeyJWK = try ECPublicKey(
+      publicKey: publicKey,
+      additionalParameters: [
+        "alg": alg.name,
+        "use": "sig",
+        "kid": UUID().uuidString
+      ])
+    
+    let bindingKey: BindingKey = .jwk(
+      algorithm: alg,
+      jwk: publicKeyJWK,
+      privateKey: .secKey(privateKey)
+    )
+    
+    let user = ActingUser(
+      username: "tneal",
+      password: "password"
+    )
+    
+    let wallet = Wallet(
+      actingUser: user,
+      bindingKeys: [bindingKey]
+    )
+    
+    do {
+      let _ = try await wallet.issueByCredentialIdentifier(
+        PID_SdJwtVC_config_id,
+        config: clientConfig
+      )
+      
+    } catch {
+      
+      XCTExpectFailure()
+      XCTAssert(false, error.localizedDescription)
+    }
+    
+    XCTAssert(true)
+  }
+  
+  func testMsoMdoc15() async throws {
+    
+    let privateKey = try KeyController.generateECDHPrivateKey()
+    let publicKey = try KeyController.generateECDHPublicKey(from: privateKey)
+    
+    let alg = JWSAlgorithm(.ES256)
+    let publicKeyJWK = try ECPublicKey(
+      publicKey: publicKey,
+      additionalParameters: [
+        "alg": alg.name,
+        "use": "sig",
+        "kid": UUID().uuidString
+      ])
+    
+    let bindingKey: BindingKey = .jwk(
+      algorithm: alg,
+      jwk: publicKeyJWK,
+      privateKey: .secKey(privateKey)
+    )
+    
+    let user = ActingUser(
+      username: "tneal",
+      password: "password"
+    )
+    
+    let wallet = Wallet(
+      actingUser: user,
+      bindingKeys: [bindingKey]
+    )
+    
+    do {
+      let _ = try await wallet.issueByCredentialIdentifier(
+        PID_MsoMdoc_config_id,
+        config: clientConfig
+      )
+      
+    } catch {
+      
+      XCTExpectFailure()
+      XCTAssert(false, error.localizedDescription)
+    }
+    
+    XCTAssert(true)
+  }
 }
 
 private func walletInitiatedIssuanceNoOfferSdJwtClientAuthentication(
-  wallet: Wallet,
-  claimSet: ClaimSet? = nil
+  wallet: Wallet
 ) async throws {
   
   print("[[Scenario: No offer passed, wallet initiates issuance by credetial scopes and client authentication]]")
   
   let credential = try await wallet.issueByCredentialIdentifier(
     PID_SdJwtVC_config_id,
-    claimSet: claimSet,
     config: attestationConfig
   )
   
@@ -326,15 +405,13 @@ private func walletInitiatedIssuanceNoOfferSdJwtClientAuthentication(
 }
 
 private func walletInitiatedIssuanceNoOfferSdJwt(
-  wallet: Wallet,
-  claimSet: ClaimSet? = nil
+  wallet: Wallet
 ) async throws {
   
   print("[[Scenario: No offer passed, wallet initiates issuance by credetial scopes]]")
   
   let credential = try await wallet.issueByCredentialIdentifier(
     PID_SdJwtVC_config_id,
-    claimSet: claimSet,
     config: clientConfig
   )
   
@@ -342,28 +419,25 @@ private func walletInitiatedIssuanceNoOfferSdJwt(
 }
 
 private func walletInitiatedIssuanceNoOfferMdoc(
-  wallet: Wallet,
-  claimSet: ClaimSet? = nil
+  wallet: Wallet
 ) async throws {
   
   print("[[Scenario: No offer passed, wallet initiates issuance by credetial scopes]]")
   
   let credential = try await wallet.issueByCredentialIdentifier(
     PID_MsoMdoc_config_id,
-    claimSet: claimSet,
     config: clientConfig
   )
   
   print("--> [ISSUANCE] Issued PID in format \(PID_MsoMdoc_config_id): \(credential)")
 }
 
-private func walletInitiatedIssuanceNoOfferMDL(wallet: Wallet, claimSet: ClaimSet?) async throws {
+private func walletInitiatedIssuanceNoOfferMDL(wallet: Wallet) async throws {
   
   print("[[Scenario: No offer passed, wallet initiates issuance by credetial scopes]]")
   
   let credential = try await wallet.issueByCredentialIdentifier(
     MDL_config_id,
-    claimSet: claimSet,
     config: clientConfig
   )
   

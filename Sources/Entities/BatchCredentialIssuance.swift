@@ -15,7 +15,7 @@
  */
 import Foundation
 
-public struct BatchCredentialIssuance: Codable {
+public struct BatchCredentialIssuance: Codable, Sendable {
   public let batchSize: Int
   
   enum CodingKeys: String, CodingKey {

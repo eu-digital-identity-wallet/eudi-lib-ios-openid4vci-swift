@@ -16,12 +16,13 @@
 import Foundation
 import SwiftyJSON
 
-public struct Display: Codable, Equatable {
+public struct Display: Codable, Equatable, Sendable {
   public let name: String?
   public let locale: Locale?
   public let logo: Logo?
   public let description: String?
   public let backgroundColor: String?
+  public let backgroundImage: BackgroundImage?
   public let textColor: String?
   
   enum CodingKeys: String, CodingKey {
@@ -30,6 +31,7 @@ public struct Display: Codable, Equatable {
     case logo
     case description
     case backgroundColor = "background_color"
+    case backgroundImage = "background_image"
     case textColor = "text_color"
   }
   
@@ -39,6 +41,7 @@ public struct Display: Codable, Equatable {
     logo: Logo? = nil,
     description: String? = nil,
     backgroundColor: String? = nil,
+    backgroundImage: BackgroundImage? = nil,
     textColor: String? = nil
   ) {
     self.name = name
@@ -46,6 +49,7 @@ public struct Display: Codable, Equatable {
     self.logo = logo
     self.description = description
     self.backgroundColor = backgroundColor
+    self.backgroundImage = backgroundImage
     self.textColor = textColor
   }
   
@@ -55,6 +59,7 @@ public struct Display: Codable, Equatable {
     logo: Logo? = nil,
     description: String? = nil,
     backgroundColor: String? = nil,
+    backgroundImage: BackgroundImage? = nil,
     textColor: String? = nil
   ) {
     self.name = name
@@ -62,13 +67,14 @@ public struct Display: Codable, Equatable {
     self.logo = logo
     self.description = description
     self.backgroundColor = backgroundColor
+    self.backgroundImage = backgroundImage
     self.textColor = textColor
   }
 }
 
 public extension Display {
   
-  struct Logo: Codable, Equatable {
+  struct Logo: Codable, Equatable, Sendable {
     public let uri: URL?
     public let alternativeText: String?
     
@@ -117,6 +123,7 @@ public extension Display {
       logo: .init(json: json["logo"]),
       description:json["description"].stringValue,
       backgroundColor: json["background_color"].stringValue,
+      backgroundImage: try? .init(json: json["background_image"]),
       textColor: json["text_color"].stringValue
     )
   }
@@ -131,6 +138,7 @@ public extension Display {
     logo = try container.decodeIfPresent(Logo.self, forKey: .logo)
     description = try container.decodeIfPresent(String.self, forKey: .description)
     backgroundColor = try container.decodeIfPresent(String.self, forKey: .backgroundColor)
+    backgroundImage = try container.decodeIfPresent(BackgroundImage.self, forKey: .backgroundImage)
     textColor = try container.decodeIfPresent(String.self, forKey: .textColor)
   }
   
@@ -141,6 +149,7 @@ public extension Display {
     try container.encodeIfPresent(logo, forKey: .logo)
     try container.encodeIfPresent(description, forKey: .description)
     try container.encodeIfPresent(backgroundColor, forKey: .backgroundColor)
+    try container.encodeIfPresent(backgroundImage, forKey: .backgroundImage)
     try container.encodeIfPresent(textColor, forKey: .textColor)
   }
 }

@@ -13,8 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import Foundation
+@preconcurrency import Foundation
 import SwiftyJSON
+@preconcurrency import JOSESwift
 
 public struct W3CSignedJwtFormat: FormatProfile {
   
@@ -36,45 +37,137 @@ public struct W3CSignedJwtFormat: FormatProfile {
 
 public extension W3CSignedJwtFormat {
   
-  struct W3CSignedJwtClaimSet: Codable {
-    public let claims: [ClaimName: Claim]
-    
-    public init(claims: [ClaimName : Claim]) {
-      self.claims = claims
-    }
-  }
-  
   struct CredentialDefinitionTO: Codable {
     public let type: [String]
-    public let credentialSubject: [String: Claim]?
+    public let claims: [Claim]
     
     enum CodingKeys: String, CodingKey {
       case type = "type"
-      case credentialSubject = "credential_subject"
+      case claims = "claims"
     }
     
-    public init(type: [String], credentialSubject: [String : Claim]?) {
+    public init(type: [String], claims: [Claim]) {
       self.type = type
-      self.credentialSubject = credentialSubject
+      self.claims = claims
     }
     
-    public init(json: JSON) {
+    public init(json: JSON) throws {
       type = json["type"].arrayValue.map { $0.stringValue }
       
-      if let credentialSubjectDict = json["credential_subject"].dictionaryObject as? [String: [String: Any]] {
-        credentialSubject = credentialSubjectDict.compactMapValues { claimDict in
-          Claim(json: JSON(claimDict))
-        }
-      } else {
-        credentialSubject = nil
-      }
+      let claims = try json["claims"].array?.compactMap({ try Claim(json: $0)}) ?? []
+      self.claims = claims
     }
     
     func toDomain() -> CredentialDefinition {
       CredentialDefinition(
         type: type,
-        credentialSubject: credentialSubject
+        claims: claims
       )
+    }
+  }
+  
+  struct W3CSignedJwtSingleCredential: Codable, Sendable {
+    public let scope: String?
+    public let proofs: [Proof]
+    public let format: String = W3CSignedJwtFormat.FORMAT
+    public let credentialEncryptionJwk: JWK?
+    public let credentialEncryptionKey: SecKey?
+    public let credentialResponseEncryptionAlg: JWEAlgorithm?
+    public let credentialResponseEncryptionMethod: JOSEEncryptionMethod?
+    public let credentialDefinition: CredentialDefinition
+    public let requestedCredentialResponseEncryption: RequestedCredentialResponseEncryption
+    public let requestPayload: IssuanceRequestPayload
+    public let display: [Display]
+    
+    enum CodingKeys: String, CodingKey {
+      case scope
+      case proof
+      case format
+      case credentialEncryptionJwk
+      case credentialResponseEncryptionAlg
+      case credentialResponseEncryptionMethod
+      case credentialDefinition
+      case credentialIdentifier
+      case requestPayload
+      case display
+    }
+    
+    public init(
+      scope: String?,
+      proofs: [Proof],
+      credentialEncryptionJwk: JWK? = nil,
+      credentialEncryptionKey: SecKey? = nil,
+      credentialResponseEncryptionAlg: JWEAlgorithm? = nil,
+      credentialResponseEncryptionMethod: JOSEEncryptionMethod? = nil,
+      credentialDefinition: CredentialDefinition,
+      requestPayload: IssuanceRequestPayload,
+      display: [Display] = []
+    ) throws {
+      self.scope = scope
+      self.proofs = proofs
+      self.credentialEncryptionJwk = credentialEncryptionJwk
+      self.credentialEncryptionKey = credentialEncryptionKey
+      self.credentialResponseEncryptionAlg = credentialResponseEncryptionAlg
+      self.credentialResponseEncryptionMethod = credentialResponseEncryptionMethod
+      self.credentialDefinition = .init(
+        type: credentialDefinition.type,
+        claims: credentialDefinition.claims
+      )
+      self.requestPayload = requestPayload
+      
+      self.requestedCredentialResponseEncryption = try .init(
+        encryptionJwk: credentialEncryptionJwk,
+        encryptionKey: credentialEncryptionKey,
+        responseEncryptionAlg: credentialResponseEncryptionAlg,
+        responseEncryptionMethod: credentialResponseEncryptionMethod
+      )
+      
+      self.display = display
+    }
+    
+    public init(from decoder: Decoder) throws {
+      fatalError("No supported yet")
+    }
+    
+    public func encode(to encoder: Encoder) throws {
+      var container = encoder.container(keyedBy: CodingKeys.self)
+      try container.encode(proofs, forKey: .proof)
+      
+      if let credentialEncryptionJwk = credentialEncryptionJwk as? RSAPublicKey {
+        try container.encode(credentialEncryptionJwk, forKey: .credentialEncryptionJwk)
+      } else if let credentialEncryptionJwk = credentialEncryptionJwk as? ECPublicKey {
+        try container.encode(credentialEncryptionJwk, forKey: .credentialEncryptionJwk)
+      }
+      
+      try container.encode(credentialResponseEncryptionAlg, forKey: .credentialResponseEncryptionAlg)
+      try container.encode(credentialResponseEncryptionMethod, forKey: .credentialResponseEncryptionMethod)
+      
+      try container.encode(credentialDefinition, forKey: .credentialDefinition)
+      
+      switch requestPayload {
+      case .identifierBased(_, let credentialIdentifier):
+        try container.encode(credentialIdentifier, forKey: .credentialIdentifier)
+      case .configurationBased(let credentialConfigurationIdentifier):
+        try container.encode(credentialConfigurationIdentifier, forKey: .credentialIdentifier)
+      }
+    }
+    
+    public struct CredentialDefinition: Codable, Sendable {
+      public let type: String
+      public let claims: [Claim]
+      
+      enum CodingKeys: String, CodingKey {
+        case type
+        case claims
+      }
+      
+      public init(
+        type: String,
+        claims: [Claim]
+      ) {
+        self.type = type
+        self.claims = claims
+      }
     }
   }
   
@@ -83,10 +176,10 @@ public extension W3CSignedJwtFormat {
     public let scope: String?
     public let cryptographicBindingMethodsSupported: [String]?
     public let credentialSigningAlgValuesSupported: [String]?
-    public let proofTypesSupported: [String: ProofSigningAlgorithmsSupported]?
+    public let proofTypesSupported: [String: ProofTypeSupportedMeta]?
     public let display: [Display]?
     public let credentialDefinition: CredentialDefinitionTO
-    public let order: [String]?
+    public let claims: [Claim]
     
     enum CodingKeys: String, CodingKey {
       case format
@@ -96,7 +189,7 @@ public extension W3CSignedJwtFormat {
       case proofTypesSupported = "proof_types_supported"
       case display
       case credentialDefinition = "credential_definition"
-      case order
+      case claims
     }
     
     public init(
@@ -104,10 +197,10 @@ public extension W3CSignedJwtFormat {
       scope: String? = nil,
       cryptographicBindingMethodsSupported: [String]? = nil,
       credentialSigningAlgValuesSupported: [String]? = nil,
-      proofTypesSupported: [String: ProofSigningAlgorithmsSupported]? = nil,
+      proofTypesSupported: [String: ProofTypeSupportedMeta]? = nil,
       display: [Display]? = nil,
       credentialDefinition: CredentialDefinitionTO,
-      order: [String]? = nil
+      claims: [Claim]
     ) {
       self.format = format
       self.scope = scope
@@ -116,7 +209,7 @@ public extension W3CSignedJwtFormat {
       self.proofTypesSupported = proofTypesSupported
       self.display = display
       self.credentialDefinition = credentialDefinition
-      self.order = order
+      self.claims = claims
     }
     
     func toDomain() throws -> W3CSignedJwtFormat.CredentialConfiguration {
@@ -136,19 +229,19 @@ public extension W3CSignedJwtFormat {
         proofTypesSupported: proofTypesSupported,
         display: display,
         credentialDefinition: credentialDefinition,
-        order: order ?? []
+        claims: claims
       )
     }
   }
   
-  struct CredentialConfiguration: Codable {
+  struct CredentialConfiguration: Codable, Sendable {
     public let scope: String?
     public let cryptographicBindingMethodsSupported: [CryptographicBindingMethod]
     public let credentialSigningAlgValuesSupported: [String]
-    public let proofTypesSupported: [String: ProofSigningAlgorithmsSupported]?
+    public let proofTypesSupported: [String: ProofTypeSupportedMeta]?
     public let display: [Display]
     public let credentialDefinition: CredentialDefinition
-    public let order: [ClaimName]
+    public let claims: [Claim]
     
     enum CodingKeys: String, CodingKey {
       case scope
@@ -157,17 +250,17 @@ public extension W3CSignedJwtFormat {
       case proofTypesSupported = "proof_types_supported"
       case display
       case credentialDefinition = "credential_definition"
-      case order
+      case claims
     }
     
     public init(
       scope: String?,
       cryptographicBindingMethodsSupported: [CryptographicBindingMethod],
       credentialSigningAlgValuesSupported: [String],
-      proofTypesSupported: [String: ProofSigningAlgorithmsSupported]?,
+      proofTypesSupported: [String: ProofTypeSupportedMeta]?,
       display: [Display],
       credentialDefinition: CredentialDefinition,
-      order: [ClaimName]
+      claims: [Claim]
     ) {
       self.scope = scope
       self.cryptographicBindingMethodsSupported = cryptographicBindingMethodsSupported
@@ -175,7 +268,7 @@ public extension W3CSignedJwtFormat {
       self.proofTypesSupported = proofTypesSupported
       self.display = display
       self.credentialDefinition = credentialDefinition
-      self.order = order
+      self.claims = claims
     }
     
     public init(from decoder: Decoder) throws {
@@ -184,10 +277,10 @@ public extension W3CSignedJwtFormat {
       scope = try container.decodeIfPresent(String.self, forKey: .scope)
       cryptographicBindingMethodsSupported = try container.decode([CryptographicBindingMethod].self, forKey: .cryptographicBindingMethodsSupported)
       credentialSigningAlgValuesSupported = try container.decode([String].self, forKey: .credentialSigningAlgValuesSupported)
-      proofTypesSupported = try? container.decode([String: ProofSigningAlgorithmsSupported].self, forKey: .proofTypesSupported)
+      proofTypesSupported = try? container.decode([String: ProofTypeSupportedMeta].self, forKey: .proofTypesSupported)
       display = try container.decode([Display].self, forKey: .display)
       credentialDefinition = try container.decode(CredentialDefinition.self, forKey: .credentialDefinition)
-      order = try container.decode([ClaimName].self, forKey: .order)
+      claims = try container.decode([Claim].self, forKey: .claims)
     }
     
     public func encode(to encoder: Encoder) throws {
@@ -199,7 +292,7 @@ public extension W3CSignedJwtFormat {
       try container.encode(proofTypesSupported, forKey: .proofTypesSupported)
       try container.encode(display, forKey: .display)
       try container.encode(credentialDefinition, forKey: .credentialDefinition)
-      try container.encode(order, forKey: .order)
+      try container.encode(claims, forKey: .claims)
     }
     
     init(json: JSON) throws {
@@ -213,55 +306,49 @@ public extension W3CSignedJwtFormat {
       self.proofTypesSupported = json["proof_types_supported"].dictionaryObject?.compactMapValues { values in
         if let types = values as? [String: Any],
            let algorithms = types["proof_signing_alg_values_supported"] as? [String] {
-          return ProofSigningAlgorithmsSupported(algorithms: algorithms)
+          let requirement = types["key_attestations_required"]
+          return .init(
+            algorithms: algorithms,
+            keyAttestationRequirement: try? .init(json: JSON(requirement ?? [:]))
+          )
         }
         return nil
       }
       self.display = json["display"].arrayValue.map { json in
         Display(json: json)
       }
-      self.credentialDefinition = CredentialDefinition(json: json["credential_definition"])
-      self.order = json["order"].arrayValue.map {
-        ClaimName($0.stringValue)
-      }
+      self.credentialDefinition = try CredentialDefinition(json: json["credential_definition"])
+      
+      let claims = try json["claims"].array?.compactMap({ try Claim(json: $0)}) ?? []
+      self.claims = claims
     }
     
     func toIssuanceRequest(
-      claimSet: ClaimSet?,
       proofs: [Proof]
     ) throws -> CredentialIssuanceRequest {
       throw ValidationError.error(reason: "Not yet implemented")
     }
   }
   
-  struct CredentialDefinition: Codable {
+  struct CredentialDefinition: Codable, Sendable {
     public let type: [String]
-    public let credentialSubject: [ClaimName: Claim?]?
+    public let claims: [Claim]
     
     enum CodingKeys: String, CodingKey {
       case type
-      case credentialSubject
+      case claims
     }
     
-    public init(type: [String], credentialSubject: [ClaimName : Claim?]?) {
+    public init(type: [String], claims: [Claim]) {
       self.type = type
-      self.credentialSubject = credentialSubject
+      self.claims = claims
     }
     
-    public init(json: JSON) {
+    public init(json: JSON) throws {
       self.type = json["type"].arrayValue.map { $0.stringValue }
       
-      var credentialSubjectDict: [ClaimName: Claim?] = [:]
-      let credentialSubjectJSON = json["credential_subject"]
-      for (key, subJSON): (String, JSON) in credentialSubjectJSON.dictionaryValue {
-        credentialSubjectDict[key] = Claim(
-          mandatory: subJSON["mandatory"].bool,
-          valueType: subJSON["valuetype"].string,
-          display: subJSON["display"].arrayValue.compactMap {
-            Display(json: $0)
-          })
-      }
-      self.credentialSubject = credentialSubjectDict
+      let claims = try json["claims"].array?.compactMap({ try Claim(json: $0)}) ?? []
+      self.claims = claims
     }
   }
 }
@@ -273,7 +360,7 @@ public extension W3CSignedJwtFormat {
     metadata: CredentialIssuerMetadata
   ) throws -> CredentialMetadata {
     
-    let credentialDefinition = CredentialDefinitionTO(json: json).toDomain()
+    let credentialDefinition = try CredentialDefinitionTO(json: json).toDomain()
     
     if let credentialConfigurationsSupported = metadata.credentialsSupported.first(where: { (id, credential) in
       switch credential {

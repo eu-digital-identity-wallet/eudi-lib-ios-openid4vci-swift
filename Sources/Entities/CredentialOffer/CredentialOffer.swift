@@ -16,7 +16,7 @@
 import Foundation
 import SwiftyJSON
 
-public struct CredentialOffer {
+public struct CredentialOffer: Sendable {
   public let credentialIssuerIdentifier: CredentialIssuerId
   public let credentialIssuerMetadata: CredentialIssuerMetadata
   public let credentialConfigurationIdentifiers: [CredentialConfigurationIdentifier]

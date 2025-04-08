@@ -27,8 +27,18 @@ private extension ResponseWithHeaders {
   }
 }
 
-public protocol AuthorizationServerClientType {
+/// A protocol defining the interface for an authorization server client.
+/// This client is responsible for handling authorization requests, token exchanges, and refresh flows.
+public protocol AuthorizationServerClientType: Sendable {
   
+  /// Generates a URL for initiating the authorization request.
+  ///
+  /// - Parameters:
+  ///   - scopes: The requested authorization scopes.
+  ///   - credentialConfigurationIdentifiers: Identifiers for the credential configurations.
+  ///   - state: A unique state parameter
+  ///   - issuerState: Optional issuer-specific state parameter.
+  /// - Returns: A result containing a `PKCEVerifier` and an authorization URL, or an error if the operation fails.
   func authorizationRequestUrl(
     scopes: [Scope],
     credentialConfigurationIdentifiers: [CredentialConfigurationIdentifier],
@@ -36,6 +46,17 @@ public protocol AuthorizationServerClientType {
     issuerState: String?
   ) async throws -> Result<(PKCEVerifier, GetAuthorizationCodeURL), Error>
   
+  /// Submits a pushed authorization request (PAR).
+  ///
+  /// - Parameters:
+  ///   - scopes: The requested authorization scopes.
+  ///   - credentialConfigurationIdentifiers: Identifiers for the credential configurations.
+  ///   - state: A unique state parameter
+  ///   - issuerState: Optional issuer-specific state parameter.
+  ///   - resource: An optional resource identifier.
+  ///   - dpopNonce: An optional nonce for DPoP (Demonstrating Proof-of-Possession).
+  ///   - retry: A flag indicating whether to retry on failure.
+  /// - Returns: A result containing a `PKCEVerifier`, an authorization URL, and an optional nonce, or an error if the operation fails.
   func submitPushedAuthorizationRequest(
     scopes: [Scope],
     credentialConfigurationIdentifiers: [CredentialConfigurationIdentifier],
@@ -46,6 +67,15 @@ public protocol AuthorizationServerClientType {
     retry: Bool
   ) async throws -> Result<(PKCEVerifier, GetAuthorizationCodeURL, Nonce?), Error>
   
+  /// Requests an access token using an authorization code.
+  ///
+  /// - Parameters:
+  ///   - authorizationCode: The authorization code received from the authorization server.
+  ///   - codeVerifier: The PKCE code verifier.
+  ///   - identifiers: Identifiers for the credential configurations.
+  ///   - dpopNonce: An optional nonce for DPoP.
+  ///   - retry: A flag indicating whether to retry on failure.
+  /// - Returns: A result containing the access token, refresh token, authorization details, token type, expiration time, and an optional nonce, or an error if the operation fails.
   func requestAccessTokenAuthFlow(
     authorizationCode: String,
     codeVerifier: String,
@@ -55,13 +85,23 @@ public protocol AuthorizationServerClientType {
   ) async throws -> Result<(
     IssuanceAccessToken,
     IssuanceRefreshToken,
-    CNonce?,
     AuthorizationDetailsIdentifiers?,
     TokenType?,
     Int?,
     Nonce?
   ), Error>
   
+  /// Requests an access token using a pre-authorized code.
+  ///
+  /// - Parameters:
+  ///   - preAuthorizedCode: The pre-authorized code provided by the authorization server.
+  ///   - txCode: An optional transaction code.
+  ///   - client: The client making the request.
+  ///   - transactionCode: An optional transaction code string.
+  ///   - identifiers: Identifiers for the credential configurations.
+  ///   - dpopNonce: An optional nonce for DPoP.
+  ///   - retry: A flag indicating whether to retry on failure.
+  /// - Returns: A result containing the access token, refresh token, authorization details, expiration time, and an optional nonce, or an error if the operation fails.
   func requestAccessTokenPreAuthFlow(
     preAuthorizedCode: String,
     txCode: TxCode?,
@@ -73,11 +113,19 @@ public protocol AuthorizationServerClientType {
   ) async throws -> Result<(
     IssuanceAccessToken,
     IssuanceRefreshToken,
-    CNonce?,
     AuthorizationDetailsIdentifiers?,
     Int?,
-    Nonce?), Error>
+    Nonce?
+  ), Error>
   
+  /// Refreshes an access token using a refresh token.
+  ///
+  /// - Parameters:
+  ///   - clientId: The client ID used for authentication.
+  ///   - refreshToken: The refresh token issued previously.
+  ///   - dpopNonce: An optional nonce for DPoP.
+  ///   - retry: A flag indicating whether to retry on failure.
+  /// - Returns: A result containing the new access token, authorization details, token type, expiration time, and an optional nonce, or an error if the operation fails.
   func refreshAccessToken(
     clientId: String,
     refreshToken: IssuanceRefreshToken,
@@ -85,13 +133,13 @@ public protocol AuthorizationServerClientType {
     retry: Bool
   ) async throws -> Result<(
     IssuanceAccessToken,
-    CNonce?,
     AuthorizationDetailsIdentifiers?,
     TokenType?,
     Int?,
     Nonce?
   ), Error>
 }
+
 
 public actor AuthorizationServerClient: AuthorizationServerClientType {
   
@@ -146,7 +194,7 @@ public actor AuthorizationServerClient: AuthorizationServerClientType {
       if let authorizationEndpoint = data.authorizationEndpoint, let url = URL(string: authorizationEndpoint) {
         self.authorizationEndpoint = url
       } else {
-        throw ValidationError.error(reason: "In valid authorization endpoint")
+        throw ValidationError.error(reason: "Invalid authorization endpoint")
       }
       
       if let pushedAuthorizationRequestEndpoint = data.pushedAuthorizationRequestEndpoint, let url = URL(string: pushedAuthorizationRequestEndpoint) {
@@ -208,9 +256,7 @@ public actor AuthorizationServerClient: AuthorizationServerClientType {
     guard let urlWithParams = authorizationEndpoint.appendingQueryParameters(
       try authzRequest.toDictionary().convertToDictionaryOfStrings(
         excludingKeys: [
-          "credential_configuration_ids",
-          "code_challenge",
-          "code_challenge_method"
+          "credential_configuration_ids"
         ]
       )
     ) else {
@@ -341,7 +387,6 @@ public actor AuthorizationServerClient: AuthorizationServerClientType {
   ) async throws -> Result<(
     IssuanceAccessToken,
     IssuanceRefreshToken,
-    CNonce?,
     AuthorizationDetailsIdentifiers?,
     TokenType?,
     Int?,
@@ -378,7 +423,7 @@ public actor AuthorizationServerClient: AuthorizationServerClientType {
       )
       
       switch response.body {
-      case .success(let tokenType, let accessToken, let refreshToken, let expiresIn, _, let nonce, _, let identifiers):
+      case .success(let tokenType, let accessToken, let refreshToken, let expiresIn, _, let identifiers):
         return .success(
           (
             try .init(
@@ -389,9 +434,6 @@ public actor AuthorizationServerClient: AuthorizationServerClientType {
             ),
             try .init(
               refreshToken: refreshToken
-            ),
-            .init(
-              value: nonce
             ),
             identifiers,
             TokenType(
@@ -438,7 +480,6 @@ public actor AuthorizationServerClient: AuthorizationServerClientType {
     retry: Bool
   ) async throws -> Result<(
     IssuanceAccessToken,
-    CNonce?,
     AuthorizationDetailsIdentifiers?,
     TokenType?,
     Int?,
@@ -468,8 +509,6 @@ public actor AuthorizationServerClient: AuthorizationServerClientType {
         _,
         let expiresIn,
         _,
-        let nonce,
-        _,
         let identifiers
       ):
         return .success(
@@ -480,9 +519,6 @@ public actor AuthorizationServerClient: AuthorizationServerClientType {
                 value: tokenType
               ),
               expiresIn: TimeInterval(expiresIn)
-            ),
-            .init(
-              value: nonce
             ),
             identifiers,
             TokenType(
@@ -532,10 +568,10 @@ public actor AuthorizationServerClient: AuthorizationServerClientType {
   ) async throws -> Result<(
     IssuanceAccessToken,
     IssuanceRefreshToken,
-    CNonce?,
     AuthorizationDetailsIdentifiers?,
     Int?,
-    Nonce?), Error> {
+    Nonce?
+  ), Error> {
       let parameters: JSON = try await preAuthCodeFlow(
         preAuthorizedCode: preAuthorizedCode,
         txCode: txCode,
@@ -566,7 +602,7 @@ public actor AuthorizationServerClient: AuthorizationServerClientType {
         )
         
         switch response.body {
-        case .success(let tokenType, let accessToken, let refreshToken, let expiresIn, _, let nonce, _, let identifiers):
+        case .success(let tokenType, let accessToken, let refreshToken, let expiresIn, _, let identifiers):
           return .success(
             (
               try .init(
@@ -577,9 +613,6 @@ public actor AuthorizationServerClient: AuthorizationServerClientType {
               ),
               try .init(
                 refreshToken: refreshToken
-              ),
-              .init(
-                value: nonce
               ),
               identifiers,
               expiresIn,

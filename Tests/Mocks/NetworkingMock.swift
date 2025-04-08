@@ -18,7 +18,7 @@ import XCTest
 
 @testable import OpenID4VCI
 
-class NetworkingMock: Networking {
+final class NetworkingMock: Networking {
   
   let path: String
   let `extension`: String

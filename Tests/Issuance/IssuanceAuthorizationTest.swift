@@ -144,9 +144,8 @@ class IssuanceAuthorizationTest: XCTestCase {
     case .success(let authorizationCode):
       let authorizedRequest = await issuer.authorizeWithAuthorizationCode(authorizationCode: authorizationCode)
       
-      if case let .success(authorized) = authorizedRequest,
-         case let .noProofRequired(token, _, _, _, _) = authorized {
-        XCTAssert(true, "Got access token: \(token)")
+      if case let .success(authorized) = authorizedRequest {
+        XCTAssert(true, "Got access token: \(authorized.accessToken)")
         return
       }
       
@@ -196,9 +195,8 @@ class IssuanceAuthorizationTest: XCTestCase {
     switch unAuthorized {
     case .success(let authorizationCode):
       let authorizedRequest = await issuer.authorizeWithAuthorizationCode(authorizationCode: authorizationCode)
-      if case let .success(authorized) = authorizedRequest,
-         case let .proofRequired(token, _, _, _, _, _) = authorized {
-        XCTAssert(true, "Got access token: \(token)")
+      if case let .success(authorized) = authorizedRequest {
+        XCTAssert(true, "Got access token: \(authorized.accessToken)")
         return
       }
       
@@ -311,9 +309,7 @@ class IssuanceAuthorizationTest: XCTestCase {
     
     switch result {
     case .success(let request):
-      if case let .noProofRequired(token, _, _, _, _) = request {
-        XCTAssert(true, "Got access token: \(token)")
-      }
+      XCTAssert(true, "Got access token: \(request.accessToken)")
     case .failure(let error):
       XCTAssert(false, error.localizedDescription)
     }
@@ -346,7 +342,8 @@ class IssuanceAuthorizationTest: XCTestCase {
       .resolve(
         source: try .init(
           urlString: urlString
-        )
+        ),
+        policy: .ignoreSigned
       )
     
     let offer: CredentialOffer = try resolution.get()
@@ -400,13 +397,12 @@ class IssuanceAuthorizationTest: XCTestCase {
     let request = try result.get()
     let payload: IssuanceRequestPayload = .configurationBased(
       credentialConfigurationIdentifier: try CredentialConfigurationIdentifier(
-        value: "IdentityCredential"
-      ),
-      claimSet: nil
+        value: "org.iso.18013.5.1.mDL"
+      )
     )
     
-    let requestSingleResult = try await issuer.request(
-      proofRequest: request,
+    let requestSingleResult = try await issuer.requestCredential(
+      request: request,
       bindingKeys: [bindingKey],
       requestPayload: payload,
       responseEncryptionSpecProvider: {
@@ -475,7 +471,8 @@ class IssuanceAuthorizationTest: XCTestCase {
       .resolve(
         source: try .init(
           urlString: urlString
-        )
+        ),
+        policy: .ignoreSigned
       )
     
     let attestationConfig: OpenId4VCIConfig = .init(
@@ -529,13 +526,12 @@ class IssuanceAuthorizationTest: XCTestCase {
       let request = try result.get()
       let payload: IssuanceRequestPayload = .configurationBased(
         credentialConfigurationIdentifier: try CredentialConfigurationIdentifier(
-          value: "IdentityCredential"
-        ),
-        claimSet: nil
+          value: "org.iso.18013.5.1.mDL"
+        )
       )
       
-      let requestSingleResult = try await issuer.request(
-        proofRequest: request,
+      let requestSingleResult = try await issuer.requestCredential(
+        request: request,
         bindingKeys: [bindingKey],
         requestPayload: payload,
         responseEncryptionSpecProvider: {
@@ -577,7 +573,8 @@ class IssuanceAuthorizationTest: XCTestCase {
       .resolve(
         source: try .init(
           urlString: urlString
-        )
+        ),
+        policy: .ignoreSigned
       )
 
     let offer: CredentialOffer = try resolution.get()
@@ -633,12 +630,11 @@ class IssuanceAuthorizationTest: XCTestCase {
     let payload: IssuanceRequestPayload = .configurationBased(
       credentialConfigurationIdentifier: try CredentialConfigurationIdentifier(
         value: offer.credentialConfigurationIdentifiers.first!.value
-      ),
-      claimSet: nil
+      )
     )
 
-    let requestSingleResult = try await issuer.request(
-      proofRequest: request.handleInvalidProof(cNonce: .init(value: UUID().uuidString)!),
+    let requestSingleResult = try await issuer.requestCredential(
+      request: request,
       bindingKeys: [bindingKey],
       requestPayload: payload,
       responseEncryptionSpecProvider: {
@@ -674,6 +670,7 @@ class IssuanceAuthorizationTest: XCTestCase {
     ///
     let urlString = """
     """
+    
     if urlString.isEmpty {
       XCTExpectFailure()
       XCTAssert(false, "urlString cannot be empty")
@@ -685,7 +682,8 @@ class IssuanceAuthorizationTest: XCTestCase {
       .resolve(
         source: try .init(
           urlString: urlString
-        )
+        ),
+        policy: .ignoreSigned
       )
     
     let privateKey = try KeyController.generateECDHPrivateKey()
@@ -748,12 +746,11 @@ class IssuanceAuthorizationTest: XCTestCase {
     let payload: IssuanceRequestPayload = .configurationBased(
       credentialConfigurationIdentifier: try CredentialConfigurationIdentifier(
         value: "IdentityCredential"
-      ),
-      claimSet: nil
+      )
     )
     
-    let requestSingleResult = try await issuer.request(
-      proofRequest: request,
+    let requestSingleResult = try await issuer.requestCredential(
+      request: request,
       bindingKeys: [bindingKey],
       requestPayload: payload,
       responseEncryptionSpecProvider: {

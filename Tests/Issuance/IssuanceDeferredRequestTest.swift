@@ -100,20 +100,19 @@ class IssuanceDeferredRequestTest: XCTestCase {
     case .success(let authorizationCode):
       let authorizedRequest = await issuer.authorizeWithAuthorizationCode(authorizationCode: authorizationCode)
       
-      if case let .success(authorized) = authorizedRequest,
-         case let .noProofRequired(token, _, _, _, _) = authorized {
-        XCTAssert(true, "Got access token: \(token)")
+      if case let .success(authorized) = authorizedRequest {
+        XCTAssert(true, "Got access token: \(authorized.accessToken)")
         XCTAssert(true, "Is no proof required")
         
         do {
           let payload: IssuanceRequestPayload = .configurationBased(
             credentialConfigurationIdentifier: try .init(
               value: "eu.europa.ec.eudi.pid_mso_mdoc"
-            ),
-            claimSet: nil
+            )
           )
-          let result = try await issuer.request(
-            noProofRequest: authorized,
+          let result = try await issuer.requestCredential(
+            request: authorized,
+            bindingKeys: [],
             requestPayload: payload,
             responseEncryptionSpecProvider: { _ in
               spec
@@ -128,7 +127,7 @@ class IssuanceDeferredRequestTest: XCTestCase {
                 case .deferred(let transactionId):
                   XCTAssert(true, "transaction_id: \(transactionId)")
                   return
-                case .issued(let format, let credential, _, _):
+                case .issued(_, let credential, _, _):
                   XCTAssert(false, "credential: \(credential)")
                 }
               } else {

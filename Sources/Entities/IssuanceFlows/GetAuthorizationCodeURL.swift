@@ -19,7 +19,7 @@ public enum AuthorizationCodeURLError: Error {
   case missingQueryParameters
 }
 
-public struct GetAuthorizationCodeURL {
+public struct GetAuthorizationCodeURL: Sendable {
   public let url: URL
   
   public init(urlString: String) throws {

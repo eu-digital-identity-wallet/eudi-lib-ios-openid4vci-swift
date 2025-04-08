@@ -15,12 +15,12 @@
  */
 import Foundation
 
-public enum Grants {
+public enum Grants: Sendable {
   case authorizationCode(AuthorizationCode)
   case preAuthorizedCode(PreAuthorizedCode)
   case both(AuthorizationCode, PreAuthorizedCode)
   
-  public struct AuthorizationCode {
+  public struct AuthorizationCode: Sendable {
     public let issuerState: String?
     public let authorizationServer: URL?
     
@@ -37,7 +37,7 @@ public enum Grants {
     }
   }
 
-  public struct PreAuthorizedCode {
+  public struct PreAuthorizedCode: Sendable {
     public let preAuthorizedCode: String?
     public let txCode: TxCode?
     

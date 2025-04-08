@@ -15,7 +15,7 @@
  */
 import Foundation
 
-public enum CredentialSupported: Codable {
+public enum CredentialSupported: Codable, Sendable {
   case scope(Scope)
   case msoMdoc(MsoMdocFormat.CredentialConfiguration)
   case w3CSignedJwt(W3CSignedJwtFormat.CredentialConfiguration)
@@ -25,6 +25,23 @@ public enum CredentialSupported: Codable {
 }
 
 public extension CredentialSupported {
+  
+  internal func supportsProofTypes() -> Bool {
+    switch self {
+    case .scope:
+      return false
+    case .msoMdoc(let configuration):
+      return configuration.proofTypesSupported?.isEmpty == false
+    case .w3CSignedJwt(let configuration):
+      return configuration.proofTypesSupported?.isEmpty == false
+    case .w3CJsonLdSignedJwt:
+      return false
+    case .w3CJsonLdDataIntegrity:
+      return false
+    case .sdJwtVc(let configuration):
+      return configuration.proofTypesSupported?.isEmpty == false
+    }
+  }
   
   func getScope() -> String? {
     switch self {
@@ -45,9 +62,8 @@ public extension CredentialSupported {
   
   func toIssuanceRequest(
     requester: IssuanceRequesterType,
-    claimSet: ClaimSet? = nil,
     proofs: [Proof] = [],
-    credentialIdentifier: CredentialIdentifier? = nil,
+    issuancePayload: IssuanceRequestPayload,
     responseEncryptionSpecProvider: (_ issuerResponseEncryptionMetadata: CredentialResponseEncryption) -> IssuanceResponseEncryptionSpec?
   ) throws -> CredentialIssuanceRequest {
     switch self {
@@ -74,7 +90,7 @@ public extension CredentialSupported {
      
       return try credentialConfiguration.toIssuanceRequest(
         responseEncryptionSpec: issuerEncryption.notRequired ? nil : responseEncryptionSpec,
-        claimSet: claimSet,
+        requestPayload: issuancePayload,
         proofs: proofs
       )
 
@@ -101,7 +117,7 @@ public extension CredentialSupported {
      
       return try credentialConfiguration.toIssuanceRequest(
         responseEncryptionSpec: issuerEncryption.notRequired ? nil : responseEncryptionSpec,
-        claimSet: claimSet,
+        requestPayload: issuancePayload,
         proofs: proofs
       )
     default:

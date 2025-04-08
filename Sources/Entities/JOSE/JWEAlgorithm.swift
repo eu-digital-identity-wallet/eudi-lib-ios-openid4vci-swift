@@ -16,7 +16,7 @@
 import Foundation
 import JOSESwift
 
-public class JWEAlgorithm: JOSEAlgorithm {
+public class JWEAlgorithm: JOSEAlgorithm, @unchecked Sendable {
 
   public init(_ type: AlgorithmType) {
     super.init(name: type.name, requirement: type.requirement)

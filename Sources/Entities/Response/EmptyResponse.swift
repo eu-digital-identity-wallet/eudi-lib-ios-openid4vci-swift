@@ -15,6 +15,6 @@
  */
 import Foundation
 
-public struct EmptyResponse: Codable {
+public struct EmptyResponse: Codable, Sendable {
   public init() {}
 }

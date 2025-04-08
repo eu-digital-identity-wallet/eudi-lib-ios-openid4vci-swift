@@ -19,6 +19,16 @@ enum CredentialIssuerMetadataError: Error {
   case unableToFetchCredentialIssuerMetadata(cause: Error)
   case nonParseableCredentialIssuerMetadata(cause: Error)
   
+  /**
+    * Indicates the Credential Issuer does not provide signed metadata.
+    */
+  case missingSignedMetadata
+
+  /**
+   * Indicates the signed metadata of the Credential Issuer are not valid.
+   */
+  case invalidSignedMetadata(String)
+  
   func toException() -> CredentialIssuerMetadataException {
     return CredentialIssuerMetadataException(error: self)
   }

@@ -13,13 +13,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import Foundation
+@preconcurrency import Foundation
 import SwiftyJSON
-import JOSESwift
+@preconcurrency import JOSESwift
 
 public typealias JWT = String
 
-public struct IssuanceResponseEncryptionSpec {
+public struct IssuanceResponseEncryptionSpec: Sendable {
   public let jwk: JWK?
   public let privateKey: SecKey?
   public let algorithm: JWEAlgorithm
@@ -38,7 +38,7 @@ public struct IssuanceResponseEncryptionSpec {
   }
 }
 
-public enum Proof: Codable {
+public enum Proof: Codable, Sendable {
   case jwt(JWT)
   
   public func type() -> ProofType {
@@ -83,7 +83,7 @@ public enum Proof: Codable {
   }
 }
 
-public struct Scope: Codable {
+public struct Scope: Codable, Sendable {
   public let value: String
   
   public init(_ value: String?) throws {
@@ -136,22 +136,7 @@ public struct RefreshToken: Codable {
   }
 }
 
-public struct CNonce: Codable {
-  public let value: String
-  public let expiresInSeconds: Int?
-  
-  public init?(value: String?, expiresInSeconds: Int? = 5) {
-    guard let value else { return nil }
-    if value.isEmpty {
-      return nil
-    }
-    
-    self.value = value
-    self.expiresInSeconds = expiresInSeconds
-  }
-}
-
-public struct Nonce {
+public struct Nonce: Sendable {
   public let value: String
   
   public init(value: String) {
@@ -159,32 +144,35 @@ public struct Nonce {
   }
 }
 
-public struct Claim: Codable {
+public struct Claim: Codable, Sendable {
   public let mandatory: Bool?
-  public let valueType: String?
   public let display: [Display]?
+  public let path: ClaimPath
   
   enum CodingKeys: String, CodingKey {
     case mandatory
-    case valueType = "value_type"
     case display
+    case path
   }
   
   public init() {
     self.mandatory = nil
-    self.valueType = nil
     self.display = nil
+    self.path = .init([])
   }
   
-  public init(mandatory: Bool?, valueType: String?, display: [Display]?) {
+  public init(
+    mandatory: Bool?,
+    display: [Display]?,
+    path: ClaimPath = .init([])
+  ) {
     self.mandatory = mandatory
-    self.valueType = valueType
     self.display = display
+    self.path = path
   }
   
-  init(json: JSON) {
+  init(json: JSON) throws {
     mandatory = json["mandatory"].bool
-    valueType = json["value_type"].string
     
     if let displayArray = json["display"].array {
       display = displayArray.map { displayJson in
@@ -193,6 +181,8 @@ public struct Claim: Codable {
     } else {
       display = nil
     }
+    
+    self.path = try ClaimPath(json: json["path"])
   }
 }
 
@@ -208,7 +198,7 @@ public struct DeferredIssuanceRequestTO: Codable {
   }
 }
 
-public enum TxCodeInputMode: String, Codable {
+public enum TxCodeInputMode: String, Codable, Sendable {
   case numeric
   case text
   
@@ -221,7 +211,7 @@ public enum TxCodeInputMode: String, Codable {
   }
 }
 
-public struct TxCode: Codable {
+public struct TxCode: Codable, Sendable {
   public let inputMode: TxCodeInputMode
   public let length: Int?
   public let description: String?
@@ -261,4 +251,39 @@ public struct ProofsTO: Codable {
     }
     self.jwtProofs = jwtProofs
   }
+}
+
+public struct BackgroundImage: Codable, Equatable, Sendable {
+  public let url: URL
+  
+  public init(uri: String) throws {
+    guard let url = URL(string: uri) else {
+      throw BackgroundImageError.invalidURL
+    }
+    self.url = url
+  }
+  
+  public init(json: JSON) throws {
+    let uri = json["uri"].stringValue
+    try self.init(uri: uri)
+  }
+  
+  enum CodingKeys: String, CodingKey {
+    case uri
+  }
+  
+  public init(from decoder: Decoder) throws {
+    let container = try decoder.container(keyedBy: CodingKeys.self)
+    let uri = try container.decode(String.self, forKey: .uri)
+    try self.init(uri: uri)
+  }
+  
+  public func encode(to encoder: Encoder) throws {
+    var container = encoder.container(keyedBy: CodingKeys.self)
+    try container.encode(url.absoluteString, forKey: .uri)
+  }
+}
+
+public enum BackgroundImageError: Error {
+  case invalidURL
 }

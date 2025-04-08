@@ -15,7 +15,7 @@
  */
 import Foundation
 
-public protocol NotifyIssuerType {
+public protocol NotifyIssuerType: Sendable {
   func notify(
     authorizedRequest: AuthorizedRequest,
     notification: NotificationObject,
@@ -23,7 +23,7 @@ public protocol NotifyIssuerType {
   ) async throws -> Result<Void, Error>
 }
 
-public class NotifyIssuer: NotifyIssuerType {
+public final class NotifyIssuer: NotifyIssuerType {
   private let issuanceRequester: IssuanceRequester
   
   public init(

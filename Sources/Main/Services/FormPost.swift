@@ -65,7 +65,7 @@ public struct FormPost: Request {
 extension FormPost {
   public enum FormURLEncodingError: Swift.Error {
     case unsupportedName(String)
-    case unsupportedValue(Any?)
+    case unsupportedValue(String?)
   }
 
   // application/x-www-form-urlencoded encoder
@@ -95,7 +95,8 @@ extension FormPost {
         throw FormURLEncodingError.unsupportedName(name)
       }
       guard let encodedValue = encoded(any: value) else {
-        throw FormURLEncodingError.unsupportedValue(value)
+        let unsupportedValue: String = (value as? String) ?? ""
+        throw FormURLEncodingError.unsupportedValue(unsupportedValue)
       }
       to.append(encodedName)
       to.append("=")

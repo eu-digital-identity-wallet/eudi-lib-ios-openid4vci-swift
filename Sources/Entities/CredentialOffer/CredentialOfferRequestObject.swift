@@ -14,9 +14,9 @@
  * limitations under the License.
  */
 import Foundation
-import SwiftyJSON
+@preconcurrency import SwiftyJSON
 
-public struct CredentialOfferRequestObject: Codable {
+public struct CredentialOfferRequestObject: Codable, Sendable {
   public let credentialIssuer: String
   public let credentialConfigurationIds: [JSON]
   public let grants: GrantsDTO?

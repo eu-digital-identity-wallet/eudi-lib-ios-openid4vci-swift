@@ -18,7 +18,7 @@ import XCTest
 
 @testable import OpenID4VCI
 
-class NetworkingThrowingMock: Networking {
+final class NetworkingThrowingMock: Networking {
   
   func data(
     from url: URL

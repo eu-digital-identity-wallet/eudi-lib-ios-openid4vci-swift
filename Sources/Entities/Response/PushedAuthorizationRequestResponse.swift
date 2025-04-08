@@ -16,7 +16,7 @@
 import Foundation
 import Foundation
 
-public enum PushedAuthorizationRequestResponse: Codable {
+public enum PushedAuthorizationRequestResponse: Codable, Sendable {
   case success(requestURI: String, expiresIn: Int)
   case failure(error: String, errorDescription: String?)
   

@@ -15,10 +15,23 @@
  */
 import Foundation
 
-public struct GenericClaimSet: Codable {
-  public let claims: [ClaimName]
+public struct ProofTypeSupportedMeta: Codable, Sendable {
   
-  public init(claims: [ClaimName]) {
-    self.claims = claims
+  public let algorithms: [String]
+  public let keyAttestationRequirement: KeyAttestationRequirement?
+  
+  enum CodingKeys: String, CodingKey {
+    case algorithms = "proof_signing_alg_values_supported"
+    case keyAttestationRequirement = "key_attestations_required"
+  }
+  
+  public init(
+    algorithms: [String],
+    keyAttestationRequirement: KeyAttestationRequirement? = nil
+  ) {
+    self.algorithms = algorithms
+    self.keyAttestationRequirement = keyAttestationRequirement
   }
 }
+
+

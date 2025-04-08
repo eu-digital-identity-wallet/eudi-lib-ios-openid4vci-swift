@@ -15,4 +15,4 @@
  */
 import Foundation
 
-public struct X509Certificate {}
+public protocol X509Certificate: Sendable {}

@@ -43,7 +43,7 @@ public enum FetchError: LocalizedError {
   }
 }
 
-public protocol Fetching {
+public protocol Fetching: Sendable {
   var session: Networking { get set }
 
   associatedtype Element: Decodable

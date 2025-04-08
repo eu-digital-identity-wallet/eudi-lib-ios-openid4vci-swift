@@ -15,7 +15,7 @@
  */
 import Foundation
 
-public struct AuthorizationType: Codable {
+public struct AuthorizationType: Codable, Sendable {
   public let type: String
   
   public init(type: String) {
@@ -23,7 +23,7 @@ public struct AuthorizationType: Codable {
   }
 }
 
-public struct AuthorizationDetail: Codable {
+public struct AuthorizationDetail: Codable, Sendable {
   public let type: AuthorizationType
   public let locations: [String]
   public let credentialConfigurationId: String

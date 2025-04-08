@@ -15,7 +15,7 @@
  */
 import Foundation
 
-public enum CredentialResponseEncryption: Decodable {
+public enum CredentialResponseEncryption: Decodable, Sendable {
   case notRequired
   case required(
     algorithmsSupported: [JWEAlgorithm],

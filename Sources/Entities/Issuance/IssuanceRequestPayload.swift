@@ -16,7 +16,7 @@
 import Foundation
 
 /// Enum representing different types of issuance request payloads.
-public enum IssuanceRequestPayload {
+public enum IssuanceRequestPayload: Sendable {
   
   /// Payload type for requests based on credential identifiers.
   ///
@@ -32,27 +32,16 @@ public enum IssuanceRequestPayload {
   ///
   /// - Parameters:
   ///   - credentialConfigurationIdentifier: The credential configuration identifier.
-  ///   - claimSet: Optional parameter specifying the specific set of claims requested to be included in the credential to be issued.
   case configurationBased(
-    credentialConfigurationIdentifier: CredentialConfigurationIdentifier,
-    claimSet: ClaimSet?
+    credentialConfigurationIdentifier: CredentialConfigurationIdentifier
   )
   
   var credentialConfigurationIdentifier: CredentialConfigurationIdentifier {
     switch self {
     case .identifierBased(let credentialConfigurationIdentifier, _):
       return credentialConfigurationIdentifier
-    case .configurationBased(let credentialConfigurationIdentifier, _):
+    case .configurationBased(let credentialConfigurationIdentifier):
       return credentialConfigurationIdentifier
-    }
-  }
-  
-  var claimSet: ClaimSet? {
-    switch self {
-    case .identifierBased:
-      return nil
-    case .configurationBased(_, let claimSet):
-      return claimSet
     }
   }
 }
