@@ -290,10 +290,6 @@ public actor Issuer: IssuerType {
           if txCode.length != transactionCode.count {
             throw ValidationError.error(reason: "Expected transaction code length is \(txCode.length ?? 0) but code of length \(transactionCode.count) passed")
           }
-          
-          if txCode.inputMode != .numeric {
-            throw ValidationError.error(reason: "Issuers expects transaction code to be numeric but is not.")
-          }
         }
         
         let credConfigIdsAsAuthDetails: [CredentialConfigurationIdentifier] = switch authorizationDetailsInTokenRequest {
