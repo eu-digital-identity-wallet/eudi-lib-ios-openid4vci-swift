@@ -56,7 +56,7 @@ platform :ios do
       scheme: "OpenID4VCI",
       output_directory: "xcov_output",
       is_swift_package: true,
-      minimum_coverage_percentage: 30.0
+      minimum_coverage_percentage: 50.0
     )
     if ENV['CI'] != 'true'
       sh 'open ../xcov_output/index.html'

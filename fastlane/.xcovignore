@@ -1,0 +1,15 @@
+# Tests
+- .*Tests.swift
+
+# Extensions
+- .*Extensions.swift
+- .*Extension.swift
+
+# Entities
+# - Sources/Entities/
+
+# DTO
+- .*DTO.swift
+
+# Error
+- .*Error.swift
