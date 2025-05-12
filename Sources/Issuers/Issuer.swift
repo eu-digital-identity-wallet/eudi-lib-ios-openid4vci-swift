@@ -140,6 +140,53 @@ public actor Issuer: IssuerType {
     authorizationServerMetadata: IdentityAndAccessManagementMetadata,
     issuerMetadata: CredentialIssuerMetadata,
     config: OpenId4VCIConfig,
+    dpopConstructor: DPoPConstructorType? = nil,
+    session: Networking
+  ) throws {
+    self.authorizationServerMetadata = authorizationServerMetadata
+    self.issuerMetadata = issuerMetadata
+    self.config = config
+    
+    authorizer = try AuthorizationServerClient(
+      parPoster: Poster(session: session),
+      tokenPoster: Poster(session: session),
+      config: config,
+      authorizationServerMetadata: authorizationServerMetadata,
+      credentialIssuerIdentifier: issuerMetadata.credentialIssuerIdentifier,
+      dpopConstructor: dpopConstructor
+    )
+    
+    try config.client.ensureSupportedByAuthorizationServer(
+      self.authorizationServerMetadata
+    )
+    
+    issuanceRequester = IssuanceRequester(
+      issuerMetadata: issuerMetadata,
+      poster: Poster(session: session),
+      dpopConstructor: dpopConstructor
+    )
+    
+    deferredIssuanceRequester = IssuanceRequester(
+      issuerMetadata: issuerMetadata,
+      poster: Poster(session: session)
+    )
+    
+    notifyIssuer = NotifyIssuer(
+      issuerMetadata: issuerMetadata,
+      poster: Poster(session: session)
+    )
+    
+    if let nonceEndpoint = issuerMetadata.nonceEndpoint {
+      nonceEndpointClient = NonceEndpointClient(nonceEndpoint: nonceEndpoint)
+    } else {
+      nonceEndpointClient = nil
+    }
+  }
+  
+  public init(
+    authorizationServerMetadata: IdentityAndAccessManagementMetadata,
+    issuerMetadata: CredentialIssuerMetadata,
+    config: OpenId4VCIConfig,
     parPoster: PostingType = Poster(),
     tokenPoster: PostingType = Poster(),
     requesterPoster: PostingType = Poster(),

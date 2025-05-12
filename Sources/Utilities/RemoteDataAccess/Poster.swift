@@ -157,7 +157,7 @@ public struct Poster: PostingType {
           )
         )
       } catch {
-        if statusCode == HTTPStatusCode.ok, let string = String(data: data, encoding: .utf8) {
+        if (statusCode == HTTPStatusCode.ok || statusCode == HTTPStatusCode.accepted), let string = String(data: data, encoding: .utf8) {
           return .failure(.cannotParse(string))
         } else {
           return .failure(.networkError(error))

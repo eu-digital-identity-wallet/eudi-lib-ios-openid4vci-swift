@@ -36,6 +36,7 @@ public enum CredentialResponseEncryption: Decodable, Sendable {
       false
     }
   }
+  
   public init(from decoder: Decoder) throws {
     let container = try decoder.container(keyedBy: CodingKeys.self)
     let encryptionRequired = try container.decode(Bool.self, forKey: .encryptionRequired)
