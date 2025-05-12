@@ -63,10 +63,10 @@ public struct AuthorizedRequest: Sendable {
   }
   
   public func isRefreshTokenExpired(clock: TimeInterval) -> Bool {
-    return accessToken.isExpired(
+    return refreshToken?.isExpired(
       issued: timeStamp,
       at: clock
-    )
+    ) ?? true
   }
 }
 

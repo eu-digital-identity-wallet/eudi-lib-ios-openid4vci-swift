@@ -144,12 +144,7 @@ extension Wallet {
       authorizationServerMetadata: offer.authorizationServerMetadata,
       issuerMetadata: offer.credentialIssuerMetadata,
       config: config,
-      parPoster: Poster(session: self.session),
-      tokenPoster: Poster(session: self.session),
-      requesterPoster: Poster(session: self.session),
-      deferredRequesterPoster: Poster(session: self.session),
-      notificationPoster: Poster(session: self.session),
-      noncePoster: Poster(session: self.session)
+      session: self.session
     )
     
     // Authorize with auth code flow
