@@ -312,6 +312,7 @@ public actor AuthorizationServerClient: AuthorizationServerClientType {
       )
       
       let tokenHeaders = try await tokenEndPointHeaders(
+        url: parEndpoint,
         dpopNonce: dpopNonce
       )
       
@@ -412,6 +413,7 @@ public actor AuthorizationServerClient: AuthorizationServerClientType {
       )
       
       let tokenHeaders = try await tokenEndPointHeaders(
+        url: tokenEndpoint,
         dpopNonce: dpopNonce
       )
       
@@ -497,6 +499,7 @@ public actor AuthorizationServerClient: AuthorizationServerClientType {
         poster: tokenPoster,
         url: tokenEndpoint,
         headers: try tokenEndPointHeaders(
+          url: tokenEndpoint,
           dpopNonce: dpopNonce
         ),
         parameters: parameters.toDictionary().convertToDictionaryOfStrings()
@@ -591,6 +594,7 @@ public actor AuthorizationServerClient: AuthorizationServerClientType {
         )
         
         let tokenHeaders = try await tokenEndPointHeaders(
+          url: tokenEndpoint,
           dpopNonce: dpopNonce
         )
         
@@ -707,10 +711,13 @@ private extension AuthorizationServerClient {
     }
   }
   
-  func tokenEndPointHeaders(dpopNonce: Nonce? = nil) async throws -> [String: String] {
-    if let dpopConstructor {
+  func tokenEndPointHeaders(
+    url: URL?,
+    dpopNonce: Nonce? = nil
+  ) async throws -> [String: String] {
+    if let dpopConstructor, let url {
       let jwt = try await dpopConstructor.jwt(
-        endpoint: tokenEndpoint,
+        endpoint: url,
         accessToken: nil,
         nonce: dpopNonce
       )
