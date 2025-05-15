@@ -44,7 +44,7 @@ public protocol AuthorizationServerClientType: Sendable {
     credentialConfigurationIdentifiers: [CredentialConfigurationIdentifier],
     state: String,
     issuerState: String?
-  ) async throws -> Result<(PKCEVerifier, GetAuthorizationCodeURL), Error>
+  ) async throws -> Result<(PKCEVerifier, AuthorizationCodeURL), Error>
   
   /// Submits a pushed authorization request (PAR).
   ///
@@ -65,7 +65,7 @@ public protocol AuthorizationServerClientType: Sendable {
     resource: String?,
     dpopNonce: Nonce?,
     retry: Bool
-  ) async throws -> Result<(PKCEVerifier, GetAuthorizationCodeURL, Nonce?), Error>
+  ) async throws -> Result<(PKCEVerifier, AuthorizationCodeURL, Nonce?), Error>
   
   /// Requests an access token using an authorization code.
   ///
@@ -230,9 +230,11 @@ public actor AuthorizationServerClient: AuthorizationServerClientType {
     credentialConfigurationIdentifiers: [CredentialConfigurationIdentifier],
     state: String,
     issuerState: String?
-  ) async throws -> Result<(PKCEVerifier, GetAuthorizationCodeURL), Error> {
+  ) async throws -> Result<(PKCEVerifier, AuthorizationCodeURL), Error> {
     guard !scopes.isEmpty else {
-      throw ValidationError.error(reason: "No scopes provided. Cannot submit par with no scopes.")
+      throw ValidationError.error(
+        reason: "No scopes provided. Cannot submit prepared with no scopes."
+      )
     }
     
     let codeVerifier = PKCEGenerator.codeVerifier() ?? ""
@@ -263,7 +265,7 @@ public actor AuthorizationServerClient: AuthorizationServerClientType {
       throw ValidationError.invalidUrl(parEndpoint?.absoluteString ?? "")
     }
     
-    let authorizationCodeURL = try GetAuthorizationCodeURL(
+    let authorizationCodeURL = try AuthorizationCodeURL(
       urlString: urlWithParams.absoluteString
     )
     
@@ -278,9 +280,11 @@ public actor AuthorizationServerClient: AuthorizationServerClientType {
     resource: String? = nil,
     dpopNonce: Nonce? = nil,
     retry: Bool = true
-  ) async throws -> Result<(PKCEVerifier, GetAuthorizationCodeURL, Nonce?), Error> {
+  ) async throws -> Result<(PKCEVerifier, AuthorizationCodeURL, Nonce?), Error> {
     guard !scopes.isEmpty else {
-      throw ValidationError.error(reason: "No scopes provided. Cannot submit par with no scopes.")
+      throw ValidationError.error(
+        reason: "No scopes provided. Cannot submit prepared with no scopes."
+      )
     }
     
     let codeVerifier = PKCEGenerator.codeVerifier() ?? ""
@@ -299,7 +303,9 @@ public actor AuthorizationServerClient: AuthorizationServerClientType {
     
     do {
       guard let parEndpoint = parEndpoint else {
-        throw ValidationError.error(reason: "Missing PAR endpoint")
+        throw ValidationError.error(
+          reason: "Missing PAR endpoint"
+        )
       }
       
       let clientAttestationHeaders = clientAttestationHeaders(
@@ -312,6 +318,7 @@ public actor AuthorizationServerClient: AuthorizationServerClientType {
       )
       
       let tokenHeaders = try await tokenEndPointHeaders(
+        url: parEndpoint,
         dpopNonce: dpopNonce
       )
       
@@ -330,16 +337,16 @@ public actor AuthorizationServerClient: AuthorizationServerClientType {
         )
         
         let queryParams = [
-          GetAuthorizationCodeURL.PARAM_CLIENT_ID: config.client.id,
-          GetAuthorizationCodeURL.PARAM_REQUEST_STATE: state,
-          GetAuthorizationCodeURL.PARAM_REQUEST_URI: requestURI
+          AuthorizationCodeURL.PARAM_CLIENT_ID: config.client.id,
+          AuthorizationCodeURL.PARAM_REQUEST_STATE: state,
+          AuthorizationCodeURL.PARAM_REQUEST_URI: requestURI
         ]
         
         guard let urlWithParams = authorizationEndpoint.appendingQueryParameters(queryParams) else {
           throw ValidationError.invalidUrl(parEndpoint.absoluteString)
         }
         
-        let authorizationCodeURL = try GetAuthorizationCodeURL(
+        let authorizationCodeURL = try AuthorizationCodeURL(
           urlString: urlWithParams.absoluteString
         )
         
@@ -412,6 +419,7 @@ public actor AuthorizationServerClient: AuthorizationServerClientType {
       )
       
       let tokenHeaders = try await tokenEndPointHeaders(
+        url: tokenEndpoint,
         dpopNonce: dpopNonce
       )
       
@@ -497,6 +505,7 @@ public actor AuthorizationServerClient: AuthorizationServerClientType {
         poster: tokenPoster,
         url: tokenEndpoint,
         headers: try tokenEndPointHeaders(
+          url: tokenEndpoint,
           dpopNonce: dpopNonce
         ),
         parameters: parameters.toDictionary().convertToDictionaryOfStrings()
@@ -591,6 +600,7 @@ public actor AuthorizationServerClient: AuthorizationServerClientType {
         )
         
         let tokenHeaders = try await tokenEndPointHeaders(
+          url: tokenEndpoint,
           dpopNonce: dpopNonce
         )
         
@@ -707,10 +717,13 @@ private extension AuthorizationServerClient {
     }
   }
   
-  func tokenEndPointHeaders(dpopNonce: Nonce? = nil) async throws -> [String: String] {
-    if let dpopConstructor {
+  func tokenEndPointHeaders(
+    url: URL?,
+    dpopNonce: Nonce? = nil
+  ) async throws -> [String: String] {
+    if let dpopConstructor, let url {
       let jwt = try await dpopConstructor.jwt(
-        endpoint: tokenEndpoint,
+        endpoint: url,
         accessToken: nil,
         nonce: dpopNonce
       )

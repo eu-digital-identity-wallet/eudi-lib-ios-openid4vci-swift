@@ -23,9 +23,9 @@ public protocol IssuerType {
   ///
   /// - Parameter credentialOffer: The credential offer containing necessary details for authorization.
   /// - Returns: A result containing either an `UnauthorizedRequest` if the request is successful or an `Error` otherwise.
-  func pushAuthorizationCodeRequest(
+  func prepareAuthorizationRequest(
     credentialOffer: CredentialOffer
-  ) async throws -> Result<UnauthorizedRequest, Error>
+  ) async throws -> Result<AuthorizationRequestPrepared, Error>
   
   /// Authorizes a request using a pre-authorization code.
   ///
@@ -51,9 +51,9 @@ public protocol IssuerType {
   ///   - authorizationCode: The authorization code issued by the issuer.
   /// - Returns: A result containing either an updated `UnauthorizedRequest` or an `Error`.
   func handleAuthorizationCode(
-    parRequested: UnauthorizedRequest,
+    request: AuthorizationRequestPrepared,
     authorizationCode: IssuanceAuthorization
-  ) async -> Result<UnauthorizedRequest, Error>
+  ) async -> Result<AuthorizationRequestPrepared, Error>
   
   /// Completes the authorization process using an authorization code.
   ///
@@ -62,7 +62,7 @@ public protocol IssuerType {
   ///   - authorizationDetailsInTokenRequest: Additional authorization details for the token request.
   /// - Returns: A result containing either an `AuthorizedRequest` if successful or an `Error` otherwise.
   func authorizeWithAuthorizationCode(
-    authorizationCode: UnauthorizedRequest,
+    request: AuthorizationRequestPrepared,
     authorizationDetailsInTokenRequest: AuthorizationDetailsInTokenRequest
   ) async -> Result<AuthorizedRequest, Error>
   
@@ -130,6 +130,7 @@ public actor Issuer: IssuerType {
   public let issuerMetadata: CredentialIssuerMetadata
   public let config: OpenId4VCIConfig
   
+  private let authorizeIssuance: AuthorizeIssuanceType
   private let authorizer: AuthorizationServerClientType
   private let nonceEndpointClient: NonceEndpointClientType?
   private let issuanceRequester: IssuanceRequesterType
@@ -154,6 +155,12 @@ public actor Issuer: IssuerType {
       authorizationServerMetadata: authorizationServerMetadata,
       credentialIssuerIdentifier: issuerMetadata.credentialIssuerIdentifier,
       dpopConstructor: dpopConstructor
+    )
+    
+    authorizeIssuance = AuthorizeIssuance(
+      config: config,
+      authorizer: authorizer,
+      issuerMetadata: issuerMetadata
     )
     
     try config.client.ensureSupportedByAuthorizationServer(
@@ -208,6 +215,12 @@ public actor Issuer: IssuerType {
       dpopConstructor: dpopConstructor
     )
     
+    authorizeIssuance = AuthorizeIssuance(
+      config: config,
+      authorizer: authorizer,
+      issuerMetadata: issuerMetadata
+    )
+    
     try config.client.ensureSupportedByAuthorizationServer(
       self.authorizationServerMetadata
     )
@@ -239,87 +252,12 @@ public actor Issuer: IssuerType {
     self.deferredResponseEncryptionSpec = deferredResponseEncryptionSpec
   }
   
-  public func pushAuthorizationCodeRequest(
+  public func prepareAuthorizationRequest(
     credentialOffer: CredentialOffer
-  ) async throws -> Result<UnauthorizedRequest, Error> {
-    let credentials = credentialOffer.credentialConfigurationIdentifiers
-    let issuerState: String? = switch credentialOffer.grants {
-    case .authorizationCode(let code),
-        .both(let code, _):
-      code.issuerState
-    default:
-      nil
-    }
-    
-    let (scopes, credentialConfogurationIdentifiers) = try scopesAndCredentialConfigurationIds(credentialOffer: credentialOffer)
-    
-    let authorizationServerSupportsPar = credentialOffer.authorizationServerMetadata.authorizationServerSupportsPar && config.usePAR
-    
-    let state = StateValue().value
-    
-    if authorizationServerSupportsPar {
-      do {
-        let resource: String? = issuerMetadata.authorizationServers.map { _ in
-          credentialOffer.credentialIssuerIdentifier.url.absoluteString
-        }
-        
-        let result: (
-          verifier: PKCEVerifier,
-          code: GetAuthorizationCodeURL,
-          dPopNonce: Nonce?
-        ) = try await authorizer.submitPushedAuthorizationRequest(
-          scopes: scopes,
-          credentialConfigurationIdentifiers: credentialConfogurationIdentifiers,
-          state: state,
-          issuerState: issuerState,
-          resource: resource,
-          dpopNonce: nil,
-          retry: true
-        ).get()
-        
-        return .success(
-          .par(
-            .init(
-              credentials: try credentials.map { try CredentialIdentifier(value: $0.value) },
-              getAuthorizationCodeURL: result.code,
-              pkceVerifier: result.verifier,
-              state: state,
-              configurationIds: credentialConfogurationIdentifiers,
-              dpopNonce: result.dPopNonce
-            )
-          )
-        )
-      } catch {
-        return .failure(ValidationError.error(reason: error.localizedDescription))
-      }
-    } else {
-      do {
-        let result: (
-          verifier: PKCEVerifier,
-          code: GetAuthorizationCodeURL
-        ) = try await authorizer.authorizationRequestUrl(
-          scopes: scopes,
-          credentialConfigurationIdentifiers: credentialConfogurationIdentifiers,
-          state: state,
-          issuerState: issuerState
-        ).get()
-        
-        return .success(
-          .par(
-            .init(
-              credentials: try credentials.map { try CredentialIdentifier(value: $0.value) },
-              getAuthorizationCodeURL: result.code,
-              pkceVerifier: result.verifier,
-              state: state,
-              configurationIds: credentialConfogurationIdentifiers
-            )
-          )
-        )
-      } catch {
-        return .failure(ValidationError.error(reason: error.localizedDescription))
-      }
-      
-    }
+  ) async throws -> Result<AuthorizationRequestPrepared, Error> {
+    try await authorizeIssuance.prepareAuthorizationRequest(
+      credentialOffer: credentialOffer
+    )
   }
   
   public func authorizeWithPreAuthorizationCode(
@@ -329,127 +267,31 @@ public actor Issuer: IssuerType {
     transactionCode: String?,
     authorizationDetailsInTokenRequest: AuthorizationDetailsInTokenRequest = .doNotInclude
   ) async -> Result<AuthorizedRequest, Error> {
-    
-    switch authorizationCode {
-    case .preAuthorizationCode(let authorisation, let txCode):
-      do {
-        if let transactionCode, let txCode {
-          if txCode.length != transactionCode.count {
-            throw ValidationError.error(reason: "Expected transaction code length is \(txCode.length ?? 0) but code of length \(transactionCode.count) passed")
-          }
-        }
-        
-        let credConfigIdsAsAuthDetails: [CredentialConfigurationIdentifier] = switch authorizationDetailsInTokenRequest {
-        case .doNotInclude: []
-        case .include(let filter): credentialOffer.credentialConfigurationIdentifiers.filter(filter)
-        }
-        
-        let response = try await authorizer.requestAccessTokenPreAuthFlow(
-          preAuthorizedCode: authorisation,
-          txCode: txCode,
-          client: client,
-          transactionCode: transactionCode,
-          identifiers: credConfigIdsAsAuthDetails,
-          dpopNonce: nil,
-          retry: true
-        )
-        
-        switch response {
-        case .success(
-          (let accessToken, let refreshToken, let identifiers, let expiresIn, let dPopNonce)
-        ):
-          return .success(
-            .init(
-              accessToken: try .init(
-                accessToken: accessToken.accessToken,
-                tokenType: accessToken.tokenType,
-                expiresIn: expiresIn?.asTimeInterval ?? .zero
-              ),
-              refreshToken: try .init(
-                refreshToken: refreshToken.refreshToken
-              ),
-              credentialIdentifiers: identifiers,
-              timeStamp: Date().timeIntervalSinceReferenceDate,
-              dPopNonce: dPopNonce
-            )
-          )
-        case .failure(let error):
-          return .failure(ValidationError.error(reason: error.localizedDescription))
-        }
-      } catch {
-        return .failure(ValidationError.error(reason: error.localizedDescription))
-      }
-    default:
-      return .failure(ValidationError.error(
-        reason: "Invalid issuance authorisation, pre authorisation supported only"
-      ))
-    }
+    await authorizeIssuance.authorizeWithPreAuthorizationCode(
+      credentialOffer: credentialOffer,
+      authorizationCode: authorizationCode,
+      client: client,
+      transactionCode: transactionCode,
+      authorizationDetailsInTokenRequest: authorizationDetailsInTokenRequest
+    )
   }
   
   public func authorizeWithAuthorizationCode(
-    authorizationCode: UnauthorizedRequest,
+    request: AuthorizationRequestPrepared,
     authorizationDetailsInTokenRequest: AuthorizationDetailsInTokenRequest = .doNotInclude
   ) async -> Result<AuthorizedRequest, Error> {
-    switch authorizationCode {
-    case .par:
-      return .failure(
-        ValidationError.error(reason: ".authorizationCode case is required")
-      )
-      
-    case .authorizationCode(let request):
-      switch request.authorizationCode {
-      case .authorizationCode(let authorizationCode):
-        do {
-          let credConfigIdsAsAuthDetails: [CredentialConfigurationIdentifier] = switch authorizationDetailsInTokenRequest {
-          case .doNotInclude: []
-          case .include(let filter): request.configurationIds.filter(filter)
-          }
-          
-          let response: (
-            accessToken: IssuanceAccessToken,
-            refreshToken: IssuanceRefreshToken,
-            identifiers: AuthorizationDetailsIdentifiers?,
-            tokenType: TokenType?,
-            expiresIn: Int?,
-            dPopNonce: Nonce?
-          ) = try await authorizer.requestAccessTokenAuthFlow(
-            authorizationCode: authorizationCode,
-            codeVerifier: request.pkceVerifier.codeVerifier,
-            identifiers: credConfigIdsAsAuthDetails,
-            dpopNonce: request.dpopNonce,
-            retry: true
-          ).get()
-          
-          return .success(
-            .init(
-              accessToken: try .init(
-                accessToken: response.accessToken.accessToken,
-                tokenType: response.tokenType,
-                expiresIn: TimeInterval(response.expiresIn ?? .zero)
-              ),
-              refreshToken: try .init(
-                refreshToken: response.refreshToken.refreshToken
-              ),
-              credentialIdentifiers: response.identifiers,
-              timeStamp: Date().timeIntervalSinceReferenceDate,
-              dPopNonce: response.dPopNonce
-            )
-          )
-        } catch {
-          return .failure(ValidationError.error(reason: error.localizedDescription))
-        }
-      default: return .failure(
-        ValidationError.error(reason: ".authorizationCode case is required"))
-      }
-    }
+    await authorizeIssuance.authorizeWithAuthorizationCode(
+      request: request,
+      authorizationDetailsInTokenRequest: authorizationDetailsInTokenRequest
+    )
   }
   
   public func handleAuthorizationCode(
-    parRequested: UnauthorizedRequest,
+    request: AuthorizationRequestPrepared,
     code: inout String
-  ) -> Result<UnauthorizedRequest, Error> {
-    switch parRequested {
-    case .par(let request):
+  ) -> Result<AuthorizationRequestPrepared, Error> {
+    switch request {
+    case .prepared(let request):
       do {
         return .success(
           .authorizationCode(
@@ -467,17 +309,21 @@ public actor Issuer: IssuerType {
           ValidationError.error(reason: error.localizedDescription)
         )
       }
-    case .authorizationCode(_):
-      return .failure(ValidationError.error(reason: ".par is required"))
+    case .authorizationCode:
+      return .failure(
+        ValidationError.error(
+          reason: ".prepared is required"
+        )
+      )
     }
   }
   
   public func handleAuthorizationCode(
-    parRequested: UnauthorizedRequest,
+    request: AuthorizationRequestPrepared,
     authorizationCode: IssuanceAuthorization
-  ) -> Result<UnauthorizedRequest, Error> {
-    switch parRequested {
-    case .par(let request):
+  ) -> Result<AuthorizationRequestPrepared, Error> {
+    switch request {
+    case .prepared(let request):
       switch authorizationCode {
       case .authorizationCode(let authorizationCode):
         do {
@@ -493,12 +339,25 @@ public actor Issuer: IssuerType {
             )
           )
         } catch {
-          return .failure(ValidationError.error(reason: error.localizedDescription))
+          return .failure(
+            ValidationError.error(
+              reason: error.localizedDescription
+            )
+          )
         }
-      default: return .failure(ValidationError.error(reason: ".par & .authorizationCode is required"))
+      default:
+        return .failure(
+          ValidationError.error(
+            reason: ".prepared & .authorizationCode is required"
+          )
+        )
       }
-    case .authorizationCode(_):
-      return .failure(ValidationError.error(reason: ".par is required"))
+    case .authorizationCode:
+      return .failure(
+        ValidationError.error(
+          reason: ".prepared is required"
+        )
+      )
     }
   }
   
@@ -592,31 +451,6 @@ private extension Issuer {
         )
       )
     }
-  }
-  
-  func scopesAndCredentialConfigurationIds(credentialOffer: CredentialOffer) throws -> ([Scope], [CredentialConfigurationIdentifier]) {
-    var scopes = [Scope]()
-    var configurationIdentifiers = [CredentialConfigurationIdentifier]()
-    
-    func credentialConfigurationById(id: CredentialConfigurationIdentifier) throws -> CredentialSupported {
-      let issuerMetadata = credentialOffer.credentialIssuerMetadata
-      return try unwrapOrThrow(issuerMetadata.credentialsSupported[id], error: ValidationError.error(reason: "\(id) was not found within issuer metadata"))
-    }
-    
-    for id in credentialOffer.credentialConfigurationIdentifiers {
-      let credentialConfiguration = try credentialConfigurationById(id: id)
-      switch config.authorizeIssuanceConfig {
-      case .favorScopes:
-        if let scope = credentialConfiguration.getScope() {
-          scopes.append(try Scope(scope))
-        } else {
-          configurationIdentifiers.append(id)
-        }
-      case .authorizationDetails:
-        configurationIdentifiers.append(id)
-      }
-    }
-    return (scopes, configurationIdentifiers)
   }
   
   func formatBasedRequest(
