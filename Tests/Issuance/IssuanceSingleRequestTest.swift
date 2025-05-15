@@ -89,17 +89,17 @@ class IssuanceSingleRequestTest: XCTestCase {
     )
     
     let authorizationCode = "MZqG9bsQ8UALhsGNlY39Yw=="
-    let request: UnauthorizedRequest = TestsConstants.unAuthorizedRequest
+    let request: AuthorizationRequestPrepared = TestsConstants.unAuthorizedRequest
     
     let issuanceAuthorization: IssuanceAuthorization = .authorizationCode(authorizationCode: authorizationCode)
     let unAuthorized = await issuer.handleAuthorizationCode(
-      parRequested: request,
+      request: request,
       authorizationCode: issuanceAuthorization
     )
     
     switch unAuthorized {
     case .success(let authorizationCode):
-      let authorizedRequest = await issuer.authorizeWithAuthorizationCode(authorizationCode: authorizationCode)
+      let authorizedRequest = await issuer.authorizeWithAuthorizationCode(request: authorizationCode)
       
       if case let .success(authorized) = authorizedRequest {
         XCTAssert(true, "Got access token: \(authorized.accessToken)")
@@ -332,17 +332,17 @@ class IssuanceSingleRequestTest: XCTestCase {
     )
     
     let authorizationCode = "MZqG9bsQ8UALhsGNlY39Yw=="
-    let request: UnauthorizedRequest = TestsConstants.unAuthorizedRequest
+    let request: AuthorizationRequestPrepared = TestsConstants.unAuthorizedRequest
     
     let issuanceAuthorization: IssuanceAuthorization = .authorizationCode(authorizationCode: authorizationCode)
     let unAuthorized = await issuer.handleAuthorizationCode(
-      parRequested: request,
+      request: request,
       authorizationCode: issuanceAuthorization
     )
     
     switch unAuthorized {
     case .success(let authorizationCode):
-      let authorizedRequest = await issuer.authorizeWithAuthorizationCode(authorizationCode: authorizationCode)
+      let authorizedRequest = await issuer.authorizeWithAuthorizationCode(request: authorizationCode)
       
       if case let .success(authorized) = authorizedRequest {
         XCTAssert(true, "Got access token: \(authorized.accessToken)")

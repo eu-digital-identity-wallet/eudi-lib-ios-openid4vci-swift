@@ -24,36 +24,36 @@ class GetAuthorizationCodeURLTests: XCTestCase {
   
   func testValidURL() throws {
     let urlString = "https://example.com?client_id=123&request_uri=https://callback.com"
-    let sut = try GetAuthorizationCodeURL(urlString: urlString)
+    let sut = try AuthorizationCodeURL(urlString: urlString)
     XCTAssertEqual(sut.url, URL(string: urlString))
   }
   
   func testInvalidURL() {
-    XCTAssertThrowsError(try GetAuthorizationCodeURL(urlString: "invalid_url")) { error in
+    XCTAssertThrowsError(try AuthorizationCodeURL(urlString: "invalid_url")) { error in
       XCTAssertTrue(error is ValidationError)
     }
   }
   
   func testNonHTTPSURL() {
-    XCTAssertThrowsError(try GetAuthorizationCodeURL(urlString: "http://example.com?client_id=123")) { error in
+    XCTAssertThrowsError(try AuthorizationCodeURL(urlString: "http://example.com?client_id=123")) { error in
       XCTAssertTrue(error is ValidationError)
     }
   }
   
   func testMissingQueryParameters() {
-    XCTAssertThrowsError(try GetAuthorizationCodeURL(urlString: "https://example.com")) { error in
+    XCTAssertThrowsError(try AuthorizationCodeURL(urlString: "https://example.com")) { error in
       XCTAssertTrue(error is AuthorizationCodeURLError)
     }
   }
   
   func testMissingClientIdParameter() {
-    XCTAssertThrowsError(try GetAuthorizationCodeURL(urlString: "https://example.com?request_uri=https://callback.com")) { error in
+    XCTAssertThrowsError(try AuthorizationCodeURL(urlString: "https://example.com?request_uri=https://callback.com")) { error in
       XCTAssertTrue(error is AuthorizationCodeURLError)
     }
   }
   
   func testMissingRequestUriParameter() {
-    XCTAssertThrowsError(try GetAuthorizationCodeURL(urlString: "https://example.com?client=123")) { error in
+    XCTAssertThrowsError(try AuthorizationCodeURL(urlString: "https://example.com?client=123")) { error in
       XCTAssertTrue(error is AuthorizationCodeURLError)
     }
   }
