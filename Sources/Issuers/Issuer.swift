@@ -55,6 +55,19 @@ public protocol IssuerType {
     authorizationCode: IssuanceAuthorization
   ) async -> Result<AuthorizationRequestPrepared, Error>
   
+  /// Handles the provided authorization code and updates the authorization request state.
+  ///
+  /// - Parameters:
+  ///   - request: The `AuthorizationRequestPrepared` object representing the state of the authorization request.
+  ///   - code: The authorization code received from the authorization server. This parameter is passed as `inout`
+  ///           in case it needs to be modified or consumed during processing.
+  /// - Returns: A `Result` containing the potentially updated `AuthorizationRequestPrepared` on success,
+  ///            or an `Error` if the code is invalid or the processing fails.
+  func handleAuthorizationCode(
+    request: AuthorizationRequestPrepared,
+    code: inout String
+  ) async -> Result<AuthorizationRequestPrepared, Error>
+  
   /// Completes the authorization process using an authorization code.
   ///
   /// - Parameters:
@@ -289,7 +302,7 @@ public actor Issuer: IssuerType {
   public func handleAuthorizationCode(
     request: AuthorizationRequestPrepared,
     code: inout String
-  ) -> Result<AuthorizationRequestPrepared, Error> {
+  ) async -> Result<AuthorizationRequestPrepared, Error> {
     switch request {
     case .prepared(let request):
       do {
@@ -321,7 +334,7 @@ public actor Issuer: IssuerType {
   public func handleAuthorizationCode(
     request: AuthorizationRequestPrepared,
     authorizationCode: IssuanceAuthorization
-  ) -> Result<AuthorizationRequestPrepared, Error> {
+  ) async -> Result<AuthorizationRequestPrepared, Error> {
     switch request {
     case .prepared(let request):
       switch authorizationCode {
