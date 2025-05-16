@@ -727,7 +727,7 @@ private extension AuthorizationServerClient {
         accessToken: nil,
         nonce: dpopNonce
       )
-      return ["DPoP": jwt]
+      return [Constants.DPOP: jwt]
       
     } else {
       return [:]

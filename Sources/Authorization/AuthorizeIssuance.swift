@@ -110,7 +110,9 @@ internal actor AuthorizeIssuance: AuthorizeIssuanceType {
       do {
         if let transactionCode, let txCode {
           if txCode.length != transactionCode.count {
-            throw ValidationError.error(reason: "Expected transaction code length is \(txCode.length ?? 0) but code of length \(transactionCode.count) passed")
+            throw ValidationError.error(
+              reason: "Expected transaction code length is \(txCode.length ?? 0) but code of length \(transactionCode.count) passed"
+            )
           }
         }
         
@@ -131,7 +133,13 @@ internal actor AuthorizeIssuance: AuthorizeIssuanceType {
         
         switch response {
         case .success(
-          (let accessToken, let refreshToken, let identifiers, let expiresIn, let dPopNonce)
+          (
+            let accessToken,
+            let refreshToken,
+            let identifiers,
+            let expiresIn,
+            let dPopNonce
+          )
         ):
           return .success(
             .init(

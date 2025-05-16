@@ -27,7 +27,7 @@ public struct AuthorizationCodeURL: Sendable {
       throw ValidationError.invalidUrl(urlString)
     }
       
-    guard url.scheme == "https" else {
+    guard url.scheme == Constants.HTTPS else {
       throw ValidationError.nonHttpsUrl(urlString)
     }
       

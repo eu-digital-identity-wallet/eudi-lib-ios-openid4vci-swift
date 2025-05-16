@@ -39,14 +39,12 @@ public struct CredentialIssuerEndpoint: Codable, Equatable, Sendable {
     case url = "credential_endpoint"
   }
   
-  // Implement the required init(from decoder:) method
   public init(from decoder: Decoder) throws {
     let container = try decoder.singleValueContainer()
     let urlString = try container.decode(String.self)
     url = try URL(string: urlString) ?? { throw ValidationError.error(reason: "Invalid credential_issuer URL")}()
   }
     
-  // Implement the encode(to encoder:) method
   public func encode(to encoder: Encoder) throws {
     var container = encoder.singleValueContainer()
     try container.encode(url.absoluteString)

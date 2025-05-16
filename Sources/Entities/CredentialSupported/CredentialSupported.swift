@@ -82,7 +82,9 @@ public extension CredentialSupported {
             throw CredentialIssuanceError.responseEncryptionAlgorithmNotSupportedByIssuer
           }
           
-          if !encryptionMethodsSupported.contains(responseEncryptionSpec.encryptionMethod) {
+          if !encryptionMethodsSupported.contains(
+            responseEncryptionSpec.encryptionMethod
+          ) {
             throw CredentialIssuanceError.responseEncryptionMethodNotSupportedByIssuer
           }
         }
@@ -109,7 +111,9 @@ public extension CredentialSupported {
             throw CredentialIssuanceError.responseEncryptionAlgorithmNotSupportedByIssuer
           }
           
-          if !encryptionMethodsSupported.contains(responseEncryptionSpec.encryptionMethod) {
+          if !encryptionMethodsSupported.contains(
+            responseEncryptionSpec.encryptionMethod
+          ) {
             throw CredentialIssuanceError.responseEncryptionMethodNotSupportedByIssuer
           }
         }

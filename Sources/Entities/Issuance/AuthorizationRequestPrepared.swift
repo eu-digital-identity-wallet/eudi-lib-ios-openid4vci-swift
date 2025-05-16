@@ -59,7 +59,9 @@ public struct AuthorizationCodeRetrieved: Sendable {
   ) throws {
     
     guard case .authorizationCode = authorizationCode else {
-      throw ValidationError.error(reason: "IssuanceAuthorization must be authorization code")
+      throw ValidationError.error(
+        reason: "IssuanceAuthorization must be authorization code"
+      )
     }
 
     self.credentials = credentials
