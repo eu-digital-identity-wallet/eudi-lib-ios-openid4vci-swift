@@ -37,4 +37,7 @@ public struct Constants {
   
   public static let REFRESH_TOKEN = "refresh_token"
   public static let REFRESH_TOKEN_PARAM = "refresh_token"
+
+  public static let OAUTH_CLIENT_ATTESTATION = "OAuth-Client-Attestation"
+  public static let OAUTH_CLIENT_ATTESTATION_POP = "OAuth-Client-Attestation-PoP"
 }

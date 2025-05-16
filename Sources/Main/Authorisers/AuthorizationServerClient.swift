@@ -688,8 +688,8 @@ private extension AuthorizationServerClient {
     }
     
     return [
-      "OAuth-Client-Attestation": clientAttestation.0.jws.compactSerializedString,
-      "OAuth-Client-Attestation-PoP": clientAttestation.1.jws.compactSerializedString
+      Constants.OAUTH_CLIENT_ATTESTATION: clientAttestation.0.jws.compactSerializedString,
+      Constants.OAUTH_CLIENT_ATTESTATION_POP: clientAttestation.1.jws.compactSerializedString
     ]
   }
   
@@ -728,6 +728,7 @@ private extension AuthorizationServerClient {
         nonce: dpopNonce
       )
       return ["DPoP": jwt]
+      
     } else {
       return [:]
     }
