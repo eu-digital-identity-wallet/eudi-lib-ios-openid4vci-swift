@@ -20,7 +20,7 @@ public struct CredentialIssuerEndpoint: Codable, Equatable, Sendable {
   
   init(string: String) throws {
     if let queryItems = URLComponents(string: string)?.queryItems,
-       queryItems.count > 0 {
+       queryItems.count > .zero {
       throw CredentialError.genericError
     }
     
