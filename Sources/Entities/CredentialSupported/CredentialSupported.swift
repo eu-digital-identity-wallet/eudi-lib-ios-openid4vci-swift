@@ -125,7 +125,9 @@ public extension CredentialSupported {
         proofs: proofs
       )
     default:
-      throw ValidationError.error(reason: "Unsupported profile for issuance request")
+      throw ValidationError.error(
+        reason: "Unsupported profile for issuance request"
+      )
     }
   }
 }
