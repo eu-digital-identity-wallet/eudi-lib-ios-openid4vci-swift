@@ -39,16 +39,6 @@ public struct CredentialOffer: Sendable {
     if credentialConfigurationIdentifiers.isEmpty {
       throw CredentialOfferRequestError.emptyCredentialsError
     }
-    
-    switch grants {
-    case .authorizationCode(let code):
-      if code.authorizationServer == nil {
-        throw CredentialOfferRequestError.nonParseableCredentialOffer(
-          reason: "Grant: nil authorizationServer"
-        )
-      }
-    default: break
-    }
   }
 }
 

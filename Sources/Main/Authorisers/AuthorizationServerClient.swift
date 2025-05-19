@@ -29,7 +29,7 @@ private extension ResponseWithHeaders {
 
 /// A protocol defining the interface for an authorization server client.
 /// This client is responsible for handling authorization requests, token exchanges, and refresh flows.
-public protocol AuthorizationServerClientType: Sendable {
+protocol AuthorizationServerClientType: Sendable {
   
   /// Generates a URL for initiating the authorization request.
   ///
@@ -141,7 +141,7 @@ public protocol AuthorizationServerClientType: Sendable {
 }
 
 
-public actor AuthorizationServerClient: AuthorizationServerClientType {
+internal actor AuthorizationServerClient: AuthorizationServerClientType {
   
   public let config: OpenId4VCIConfig
   public let service: AuthorisationServiceType
