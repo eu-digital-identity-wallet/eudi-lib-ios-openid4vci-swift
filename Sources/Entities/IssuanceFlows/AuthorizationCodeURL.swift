@@ -19,7 +19,7 @@ public enum AuthorizationCodeURLError: Error {
   case missingQueryParameters
 }
 
-public struct GetAuthorizationCodeURL: Sendable {
+public struct AuthorizationCodeURL: Sendable {
   public let url: URL
   
   public init(urlString: String) throws {
@@ -27,7 +27,7 @@ public struct GetAuthorizationCodeURL: Sendable {
       throw ValidationError.invalidUrl(urlString)
     }
       
-    guard url.scheme == "https" else {
+    guard url.scheme == Constants.HTTPS else {
       throw ValidationError.nonHttpsUrl(urlString)
     }
       

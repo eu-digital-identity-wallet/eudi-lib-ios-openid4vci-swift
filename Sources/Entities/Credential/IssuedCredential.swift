@@ -23,5 +23,7 @@ public enum IssuedCredential: Codable, Sendable {
     notificationId: String?,
     additionalInfo: JSON?
   )
-  case deferred(transactionId: TransactionId)
+  case deferred(
+    transactionId: TransactionId
+  )
 }

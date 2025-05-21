@@ -209,13 +209,13 @@ extension IssuanceEncryptionTest {
       )
     )
 
-    guard let parRequested = try? await issuer.pushAuthorizationCodeRequest(credentialOffer: offer).get() else {
+    guard let parRequested = try? await issuer.prepareAuthorizationRequest(credentialOffer: offer).get() else {
       XCTAssert(false, "Unable to create request")
       return nil
     }
     
     guard let unAuthorized = try? await issuer.handleAuthorizationCode(
-      parRequested: parRequested,
+      request: parRequested,
       authorizationCode: .init(authorizationCode: UUID().uuidString)
     ).get() else {
       XCTAssert(false, "Unable to create request")
@@ -223,7 +223,7 @@ extension IssuanceEncryptionTest {
     }
     
     if case .authorizationCode = unAuthorized {
-      guard let authorizedRequest = try? await issuer.authorizeWithAuthorizationCode(authorizationCode: unAuthorized).get() else {
+      guard let authorizedRequest = try? await issuer.authorizeWithAuthorizationCode(request: unAuthorized).get() else {
         XCTAssert(false, "Could not get authorized request")
         return nil
       }
@@ -231,7 +231,7 @@ extension IssuanceEncryptionTest {
       
     } else {
       
-      XCTAssert(false, "Did not expect .par")
+      XCTAssert(false, "Did not expect .prepared")
       return nil
     }
   }
@@ -269,13 +269,13 @@ extension IssuanceEncryptionTest {
       )
     )
 
-    guard let parRequested = try? await issuer.pushAuthorizationCodeRequest(credentialOffer: offer).get() else {
+    guard let parRequested = try? await issuer.prepareAuthorizationRequest(credentialOffer: offer).get() else {
       XCTAssert(false, "Unable to create request")
       return nil
     }
     
     guard let unAuthorized = try? await issuer.handleAuthorizationCode(
-      parRequested: parRequested,
+      request: parRequested,
       authorizationCode: .init(authorizationCode: UUID().uuidString)
     ).get() else {
       XCTAssert(false, "Unable to create request")
@@ -283,7 +283,7 @@ extension IssuanceEncryptionTest {
     }
     
     if case .authorizationCode = unAuthorized {
-      guard let authorizedRequest = try? await issuer.authorizeWithAuthorizationCode(authorizationCode: unAuthorized).get() else {
+      guard let authorizedRequest = try? await issuer.authorizeWithAuthorizationCode(request: unAuthorized).get() else {
         XCTAssert(false, "Could not get authorized request")
         return nil
       }
@@ -291,7 +291,7 @@ extension IssuanceEncryptionTest {
       
     } else {
       
-      XCTAssert(false, "Did not expect .par")
+      XCTAssert(false, "Did not expect .prepared")
       return nil
     }
   }

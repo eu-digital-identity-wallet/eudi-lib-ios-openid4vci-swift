@@ -77,7 +77,11 @@ extension Wallet {
           credentialConfigurationIdentifiers: [
             .init(value: identifier)
           ],
-          grants: nil,
+          grants: .authorizationCode(
+            .init(
+              authorizationServer: authorizationServer
+            )
+          ),
           authorizationServerMetadata: try authServerMetadata.get()
         )
         return try await issueOfferedCredential(
@@ -332,49 +336,44 @@ extension Wallet {
   }
   
   func authorizeRequestWithAuthCodeUseCase(
-    issuer: Issuer,
+    issuer: IssuerType,
     offer: CredentialOffer
   ) async throws -> AuthorizedRequest {
     
-    var pushedAuthorizationRequestEndpoint: String? = nil
-    if case let .oidc(metaData) = offer.authorizationServerMetadata {
-      if let endpoint = metaData.pushedAuthorizationRequestEndpoint {
-        pushedAuthorizationRequestEndpoint = endpoint
-      }
-      
-    } else if case let .oauth(metaData) = offer.authorizationServerMetadata {
-      if let endpoint = metaData.pushedAuthorizationRequestEndpoint {
-        pushedAuthorizationRequestEndpoint = endpoint
-      }
+    let pushedAuthorizationRequestEndpoint: String? = switch offer.authorizationServerMetadata {
+    case .oidc(let metaData):
+      metaData.pushedAuthorizationRequestEndpoint
+    case .oauth(let metaData):
+      metaData.pushedAuthorizationRequestEndpoint
     }
     
     print("--> [AUTHORIZATION] Placing PAR to AS server's endpoint \(pushedAuthorizationRequestEndpoint ?? "N/A")")
     
-    let parPlaced = try await issuer.pushAuthorizationCodeRequest(
+    let parPlaced = try await issuer.prepareAuthorizationRequest(
       credentialOffer: offer
     )
     
     if case let .success(request) = parPlaced,
-       case let .par(parRequested) = request {
-      print("--> [AUTHORIZATION] Placed PAR. Get authorization code URL is: \(parRequested.getAuthorizationCodeURL)")
+       case let .prepared(parRequested) = request {
+      print("--> [AUTHORIZATION] Placed PAR. Get authorization code URL is: \(parRequested.authorizationCodeURL)")
       
-      var unAuthorized: Result<UnauthorizedRequest, Error>
+      var unAuthorized: Result<AuthorizationRequestPrepared, Error>
       var authorizationCode: String
       
       authorizationCode = try await loginUserAndGetAuthCode(
-        getAuthorizationCodeUrl: parRequested.getAuthorizationCodeURL.url,
+        getAuthorizationCodeUrl: parRequested.authorizationCodeURL.url,
         actingUser: actingUser
       ) ?? { throw  ValidationError.error(reason: "Could not retrieve authorization code") }()
       let issuanceAuthorization: IssuanceAuthorization = .authorizationCode(authorizationCode: authorizationCode)
       unAuthorized = await issuer.handleAuthorizationCode(
-        parRequested: request,
+        request: request,
         authorizationCode: issuanceAuthorization
       )
       /*
       authorizationCode = ""
       let _: IssuanceAuthorization = .authorizationCode(authorizationCode: authorizationCode)
       unAuthorized = await issuer.handleAuthorizationCode(
-        parRequested: request,
+        request: request,
         code: &authorizationCode
       )
        */
@@ -382,7 +381,10 @@ extension Wallet {
       
       switch unAuthorized {
       case .success(let request):
-        let authorizedRequest = await issuer.authorizeWithAuthorizationCode(authorizationCode: request)
+        let authorizedRequest = await issuer.authorizeWithAuthorizationCode(
+          request: request,
+          authorizationDetailsInTokenRequest: .doNotInclude
+        )
         if case let .success(authorized) = authorizedRequest {
           print("--> [AUTHORIZATION] Authorization code exchanged with access token : \(authorized.accessToken)")
           

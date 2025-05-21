@@ -24,7 +24,7 @@ let PID_MsoMdoc_config_id = "eu.europa.ec.eudi.pid_mso_mdoc"
 let PID_SdJwtVC_config_id = "eu.europa.ec.eudi.pid_vc_sd_jwt"
 
 //let CREDENTIAL_ISSUER_PUBLIC_URL = "https://dev.issuer.eudiw.dev"
-//let PID_SdJwtVC_config_id = "eu.europa.ec.eudi.pid_jwt_vc_json"
+//let PID_SdJwtVC_config_id = "eu.europa.ec.eudi.pid_vc_sd_jwt"
 //let PID_MsoMdoc_config_id = "eu.europa.ec.eudi.pid_mdoc"
 //let MDL_config_id = "eu.europa.ec.eudi.mdl_mdoc"
 
@@ -143,10 +143,10 @@ struct TestsConstants {
   }
   """
   
-  static let unAuthorizedRequest: UnauthorizedRequest = .par(
+  static let unAuthorizedRequest: AuthorizationRequestPrepared = .prepared(
     .init(
       credentials: (try? [.init(value: "UniversityDegree_JWT")]) ?? [],
-      getAuthorizationCodeURL: (try? .init(urlString: "https://example.com?client_id=wallet-dev&request_uri=https://request_uri.example.com&state=5A201471-D088-4544-B1E9-5476E5935A95"))!,
+      authorizationCodeURL: (try? .init(urlString: "https://example.com?client_id=wallet-dev&request_uri=https://request_uri.example.com&state=5A201471-D088-4544-B1E9-5476E5935A95"))!,
       pkceVerifier: (try? .init(
         codeVerifier: "GVaOE~J~xQmkE4aCKm4RNYviYW5QaFiFOxVv-8enIDL",
         codeVerifierMethod: "S256"))!,

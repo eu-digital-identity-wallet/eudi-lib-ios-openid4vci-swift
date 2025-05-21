@@ -18,7 +18,7 @@ import Foundation
 public enum AuthCodeFlowIssuance {
   // State denoting that the pushed authorization request has been placed successfully and response processed
   case parRequested(
-    getAuthorizationCodeURL: GetAuthorizationCodeURL,
+    getAuthorizationCodeURL: AuthorizationCodeURL,
     pkceVerifier: PKCEVerifier,
     state: String
   )

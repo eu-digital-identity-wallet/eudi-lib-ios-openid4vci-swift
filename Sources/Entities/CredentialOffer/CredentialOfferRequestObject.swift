@@ -39,7 +39,7 @@ public struct CredentialOfferRequestObject: Codable, Sendable {
   
   public init?(jsonString: String) {
     guard let jsonData = jsonString.data(using: .utf8) else {
-      return nil // Return nil if JSON string is invalid
+      return nil
     }
     
     do {
