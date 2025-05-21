@@ -57,6 +57,8 @@ protocol AuthorizationServerClientType: Sendable {
   ///   - dpopNonce: An optional nonce for DPoP (Demonstrating Proof-of-Possession).
   ///   - retry: A flag indicating whether to retry on failure.
   /// - Returns: A result containing a `PKCEVerifier`, an authorization URL, and an optional nonce, or an error if the operation fails.
+  /// See [RFC7636](https://www.rfc-editor.org/rfc/rfc7636.html) for more information
+  /// See [RFC9126](https://www.rfc-editor.org/rfc/rfc9126) for more information
   func submitPushedAuthorizationRequest(
     scopes: [Scope],
     credentialConfigurationIdentifiers: [CredentialConfigurationIdentifier],
@@ -231,9 +233,12 @@ internal actor AuthorizationServerClient: AuthorizationServerClientType {
     state: String,
     issuerState: String?
   ) async throws -> Result<(PKCEVerifier, AuthorizationCodeURL), Error> {
-    guard !scopes.isEmpty else {
+    let scopesAreValid = scopes.isEmpty == false
+    let identifiersAreValid = credentialConfigurationIdentifiers.isEmpty == false
+
+    guard scopesAreValid || identifiersAreValid else {
       throw ValidationError.error(
-        reason: "No scopes provided. Cannot submit prepared with no scopes."
+        reason: "Both scopes and credential configuration identifiers are missing or empty. Cannot submit par"
       )
     }
     
@@ -281,21 +286,29 @@ internal actor AuthorizationServerClient: AuthorizationServerClientType {
     dpopNonce: Nonce? = nil,
     retry: Bool = true
   ) async throws -> Result<(PKCEVerifier, AuthorizationCodeURL, Nonce?), Error> {
-    guard !scopes.isEmpty else {
+    
+    let scopesAreValid = scopes.isEmpty == false
+    let identifiersAreValid = credentialConfigurationIdentifiers.isEmpty == false
+
+    guard scopesAreValid || identifiersAreValid else {
       throw ValidationError.error(
-        reason: "No scopes provided. Cannot submit prepared with no scopes."
+        reason: "Both scopes and credential configuration identifiers are missing or empty. Cannot submit par"
       )
     }
     
     let codeVerifier = PKCEGenerator.codeVerifier() ?? ""
-    let authRequest = AuthorizationRequest(
+    let authRequest: AuthorizationRequest = .init(
       responseType: Self.responseType,
       clientId: config.client.id,
       redirectUri: config.authFlowRedirectionURI.absoluteString,
       scope: scopes.map { $0.value }.joined(separator: " "),
-      credentialConfigurationIds: toAuthorizationDetail(credentialConfigurationIds: credentialConfigurationIdentifiers),
+      credentialConfigurationIds: toAuthorizationDetail(
+        credentialConfigurationIds: credentialConfigurationIdentifiers
+      ),
       state: state,
-      codeChallenge: PKCEGenerator.generateCodeChallenge(codeVerifier: codeVerifier),
+      codeChallenge: PKCEGenerator.generateCodeChallenge(
+        codeVerifier: codeVerifier
+      ),
       codeChallengeMethod: CodeChallenge.sha256.rawValue,
       resource: resource,
       issuerState: issuerState
@@ -669,8 +682,10 @@ internal actor AuthorizationServerClient: AuthorizationServerClientType {
         locations.append(credentialIssuerIdentifier.url.absoluteString)
       }
       
-      return AuthorizationDetail(
-        type: .init(type: OPENID_CREDENTIAL),
+      return .init(
+        type: .init(
+          type: OPENID_CREDENTIAL
+        ),
         locations: locations,
         credentialConfigurationId: id.value
       )

@@ -75,7 +75,9 @@ internal actor AuthorizeIssuance: AuthorizeIssuanceType {
   ) async throws -> Result<AuthorizationRequestPrepared, any Error> {
     
     let issuerState: String? = getIssuerState(from: credentialOffer)
-    let (scopes, identifiers) = try scopesAndCredentialConfigurationIds(credentialOffer: credentialOffer)
+    let (scopes, identifiers) = try scopesAndCredentialConfigurationIds(
+      credentialOffer: credentialOffer
+    )
     let authorizationServerSupportsPar = credentialOffer.authorizationServerMetadata.authorizationServerSupportsPar && config.usePAR
     let state = StateValue().value
     
