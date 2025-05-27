@@ -53,7 +53,9 @@ private extension CredentialOfferRequest {
         return url
 
       } else {
-        throw CredentialOfferRequestError.nonParsableCredentialOfferEndpointUrl(reason: string)
+        throw CredentialOfferRequestError.nonParsableCredentialOfferEndpointUrl(
+          reason: string
+        )
       }
   }
 }

@@ -20,7 +20,7 @@ public struct CredentialIssuerId: Codable, Equatable, Sendable {
   
   public init(_ string: String) throws {
     if let queryItems = URLComponents(string: string)?.queryItems,
-       queryItems.count > 0 {
+       queryItems.count > .zero {
       throw CredentialError.extraneousQueryComponents
     }
     
