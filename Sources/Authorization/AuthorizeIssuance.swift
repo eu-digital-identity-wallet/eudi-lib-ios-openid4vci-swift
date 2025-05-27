@@ -219,7 +219,9 @@ internal actor AuthorizeIssuance: AuthorizeIssuanceType {
           return .failure(ValidationError.error(reason: error.localizedDescription))
         }
       default: return .failure(
-        ValidationError.error(reason: ".authorizationCode case is required"))
+        ValidationError.error(
+          reason: ".authorizationCode case is required"
+        ))
       }
     case .prepared:
       return .failure(
@@ -246,7 +248,11 @@ private extension AuthorizeIssuance {
       switch config.authorizeIssuanceConfig {
       case .favorScopes:
         if let scope = credentialConfiguration.getScope() {
-          scopes.append(try Scope(scope))
+          scopes.append(
+            try Scope(
+              scope
+            )
+          )
         } else {
           configurationIdentifiers.append(id)
         }
