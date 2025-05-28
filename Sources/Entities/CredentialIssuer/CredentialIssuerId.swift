@@ -20,13 +20,13 @@ public struct CredentialIssuerId: Codable, Equatable, Sendable {
   
   public init(_ string: String) throws {
     if let queryItems = URLComponents(string: string)?.queryItems,
-       queryItems.count > 0 {
+       queryItems.count > .zero {
       throw CredentialError.extraneousQueryComponents
     }
     
     guard
       let validURL = URL(string: string),
-      validURL.scheme == "https",
+      validURL.scheme == Constants.HTTPS,
       validURL.fragment == nil
     else {
       throw CredentialError.invalidScheme

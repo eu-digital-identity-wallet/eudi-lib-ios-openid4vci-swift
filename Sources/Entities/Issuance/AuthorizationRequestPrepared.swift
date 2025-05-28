@@ -16,9 +16,9 @@
 import Foundation
 
 /// State denoting that the pushed authorization request has been placed successfully and response processed
-public struct ParRequested: Sendable {
+public struct AuthorizationRequested: Sendable {
   public let credentials: [CredentialIdentifier]
-  public let getAuthorizationCodeURL: GetAuthorizationCodeURL
+  public let authorizationCodeURL: AuthorizationCodeURL
   public let pkceVerifier: PKCEVerifier
   public let state: String
   public let configurationIds: [CredentialConfigurationIdentifier]
@@ -26,14 +26,14 @@ public struct ParRequested: Sendable {
   
   public init(
     credentials: [CredentialIdentifier],
-    getAuthorizationCodeURL: GetAuthorizationCodeURL,
+    authorizationCodeURL: AuthorizationCodeURL,
     pkceVerifier: PKCEVerifier,
     state: String,
     configurationIds: [CredentialConfigurationIdentifier],
     dpopNonce: Nonce? = nil
   ) {
     self.credentials = credentials
-    self.getAuthorizationCodeURL = getAuthorizationCodeURL
+    self.authorizationCodeURL = authorizationCodeURL
     self.pkceVerifier = pkceVerifier
     self.state = state
     self.configurationIds = configurationIds
@@ -59,7 +59,9 @@ public struct AuthorizationCodeRetrieved: Sendable {
   ) throws {
     
     guard case .authorizationCode = authorizationCode else {
-      throw ValidationError.error(reason: "IssuanceAuthorization must be authorization code")
+      throw ValidationError.error(
+        reason: "IssuanceAuthorization must be authorization code"
+      )
     }
 
     self.credentials = credentials
@@ -70,7 +72,7 @@ public struct AuthorizationCodeRetrieved: Sendable {
   }
 }
 
-public enum UnauthorizedRequest: Sendable {
-  case par(ParRequested)
+public enum AuthorizationRequestPrepared: Sendable {
+  case prepared(AuthorizationRequested)
   case authorizationCode(AuthorizationCodeRetrieved)
 }

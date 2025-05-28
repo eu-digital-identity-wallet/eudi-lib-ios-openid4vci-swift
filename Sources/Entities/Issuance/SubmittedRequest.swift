@@ -28,7 +28,5 @@ public struct CredentialIssuanceResponse: Decodable, Sendable {
 public enum SubmittedRequest: Sendable {
   case success(response: CredentialIssuanceResponse)
   case failed(error: CredentialIssuanceError)
-  case invalidProof(
-    errorDescription: String?
-  )
+  case invalidProof(errorDescription: String?)
 }

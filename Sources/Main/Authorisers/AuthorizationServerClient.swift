@@ -29,7 +29,7 @@ private extension ResponseWithHeaders {
 
 /// A protocol defining the interface for an authorization server client.
 /// This client is responsible for handling authorization requests, token exchanges, and refresh flows.
-public protocol AuthorizationServerClientType: Sendable {
+protocol AuthorizationServerClientType: Sendable {
   
   /// Generates a URL for initiating the authorization request.
   ///
@@ -44,7 +44,7 @@ public protocol AuthorizationServerClientType: Sendable {
     credentialConfigurationIdentifiers: [CredentialConfigurationIdentifier],
     state: String,
     issuerState: String?
-  ) async throws -> Result<(PKCEVerifier, GetAuthorizationCodeURL), Error>
+  ) async throws -> Result<(PKCEVerifier, AuthorizationCodeURL), Error>
   
   /// Submits a pushed authorization request (PAR).
   ///
@@ -57,6 +57,8 @@ public protocol AuthorizationServerClientType: Sendable {
   ///   - dpopNonce: An optional nonce for DPoP (Demonstrating Proof-of-Possession).
   ///   - retry: A flag indicating whether to retry on failure.
   /// - Returns: A result containing a `PKCEVerifier`, an authorization URL, and an optional nonce, or an error if the operation fails.
+  /// See [RFC7636](https://www.rfc-editor.org/rfc/rfc7636.html) for more information
+  /// See [RFC9126](https://www.rfc-editor.org/rfc/rfc9126) for more information
   func submitPushedAuthorizationRequest(
     scopes: [Scope],
     credentialConfigurationIdentifiers: [CredentialConfigurationIdentifier],
@@ -65,7 +67,7 @@ public protocol AuthorizationServerClientType: Sendable {
     resource: String?,
     dpopNonce: Nonce?,
     retry: Bool
-  ) async throws -> Result<(PKCEVerifier, GetAuthorizationCodeURL, Nonce?), Error>
+  ) async throws -> Result<(PKCEVerifier, AuthorizationCodeURL, Nonce?), Error>
   
   /// Requests an access token using an authorization code.
   ///
@@ -141,7 +143,7 @@ public protocol AuthorizationServerClientType: Sendable {
 }
 
 
-public actor AuthorizationServerClient: AuthorizationServerClientType {
+internal actor AuthorizationServerClient: AuthorizationServerClientType {
   
   public let config: OpenId4VCIConfig
   public let service: AuthorisationServiceType
@@ -230,9 +232,14 @@ public actor AuthorizationServerClient: AuthorizationServerClientType {
     credentialConfigurationIdentifiers: [CredentialConfigurationIdentifier],
     state: String,
     issuerState: String?
-  ) async throws -> Result<(PKCEVerifier, GetAuthorizationCodeURL), Error> {
-    guard !scopes.isEmpty else {
-      throw ValidationError.error(reason: "No scopes provided. Cannot submit par with no scopes.")
+  ) async throws -> Result<(PKCEVerifier, AuthorizationCodeURL), Error> {
+    let scopesAreValid = scopes.isEmpty == false
+    let identifiersAreValid = credentialConfigurationIdentifiers.isEmpty == false
+
+    guard scopesAreValid || identifiersAreValid else {
+      throw ValidationError.error(
+        reason: "Both scopes and credential configuration identifiers are missing or empty. Cannot submit par"
+      )
     }
     
     let codeVerifier = PKCEGenerator.codeVerifier() ?? ""
@@ -263,7 +270,7 @@ public actor AuthorizationServerClient: AuthorizationServerClientType {
       throw ValidationError.invalidUrl(parEndpoint?.absoluteString ?? "")
     }
     
-    let authorizationCodeURL = try GetAuthorizationCodeURL(
+    let authorizationCodeURL = try AuthorizationCodeURL(
       urlString: urlWithParams.absoluteString
     )
     
@@ -278,20 +285,30 @@ public actor AuthorizationServerClient: AuthorizationServerClientType {
     resource: String? = nil,
     dpopNonce: Nonce? = nil,
     retry: Bool = true
-  ) async throws -> Result<(PKCEVerifier, GetAuthorizationCodeURL, Nonce?), Error> {
-    guard !scopes.isEmpty else {
-      throw ValidationError.error(reason: "No scopes provided. Cannot submit par with no scopes.")
+  ) async throws -> Result<(PKCEVerifier, AuthorizationCodeURL, Nonce?), Error> {
+    
+    let scopesAreValid = scopes.isEmpty == false
+    let identifiersAreValid = credentialConfigurationIdentifiers.isEmpty == false
+
+    guard scopesAreValid || identifiersAreValid else {
+      throw ValidationError.error(
+        reason: "Both scopes and credential configuration identifiers are missing or empty. Cannot submit par"
+      )
     }
     
     let codeVerifier = PKCEGenerator.codeVerifier() ?? ""
-    let authRequest = AuthorizationRequest(
+    let authRequest: AuthorizationRequest = .init(
       responseType: Self.responseType,
       clientId: config.client.id,
       redirectUri: config.authFlowRedirectionURI.absoluteString,
       scope: scopes.map { $0.value }.joined(separator: " "),
-      credentialConfigurationIds: toAuthorizationDetail(credentialConfigurationIds: credentialConfigurationIdentifiers),
+      credentialConfigurationIds: toAuthorizationDetail(
+        credentialConfigurationIds: credentialConfigurationIdentifiers
+      ),
       state: state,
-      codeChallenge: PKCEGenerator.generateCodeChallenge(codeVerifier: codeVerifier),
+      codeChallenge: PKCEGenerator.generateCodeChallenge(
+        codeVerifier: codeVerifier
+      ),
       codeChallengeMethod: CodeChallenge.sha256.rawValue,
       resource: resource,
       issuerState: issuerState
@@ -299,7 +316,9 @@ public actor AuthorizationServerClient: AuthorizationServerClientType {
     
     do {
       guard let parEndpoint = parEndpoint else {
-        throw ValidationError.error(reason: "Missing PAR endpoint")
+        throw ValidationError.error(
+          reason: "Missing PAR endpoint"
+        )
       }
       
       let clientAttestationHeaders = clientAttestationHeaders(
@@ -331,16 +350,16 @@ public actor AuthorizationServerClient: AuthorizationServerClientType {
         )
         
         let queryParams = [
-          GetAuthorizationCodeURL.PARAM_CLIENT_ID: config.client.id,
-          GetAuthorizationCodeURL.PARAM_REQUEST_STATE: state,
-          GetAuthorizationCodeURL.PARAM_REQUEST_URI: requestURI
+          AuthorizationCodeURL.PARAM_CLIENT_ID: config.client.id,
+          AuthorizationCodeURL.PARAM_REQUEST_STATE: state,
+          AuthorizationCodeURL.PARAM_REQUEST_URI: requestURI
         ]
         
         guard let urlWithParams = authorizationEndpoint.appendingQueryParameters(queryParams) else {
           throw ValidationError.invalidUrl(parEndpoint.absoluteString)
         }
         
-        let authorizationCodeURL = try GetAuthorizationCodeURL(
+        let authorizationCodeURL = try AuthorizationCodeURL(
           urlString: urlWithParams.absoluteString
         )
         
@@ -663,8 +682,10 @@ public actor AuthorizationServerClient: AuthorizationServerClientType {
         locations.append(credentialIssuerIdentifier.url.absoluteString)
       }
       
-      return AuthorizationDetail(
-        type: .init(type: OPENID_CREDENTIAL),
+      return .init(
+        type: .init(
+          type: OPENID_CREDENTIAL
+        ),
         locations: locations,
         credentialConfigurationId: id.value
       )
@@ -682,8 +703,8 @@ private extension AuthorizationServerClient {
     }
     
     return [
-      "OAuth-Client-Attestation": clientAttestation.0.jws.compactSerializedString,
-      "OAuth-Client-Attestation-PoP": clientAttestation.1.jws.compactSerializedString
+      Constants.OAUTH_CLIENT_ATTESTATION: clientAttestation.0.jws.compactSerializedString,
+      Constants.OAUTH_CLIENT_ATTESTATION_POP: clientAttestation.1.jws.compactSerializedString
     ]
   }
   
@@ -721,7 +742,8 @@ private extension AuthorizationServerClient {
         accessToken: nil,
         nonce: dpopNonce
       )
-      return ["DPoP": jwt]
+      return [Constants.DPOP: jwt]
+      
     } else {
       return [:]
     }

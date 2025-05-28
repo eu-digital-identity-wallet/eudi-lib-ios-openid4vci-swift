@@ -95,22 +95,41 @@ public struct CredentialIssuerMetadata: Decodable, Equatable, Sendable {
     )
   }
     
-  // Implement a custom init(from decoder:) method to handle decoding.
   public init(from decoder: Decoder) throws {
     let container = try decoder.container(keyedBy: CodingKeys.self)
     
-    // Decode each property as necessary, handling optionals and conversions.
-    credentialIssuerIdentifier = try container.decode(CredentialIssuerId.self, forKey: .credentialIssuerIdentifier)
+    credentialIssuerIdentifier = try container.decode(
+      CredentialIssuerId.self,
+      forKey: .credentialIssuerIdentifier
+    )
     
     let servers = try? container.decode([URL].self, forKey: .authorizationServers)
     authorizationServers = servers ?? [credentialIssuerIdentifier.url]
     
-    credentialEndpoint = try container.decode(CredentialIssuerEndpoint.self, forKey: .credentialEndpoint)
-    deferredCredentialEndpoint = try container.decodeIfPresent(CredentialIssuerEndpoint.self, forKey: .deferredCredentialEndpoint)
-    nonceEndpoint = try container.decodeIfPresent(CredentialIssuerEndpoint.self, forKey: .nonceEndpoint)
-    notificationEndpoint = try container.decodeIfPresent(CredentialIssuerEndpoint.self, forKey: .notificationEndpoint)
+    credentialEndpoint = try container.decode(
+      CredentialIssuerEndpoint.self,
+      forKey: .credentialEndpoint
+    )
     
-    credentialResponseEncryption = (try? container.decode(CredentialResponseEncryption.self, forKey: .credentialResponseEncryption)) ?? .notRequired
+    deferredCredentialEndpoint = try container.decodeIfPresent(
+      CredentialIssuerEndpoint.self,
+      forKey: .deferredCredentialEndpoint
+    )
+    
+    nonceEndpoint = try container.decodeIfPresent(
+      CredentialIssuerEndpoint.self,
+      forKey: .nonceEndpoint
+    )
+    
+    notificationEndpoint = try container.decodeIfPresent(
+      CredentialIssuerEndpoint.self,
+      forKey: .notificationEndpoint
+    )
+    
+    credentialResponseEncryption = (try? container.decode(
+      CredentialResponseEncryption.self,
+      forKey: .credentialResponseEncryption
+    )) ?? .notRequired
     
     let json = try container.decodeIfPresent(JSON.self, forKey: .credentialConfigurationsSupported) ?? []
     var mapIdentifierCredential: [CredentialConfigurationIdentifier: CredentialSupported] = [:]
@@ -146,13 +165,25 @@ public struct CredentialIssuerMetadata: Decodable, Equatable, Sendable {
     
     credentialsSupported = mapIdentifierCredential
     
-    display = try container.decodeIfPresent([Display].self, forKey: .display) ?? []
+    display = try container.decodeIfPresent(
+      [Display].self,
+      forKey: .display
+    ) ?? []
     
-    signedMetadata = try? container.decodeIfPresent(String.self, forKey: .signedMetadata)
+    signedMetadata = try? container.decodeIfPresent(
+      String.self,
+      forKey: .signedMetadata
+    )
     
-    credentialIdentifiersSupported = try? container.decodeIfPresent(Bool.self, forKey: .credentialIdentifiersSupported) ?? false
+    credentialIdentifiersSupported = try? container.decodeIfPresent(
+      Bool.self,
+      forKey: .credentialIdentifiersSupported
+    ) ?? false
     
-    batchCredentialIssuance = try? container.decodeIfPresent(BatchCredentialIssuance.self, forKey: .batchCredentialIssuance)
+    batchCredentialIssuance = try? container.decodeIfPresent(
+      BatchCredentialIssuance.self,
+      forKey: .batchCredentialIssuance
+    )
   }
   
   public static func == (lhs: CredentialIssuerMetadata, rhs: CredentialIssuerMetadata) -> Bool {

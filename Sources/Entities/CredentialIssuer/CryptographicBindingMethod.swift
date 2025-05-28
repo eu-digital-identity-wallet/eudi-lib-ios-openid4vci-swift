@@ -78,7 +78,9 @@ public enum CryptographicBindingMethod: Codable, Equatable, Sendable {
       if method.hasPrefix("did") {
         self = .did(method: method)
       } else {
-        throw ValidationError.error(reason: "Unknown cryptographic binding method: \(method)")
+        throw ValidationError.error(
+          reason: "Unknown cryptographic binding method: \(method)"
+        )
       }
     }
   }
