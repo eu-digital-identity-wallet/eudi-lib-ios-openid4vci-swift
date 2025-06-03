@@ -130,6 +130,7 @@ public extension MsoMdocFormat {
     public let display: [Display]?
     public let docType: String
     public let claims: [Claim]
+    public let policy: Policy?
     
     enum CodingKeys: String, CodingKey {
       case format
@@ -140,6 +141,7 @@ public extension MsoMdocFormat {
       case display
       case docType = "doctype"
       case claims
+      case policy
     }
     
     public init(
@@ -150,7 +152,8 @@ public extension MsoMdocFormat {
       proofTypesSupported: [String: ProofTypeSupportedMeta]? = nil,
       display: [Display]? = nil,
       docType: String,
-      claims: [Claim] = []
+      claims: [Claim] = [],
+      policy: Policy? = nil
     ) {
       self.format = format
       self.scope = scope
@@ -160,6 +163,7 @@ public extension MsoMdocFormat {
       self.display = display
       self.docType = docType
       self.claims = claims
+      self.policy = policy
     }
     
     func toDomain() throws -> MsoMdocFormat.CredentialConfiguration {
@@ -178,7 +182,8 @@ public extension MsoMdocFormat {
         proofTypesSupported: self.proofTypesSupported,
         display: display,
         docType: docType,
-        claims: claims
+        claims: claims,
+        policy: policy
       )
     }
   }
@@ -192,6 +197,7 @@ public extension MsoMdocFormat {
     public let display: [Display]
     public let docType: String
     public let claims: [Claim]
+    public let policy: Policy?
     
     enum CodingKeys: String, CodingKey {
       case format
@@ -202,6 +208,7 @@ public extension MsoMdocFormat {
       case display
       case docType = "doctype"
       case claims
+      case policy
     }
     
     public init(
@@ -212,7 +219,8 @@ public extension MsoMdocFormat {
       proofTypesSupported: [String: ProofTypeSupportedMeta]?,
       display: [Display],
       docType: String,
-      claims: [Claim]
+      claims: [Claim],
+      policy: Policy?
     ) {
       self.format = format
       self.scope = scope
@@ -222,6 +230,7 @@ public extension MsoMdocFormat {
       self.display = display
       self.docType = docType
       self.claims = claims
+      self.policy = policy
     }
     
     public init(from decoder: Decoder) throws {
@@ -238,6 +247,7 @@ public extension MsoMdocFormat {
       display = try container.decode([Display].self, forKey: .display)
       docType = try container.decode(String.self, forKey: .docType)
       claims = try container.decode([Claim].self, forKey: .claims)
+      policy = try? container.decode(Policy.self, forKey: .policy)
     }
     
     public func encode(to encoder: Encoder) throws {
@@ -251,6 +261,7 @@ public extension MsoMdocFormat {
       try container.encode(display, forKey: .display)
       try container.encode(docType, forKey: .docType)
       try container.encode(claims, forKey: .claims)
+      try container.encode(policy, forKey: .policy)
     }
     
     init(json: JSON) throws {
@@ -284,6 +295,7 @@ public extension MsoMdocFormat {
         try? Claim(json: $0)
       }) ?? []
       self.claims = claims
+      self.policy = .init(json: json["policy"])
     }
     
     func toIssuanceRequest(
