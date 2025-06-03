@@ -144,6 +144,28 @@ public struct Nonce: Sendable {
   }
 }
 
+public struct Policy: Codable, Sendable {
+  public let batchSize: Int?
+  public let oneTimeUse: Bool?
+  
+  enum CodingKeys: String, CodingKey {
+    case batchSize = "batch_size"
+    case oneTimeUse = "one_time_use"
+  }
+  
+  public init(batchSize: Int?, oneTimeUse: Bool?) {
+    self.batchSize = batchSize
+    self.oneTimeUse = oneTimeUse
+  }
+}
+
+public extension Policy {
+  init(json: JSON) {
+    self.batchSize = json["batch_size"].int
+    self.oneTimeUse = json["one_time_use"].bool
+  }
+}
+
 public struct Claim: Codable, Sendable {
   public let mandatory: Bool?
   public let display: [Display]?
