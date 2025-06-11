@@ -103,7 +103,7 @@ public extension Display {
     
     public init(json: JSON) {
       var uri: URL?
-      if let urlString = json["url"].string {
+      if let urlString = json["uri"].string {
         uri = URL(string: urlString)
       } else {
         uri = nil
