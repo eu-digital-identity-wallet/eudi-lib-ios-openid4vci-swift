@@ -70,7 +70,3 @@ public struct ClientAttestationPoPJWTSpec: Sendable {
     }
   }
 }
-
-
-
-

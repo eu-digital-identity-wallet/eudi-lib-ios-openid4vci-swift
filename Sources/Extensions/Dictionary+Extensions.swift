@@ -17,7 +17,7 @@ import Foundation
 import SwiftyJSON
 
 public func + (lhs: [String: String], rhs: [String: String]) -> [String: String] {
-  return lhs.merging(rhs) { (current, new) in new }
+  return lhs.merging(rhs) { (_, new) in new }
 }
 
 public extension Dictionary where Key == String, Value == Any {

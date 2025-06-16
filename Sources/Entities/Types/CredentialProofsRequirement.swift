@@ -20,4 +20,3 @@ enum CredentialProofsRequirement {
   case proofRequiredWithoutCNonce
   case proofRequiredWithCNonce
 }
-

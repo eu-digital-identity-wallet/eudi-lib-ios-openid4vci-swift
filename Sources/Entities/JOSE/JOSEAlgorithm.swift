@@ -57,4 +57,3 @@ public extension JOSEAlgorithm {
     case OPTIONAL
   }
 }
-

@@ -48,7 +48,7 @@ public enum Client: Sendable {
     }
     
     // Validate public key
-    guard (attestationJWT.pubKey?.isPublicKey ?? false) else {
+    guard attestationJWT.pubKey?.isPublicKey ?? false else {
       throw ClientAttestationError.missingJwkClaim
     }
     
@@ -74,4 +74,3 @@ extension JWK {
     return !isPrivateKey
   }
 }
-

@@ -20,14 +20,6 @@ import XCTest
 
 class EntitiesTests: XCTestCase {
   
-  override func setUp() async throws {
-    try await super.setUp()
-  }
-  
-  override func tearDown() {
-    super.tearDown()
-  }
-  
   func test() {
     let sdk: OpenID4VCI? = OpenID4VCI()
     

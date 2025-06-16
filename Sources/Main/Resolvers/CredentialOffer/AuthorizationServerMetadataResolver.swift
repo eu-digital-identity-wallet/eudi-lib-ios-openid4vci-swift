@@ -77,7 +77,7 @@ public actor AuthorizationServerMetadataResolver: AuthorizationServerMetadataRes
   ) async -> OIDCProviderMetadata? {
     
     // According to the spec https://www.rfc-editor.org/rfc/rfc8414.html#section-3
-    //“.well-known/oauth-authorization-server” need to be inserted after removing the path components first. e.g :
+    // “.well-known/oauth-authorization-server” need to be inserted after removing the path components first. e.g :
     // https://example.com/.well-known/oauth-authorization-server/path1/path2
     // We provide a fallback that simply appends the components
     // Note: this fallback mechanism will be removed at a future date
@@ -113,8 +113,8 @@ public actor AuthorizationServerMetadataResolver: AuthorizationServerMetadataRes
     url: URL
   ) async -> AuthorizationServerMetadata? {
     
-    //According to the spec https://www.rfc-editor.org/rfc/rfc8414.html#section-3
-    //“.well-known/oauth-authorization-server” need to be inserted after removing the path components first. e.g :
+    // According to the spec https://www.rfc-editor.org/rfc/rfc8414.html#section-3
+    // “.well-known/oauth-authorization-server” need to be inserted after removing the path components first. e.g :
     // https://example.com/.well-known/oauth-authorization-server/path1/path2
     // We provide a fallback that simply appends the components
     do {

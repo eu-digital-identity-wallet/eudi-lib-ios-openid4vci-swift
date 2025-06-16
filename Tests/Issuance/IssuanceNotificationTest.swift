@@ -27,14 +27,6 @@ class IssuanceNotificationTest: XCTestCase {
     authorizeIssuanceConfig: .favorScopes
   )
   
-  override func setUp() async throws {
-    try await super.setUp()
-  }
-  
-  override func tearDown() {
-    super.tearDown()
-  }
-  
   func testWhenIssuanceResponseContainsNotificationIdItIsPresentInAndCanBeUsedForNotifications() async throws {
     
     // Given
@@ -145,7 +137,7 @@ class IssuanceNotificationTest: XCTestCase {
                   switch result {
                   case .success:
                     print("Success")
-                  case .failure(_):
+                  case .failure:
                     print("Failure")
                   }
                   return

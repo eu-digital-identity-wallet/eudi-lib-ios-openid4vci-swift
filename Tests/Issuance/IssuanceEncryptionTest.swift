@@ -27,14 +27,6 @@ class IssuanceEncryptionTest: XCTestCase {
     authorizeIssuanceConfig: .favorScopes
   )
   
-  override func setUp() async throws {
-    try await super.setUp()
-  }
-  
-  override func tearDown() {
-    super.tearDown()
-  }
-  
   func testWhenEncryptionAlgorithmNotSupportedByIssuerThenThrowResponseEncryptionAlgorithmNotSupportedByIssuer() async throws {
   
     // Given

@@ -142,7 +142,6 @@ protocol AuthorizationServerClientType: Sendable {
   ), Error>
 }
 
-
 internal actor AuthorizationServerClient: AuthorizationServerClientType {
   
   public let config: OpenId4VCIConfig
@@ -762,7 +761,7 @@ private extension AuthorizationServerClient {
       Constants.AUTHORIZATION_CODE_PARAM: authorizationCode,
       Constants.REDIRECT_URI_PARAM: redirectionURI.absoluteString,
       Constants.CLIENT_ID_PARAM: clientId,
-      Constants.CODE_VERIFIER_PARAM: codeVerifier,
+      Constants.CODE_VERIFIER_PARAM: codeVerifier
     ]
     
     appendAuthorizationDetailsIfValid(
@@ -780,7 +779,7 @@ private extension AuthorizationServerClient {
     client: Client,
     transactionCode: String?,
     identifiers: [CredentialConfigurationIdentifier]
-  ) async throws -> JSON  {
+  ) async throws -> JSON {
     var params: [String: String?] = [
       Constants.CLIENT_ID_PARAM: client.id,
       Constants.GRANT_TYPE_PARAM: Constants.GRANT_TYPE_PARAM_VALUE,

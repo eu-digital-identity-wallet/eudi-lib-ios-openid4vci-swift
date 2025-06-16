@@ -21,14 +21,6 @@ import JOSESwift
 
 class VCIFlowWithOffer: XCTestCase {
   
-  override func setUp() async throws {
-    try await super.setUp()
-  }
-  
-  override func tearDown() {
-    super.tearDown()
-  }
-  
   func testWithOfferSdJWT() async throws {
     
     let privateKey = try KeyController.generateECDHPrivateKey()

@@ -89,4 +89,3 @@ public struct HTTPStatusCode {
   public static let notExtended = 510
   public static let networkAuthenticationRequired = 511
 }
-

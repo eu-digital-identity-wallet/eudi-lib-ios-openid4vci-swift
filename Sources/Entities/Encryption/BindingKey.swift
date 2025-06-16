@@ -54,12 +54,16 @@ public extension BindingKey {
     ):
       switch credentialSpec {
       case .msoMdoc(let spec):
-        let suites = spec.proofTypesSupported?["jwt"]?.algorithms.contains { $0 == algorithm.name } ??  true
+        let suites = spec.proofTypesSupported? ["jwt"]?.algorithms.contains {
+            $0 == algorithm.name
+        } ??  true
         guard suites else {
           throw CredentialIssuanceError.cryptographicSuiteNotSupported(algorithm.name)
         }
 
-        let proofs = spec.proofTypesSupported?.keys.contains { $0 == "jwt" } ?? true
+        let proofs = spec.proofTypesSupported?.keys.contains {
+            $0 == "jwt"
+        } ?? true
         guard proofs else {
           throw CredentialIssuanceError.proofTypeNotSupported
         }
@@ -77,7 +81,7 @@ public extension BindingKey {
           JWTClaimNames.audience: aud,
           JWTClaimNames.nonce: cNonce ?? "",
           JWTClaimNames.issuer: issuer ?? ""
-        ].filter { key, value in
+        ].filter { _, value in
           if let string = value as? String, string.isEmpty {
             return false
           }
@@ -89,7 +93,7 @@ public extension BindingKey {
         guard let signatureAlgorithm = SignatureAlgorithm(rawValue: algorithm.name) else {
           throw CredentialIssuanceError.cryptographicAlgorithmNotSupported
         }
-        
+
         let signer: Signer = try await Self.createSigner(
           with: header,
           and: payload,
@@ -106,12 +110,16 @@ public extension BindingKey {
         return .jwt(jws.compactSerializedString)
 
       case .sdJwtVc(let spec):
-        let suites = spec.proofTypesSupported?["jwt"]?.algorithms.contains { $0 == algorithm.name } ??  true
+        let suites = spec.proofTypesSupported? ["jwt"]?.algorithms.contains {
+            $0 == algorithm.name
+        } ??  true
         guard suites else {
           throw CredentialIssuanceError.cryptographicSuiteNotSupported(algorithm.name)
         }
 
-        let proofs = spec.proofTypesSupported?.keys.contains { $0 == "jwt" } ?? true
+        let proofs = spec.proofTypesSupported?.keys.contains {
+            $0 == "jwt"
+        } ?? true
         guard proofs else {
           throw CredentialIssuanceError.proofTypeNotSupported
         }
@@ -129,7 +137,7 @@ public extension BindingKey {
           JWTClaimNames.audience: aud,
           JWTClaimNames.nonce: cNonce ?? "",
           JWTClaimNames.issuer: issuer ?? ""
-        ].filter { key, value in
+        ].filter { _, value in
           if let string = value as? String, string.isEmpty {
             return false
           }
@@ -156,9 +164,9 @@ public extension BindingKey {
         )
 
         return .jwt(jws.compactSerializedString)
-      default: break
+      default:
+          break
       }
-      break
     case .did(let identity):
       throw ValidationError.todo(reason: ".did(\(identity) not implemented")
     case .x509(let certificate):

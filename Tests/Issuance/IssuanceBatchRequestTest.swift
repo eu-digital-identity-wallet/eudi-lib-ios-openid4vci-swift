@@ -28,14 +28,6 @@ class IssuanceBatchRequestTest: XCTestCase {
     authorizeIssuanceConfig: .favorScopes
   )
   
-  override func setUp() async throws {
-    try await super.setUp()
-  }
-  
-  override func tearDown() {
-    super.tearDown()
-  }
-  
   func testGivenMockDataBatchCredentialIssuance() async throws {
     
     // Given

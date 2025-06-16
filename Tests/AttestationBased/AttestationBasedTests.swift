@@ -22,14 +22,6 @@ import SwiftyJSON
 
 class AttestationBasedTests: XCTestCase {
   
-  override func setUp() async throws {
-    try await super.setUp()
-  }
-  
-  override func tearDown() {
-    super.tearDown()
-  }
-  
   func testClientAttestation() async throws {
     
     let clientAttestation = try ClientAttestationJWT(

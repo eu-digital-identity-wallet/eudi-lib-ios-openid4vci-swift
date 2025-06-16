@@ -45,14 +45,14 @@ final class FormPostTests: XCTestCase {
       contentType: .form,
       formData: [:]
     )
-    XCTAssertEqual(formPost.urlRequest.allHTTPHeaderFields, ["Content-Type" : "application/x-www-form-urlencoded"])
+    XCTAssertEqual(formPost.urlRequest.allHTTPHeaderFields, ["Content-Type": "application/x-www-form-urlencoded"])
 
     let jsonPost = try FormPost(
       url: URL(string: "http://example.com")!,
       contentType: .json,
       formData: [:]
     )
-    XCTAssertEqual(jsonPost.urlRequest.allHTTPHeaderFields, ["Content-Type" : "application/json"])
+    XCTAssertEqual(jsonPost.urlRequest.allHTTPHeaderFields, ["Content-Type": "application/json"])
   }
 
   func testAdditionalHeadersAreSetToRequest() throws {
@@ -64,7 +64,7 @@ final class FormPostTests: XCTestCase {
     )
     XCTAssertEqual(
       formPost.urlRequest.allHTTPHeaderFields,
-      ["Content-Type" : "application/json", "Content-Encoding" : "gzip"]
+      ["Content-Type": "application/json", "Content-Encoding": "gzip"]
     )
   }
 
@@ -77,7 +77,7 @@ final class FormPostTests: XCTestCase {
     )
     XCTAssertEqual(
       formPost.urlRequest.allHTTPHeaderFields,
-      ["Content-Type" : "myapp/json", "Content-Encoding" : "gzip"]
+      ["Content-Type": "myapp/json", "Content-Encoding": "gzip"]
     )
   }
 
@@ -138,7 +138,7 @@ final class FormPostTests: XCTestCase {
       url: URL(string: "http://example.com")!,
       contentType: .form,
       formData: [
-        "multi": [1, 3.14, "foo", "café", nil],
+        "multi": [1, 3.14, "foo", "café", nil]
       ]
     )
     let encodedData = FormBodyData(content: [

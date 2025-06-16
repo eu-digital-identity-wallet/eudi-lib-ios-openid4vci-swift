@@ -1,5 +1,8 @@
 # Tests
-- .*Tests.swift
+- ../Tests
+
+# Extensions
+- .*Extensions.swift
 
 # Error
 - .*Error.swift

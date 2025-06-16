@@ -197,4 +197,3 @@ public struct MtlsEndpointAliases: Codable, Sendable {
     self.backchannelAuthenticationEndpoint = backchannelAuthenticationEndpoint
   }
 }
-

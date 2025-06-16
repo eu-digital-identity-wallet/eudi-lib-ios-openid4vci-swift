@@ -20,14 +20,6 @@ import XCTest
 
 class IssuanceFlowsTest: XCTestCase {
   
-  override func setUp() async throws {
-    try await super.setUp()
-  }
-  
-  override func tearDown() {
-    super.tearDown()
-  }
-  
   func testDeferredIssuerConstruction() async throws {
    
     let issuer = try Issuer.createDeferredIssuer(

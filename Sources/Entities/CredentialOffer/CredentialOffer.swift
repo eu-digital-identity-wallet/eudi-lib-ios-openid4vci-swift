@@ -41,4 +41,3 @@ public struct CredentialOffer: Sendable {
     }
   }
 }
-

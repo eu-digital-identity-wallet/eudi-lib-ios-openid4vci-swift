@@ -361,4 +361,3 @@ private extension AuthorizeIssuance {
     }
   }
 }
-
