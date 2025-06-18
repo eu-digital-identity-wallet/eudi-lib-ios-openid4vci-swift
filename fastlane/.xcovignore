@@ -6,3 +6,23 @@
 
 # Error
 - .*Error.swift
+
+# Type
+- .*Type.swift
+
+# Metadata
+- .*Metadata.swift
+
+# Utilities
+- Sources/Utilities/Functions/
+- Sources/Utilities/RemoteDataAccess/
+
+# Entities
+- Sources/Entities/Types/
+- Sources/Entities/Response/
+- Sources/Entities/Profiles/
+- Sources/Entities/Issuance/
+- Sources/Entities/JOSE/
+
+# Client
+- Sources/Main/AttestationBasedClient/
