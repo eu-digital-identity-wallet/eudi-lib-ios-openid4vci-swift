@@ -295,6 +295,50 @@ class VCIFlowWithOffer: XCTestCase {
     XCTAssert(true)
   }
   
+  func testWithTertiaryIssuerCredentialOfferURL() async throws {
+    
+    let privateKey = try KeyController.generateECDHPrivateKey()
+    let publicKey = try KeyController.generateECDHPublicKey(from: privateKey)
+    
+    let alg = JWSAlgorithm(.ES256)
+    let publicKeyJWK = try ECPublicKey(
+      publicKey: publicKey,
+      additionalParameters: [
+        "alg": alg.name,
+        "use": "sig",
+        "kid": UUID().uuidString
+      ])
+    
+    let bindingKey: BindingKey = .jwk(
+      algorithm: alg,
+      jwk: publicKeyJWK,
+      privateKey: .secKey(privateKey)
+    )
+    
+    let user = ActingUser(
+      username: "tneal",
+      password: "password"
+    )
+    
+    let wallet = Wallet(
+      actingUser: user,
+      bindingKeys: [bindingKey]
+    )
+    
+    do {
+      try await walletInitiatedIssuanceWithTertiaryOfferUrl(
+        wallet: wallet,
+        url: TERTIARY_CREDENTIAL_OFFER_QR_CODE_URL.removingPercentEncoding!
+      )
+    } catch {
+      
+      XCTExpectFailure()
+      XCTAssert(false, error.localizedDescription)
+    }
+    
+    XCTAssert(true)
+  }
+  
   func testWithOfferMDLDPoP() async throws {
     
     let privateKey = try KeyController.generateECDHPrivateKey()
@@ -580,6 +624,30 @@ private func walletInitiatedIssuanceWithOfferUrl(
   let credentials = try await wallet.issueByCredentialOfferUrlMultipleFormats(
     offerUri: url,
     config: clientConfig
+  )
+  
+  print("--> [ISSUANCE] Issued credentials:")
+  for credential in credentials {
+    print("\t [\(credential.0)]: \(credential.1)")
+  }
+}
+
+private func walletInitiatedIssuanceWithTertiaryOfferUrl(
+  wallet: Wallet,
+  url: String
+) async throws {
+  
+  guard !url.isEmpty else {
+    XCTExpectFailure()
+    XCTAssert(false, "No url provided")
+    return
+  }
+  
+  print("[[Scenario: Offer passed to wallet via url]] ")
+  
+  let credentials = try await wallet.issueByCredentialOfferUrlMultipleFormats(
+    offerUri: url,
+    config: dpopConfig()
   )
   
   print("--> [ISSUANCE] Issued credentials:")
