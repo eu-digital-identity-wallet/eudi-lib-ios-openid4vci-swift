@@ -206,8 +206,10 @@ extension IssuanceEncryptionTest {
           path: "access_token_request_response_no_proof",
           extension: "json"
         )
-      )
-    )
+      ),
+      dpopConstructor: dpopConstructor(
+        algorithms: offer.authorizationServerMetadata.dpopSigningAlgValuesSupported
+      )    )
 
     guard let parRequested = try? await issuer.prepareAuthorizationRequest(credentialOffer: offer).get() else {
       XCTAssert(false, "Unable to create request")
@@ -266,6 +268,9 @@ extension IssuanceEncryptionTest {
           path: "no_proof_generic_error_response",
           extension: "json"
         )
+      ),
+      dpopConstructor: dpopConstructor(
+        algorithms: offer.authorizationServerMetadata.dpopSigningAlgValuesSupported
       )
     )
 

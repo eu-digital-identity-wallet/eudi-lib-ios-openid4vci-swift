@@ -69,4 +69,13 @@ public enum IdentityAndAccessManagementMetadata: Sendable {
       return metaData.tokenEndpointAuthMethodsSupported ?? []
     }
   }
+  
+  var dpopSigningAlgValuesSupported: [JWSAlgorithm] {
+    switch self {
+    case .oidc(let metaData):
+      return metaData.dpopSigningAlgValuesSupported
+    case .oauth(let metaData):
+      return metaData.dpopSigningAlgValuesSupported
+    }
+  }
 }

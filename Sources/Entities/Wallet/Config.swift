@@ -44,9 +44,6 @@ public struct OpenId4VCIConfig: Sendable {
   /// Whether to use PAR.
   public let usePAR: Bool
   
-  /// An optional constructor for DPoP (Demonstration of Proof-of-Possession) tokens.
-  public let dPoPConstructor: DPoPConstructorType?
-  
   /// An optional builder for client attestation proof-of-possession tokens.
   public let clientAttestationPoPBuilder: ClientAttestationPoPBuilder?
   
@@ -59,7 +56,6 @@ public struct OpenId4VCIConfig: Sendable {
   ///   - authFlowRedirectionURI: The URI to which the authentication flow should redirect.
   ///   - authorizeIssuanceConfig: Specifies how issuance authorization should be handled (default: `.favorScopes`).
   ///   - usePAR: Whether to use Pushed Authorization Requests (default: `true`).
-  ///   - dPoPConstructor: An optional DPoP constructor (default: `nil`).
   ///   - clientAttestationPoPBuilder: An optional client attestation PoP builder (default: `nil`).
   ///   - issuerMetadataPolicy: Policy defining how issuer metadata should be handled (default: `.ignoreSigned`).
   public init(
@@ -67,7 +63,6 @@ public struct OpenId4VCIConfig: Sendable {
     authFlowRedirectionURI: URL,
     authorizeIssuanceConfig: AuthorizeIssuanceConfig = .favorScopes,
     usePAR: Bool = true,
-    dPoPConstructor: DPoPConstructorType? = nil,
     clientAttestationPoPBuilder: ClientAttestationPoPBuilder? = nil,
     issuerMetadataPolicy: IssuerMetadataPolicy = .ignoreSigned
   ) {
@@ -75,7 +70,6 @@ public struct OpenId4VCIConfig: Sendable {
     self.authFlowRedirectionURI = authFlowRedirectionURI
     self.authorizeIssuanceConfig = authorizeIssuanceConfig
     self.usePAR = usePAR
-    self.dPoPConstructor = dPoPConstructor
     self.clientAttestationPoPBuilder = clientAttestationPoPBuilder
     self.issuerMetadataPolicy = issuerMetadataPolicy
   }

@@ -30,7 +30,9 @@ public class JWSAlgorithm: JOSEAlgorithm, @unchecked Sendable {
   }
   
   public required init(from decoder: Decoder) throws {
-    fatalError("init(from:) has not been implemented")
+    let container = try decoder.singleValueContainer()
+    let name = try container.decode(String.self)
+    super.init(name: name)
   }
 }
 

@@ -112,7 +112,10 @@ extension Wallet {
       tokenPoster: Poster(session: self.session),
       requesterPoster: Poster(session: self.session),
       deferredRequesterPoster: Poster(session: self.session),
-      notificationPoster: Poster(session: self.session)
+      notificationPoster: Poster(session: self.session),
+      dpopConstructor: dpopConstructor(
+        algorithms: offer.authorizationServerMetadata.dpopSigningAlgValuesSupported
+      )
     )
     
     let authorized = try await authorizeRequestWithAuthCodeUseCase(
@@ -148,6 +151,9 @@ extension Wallet {
       authorizationServerMetadata: offer.authorizationServerMetadata,
       issuerMetadata: offer.credentialIssuerMetadata,
       config: config,
+      dpopConstructor: dpopConstructor(
+        algorithms: offer.authorizationServerMetadata.dpopSigningAlgValuesSupported
+      ),
       session: self.session
     )
     
@@ -285,7 +291,10 @@ extension Wallet {
       tokenPoster: Poster(session: self.session),
       requesterPoster: Poster(session: self.session),
       deferredRequesterPoster: Poster(session: self.session),
-      notificationPoster: Poster(session: self.session)
+      notificationPoster: Poster(session: self.session),
+      dpopConstructor: dpopConstructor(
+        algorithms: offer.authorizationServerMetadata.dpopSigningAlgValuesSupported
+      )
     )
     
     let authorized = try await authorizeRequestWithAuthCodeUseCase(
@@ -320,7 +329,9 @@ extension Wallet {
       requesterPoster: Poster(session: self.session),
       deferredRequesterPoster: Poster(session: self.session),
       notificationPoster: Poster(session: self.session),
-      dpopConstructor: config.dPoPConstructor
+      dpopConstructor: dpopConstructor(
+        algorithms: offer.authorizationServerMetadata.dpopSigningAlgValuesSupported
+      )
     )
     
     let authorized = try await authorizeRequestWithAuthCodeUseCase(
