@@ -91,6 +91,9 @@ class IssuanceNotificationTest: XCTestCase {
           path: "empty_response",
           extension: "json"
         )
+      ),
+      dpopConstructor: dpopConstructor(
+        algorithms: offer.authorizationServerMetadata.dpopSigningAlgValuesSupported
       )
     )
     
@@ -234,6 +237,9 @@ class IssuanceNotificationTest: XCTestCase {
           extension: "json",
           statusCode: 400
         )
+      ),
+      dpopConstructor: dpopConstructor(
+        algorithms: offer.authorizationServerMetadata.dpopSigningAlgValuesSupported
       )
     )
     

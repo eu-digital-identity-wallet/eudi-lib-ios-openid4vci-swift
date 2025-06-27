@@ -100,7 +100,18 @@ let attestationConfig: OpenId4VCIConfig = .init(
   authorizeIssuanceConfig: .favorScopes
 )
 
-func dpopConfig() -> OpenId4VCIConfig {
+func dpopConstructor(algorithms: [JWSAlgorithm]) throws -> DPoPConstructorType? {
+  
+  if algorithms.isEmpty {
+    return nil
+  }
+  
+  guard algorithms.filter({ $0 == JWSAlgorithm(.ES256)}).first != nil else {
+    throw ValidationError.error(
+      reason: "Unsupported dpop signing algorithm"
+    )
+  }
+  
   let privateKey = try! KeyController.generateECDHPrivateKey()
   let publicKey = try! KeyController.generateECDHPublicKey(from: privateKey)
 
@@ -114,19 +125,12 @@ func dpopConfig() -> OpenId4VCIConfig {
     ])
 
   let privateKeyProxy: SigningKeyProxy = .secKey(privateKey)
-
-  let dPoPClientConfig: OpenId4VCIConfig = .init(
-    client: .public(id: "wallet-dev"),
-    authFlowRedirectionURI: URL(string: "urn:ietf:wg:oauth:2.0:oob")!,
-    authorizeIssuanceConfig: .favorScopes,
-    dPoPConstructor: DPoPConstructor(
-      algorithm: alg,
-      jwk: publicKeyJWK,
-      privateKey: privateKeyProxy
-    )
-  )
   
-  return dPoPClientConfig
+  return DPoPConstructor(
+    algorithm: alg,
+    jwk: publicKeyJWK,
+    privateKey: privateKeyProxy
+  )
 }
 
 public struct ActingUser {

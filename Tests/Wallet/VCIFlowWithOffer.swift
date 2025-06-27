@@ -373,12 +373,7 @@ class VCIFlowWithOffer: XCTestCase {
     let dPoPClientConfig: OpenId4VCIConfig = .init(
       client: .public(id: "wallet-dev"),
       authFlowRedirectionURI: URL(string: "urn:ietf:wg:oauth:2.0:oob")!,
-      authorizeIssuanceConfig: .favorScopes,
-      dPoPConstructor: DPoPConstructor(
-        algorithm: alg,
-        jwk: publicKeyJWK,
-        privateKey: privateKeyProxy
-      )
+      authorizeIssuanceConfig: .favorScopes
     )
     
     do {
@@ -429,12 +424,7 @@ class VCIFlowWithOffer: XCTestCase {
     let dPoPClientConfig: OpenId4VCIConfig = .init(
       client: .public(id: "wallet-dev"),
       authFlowRedirectionURI: URL(string: "urn:ietf:wg:oauth:2.0:oob")!,
-      authorizeIssuanceConfig: .favorScopes,
-      dPoPConstructor: DPoPConstructor(
-        algorithm: alg,
-        jwk: publicKeyJWK,
-        privateKey: privateKeyProxy
-      )
+      authorizeIssuanceConfig: .favorScopes
     )
     
     do {
@@ -485,12 +475,7 @@ class VCIFlowWithOffer: XCTestCase {
     let dPoPClientConfig: OpenId4VCIConfig = .init(
       client: .public(id: "wallet-dev"),
       authFlowRedirectionURI: URL(string: "urn:ietf:wg:oauth:2.0:oob")!,
-      authorizeIssuanceConfig: .favorScopes,
-      dPoPConstructor: DPoPConstructor(
-        algorithm: alg,
-        jwk: publicKeyJWK,
-        privateKey: privateKeyProxy
-      )
+      authorizeIssuanceConfig: .favorScopes
     )
     
     do {
@@ -647,7 +632,7 @@ private func walletInitiatedIssuanceWithTertiaryOfferUrl(
   
   let credentials = try await wallet.issueByCredentialOfferUrlMultipleFormats(
     offerUri: url,
-    config: dpopConfig()
+    config: clientConfig
   )
   
   print("--> [ISSUANCE] Issued credentials:")
