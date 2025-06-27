@@ -114,11 +114,6 @@ func dpopConfig() -> OpenId4VCIConfig {
     ])
 
   let privateKeyProxy: SigningKeyProxy = .secKey(privateKey)
-  let bindingKey: BindingKey = .jwk(
-    algorithm: alg,
-    jwk: publicKeyJWK,
-    privateKey: privateKeyProxy
-  )
 
   let dPoPClientConfig: OpenId4VCIConfig = .init(
     client: .public(id: "wallet-dev"),
@@ -131,14 +126,7 @@ func dpopConfig() -> OpenId4VCIConfig {
     )
   )
   
-  return .init(
-    client: try! selfSignedClient(
-      clientId: "wallet-dev",
-      privateKey: try KeyController.generateECDHPrivateKey()
-    ),
-    authFlowRedirectionURI: URL(string: "urn:ietf:wg:oauth:2.0:oob")!,
-    authorizeIssuanceConfig: .favorScopes
-  )
+  return dPoPClientConfig
 }
 
 public struct ActingUser {
