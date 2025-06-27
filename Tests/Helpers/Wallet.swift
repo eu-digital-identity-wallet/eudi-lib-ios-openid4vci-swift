@@ -112,7 +112,8 @@ extension Wallet {
       tokenPoster: Poster(session: self.session),
       requesterPoster: Poster(session: self.session),
       deferredRequesterPoster: Poster(session: self.session),
-      notificationPoster: Poster(session: self.session)
+      notificationPoster: Poster(session: self.session),
+      dpopConstructor: config.dPoPConstructor
     )
     
     let authorized = try await authorizeRequestWithAuthCodeUseCase(
