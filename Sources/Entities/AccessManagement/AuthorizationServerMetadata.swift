@@ -26,7 +26,7 @@ public struct AuthorizationServerMetadata: Codable, Equatable, Sendable {
   public let requestParameterSupported, requestURIParameterSupported, requireRequestURIRegistration: Bool?
   public let codeChallengeMethodsSupported: [String]?
   public let tlsClientCertificateBoundAccessTokens: Bool?
-  public let dpopSigningAlgValuesSupported: [JWSAlgorithm]
+  public let dpopSigningAlgValuesSupported: [JWSAlgorithm]?
   public let revocationEndpoint: String?
   public let revocationEndpointAuthMethodsSupported, revocationEndpointAuthSigningAlgValuesSupported: [String]?
   public let deviceAuthorizationEndpoint: String?
@@ -104,7 +104,7 @@ public struct AuthorizationServerMetadata: Codable, Equatable, Sendable {
     requireRequestURIRegistration: Bool? = nil,
     codeChallengeMethodsSupported: [String]? = nil,
     tlsClientCertificateBoundAccessTokens: Bool? = nil,
-    dpopSigningAlgValuesSupported: [JWSAlgorithm] = [],
+    dpopSigningAlgValuesSupported: [JWSAlgorithm]? = nil,
     revocationEndpoint: String? = nil,
     revocationEndpointAuthMethodsSupported: [String]? = nil,
     revocationEndpointAuthSigningAlgValuesSupported: [String]? = nil,
