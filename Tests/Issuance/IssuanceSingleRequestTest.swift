@@ -85,6 +85,9 @@ class IssuanceSingleRequestTest: XCTestCase {
           path: "single_issuance_success_response_credential",
           extension: "json"
         )
+      ),
+      dpopConstructor: dpopConstructor(
+        algorithms: offer.authorizationServerMetadata.dpopSigningAlgValuesSupported
       )
     )
     
@@ -206,6 +209,9 @@ class IssuanceSingleRequestTest: XCTestCase {
           path: "single_issuance_success_response_credential",
           extension: "json"
         )
+      ),
+      dpopConstructor: dpopConstructor(
+        algorithms: offer.authorizationServerMetadata.dpopSigningAlgValuesSupported
       )
     )
     
@@ -328,6 +334,9 @@ class IssuanceSingleRequestTest: XCTestCase {
           path: "single_issuance_success_response_credential",
           extension: "json"
         )
+      ),
+      dpopConstructor: dpopConstructor(
+        algorithms: offer.authorizationServerMetadata.dpopSigningAlgValuesSupported
       )
     )
     

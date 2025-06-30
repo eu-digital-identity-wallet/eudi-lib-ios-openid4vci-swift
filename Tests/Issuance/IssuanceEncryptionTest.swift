@@ -206,6 +206,9 @@ extension IssuanceEncryptionTest {
           path: "access_token_request_response_no_proof",
           extension: "json"
         )
+      ),
+      dpopConstructor: dpopConstructor(
+        algorithms: offer.authorizationServerMetadata.dpopSigningAlgValuesSupported
       )
     )
 
@@ -266,6 +269,9 @@ extension IssuanceEncryptionTest {
           path: "no_proof_generic_error_response",
           extension: "json"
         )
+      ),
+      dpopConstructor: dpopConstructor(
+        algorithms: offer.authorizationServerMetadata.dpopSigningAlgValuesSupported
       )
     )
 
