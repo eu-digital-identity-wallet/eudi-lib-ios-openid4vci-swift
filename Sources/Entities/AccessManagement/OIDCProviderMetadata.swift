@@ -35,7 +35,7 @@ public struct OIDCProviderMetadata: Codable, Equatable, Sendable {
   public let requestParameterSupported, requestURIParameterSupported, requireRequestURIRegistration: Bool?
   public let codeChallengeMethodsSupported: [String]?
   public let tlsClientCertificateBoundAccessTokens: Bool?
-  public let dpopSigningAlgValuesSupported: [JWSAlgorithm]
+  public let dpopSigningAlgValuesSupported: [JWSAlgorithm]?
   public let revocationEndpoint: String?
   public let revocationEndpointAuthMethodsSupported, revocationEndpointAuthSigningAlgValuesSupported: [String]?
   public let backchannelLogoutSupported, backchannelLogoutSessionSupported: Bool?
@@ -147,7 +147,7 @@ public struct OIDCProviderMetadata: Codable, Equatable, Sendable {
     requireRequestURIRegistration: Bool?,
     codeChallengeMethodsSupported: [String]?,
     tlsClientCertificateBoundAccessTokens: Bool?,
-    dpopSigningAlgValuesSupported: [JWSAlgorithm],
+    dpopSigningAlgValuesSupported: [JWSAlgorithm]?,
     revocationEndpoint: String?,
     revocationEndpointAuthMethodsSupported: [String]?,
     revocationEndpointAuthSigningAlgValuesSupported: [String]?,

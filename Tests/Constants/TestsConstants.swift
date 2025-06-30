@@ -100,7 +100,11 @@ let attestationConfig: OpenId4VCIConfig = .init(
   authorizeIssuanceConfig: .favorScopes
 )
 
-func dpopConstructor(algorithms: [JWSAlgorithm]) throws -> DPoPConstructorType? {
+func dpopConstructor(algorithms: [JWSAlgorithm]?) throws -> DPoPConstructorType? {
+  
+  guard let algorithms = algorithms else {
+    return nil
+  }
   
   if algorithms.isEmpty {
     return nil

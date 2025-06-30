@@ -209,7 +209,8 @@ extension IssuanceEncryptionTest {
       ),
       dpopConstructor: dpopConstructor(
         algorithms: offer.authorizationServerMetadata.dpopSigningAlgValuesSupported
-      )    )
+      )
+    )
 
     guard let parRequested = try? await issuer.prepareAuthorizationRequest(credentialOffer: offer).get() else {
       XCTAssert(false, "Unable to create request")
