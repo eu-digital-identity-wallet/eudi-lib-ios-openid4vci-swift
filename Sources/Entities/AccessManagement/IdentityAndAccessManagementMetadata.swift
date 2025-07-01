@@ -70,7 +70,7 @@ public enum IdentityAndAccessManagementMetadata: Sendable {
     }
   }
   
-  var dpopSigningAlgValuesSupported: [JWSAlgorithm]? {
+  public var dpopSigningAlgValuesSupported: [JWSAlgorithm]? {
     switch self {
     case .oidc(let metaData):
       return metaData.dpopSigningAlgValuesSupported
