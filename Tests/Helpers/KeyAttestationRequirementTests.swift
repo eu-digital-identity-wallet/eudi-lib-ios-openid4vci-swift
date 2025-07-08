@@ -28,8 +28,14 @@ final class KeyAttestationRequirementTests: XCTestCase {
   }
   
   func testInit_requiredWithValidConstraints() throws {
-    let keyStorageConstraints = ["SecureEnclave", "Hardware"]
-    let userAuthenticationConstraints = ["Biometric", "PIN"]
+    let keyStorageConstraints: [AttackPotentialResistance] = [
+      .iso18045High,
+      .iso18045EnhancedBasic
+    ]
+    
+    let userAuthenticationConstraints: [AttackPotentialResistance] = [
+      .iso18045Moderate
+    ]
     
     let requirement = try KeyAttestationRequirement(
       keyStorageConstraints: keyStorageConstraints,
@@ -54,8 +60,8 @@ final class KeyAttestationRequirementTests: XCTestCase {
   
   func testEncoding_required() throws {
     let requirement = KeyAttestationRequirement.required(
-      keyStorageConstraints: ["SecureEnclave"],
-      userAuthenticationConstraints: ["Biometric"]
+      keyStorageConstraints: [.iso18045Basic],
+      userAuthenticationConstraints: [.iso18045EnhancedBasic]
     )
     
     let encoder = JSONEncoder()
@@ -63,15 +69,15 @@ final class KeyAttestationRequirementTests: XCTestCase {
     let jsonString = String(data: data, encoding: .utf8)
     
     XCTAssertNotNil(jsonString)
-    XCTAssertTrue(jsonString!.contains("\"key_storage\":[\"SecureEnclave\"]"))
-    XCTAssertTrue(jsonString!.contains("\"user_authentication\":[\"Biometric\"]"))
+    XCTAssertTrue(jsonString!.contains("\"key_storage\":[\"iso_18045_basic\"]"))
+    XCTAssertTrue(jsonString!.contains("\"user_authentication\":[\"iso_18045_enhanced-basic\"]"))
   }
   
   func testDecoding_required() throws {
     let jsonData = """
         {
-            "key_storage": ["SecureEnclave"],
-            "user_authentication": ["Biometric"]
+            "key_storage": ["iso_18045_high"],
+            "user_authentication": ["iso_18045_enhanced-basic"]
         }
         """.data(using: .utf8)!
     
@@ -79,8 +85,8 @@ final class KeyAttestationRequirementTests: XCTestCase {
     let requirement = try decoder.decode(KeyAttestationRequirement.self, from: jsonData)
     
     if case let .required(storedConstraints, authConstraints) = requirement {
-      XCTAssertEqual(storedConstraints, ["SecureEnclave"])
-      XCTAssertEqual(authConstraints, ["Biometric"])
+      XCTAssertEqual(storedConstraints, [.iso18045High])
+      XCTAssertEqual(authConstraints, [.iso18045EnhancedBasic])
     } else {
       XCTFail("Expected .required case")
     }
@@ -111,15 +117,21 @@ final class KeyAttestationRequirementTests: XCTestCase {
   
   func testInitFromJSON_required() throws {
     let json: JSON = [
-      "key_storage": ["SecureEnclave"],
-      "user_authentication": ["Biometric"]
+      "key_storage": [
+        AttackPotentialResistance.iso18045Basic,
+        AttackPotentialResistance.iso18045High
+      ],
+      "user_authentication": [
+        AttackPotentialResistance.iso18045Basic,
+        AttackPotentialResistance.iso18045High
+      ]
     ]
     
     let requirement = try KeyAttestationRequirement(json: json)
     
     if case let .required(storedConstraints, authConstraints) = requirement {
-      XCTAssertEqual(storedConstraints, ["SecureEnclave"])
-      XCTAssertEqual(authConstraints, ["Biometric"])
+      XCTAssertEqual(storedConstraints, [.iso18045Basic, .iso18045High])
+      XCTAssertEqual(authConstraints, [.iso18045Basic, .iso18045High])
     } else {
       XCTFail("Expected .required case")
     }

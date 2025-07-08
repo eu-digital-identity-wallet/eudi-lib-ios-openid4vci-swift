@@ -17,7 +17,7 @@ import Foundation
 
 /// Represents the resistance level of key storage or user authentication
 /// against attacks, as defined in ISO/IEC 18045.
-public enum AttackPotentialResistance: String {
+public enum AttackPotentialResistance: String, Codable, Sendable {
   
   /// Resistant to attack with attack potential "High", equivalent to VAN.5.
   case iso18045High = "iso_18045_high"

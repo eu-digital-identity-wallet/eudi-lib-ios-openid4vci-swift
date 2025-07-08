@@ -37,8 +37,8 @@ public enum KeyAttestationRequirement: Codable, Sendable, Equatable {
   ///   - keyStorageConstraints: Constraints related to key storage.
   ///   - userAuthenticationConstraints: Constraints related to user authentication.
   case required(
-    keyStorageConstraints: [String],
-    userAuthenticationConstraints: [String]
+    keyStorageConstraints: [AttackPotentialResistance],
+    userAuthenticationConstraints: [AttackPotentialResistance]
   )
 
   /// Coding keys for encoding and decoding.
@@ -54,8 +54,8 @@ public enum KeyAttestationRequirement: Codable, Sendable, Equatable {
   public init(from decoder: Decoder) throws {
     let container = try decoder.container(keyedBy: CodingKeys.self)
 
-    if let keyStorageConstraints = try? container.decode([String].self, forKey: .keyStorageConstraints),
-       let userAuthenticationConstraints = try? container.decode([String].self, forKey: .userAuthenticationConstraints) {
+    if let keyStorageConstraints = try? container.decode([AttackPotentialResistance].self, forKey: .keyStorageConstraints),
+       let userAuthenticationConstraints = try? container.decode([AttackPotentialResistance].self, forKey: .userAuthenticationConstraints) {
       guard !keyStorageConstraints.isEmpty, !userAuthenticationConstraints.isEmpty else {
         throw KeyAttestationRequirementError.invalidConstraints
       }
@@ -94,8 +94,8 @@ public extension KeyAttestationRequirement {
   ///   - userAuthenticationConstraints: Constraints related to user authentication.
   /// - Throws: `KeyAttestationRequirementError.invalidConstraints` if constraints are empty.
   init(
-    keyStorageConstraints: [String] = [],
-    userAuthenticationConstraints: [String] = []
+    keyStorageConstraints: [AttackPotentialResistance] = [],
+    userAuthenticationConstraints: [AttackPotentialResistance] = []
   ) throws {
     guard !keyStorageConstraints.isEmpty, !userAuthenticationConstraints.isEmpty else {
       throw KeyAttestationRequirementError.invalidConstraints
@@ -116,16 +116,19 @@ public extension KeyAttestationRequirement {
       return
     }
 
-    let keyStorageConstraints = json[CodingKeys.keyStorageConstraints.rawValue].arrayValue.map { $0.stringValue }
-    let userAuthenticationConstraints = json[CodingKeys.userAuthenticationConstraints.rawValue].arrayValue.map { $0.stringValue }
-
-    if keyStorageConstraints.isEmpty || userAuthenticationConstraints.isEmpty {
+    guard
+      let keyStorageConstraints = json[CodingKeys.keyStorageConstraints.rawValue].arrayObject?.compactMap({ $0 as? AttackPotentialResistance }),
+      let userAuthenticationConstraints = json[CodingKeys.userAuthenticationConstraints.rawValue].arrayObject?.compactMap({ $0 as? AttackPotentialResistance }),
+      !keyStorageConstraints.isEmpty,
+      !userAuthenticationConstraints.isEmpty
+    else {
       self = .notRequired
-    } else {
-      try self.init(
-        keyStorageConstraints: keyStorageConstraints,
-        userAuthenticationConstraints: userAuthenticationConstraints
-      )
+      return
     }
+
+    try self.init(
+      keyStorageConstraints: keyStorageConstraints,
+      userAuthenticationConstraints: userAuthenticationConstraints
+    )
   }
 }
