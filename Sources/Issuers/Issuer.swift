@@ -573,7 +573,15 @@ private extension Issuer {
     nonce: String?
   ) async -> [Proof] {
     await Task.detached { () -> [Proof] in
-      return await (try? bindingKeys.asyncCompactMap { try await $0.toSupportedProof(
+      let keys = bindingKeys.filter { key in
+        switch key {
+        case .jwk, .keyAttestation:
+          true
+        default:
+          false
+        }
+      }
+      return await (try? keys.asyncCompactMap { try await $0.toSupportedProof(
         issuanceRequester: self.issuanceRequester,
         credentialSpec: supportedCredential,
         cNonce: nonce
