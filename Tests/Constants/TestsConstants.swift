@@ -118,7 +118,7 @@ func dpopConstructor(algorithms: [JWSAlgorithm]?) throws -> DPoPConstructorType?
   
   let privateKey = try! KeyController.generateECDHPrivateKey()
   let publicKey = try! KeyController.generateECDHPublicKey(from: privateKey)
-
+  
   let alg = JWSAlgorithm(.ES256)
   let publicKeyJWK = try! ECPublicKey(
     publicKey: publicKey,
@@ -127,7 +127,7 @@ func dpopConstructor(algorithms: [JWSAlgorithm]?) throws -> DPoPConstructorType?
       "use": "sig",
       "kid": UUID().uuidString
     ])
-
+  
   let privateKeyProxy: SigningKeyProxy = .secKey(privateKey)
   
   return DPoPConstructor(
