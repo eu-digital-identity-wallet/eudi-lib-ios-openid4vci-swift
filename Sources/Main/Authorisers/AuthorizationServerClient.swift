@@ -672,14 +672,6 @@ internal actor AuthorizationServerClient: AuthorizationServerClientType {
             } else {
               return .failure(ValidationError.retryFailedAfterDpopNonce)
             }
-          case .networkError:
-              return try await requestAccessTokenAuthFlow(
-                authorizationCode: authorizationCode,
-                codeVerifier: codeVerifier,
-                identifiers: identifiers,
-                dpopNonce: dpopNonce,
-                retry: false
-              )
           default:
             return .failure(error)
           }
