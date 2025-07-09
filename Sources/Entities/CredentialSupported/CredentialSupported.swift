@@ -130,4 +130,15 @@ public extension CredentialSupported {
       )
     }
   }
+  
+  var proofTypesSupported: [String: ProofTypeSupportedMeta]? {
+    switch self {
+    case .msoMdoc(let spec):
+      spec.proofTypesSupported
+    case .sdJwtVc(let spec):
+      spec.proofTypesSupported
+    default:
+      nil
+    }
+  }
 }
