@@ -213,21 +213,3 @@ extension BindingKey {
     }
   }
 }
-
-class PrecomputedSigner: JOSESwift.SignerProtocol {
-	var algorithm: JOSESwift.SignatureAlgorithm
-	let signature: Data
-	
-	init(signature: Data, algorithm: JOSESwift.SignatureAlgorithm) {
-		self.algorithm = algorithm
-		self.signature = signature
-	}
-	
-	func sign(_ signingInput: Data) throws -> Data {
-		return signature
-	}
-}
-
-public protocol AsyncSignerProtocol: Sendable {
-  func signAsync(_ header: Data, _ payload: Data) async throws -> Data
-}
