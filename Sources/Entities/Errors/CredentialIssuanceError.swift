@@ -38,6 +38,7 @@ public enum CredentialIssuanceError: Error, LocalizedError {
   case invalidProof(errorDescription: String?)
   case deferredCredentialIssuancePending(interval: Int?)
   case notificationFailed(reason: String)
+  case proofTypeKeyAttestationRequired
   
   public var errorDescription: String? {
     switch self {
@@ -82,6 +83,8 @@ public enum CredentialIssuanceError: Error, LocalizedError {
       }
     case .notificationFailed(let reason):
       return "Notification failed: \(reason)"
+    case .proofTypeKeyAttestationRequired:
+      return "Proof type key attestation required."
     }
   }
 }
