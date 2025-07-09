@@ -14,9 +14,9 @@
  * limitations under the License.
  */
 import Foundation
-import JOSESwift
+@preconcurrency import JOSESwift
 
-public struct KeyAttestationJWT {
+public struct KeyAttestationJWT: Sendable {
   
   public let jws: JWS
   public let attestedKeys: [JWK]
