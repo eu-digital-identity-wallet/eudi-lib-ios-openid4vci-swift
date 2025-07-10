@@ -255,7 +255,10 @@ public actor Issuer: IssuerType {
     )
     
     if let nonceEndpoint = issuerMetadata.nonceEndpoint {
-      nonceEndpointClient = NonceEndpointClient(nonceEndpoint: nonceEndpoint)
+      nonceEndpointClient = NonceEndpointClient(
+        poster: noncePoster,
+        nonceEndpoint: nonceEndpoint
+      )
     } else {
       nonceEndpointClient = nil
     }
@@ -547,6 +550,9 @@ private extension Issuer {
       return []
     default:
       let cNonce = try? await nonceEndpointClient?.getNonce().get()
+      
+      try await validateBindingKeys(credentialSpec: supportedCredential, bindingKeys: bindingKeys)
+      
       let proofs = await calculateProofs(
         bindingKeys: bindingKeys,
         supportedCredential: supportedCredential,
@@ -564,6 +570,26 @@ private extension Issuer {
         }
         return proofs
       }
+    }
+  }
+  
+  private func validateBindingKeys(
+    credentialSpec: CredentialSupported,
+    bindingKeys: [BindingKey]
+  ) async throws {
+    let keyAttestationRequirement = credentialSpec.proofTypesSupported?["jwt"]?.keyAttestationRequirement
+    switch keyAttestationRequirement {
+    case .required, .requiredNoConstraints:
+      if bindingKeys.filter({ key in
+        switch key {
+        case .keyAttestation:
+          true
+        default: false
+        }
+      }).isEmpty {
+        throw CredentialIssuanceError.proofTypeKeyAttestationRequired
+      }
+    default: break
     }
   }
   
