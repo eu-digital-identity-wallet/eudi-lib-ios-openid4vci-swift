@@ -117,15 +117,24 @@ public extension KeyAttestationRequirement {
     }
 
     guard
-      let keyStorageConstraints = json[CodingKeys.keyStorageConstraints.rawValue].arrayObject?.compactMap({ $0 as? AttackPotentialResistance }),
-      let userAuthenticationConstraints = json[CodingKeys.userAuthenticationConstraints.rawValue].arrayObject?.compactMap({ $0 as? AttackPotentialResistance }),
-      !keyStorageConstraints.isEmpty,
-      !userAuthenticationConstraints.isEmpty
+      let keyStorageConstraints: [AttackPotentialResistance] = json[CodingKeys.keyStorageConstraints.rawValue].arrayObject?.compactMap({
+        guard let potential = $0 as? String else { return nil }
+        return AttackPotentialResistance(rawValue: potential)
+      }),
+      let userAuthenticationConstraints: [AttackPotentialResistance] = json[CodingKeys.userAuthenticationConstraints.rawValue].arrayObject?.compactMap({
+        guard let potential = $0 as? String else { return nil }
+        return AttackPotentialResistance(rawValue: potential)
+      })
     else {
       self = .notRequired
       return
     }
 
+    if keyStorageConstraints.isEmpty && userAuthenticationConstraints.isEmpty {
+      self = .notRequired
+      return
+    }
+    
     try self.init(
       keyStorageConstraints: keyStorageConstraints,
       userAuthenticationConstraints: userAuthenticationConstraints
