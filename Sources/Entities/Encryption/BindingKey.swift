@@ -138,6 +138,7 @@ public extension BindingKey {
       }
       
       let header = try JWSHeader(parameters: [
+        "alg": algorithm.name,
         "kid": "\(keyIndex)",
         "key_attestation": keyAttestationJWT.jws.compactSerializedString
       ])
