@@ -118,20 +118,18 @@ final class KeyAttestationRequirementTests: XCTestCase {
   func testInitFromJSON_required() throws {
     let json: JSON = [
       "key_storage": [
-        AttackPotentialResistance.iso18045Basic,
-        AttackPotentialResistance.iso18045High
+        "iso_18045_basic"
       ],
       "user_authentication": [
-        AttackPotentialResistance.iso18045Basic,
-        AttackPotentialResistance.iso18045High
+        "iso_18045_high"
       ]
     ]
     
     let requirement = try KeyAttestationRequirement(json: json)
     
     if case let .required(storedConstraints, authConstraints) = requirement {
-      XCTAssertEqual(storedConstraints, [.iso18045Basic, .iso18045High])
-      XCTAssertEqual(authConstraints, [.iso18045Basic, .iso18045High])
+      XCTAssertEqual(storedConstraints, [.iso18045Basic])
+      XCTAssertEqual(authConstraints, [.iso18045High])
     } else {
       XCTFail("Expected .required case")
     }
