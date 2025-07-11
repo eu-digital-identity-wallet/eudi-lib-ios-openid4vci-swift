@@ -50,7 +50,7 @@ class KeyAttestationTests: XCTestCase {
     config = nil
   }
   
-  func testWhenIssuerDemandsKeyAttestationShouldBeIncludedInJWTProof() async throws {
+  func testWhenIssuerRequiressKeyAttestationShouldBeIncludedInProof() async throws {
     
     // Given
     let sdJwtVCpayload: IssuanceRequestPayload = .configurationBased(
@@ -66,15 +66,13 @@ class KeyAttestationTests: XCTestCase {
         )
       ),
       keyIndex: 1,
-      privateKey: .secKey(data.privateKey),
-      issuer: "https://issuer.example.com"
+      privateKey: .secKey(data.privateKey)
     )
     
     let altBindingKey: BindingKey = .jwk(
       algorithm: .init(.ES256),
       jwk: data.publicKey,
-      privateKey: .secKey(data.privateKey),
-      issuer: "https://issuer.example.com"
+      privateKey: .secKey(data.privateKey)
     )
     
     // When
