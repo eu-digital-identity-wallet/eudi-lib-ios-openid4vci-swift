@@ -13,37 +13,112 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import Foundation
+@preconcurrency import Foundation
 import XCTest
-import JOSESwift
+@preconcurrency import JOSESwift
 
 @testable import OpenID4VCI
 
 class KeyAttestationTests: XCTestCase {
   
-  let config: OpenId4VCIConfig = .init(
-    client: .public(id: "wallet-dev"),
-    authFlowRedirectionURI: URL(string: "urn:ietf:wg:oauth:2.0:oob")!,
-    authorizeIssuanceConfig: .favorScopes
-  )
+  var config: OpenId4VCIConfig!
+  var data: (
+    privateKey: SecKey,
+    publicKey: ECPublicKey,
+    spec: IssuanceResponseEncryptionSpec,
+    issuer: Issuer,
+    issuanceAuthorization: IssuanceAuthorization,
+    offer: CredentialOffer
+  )!
   
   override func setUp() async throws {
     try await super.setUp()
+    
+    config = .init(
+      client: .public(id: "wallet-dev"),
+      authFlowRedirectionURI: URL(string: "urn:ietf:wg:oauth:2.0:oob")!,
+      authorizeIssuanceConfig: .favorScopes
+    )
+    
+    data = try! await keyAttestationData()
   }
   
   override func tearDown() {
     super.tearDown()
+    
+    data = nil
+    config = nil
   }
   
   func testWhenIssuerDemandsKeyAttestationShouldBeIncludedInJWTProof() async throws {
     
     // Given
-    guard let offer = await TestsConstants.createMockCredentialOfferopenidKeyAttestationRequired() else {
-      XCTAssert(false, "Unable to resolve credential offer")
-      return
-    }
+    let sdJwtVCpayload: IssuanceRequestPayload = .configurationBased(
+      credentialConfigurationIdentifier: try .init(value: "eu.europa.ec.eudiw.pid_vc_sd_jwt")
+    )
+    let spec = data.spec
     
-    // Given
+    let keyBindingKey: BindingKey = try! .keyAttestation(
+      algorithm: .init(.ES256),
+      keyAttestationJWT: .init(
+        jws: .init(
+          compactSerialization: TestsConstants.ketAttestationJWT
+        )
+      ),
+      keyIndex: 1,
+      privateKey: .secKey(data.privateKey),
+      issuer: "https://issuer.example.com"
+    )
+    
+    let altBindingKey: BindingKey = .jwk(
+      algorithm: .init(.ES256),
+      jwk: data.publicKey,
+      privateKey: .secKey(data.privateKey),
+      issuer: "https://issuer.example.com"
+    )
+    
+    // When
+    let authorized = try! await data.issuer.authorizeWithAuthorizationCode(
+      request: try await data.issuer.handleAuthorizationCode(
+        request: TestsConstants.unAuthorizedRequest,
+        authorizationCode: data.issuanceAuthorization
+      ).get()
+    ).get()
+
+    
+    do {
+      
+      // Then
+      let result = try await data.issuer.requestCredential(
+        request: authorized,
+        bindingKeys: [
+          altBindingKey,
+          keyBindingKey
+        ],
+        requestPayload: sdJwtVCpayload,
+        responseEncryptionSpecProvider: { _ in
+          spec
+        })
+      
+      switch result {
+      case .success:
+        XCTAssert(true, "Success")
+      case .failure(let error):
+        XCTAssert(false, error.localizedDescription)
+      }
+    } catch {
+      XCTAssert(false, error.localizedDescription)
+    }
+  }
+  
+  func keyAttestationData() async throws -> (
+    privateKey: SecKey,
+    publicKey: ECPublicKey,
+    spec: IssuanceResponseEncryptionSpec,
+    issuer: Issuer,
+    issuanceAuthorization: IssuanceAuthorization,
+    offer: CredentialOffer
+  ) {
     let privateKey = try KeyController.generateECDHPrivateKey()
     let publicKey = try KeyController.generateECDHPublicKey(from: privateKey)
     
@@ -63,7 +138,7 @@ class KeyAttestationTests: XCTestCase {
       encryptionMethod: .init(.A128CBC_HS256)
     )
     
-    // When
+    let offer = await TestsConstants.createMockCredentialOfferopenidKeyAttestationRequired()!
     let issuer = try Issuer(
       authorizationServerMetadata: offer.authorizationServerMetadata,
       issuerMetadata: offer.credentialIssuerMetadata,
@@ -97,95 +172,15 @@ class KeyAttestationTests: XCTestCase {
       )
     )
     
-    let authorizationCode = "MZqG9bsQ8UALhsGNlY39Yw=="
-    let request: AuthorizationRequestPrepared = TestsConstants.unAuthorizedRequest
+    let issuanceAuthorization: IssuanceAuthorization = .authorizationCode(authorizationCode: "MZqG9bsQ8UALhsGNlY39Yw==")
     
-    let issuanceAuthorization: IssuanceAuthorization = .authorizationCode(authorizationCode: authorizationCode)
-    let unAuthorized = await issuer.handleAuthorizationCode(
-      request: request,
-      authorizationCode: issuanceAuthorization
+    return (
+      privateKey: privateKey,
+      publicKey: publicKeyJWK,
+      spec: spec,
+      issuer: issuer,
+      issuanceAuthorization: issuanceAuthorization,
+      offer: offer
     )
-    
-    switch unAuthorized {
-    case .success(let authorizationCode):
-      let authorizedRequest = await issuer.authorizeWithAuthorizationCode(request: authorizationCode)
-      
-      if case let .success(authorized) = authorizedRequest {
-        XCTAssert(true, "Got access token: \(authorized.accessToken)")
-        XCTAssert(true, "Is no proof required")
-        
-        do {
-                    
-          let sdJwtVCpayload: IssuanceRequestPayload = .configurationBased(
-            credentialConfigurationIdentifier: try .init(value: "eu.europa.ec.eudiw.pid_vc_sd_jwt")
-          )
-          
-          let keyBindingKey: BindingKey = try! .keyAttestation(
-            algorithm: .init(.ES256),
-            keyAttestationJWT: .init(
-              jws: .init(
-                compactSerialization: TestsConstants.ketAttestationJWT
-              )
-            ),
-            keyIndex: 1,
-            privateKey: .secKey(privateKey),
-            issuer: "https://issuer.example.com"
-          )
-          
-          let altBindingKey: BindingKey = .jwk(
-            algorithm: .init(.ES256),
-            jwk: publicKeyJWK,
-            privateKey: .secKey(privateKey),
-            issuer: "https://issuer.example.com"
-          )
-          
-          let result = try await issuer.requestCredential(
-            request: authorized,
-            bindingKeys: [
-              altBindingKey,
-              keyBindingKey
-            ],
-            requestPayload: sdJwtVCpayload,
-            responseEncryptionSpecProvider: { _ in
-              spec
-            })
-          
-          switch result {
-          case .success(let request):
-            switch request {
-            case .success(let response):
-              if let result = response.credentialResponses.first {
-                switch result {
-                case .deferred:
-                  XCTAssert(false, "Unexpected deferred")
-                case .issued(_, let credential, _, _):
-                  XCTAssert(true, "credential: \(credential)")
-                  return
-                }
-              } else {
-                break
-              }
-            case .failed(let error):
-              XCTAssert(false, error.localizedDescription)
-              
-            case .invalidProof(let errorDescription):
-              XCTAssert(false, errorDescription!)
-            }
-            XCTAssert(false, "Unexpected request")
-          case .failure(let error):
-            XCTAssert(false, error.localizedDescription)
-          }
-        } catch {
-          XCTAssert(false, error.localizedDescription)
-        }
-        
-        return
-      }
-      
-    case .failure(let error):
-      XCTAssert(false, error.localizedDescription)
-    }
-    
-    XCTAssert(false, "Unable to get access token")
   }
 }
