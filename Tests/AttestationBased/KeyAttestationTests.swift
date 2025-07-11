@@ -111,6 +111,93 @@ class KeyAttestationTests: XCTestCase {
     }
   }
   
+  func testKeyAttestationJWTShouldBeSigned() async throws {
+    
+    XCTAssertThrowsError(try KeyAttestationJWT(
+      jwt: TestsConstants.keyAttestationInvalidJWT
+    )) { _ in
+        XCTAssert(true)
+    }
+  }
+  
+  func testKeyAttestationJWTShouldHaveCorrectType() async throws {
+    XCTAssertThrowsError(try KeyAttestationJWT(jws: try JWS(
+      header: .init(parameters: [
+        "alg": "ES256",
+        "type": "not-key-attestation-typ"
+      ]),
+      payload: .init([
+        "key":"value"
+      ].toThrowingJSONData()),
+      signer: .init(
+        signatureAlgorithm: .ES256,
+        key: data.privateKey
+      )!
+    ))) { error in
+      if let error = error as? KeyAttestationError {
+        switch error {
+        case .invalidType: XCTAssert(true)
+        default: XCTAssert(false)
+        }
+      } else {
+        XCTAssert(false)
+      }
+    }
+  }
+  
+  func testKeyAttestationJWTShouldHaveIssuedAt() async throws {
+    XCTAssertThrowsError(try KeyAttestationJWT(jws: try JWS(
+      header: .init(parameters: [
+        "alg": "ES256",
+        "typ": "keyattestation+jwt"
+      ]),
+      payload: .init([
+        "no-iat":"value"
+      ].toThrowingJSONData()),
+      signer: .init(
+        signatureAlgorithm: .ES256,
+        key: data.privateKey
+      )!
+    ))) { error in
+      if let error = error as? KeyAttestationError {
+        switch error {
+        case .missingIAT: XCTAssert(true)
+        default: XCTAssert(false)
+        }
+      } else {
+        XCTAssert(false)
+      }
+    }
+  }
+  
+  func testKeyAttestationJWTShouldHaveAttestedKeys() async throws {
+    XCTAssertThrowsError(try KeyAttestationJWT(jws: try JWS(
+      header: .init(parameters: [
+        "alg": "ES256",
+        "typ": "keyattestation+jwt"
+      ]),
+      payload: .init([
+        "iat": Date().timeIntervalSince1970
+      ].toThrowingJSONData()),
+      signer: .init(
+        signatureAlgorithm: .ES256,
+        key: data.privateKey
+      )!
+    ))) { error in
+      if let error = error as? KeyAttestationError {
+        switch error {
+        case .missingOrEmptyAttestedKeys: XCTAssert(true)
+        default: XCTAssert(false)
+        }
+      } else {
+        XCTAssert(false)
+      }
+    }
+  }
+}
+
+extension KeyAttestationTests {
+  
   func keyAttestationData() async throws -> (
     privateKey: SecKey,
     publicKey: ECPublicKey,

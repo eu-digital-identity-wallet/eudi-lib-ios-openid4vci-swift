@@ -21,6 +21,17 @@ public struct KeyAttestationJWT: Sendable {
   public let jws: JWS
   public let attestedKeys: [JWK]
   
+  public init(jwt: String) throws {
+    
+    self.jws = try .init(compactSerialization: jwt)
+    try Self.validateHeader(jws.header)
+    
+    let payload = try Self.parsePayload(jws.payload)
+    try Self.validateClaims(payload)
+    
+    self.attestedKeys = try Self.parseAttestedKeys(from: payload)
+  }
+  
   public init(jws: JWS) throws {
     
     self.jws = jws
