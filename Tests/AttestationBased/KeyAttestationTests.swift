@@ -194,6 +194,27 @@ class KeyAttestationTests: XCTestCase {
       }
     }
   }
+  
+  func testKeyAttestationJWTShouldSatsifyAllRequirements() async throws {
+    _ = try KeyAttestationJWT(jws: try JWS(
+      header: .init(parameters: [
+        "alg": "ES256",
+        "typ": "keyattestation+jwt"
+      ]),
+      payload: .init([
+        "iat": Date().timeIntervalSince1970,
+        "attested_keys": [
+          data.publicKey.toDictionary()
+        ]
+      ].toThrowingJSONData()),
+      signer: .init(
+        signatureAlgorithm: .ES256,
+        key: data.privateKey
+      )!
+    ))
+    
+    XCTAssert(true)
+  }
 }
 
 extension KeyAttestationTests {
