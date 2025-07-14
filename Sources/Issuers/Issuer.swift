@@ -255,7 +255,10 @@ public actor Issuer: IssuerType {
     )
     
     if let nonceEndpoint = issuerMetadata.nonceEndpoint {
-      nonceEndpointClient = NonceEndpointClient(nonceEndpoint: nonceEndpoint)
+      nonceEndpointClient = NonceEndpointClient(
+        poster: noncePoster,
+        nonceEndpoint: nonceEndpoint
+      )
     } else {
       nonceEndpointClient = nil
     }
@@ -440,7 +443,9 @@ private extension Issuer {
     }
   }
   
-  func handleIssuanceError(_ error: Error) -> Result<SubmittedRequest, Error> {
+  func handleIssuanceError(
+    _ error: Error
+  ) -> Result<SubmittedRequest, Error> {
     if let issuanceError = error as? CredentialIssuanceError {
       switch issuanceError {
       case .invalidProof(
@@ -547,6 +552,9 @@ private extension Issuer {
       return []
     default:
       let cNonce = try? await nonceEndpointClient?.getNonce().get()
+      
+      try await validateBindingKeys(credentialSpec: supportedCredential, bindingKeys: bindingKeys)
+      
       let proofs = await calculateProofs(
         bindingKeys: bindingKeys,
         supportedCredential: supportedCredential,
@@ -567,13 +575,41 @@ private extension Issuer {
     }
   }
   
+  private func validateBindingKeys(
+    credentialSpec: CredentialSupported,
+    bindingKeys: [BindingKey]
+  ) async throws {
+    let keyAttestationRequirement = credentialSpec.proofTypesSupported?["jwt"]?.keyAttestationRequirement
+    switch keyAttestationRequirement {
+    case .required, .requiredNoConstraints:
+      if bindingKeys.filter({ key in
+        switch key {
+        case .keyAttestation:
+          true
+        default: false
+        }
+      }).isEmpty {
+        throw CredentialIssuanceError.proofTypeKeyAttestationRequired
+      }
+    default: break
+    }
+  }
+  
   private func calculateProofs(
     bindingKeys: [BindingKey],
     supportedCredential: CredentialSupported,
     nonce: String?
   ) async -> [Proof] {
     await Task.detached { () -> [Proof] in
-      return await (try? bindingKeys.asyncCompactMap { try await $0.toSupportedProof(
+      let keys = bindingKeys.filter { key in
+        switch key {
+        case .jwk, .keyAttestation:
+          true
+        default:
+          false
+        }
+      }
+      return await (try? keys.asyncCompactMap { try await $0.toSupportedProof(
         issuanceRequester: self.issuanceRequester,
         credentialSpec: supportedCredential,
         cNonce: nonce
