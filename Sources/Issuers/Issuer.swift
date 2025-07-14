@@ -443,7 +443,9 @@ private extension Issuer {
     }
   }
   
-  func handleIssuanceError(_ error: Error) -> Result<SubmittedRequest, Error> {
+  func handleIssuanceError(
+    _ error: Error
+  ) -> Result<SubmittedRequest, Error> {
     if let issuanceError = error as? CredentialIssuanceError {
       switch issuanceError {
       case .invalidProof(
