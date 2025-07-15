@@ -109,6 +109,55 @@ class KeyAttestationTests: XCTestCase {
     }
   }
   
+  func testWhenIssuerRequiresAttestationShouldBeIncludedInProof() async throws {
+    
+    // Given
+    let sdJwtVCpayload: IssuanceRequestPayload = .configurationBased(
+      credentialConfigurationIdentifier: try .init(value: "eu.europa.ec.eudiw.pid_vc_sd_jwt")
+    )
+    let spec = data.spec
+    
+    let keyBindingKey: BindingKey = try! .attestation(
+      keyAttestationJWT: .init(
+        jws: .init(
+          compactSerialization: TestsConstants.ketAttestationJWT
+        )
+      )
+    )
+    
+    // When
+    let authorized = try! await data.issuer.authorizeWithAuthorizationCode(
+      request: try await data.issuer.handleAuthorizationCode(
+        request: TestsConstants.unAuthorizedRequest,
+        authorizationCode: data.issuanceAuthorization
+      ).get()
+    ).get()
+
+    
+    do {
+      
+      // Then
+      let result = try await data.issuer.requestCredential(
+        request: authorized,
+        bindingKeys: [
+          keyBindingKey
+        ],
+        requestPayload: sdJwtVCpayload,
+        responseEncryptionSpecProvider: { _ in
+          spec
+        })
+      
+      switch result {
+      case .success:
+        XCTAssert(true, "Success")
+      case .failure(let error):
+        XCTAssert(false, error.localizedDescription)
+      }
+    } catch {
+      XCTAssert(false, error.localizedDescription)
+    }
+  }
+  
   func testKeyAttestationJWTShouldBeSigned() async throws {
     
     XCTAssertThrowsError(try KeyAttestationJWT(
