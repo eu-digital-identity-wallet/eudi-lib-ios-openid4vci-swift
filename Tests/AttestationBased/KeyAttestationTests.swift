@@ -90,7 +90,6 @@ class KeyAttestationTests: XCTestCase {
       let result = try await data.issuer.requestCredential(
         request: authorized,
         bindingKeys: [
-          altBindingKey,
           keyBindingKey
         ],
         requestPayload: sdJwtVCpayload,
