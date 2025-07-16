@@ -19,6 +19,7 @@ public enum ProofType: Decodable, Sendable {
   case jwt
   case ldpVp
   case unsupported
+  case attestation
   
   private enum CodingKeys: String, CodingKey {
     case rawValue
@@ -33,6 +34,8 @@ public enum ProofType: Decodable, Sendable {
       self = .jwt
     case "LDP_VP", "ldp_vp":
       self = .ldpVp
+    case "attestation":
+      self = .attestation
     default:
       self = .unsupported
     }
@@ -44,6 +47,8 @@ public enum ProofType: Decodable, Sendable {
       self = .jwt
     case "LDP_VP", "ldp_vp":
       self = .ldpVp
+    case "attestation":
+      self = .attestation
     default:
       self = .unsupported
     }

@@ -141,7 +141,9 @@ public struct Poster: PostingType {
               )
             )
           }
-          return .failure(.response(object))
+          return .failure(
+            .response(object)
+          )
         }
         
       } else if statusCode >= HTTPStatusCode.internalServerError {

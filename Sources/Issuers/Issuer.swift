@@ -553,7 +553,10 @@ private extension Issuer {
     default:
       let cNonce = try? await nonceEndpointClient?.getNonce().get()
       
-      try await validateBindingKeys(credentialSpec: supportedCredential, bindingKeys: bindingKeys)
+      try await validateBindingKeys(
+        credentialSpec: supportedCredential,
+        bindingKeys: bindingKeys
+      )
       
       let proofs = await calculateProofs(
         bindingKeys: bindingKeys,
@@ -579,12 +582,20 @@ private extension Issuer {
     credentialSpec: CredentialSupported,
     bindingKeys: [BindingKey]
   ) async throws {
+    
+    if let first = bindingKeys.first {
+      let allSameCase = bindingKeys.allSatisfy { $0 == first }
+      guard allSameCase else {
+        throw CredentialIssuanceError.combinationOfBindingKeys
+      }
+    }
+    
     let keyAttestationRequirement = credentialSpec.proofTypesSupported?["jwt"]?.keyAttestationRequirement
     switch keyAttestationRequirement {
     case .required, .requiredNoConstraints:
       if bindingKeys.filter({ key in
         switch key {
-        case .keyAttestation:
+        case .keyAttestation, .attestation:
           true
         default: false
         }
@@ -603,7 +614,7 @@ private extension Issuer {
     await Task.detached { () -> [Proof] in
       let keys = bindingKeys.filter { key in
         switch key {
-        case .jwk, .keyAttestation:
+        case .jwk, .keyAttestation, .attestation:
           true
         default:
           false
