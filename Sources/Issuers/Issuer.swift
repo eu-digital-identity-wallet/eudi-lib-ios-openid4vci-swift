@@ -554,7 +554,8 @@ private extension Issuer {
       let cNonce = try? await nonceEndpointClient?.getNonce().get()
       
       try await validateBindingKeys(
-        credentialSpec: supportedCredential, bindingKeys: bindingKeys
+        credentialSpec: supportedCredential,
+        bindingKeys: bindingKeys
       )
       
       let proofs = await calculateProofs(
@@ -585,7 +586,7 @@ private extension Issuer {
     if let first = bindingKeys.first {
       let allSameCase = bindingKeys.allSatisfy { $0 == first }
       guard allSameCase else {
-        throw CredentialIssuanceError.proofTypeKeyAttestationRequired
+        throw CredentialIssuanceError.combinationOfBindingKeys
       }
     }
     
