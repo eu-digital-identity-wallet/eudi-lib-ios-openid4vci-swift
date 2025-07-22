@@ -126,13 +126,26 @@ private extension Array where Element == Proof {
       return (self.first, nil)
       
     } else {
-      let jwtProofs = self.compactMap { proof in
+      let jwtProofs: [String] = self.compactMap { proof in
         switch proof {
         case .jwt(let jwt):
           return jwt
+        case .attestation:
+          return nil
         }
       }
-      let proofsTO = ProofsTO(jwtProofs: jwtProofs)
+      let attestationProofs: [String] = self.compactMap { proof in
+        switch proof {
+        case .jwt:
+          return nil
+        case .attestation(let jwt):
+          return jwt.jws.compactSerializedString
+        }
+      }
+      let proofsTO = !jwtProofs.isEmpty ?
+      ProofsTO(jwtProofs: jwtProofs) :
+      ProofsTO(attestationProofs: attestationProofs)
+      
       return (nil, proofsTO)
     }
   }

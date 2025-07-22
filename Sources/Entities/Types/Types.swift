@@ -40,11 +40,14 @@ public struct IssuanceResponseEncryptionSpec: Sendable {
 
 public enum Proof: Codable, Sendable {
   case jwt(JWT)
+  case attestation(KeyAttestationJWT)
   
   public func type() -> ProofType {
     switch self {
     case .jwt:
       return .jwt
+    case .attestation:
+      return .attestation
     }
   }
   
@@ -69,6 +72,10 @@ public enum Proof: Codable, Sendable {
         "proof_type": "jwt",
         "jwt": jwt
       ])
+    case .attestation(let jwt):
+      try container.encode([
+        "attestation": jwt.jws.compactSerializedString
+      ])
     }
   }
   
@@ -78,6 +85,10 @@ public enum Proof: Codable, Sendable {
       return [
         "proof_type": "jwt",
         "jwt": jwt
+      ]
+    case .attestation(let jwt):
+      return [
+        "attestation": jwt.jws.compactSerializedString
       ]
     }
   }
@@ -262,16 +273,27 @@ public enum InputModeTO: String, Codable {
 
 public struct ProofsTO: Codable {
   public let jwtProofs: [String]?
+  public let attestationProofs: [String]?
   
   public enum CodingKeys: String, CodingKey {
     case jwtProofs = "jwt"
+    case attestationProofs = "attestation"
   }
   
   public init(jwtProofs: [String]? = nil) {
     guard !(jwtProofs?.isEmpty ?? true) else {
       fatalError("jwtProofs must be non-empty.")
     }
+    self.attestationProofs = nil
     self.jwtProofs = jwtProofs
+  }
+  
+  public init(attestationProofs: [String]? = nil) {
+    guard !(attestationProofs?.isEmpty ?? true) else {
+      fatalError("attestationProofs must be non-empty.")
+    }
+    self.jwtProofs = nil
+    self.attestationProofs = attestationProofs
   }
 }
 

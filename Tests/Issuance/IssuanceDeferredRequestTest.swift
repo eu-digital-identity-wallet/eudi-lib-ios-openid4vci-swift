@@ -76,6 +76,9 @@ class IssuanceDeferredRequestTest: XCTestCase {
           path: "single_issuance_success_response_deffered",
           extension: "json"
         )
+      ),
+      dpopConstructor: dpopConstructor(
+        algorithms: offer.authorizationServerMetadata.dpopSigningAlgValuesSupported
       )
     )
     

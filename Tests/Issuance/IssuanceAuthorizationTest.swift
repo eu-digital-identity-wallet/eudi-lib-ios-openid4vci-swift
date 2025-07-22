@@ -45,6 +45,9 @@ class IssuanceAuthorizationTest: XCTestCase {
           path: "pushed_authorization_request_response",
           extension: "json"
         )
+      ),
+      dpopConstructor: dpopConstructor(
+        algorithms: offer.authorizationServerMetadata.dpopSigningAlgValuesSupported
       )
     )
     
@@ -80,6 +83,9 @@ class IssuanceAuthorizationTest: XCTestCase {
           path: "test",
           extension: "json"
         )
+      ),
+      dpopConstructor: dpopConstructor(
+        algorithms: offer.authorizationServerMetadata.dpopSigningAlgValuesSupported
       )
     )
     
@@ -120,6 +126,9 @@ class IssuanceAuthorizationTest: XCTestCase {
           path: "access_token_request_response_no_proof",
           extension: "json"
         )
+      ),
+      dpopConstructor: dpopConstructor(
+        algorithms: offer.authorizationServerMetadata.dpopSigningAlgValuesSupported
       )
     )
     
@@ -172,6 +181,9 @@ class IssuanceAuthorizationTest: XCTestCase {
           path: "access_token_request_response",
           extension: "json"
         )
+      ),
+      dpopConstructor: dpopConstructor(
+        algorithms: offer.authorizationServerMetadata.dpopSigningAlgValuesSupported
       )
     )
     
@@ -223,6 +235,9 @@ class IssuanceAuthorizationTest: XCTestCase {
           path: "test",
           extension: "json"
         )
+      ),
+      dpopConstructor: dpopConstructor(
+        algorithms: offer.authorizationServerMetadata.dpopSigningAlgValuesSupported
       )
     )
     
@@ -275,6 +290,9 @@ class IssuanceAuthorizationTest: XCTestCase {
           path: "access_token_request_response_no_proof",
           extension: "json"
         )
+      ),
+      dpopConstructor: dpopConstructor(
+        algorithms: offer.authorizationServerMetadata.dpopSigningAlgValuesSupported
       )
     )
     
@@ -343,7 +361,10 @@ class IssuanceAuthorizationTest: XCTestCase {
     let issuer = try Issuer(
       authorizationServerMetadata: offer.authorizationServerMetadata,
       issuerMetadata: issuerMetadata,
-      config: config
+      config: config,
+      dpopConstructor: dpopConstructor(
+        algorithms: offer.authorizationServerMetadata.dpopSigningAlgValuesSupported
+      )
     )
     
     let grants = offer.grants
@@ -474,11 +495,6 @@ class IssuanceAuthorizationTest: XCTestCase {
       ),
       authFlowRedirectionURI: URL(string: "urn:ietf:wg:oauth:2.0:oob")!,
       authorizeIssuanceConfig: .favorScopes,
-      dPoPConstructor: DPoPConstructor(
-        algorithm: alg,
-        jwk: publicKeyJWK,
-        privateKey: privateKeyProxy
-      ),
       clientAttestationPoPBuilder: DefaultClientAttestationPoPBuilder()
     )
     
@@ -488,7 +504,9 @@ class IssuanceAuthorizationTest: XCTestCase {
       authorizationServerMetadata: offer.authorizationServerMetadata,
       issuerMetadata: issuerMetadata,
       config: attestationConfig,
-      dpopConstructor: attestationConfig.dPoPConstructor
+      dpopConstructor: dpopConstructor(
+        algorithms: offer.authorizationServerMetadata.dpopSigningAlgValuesSupported
+      )
     )
     
     let grants = offer.grants
@@ -574,7 +592,10 @@ class IssuanceAuthorizationTest: XCTestCase {
     let issuer = try Issuer(
       authorizationServerMetadata: offer.authorizationServerMetadata,
       issuerMetadata: issuerMetadata,
-      config: config
+      config: config,
+      dpopConstructor: dpopConstructor(
+        algorithms: offer.authorizationServerMetadata.dpopSigningAlgValuesSupported
+      )
     )
 
     let grants = offer.grants
@@ -691,19 +712,15 @@ class IssuanceAuthorizationTest: XCTestCase {
         "kid": UUID().uuidString
       ])
     
-    let dpopConstructor: DPoPConstructor = .init(
-      algorithm: alg,
-      jwk: jwk,
-      privateKey: privateKeyProxy
-    )
-    
     let offer: CredentialOffer = try resolution.get()
     let issuerMetadata = offer.credentialIssuerMetadata
     let issuer = try Issuer(
       authorizationServerMetadata: offer.authorizationServerMetadata,
       issuerMetadata: issuerMetadata,
       config: config,
-      dpopConstructor: dpopConstructor
+      dpopConstructor: dpopConstructor(
+        algorithms: offer.authorizationServerMetadata.dpopSigningAlgValuesSupported
+      )
     )
     
     let grants = offer.grants

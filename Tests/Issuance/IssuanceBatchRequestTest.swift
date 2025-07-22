@@ -78,6 +78,9 @@ class IssuanceBatchRequestTest: XCTestCase {
           path: "batch_credential_issuance_success_response_credentials",
           extension: "json"
         )
+      ),
+      dpopConstructor: dpopConstructor(
+        algorithms: offer.authorizationServerMetadata.dpopSigningAlgValuesSupported
       )
     )
     
