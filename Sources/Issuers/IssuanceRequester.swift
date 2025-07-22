@@ -390,14 +390,28 @@ private extension IssuanceRequester {
   ) throws -> Payload {
     
     let jwe = try JWE(compactSerialization: jwtString)
-    guard let decrypter = Decrypter(
-      keyManagementAlgorithm: keyManagementAlgorithm,
-      contentEncryptionAlgorithm: contentEncryptionAlgorithm,
-      decryptionKey: privateKey
-    ) else {
-      throw ValidationError.error(reason: "Could not instantiate descypter")
+    var decrypter: Decrypter?
+    if let ecKey = try? ECPrivateKey(privateKey: privateKey) {
+      decrypter = Decrypter(
+        keyManagementAlgorithm: keyManagementAlgorithm,
+        contentEncryptionAlgorithm: contentEncryptionAlgorithm,
+        decryptionKey: ecKey
+      )
+    } else {
+      decrypter = Decrypter(
+        keyManagementAlgorithm: keyManagementAlgorithm,
+        contentEncryptionAlgorithm: contentEncryptionAlgorithm,
+        decryptionKey: privateKey
+      )
     }
-    return try jwe.decrypt(using: decrypter)
+
+    guard let finalDecrypter = decrypter else {
+      throw ValidationError.error(
+        reason: "Could not instantiate decrypter"
+      )
+    }
+
+    return try jwe.decrypt(using: finalDecrypter)
   }
 }
 
