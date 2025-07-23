@@ -57,4 +57,3 @@ public actor NonceEndpointClient: NonceEndpointClientType {
     }
   }
 }
-

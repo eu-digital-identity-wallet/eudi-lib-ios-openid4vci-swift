@@ -18,8 +18,6 @@ import XCTest
 
 @testable import OpenID4VCI
 
-import XCTest
-
 class GetAuthorizationCodeURLTests: XCTestCase {
   
   func testValidURL() throws {
@@ -58,4 +56,3 @@ class GetAuthorizationCodeURLTests: XCTestCase {
     }
   }
 }
-

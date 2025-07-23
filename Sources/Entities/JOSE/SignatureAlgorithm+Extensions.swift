@@ -14,23 +14,16 @@
  * limitations under the License.
  */
 import Foundation
-import XCTest
+import JOSESwift
 
-@testable import OpenID4VCI
-
-class EntitiesTests: XCTestCase {
-  
-  override func setUp() async throws {
-    try await super.setUp()
-  }
-  
-  override func tearDown() {
-    super.tearDown()
-  }
-  
-  func test() {
-    let sdk: OpenID4VCI? = OpenID4VCI()
-    
-    XCTAssertNotNil(sdk)
+public extension SignatureAlgorithm {
+  /// Returns `true` if the algorithm is NOT a MAC-based algorithm (HMAC).
+  var isNotMacAlgorithm: Bool {
+    switch self {
+    case .HS256, .HS384, .HS512:
+      return false  // These are HMAC algorithms
+    default:
+      return true   // All other algorithms are not MAC-based
+    }
   }
 }

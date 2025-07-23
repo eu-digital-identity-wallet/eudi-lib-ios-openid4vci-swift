@@ -23,6 +23,14 @@ For _fastlane_ installation instructions, see [Installing _fastlane_](https://do
 
 Runs unit tests
 
+### ios run_lint
+
+```sh
+[bundle exec] fastlane ios run_lint
+```
+
+Fix lint issues
+
 ### ios code_coverage
 
 ```sh

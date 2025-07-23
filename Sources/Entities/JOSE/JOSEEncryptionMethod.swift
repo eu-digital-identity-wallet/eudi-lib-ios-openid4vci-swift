@@ -126,4 +126,3 @@ public extension ContentEncryptionAlgorithm {
     self.init(rawValue: encryptionMethod.name)
   }
 }
-

@@ -10,7 +10,7 @@ let package = Package(
     .library(
       name: "OpenID4VCI",
       targets: ["OpenID4VCI"]
-    ),
+    )
   ],
   dependencies: [
     .package(url: "https://github.com/SwiftyJSON/SwiftyJSON.git", from: "5.0.1"),
@@ -18,7 +18,7 @@ let package = Package(
     .package(
       url: "https://github.com/airsidemobile/JOSESwift.git",
       from: "3.0.0"
-    ),
+    )
   ],
   targets: [
     .target(
@@ -52,6 +52,6 @@ let package = Package(
         )
       ],
       path: "Tests"
-    ),
+    )
   ]
 )

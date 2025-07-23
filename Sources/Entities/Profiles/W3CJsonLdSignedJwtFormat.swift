@@ -280,7 +280,7 @@ public extension W3CJsonLdSignedJwtFormat {
     
     let credentialDefinition = try CredentialDefinitionTO(json: json).toDomain()
     
-    if let credentialConfigurationsSupported = metadata.credentialsSupported.first(where: { (id, credential) in
+    if let credentialConfigurationsSupported = metadata.credentialsSupported.first(where: { (_, credential) in
       switch credential {
       case .w3CJsonLdSignedJwt(let credentialConfiguration):
         return credentialConfiguration.credentialDefinition.type == credentialDefinition.type

@@ -44,4 +44,3 @@ enum ClientAttestationError: Error, LocalizedError {
     }
   }
 }
-

@@ -27,14 +27,6 @@ class IssuanceSingleRequestTest: XCTestCase {
     authorizeIssuanceConfig: .favorScopes
   )
   
-  override func setUp() async throws {
-    try await super.setUp()
-  }
-  
-  override func tearDown() {
-    super.tearDown()
-  }
-  
   func testFormatBasedWhenIssuerRespondsSingleCredentialThenCredentialExists() async throws {
     
     // Given
@@ -217,7 +209,7 @@ class IssuanceSingleRequestTest: XCTestCase {
     
     let issuanceAuthorization: IssuanceAuthorization = .preAuthorizationCode(
       preAuthorizedCode: "1234-1234",
-      txCode:.init(
+      txCode: .init(
         inputMode: .numeric,
         length: 5,
         description: "description"

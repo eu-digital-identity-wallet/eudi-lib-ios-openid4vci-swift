@@ -21,4 +21,3 @@ public enum AuthorizationDetailsInTokenRequest: Sendable {
     filter: @Sendable (CredentialConfigurationIdentifier) -> Bool
   )
 }
-

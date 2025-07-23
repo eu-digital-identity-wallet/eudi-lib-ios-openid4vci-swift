@@ -98,4 +98,3 @@ public struct AuthorizationRequest: Codable, Sendable {
     self.issuerState = issuerState
   }
 }
-

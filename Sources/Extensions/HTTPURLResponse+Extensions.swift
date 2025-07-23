@@ -36,4 +36,3 @@ public extension HTTPURLResponse {
            wwwAuth.containsCaseInsensitive("error=\"use_dpop_nonce\"")
   }
 }
-

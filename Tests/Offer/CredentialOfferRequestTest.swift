@@ -20,14 +20,6 @@ import XCTest
 
 class CredentialOfferRequestTest: XCTestCase {
   
-  override func setUp() async throws {
-    try await super.setUp()
-  }
-  
-  override func tearDown() {
-    super.tearDown()
-  }
-  
   func testInitializationWithValidURLByValue() throws {
     
     // Given

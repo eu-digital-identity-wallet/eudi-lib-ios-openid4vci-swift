@@ -123,11 +123,11 @@ extension Wallet {
       offer: offer
     )
     
-    return try await offer.credentialIssuerMetadata.credentialsSupported.filter({ (key: CredentialConfigurationIdentifier, value: CredentialSupported) in
+    return try await offer.credentialIssuerMetadata.credentialsSupported.filter({ (key: CredentialConfigurationIdentifier, _: CredentialSupported) in
       offer.credentialConfigurationIdentifiers.contains { id in
         key == id
       }
-    }).asyncCompactMap { (credentialConfigurationIdentifier, supportedCredential) in
+    }).asyncCompactMap { (credentialConfigurationIdentifier, _) in
       guard let scope = issuerMetadata.credentialsSupported[credentialConfigurationIdentifier]?.getScope() else {
         throw ValidationError.error(reason: "Cannot find scope for \(credentialConfigurationIdentifier)")
       }
@@ -280,7 +280,7 @@ extension Wallet {
     
     let issuerMetadata = offer.credentialIssuerMetadata
     guard let credentialConfigurationIdentifier = issuerMetadata.credentialsSupported.keys.first(where: { $0.value == scope }) else {
-      throw ValidationError.error(reason:  "Cannot find credential identifier for \(scope)")
+      throw ValidationError.error(reason: "Cannot find credential identifier for \(scope)")
     }
     
     let issuer = try Issuer(
@@ -317,7 +317,7 @@ extension Wallet {
     
     let issuerMetadata = offer.credentialIssuerMetadata
     guard let credentialConfigurationIdentifier = issuerMetadata.credentialsSupported.keys.first(where: { $0.value == scope }) else {
-      throw ValidationError.error(reason:  "Cannot find credential identifier for \(scope)")
+      throw ValidationError.error(reason: "Cannot find credential identifier for \(scope)")
     }
     
     let issuer = try Issuer(

@@ -40,5 +40,3 @@ extension SecKey {
     }
   }
 }
-
-

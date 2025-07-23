@@ -99,4 +99,3 @@ final class ClaimPathTests: XCTestCase {
     XCTAssertThrowsError(try ClaimPath(json: invalidJSON))
   }
 }
-

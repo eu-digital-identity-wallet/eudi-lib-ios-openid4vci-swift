@@ -27,14 +27,6 @@ class IssuanceAuthorizationTest: XCTestCase {
     authorizeIssuanceConfig: .favorScopes
   )
   
-  override func setUp() async throws {
-    try await super.setUp()
-  }
-  
-  override func tearDown() {
-    super.tearDown()
-  }
-  
   func testPushAuthorizationCodeRequestPlacementSuccesful() async throws {
     
     // Given
@@ -435,7 +427,7 @@ class IssuanceAuthorizationTest: XCTestCase {
     case .success(let request):
       switch request {
       case .success(let response):
-        print(response.credentialResponses.map { try! $0.toDictionary() } )
+        print(response.credentialResponses.map { try! $0.toDictionary() })
         XCTAssertTrue(true)
       default:
         XCTAssert(false, "Unexpected request type")
@@ -561,7 +553,7 @@ class IssuanceAuthorizationTest: XCTestCase {
       case .success(let request):
         switch request {
         case .success(let response):
-          print(response.credentialResponses.map { try! $0.toDictionary() } )
+          print(response.credentialResponses.map { try! $0.toDictionary() })
           XCTAssertTrue(true)
         default:
           XCTAssert(false, "Unexpected request type")
@@ -666,7 +658,7 @@ class IssuanceAuthorizationTest: XCTestCase {
     case .success(let request):
       switch request {
       case .success(let response):
-        print(response.credentialResponses.map { try! $0.toDictionary() } )
+        print(response.credentialResponses.map { try! $0.toDictionary() })
         XCTAssertTrue(true)
       default:
         XCTAssert(false, "Unexpected request type")
@@ -778,7 +770,7 @@ class IssuanceAuthorizationTest: XCTestCase {
     case .success(let request):
       switch request {
       case .success(let response):
-        print(response.credentialResponses.map { try! $0.toDictionary() } )
+        print(response.credentialResponses.map { try! $0.toDictionary() })
         XCTAssertTrue(true)
       default:
         XCTAssert(false, "Unexpected request type")
@@ -788,4 +780,3 @@ class IssuanceAuthorizationTest: XCTestCase {
     }
   }
 }
-

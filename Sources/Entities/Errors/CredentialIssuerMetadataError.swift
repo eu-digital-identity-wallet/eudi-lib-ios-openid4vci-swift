@@ -41,4 +41,3 @@ enum CredentialIssuerMetadataError: Error {
 struct CredentialIssuerMetadataException: Error {
   let error: CredentialIssuerMetadataError
 }
-

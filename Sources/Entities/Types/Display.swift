@@ -121,7 +121,7 @@ public extension Display {
       name: json["name"].stringValue,
       locale: json["locale"].stringValue,
       logo: .init(json: json["logo"]),
-      description:json["description"].stringValue,
+      description: json["description"].stringValue,
       backgroundColor: json["background_color"].stringValue,
       backgroundImage: try? .init(json: json["background_image"]),
       textColor: json["text_color"].stringValue

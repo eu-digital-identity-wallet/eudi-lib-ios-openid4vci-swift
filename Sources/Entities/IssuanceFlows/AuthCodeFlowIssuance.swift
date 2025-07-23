@@ -40,4 +40,3 @@ public enum AuthCodeFlowIssuance {
     certificate: IssuedCertificate
   )
 }
-

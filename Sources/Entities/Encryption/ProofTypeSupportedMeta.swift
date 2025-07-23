@@ -33,5 +33,3 @@ public struct ProofTypeSupportedMeta: Codable, Sendable {
     self.keyAttestationRequirement = keyAttestationRequirement
   }
 }
-
-

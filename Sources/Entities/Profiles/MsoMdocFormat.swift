@@ -27,11 +27,6 @@ public struct MsoMdocFormat: FormatProfile {
     case docType = "doctype"
     case scope
   }
-  
-  init(docType: String, scope: String?) {
-    self.docType = docType
-    self.scope = scope
-  }
 }
 
 public extension MsoMdocFormat {
@@ -333,7 +328,7 @@ public extension MsoMdocFormat {
       throw ValidationError.error(reason: "Missing doctype")
     }
     
-    if let credentialConfigurationsSupported = metadata.credentialsSupported.first(where: { (credentialId, credential) in
+    if let credentialConfigurationsSupported = metadata.credentialsSupported.first(where: { (_, credential) in
       switch credential {
       case .msoMdoc(let credentialConfiguration):
         return credentialConfiguration.docType == docType

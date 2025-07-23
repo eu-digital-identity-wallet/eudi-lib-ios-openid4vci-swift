@@ -25,4 +25,3 @@ public struct IssuanceRefreshToken: Codable, CanExpire, Sendable {
     self.expiresIn = expiresIn
   }
 }
-

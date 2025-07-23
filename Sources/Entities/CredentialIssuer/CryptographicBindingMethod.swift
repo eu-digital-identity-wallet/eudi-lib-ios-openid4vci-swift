@@ -85,4 +85,3 @@ public enum CryptographicBindingMethod: Codable, Equatable, Sendable {
     }
   }
 }
-

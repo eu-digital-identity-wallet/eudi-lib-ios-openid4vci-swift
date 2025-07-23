@@ -21,14 +21,6 @@ import JOSESwift
 
 class VCIFlowNoOffer: XCTestCase {
   
-  override func setUp() async throws {
-    try await super.setUp()
-  }
-  
-  override func tearDown() {
-    super.tearDown()
-  }
-  
   func testWebPageFormSubmission() async throws {
 
     _ = try await WebpageHelper().submit(
@@ -330,7 +322,7 @@ class VCIFlowNoOffer: XCTestCase {
     )
     
     do {
-      let _ = try await wallet.issueByCredentialIdentifier(
+      _ = try await wallet.issueByCredentialIdentifier(
         PID_SdJwtVC_config_id,
         config: clientConfig
       )
@@ -375,7 +367,7 @@ class VCIFlowNoOffer: XCTestCase {
     )
     
     do {
-      let _ = try await wallet.issueByCredentialIdentifier(
+      _ = try await wallet.issueByCredentialIdentifier(
         PID_MsoMdoc_config_id,
         config: clientConfig
       )

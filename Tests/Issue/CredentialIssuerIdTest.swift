@@ -20,14 +20,6 @@ import XCTest
 
 class CredentialIssuerIdTest: XCTestCase {
   
-  override func setUp() async throws {
-    try await super.setUp()
-  }
-  
-  override func tearDown() {
-    super.tearDown()
-  }
-  
   func testGivenInvalidSchemeWhenCredentialIssuerIdIsCreatedThenFail() throws {
     
     // Given
@@ -105,4 +97,3 @@ class CredentialIssuerIdTest: XCTestCase {
     XCTAssert(true, "Proper URL")
   }
 }
-

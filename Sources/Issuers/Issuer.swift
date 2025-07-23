@@ -134,10 +134,9 @@ public protocol IssuerType {
   ) async -> Result<AuthorizedRequest, Error>
 }
 
-
 public actor Issuer: IssuerType {
   
-  public var deferredResponseEncryptionSpec: IssuanceResponseEncryptionSpec? = nil
+  public var deferredResponseEncryptionSpec: IssuanceResponseEncryptionSpec?
   
   public let authorizationServerMetadata: IdentityAndAccessManagementMetadata
   public let issuerMetadata: CredentialIssuerMetadata
@@ -700,7 +699,7 @@ public extension Issuer {
     }
     
     let privateKey: SecKey?
-    var jwk: JWK? = nil
+    var jwk: JWK?
     if JWEAlgorithm.Family.parse(.RSA).contains(algorithm) {
       privateKey = if let privateKeyData {
         try? KeyController.generateRSAPrivateKey(with: privateKeyData)
@@ -829,7 +828,7 @@ internal extension Client {
       let expectedMethod = Self.ATTEST_JWT_CLIENT_AUTH
       
       guard tokenEndpointAuthMethods.contains(expectedMethod) else {
-        throw ValidationError.error(reason:("\(Self.ATTEST_JWT_CLIENT_AUTH) not supported by authorization server"))
+        throw ValidationError.error(reason: ("\(Self.ATTEST_JWT_CLIENT_AUTH) not supported by authorization server"))
       }
     default:
       break

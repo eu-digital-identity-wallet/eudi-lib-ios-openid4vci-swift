@@ -29,11 +29,6 @@ public struct SdJwtVcFormat: FormatProfile {
     case type
     case scope
   }
-  
-  init(type: String, scope: String?) {
-    self.type = type
-    self.scope = scope
-  }
 }
 
 public extension SdJwtVcFormat {
@@ -408,7 +403,7 @@ public extension SdJwtVcFormat {
     
     let credentialDefinition = try CredentialDefinitionTO(json: json).toDomain()
     
-    if let credentialConfigurationsSupported = metadata.credentialsSupported.first(where: { (credentialId, credential) in
+    if let credentialConfigurationsSupported = metadata.credentialsSupported.first(where: { (_, credential) in
       switch credential {
       case .sdJwtVc(let credentialConfiguration):
         return credentialConfiguration.credentialDefinition.type == credentialDefinition.type

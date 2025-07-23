@@ -50,6 +50,3 @@ public struct ClientAttestationPoPJWT {
     }
   }
 }
-
-
-

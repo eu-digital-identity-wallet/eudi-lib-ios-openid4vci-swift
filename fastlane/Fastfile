@@ -32,6 +32,11 @@ platform :ios do
     run_tests(params)
   end
 
+  desc "Fix lint issues"
+  lane :run_lint do
+    sh "swiftlint lint --fix --config ../.swiftlint.yml --quiet ../"
+  end
+
   desc "Code coverage"
   lane :code_coverage do
     
