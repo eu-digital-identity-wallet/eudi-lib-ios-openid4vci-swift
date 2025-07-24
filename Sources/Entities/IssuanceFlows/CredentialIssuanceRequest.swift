@@ -47,10 +47,6 @@ public extension SingleCredential {
           credentialId: extractCredentialId(
             from: credential.requestPayload
           ),
-          additionalFields: [
-            "format": MsoMdocFormat.FORMAT,
-            "doctype": credential.docType
-          ],
           encryption: credential.requestedCredentialResponseEncryption
         )
         
@@ -60,10 +56,6 @@ public extension SingleCredential {
           credentialId: extractCredentialId(
             from: credential.requestPayload
           ),
-          additionalFields: [
-            "format": SdJwtVcFormat.FORMAT,
-            "vct": credential.vct ?? credential.credentialDefinition.type
-          ],
           encryption: credential.requestedCredentialResponseEncryption
         )
       }
@@ -85,7 +77,7 @@ public extension SingleCredential {
   private func createPayload(
     proofOrProofs: (Proof?, ProofsTO?),
     credentialId: (id: String, value: String?),
-    additionalFields: [String: Any?],
+    additionalFields: [String: Any?] = [:],
     encryption: RequestedCredentialResponseEncryption
   ) throws -> JSON {
     var dictionary: [String: Any?] = additionalFields
