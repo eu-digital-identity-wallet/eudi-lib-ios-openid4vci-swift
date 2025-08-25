@@ -264,6 +264,14 @@ public struct TxCode: Codable, Sendable {
     self.length = length
     self.description = description
   }
+  
+  public init(from decoder: Decoder) throws {
+    let container = try decoder.container(keyedBy: CodingKeys.self)
+    
+    self.inputMode = try container.decodeIfPresent(TxCodeInputMode.self, forKey: .inputMode) ?? .numeric
+    self.length = try container.decodeIfPresent(Int.self, forKey: .length)
+    self.description = try container.decodeIfPresent(String.self, forKey: .description)
+  }
 }
 
 public enum InputModeTO: String, Codable {
