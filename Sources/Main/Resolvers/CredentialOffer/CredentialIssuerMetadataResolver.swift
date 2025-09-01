@@ -63,10 +63,8 @@ public actor CredentialIssuerMetadataResolver: CredentialIssuerMetadataType {
   ) async throws -> Result<CredentialIssuerMetadata, some Error> {
     switch source {
     case .credentialIssuer(let issuerId):
-      let url = issuerId.url
-        .appendingPathComponent(".well-known")
-        .appendingPathComponent("openid-credential-issuer")
-      let result = await fetcher.fetch(url: url)
+      let wellKnownURL = try buildWellKnownCredentialIssuerURL(from: issuerId.url)
+      let result = await fetcher.fetch(url: wellKnownURL)
       
       switch result {
       case .success(let metadata):
@@ -94,6 +92,29 @@ public actor CredentialIssuerMetadataResolver: CredentialIssuerMetadataType {
     }
   }
 }
+
+extension CredentialIssuerMetadataResolver {
+  func buildWellKnownCredentialIssuerURL(
+    from issuerURL: URL
+  ) throws -> URL {
+    
+    guard
+      var components = URLComponents(url: issuerURL, resolvingAgainstBaseURL: false)
+    else {
+      throw FetchError.invalidUrl
+    }
+    
+    let originalPath = components.percentEncodedPath
+    components.percentEncodedPath = "/.well-known/openid-credential-issuer" + originalPath
+    
+    guard let wellKnownURL = components.url else {
+      throw FetchError.invalidUrl
+    }
+    
+    return wellKnownURL
+  }
+}
+
 
 private extension CredentialIssuerMetadataResolver {
   func parseAndVerifySignedMetadata(
