@@ -39,6 +39,34 @@ public enum SingleCredential: Sendable {
 
 public extension SingleCredential {
   
+  var credentialConfigurationIdentifier: CredentialConfigurationIdentifier {
+    switch self {
+    case .msoMdoc(let credential):
+      switch credential.requestPayload {
+      case .identifierBased(let credentialConfigurationIdentifier, _):
+        return credentialConfigurationIdentifier
+      case .configurationBased(let credentialConfigurationIdentifier):
+        return credentialConfigurationIdentifier
+      }
+    case .sdJwtVc(let credential):
+      switch credential.requestPayload {
+      case .identifierBased(let credentialConfigurationIdentifier, _):
+        return credentialConfigurationIdentifier
+      case .configurationBased(let credentialConfigurationIdentifier):
+        return credentialConfigurationIdentifier
+      }
+    }
+  }
+  
+  var proofs: [Proof] {
+    switch self {
+    case .msoMdoc(let credential):
+      return credential.proofs
+    case .sdJwtVc(let credential):
+      return credential.proofs
+    }
+  }
+  
   func toPayload() throws -> JSON {
     return switch self {
       case .msoMdoc(let credential):
