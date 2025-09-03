@@ -394,6 +394,11 @@ private extension IssuanceRequester {
     issuerMetadata: CredentialIssuerMetadata,
     proofs: [Proof]
   ) throws {
+    
+    guard proofs.isEmpty == false else {
+      return
+    }
+    
     // Input
     let configId = try requireConfigId(credentialConfigurationIdentifier)
 
@@ -416,7 +421,7 @@ private extension IssuanceRequester {
     // Validate KeyAttestation proofs
     if !attestations.isEmpty {
       let advertised = try advertisedAlgs(
-        for: .attestation,
+        for: .jwt,
         configId: configId,
         issuerMetadata: issuerMetadata
       )

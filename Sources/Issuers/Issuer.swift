@@ -493,11 +493,11 @@ private extension Issuer {
     
     return try await requestIssuance(
       token: token,
-      dPopNonce: authorizedRequest.dPopNonce
+      dPopNonce: proofs.dPopNonce ?? authorizedRequest.dPopNonce
     ) {
       return try supportedCredential.toIssuanceRequest(
         requester: issuanceRequester,
-        proofs: proofs,
+        proofs: proofs.actualProofs,
         issuancePayload: issuancePayload,
         responseEncryptionSpecProvider: responseEncryptionSpecProvider
       )
@@ -528,11 +528,11 @@ private extension Issuer {
     
     return try await requestIssuance(
       token: token,
-      dPopNonce: authorizedRequest.dPopNonce
+      dPopNonce: proofs.dPopNonce ?? authorizedRequest.dPopNonce
     ) {
       return try supportedCredential.toIssuanceRequest(
         requester: issuanceRequester,
-        proofs: proofs,
+        proofs: proofs.actualProofs,
         issuancePayload: issuancePayload,
         responseEncryptionSpecProvider: responseEncryptionSpecProvider
       )
@@ -544,11 +544,11 @@ private extension Issuer {
     batchCredentialIssuance: BatchCredentialIssuance?,
     bindingKeys: [BindingKey],
     supportedCredential: CredentialSupported
-  ) async throws -> [Proof] {
+  ) async throws -> (actualProofs: [Proof], dPopNonce: Nonce?) {
     let proofsRequired = proofsRequirement(credentialSupported: supportedCredential)
     switch proofsRequired {
     case .proofNotRequired:
-      return []
+      return ([], nil)
     default:
       let cNonce = try? await nonceEndpointClient?.getNonce().get()
       
@@ -560,19 +560,19 @@ private extension Issuer {
       let proofs = await calculateProofs(
         bindingKeys: bindingKeys,
         supportedCredential: supportedCredential,
-        nonce: cNonce?.cNonce
+        nonce: cNonce?.nonce.cNonce
       )
       switch proofs.count {
       case .zero:
-        return proofs
+        return (proofs, cNonce?.dPoPNonce)
       case 1:
-        return proofs
+        return (proofs, cNonce?.dPoPNonce)
       default:
         if let batchSize = batchCredentialIssuance?.batchSize,
            proofs.count > batchSize {
           throw ValidationError.issuerBatchSizeLimitExceeded(batchSize)
         }
-        return proofs
+        return (proofs, cNonce?.dPoPNonce)
       }
     }
   }
