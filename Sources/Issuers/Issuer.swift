@@ -669,8 +669,8 @@ public extension Issuer {
     switch issuerResponseEncryptionMetadata {
     case .notRequired:
       return Self.createResponseEncryptionSpecFrom(
-        algorithmsSupported: [.init(.RSA_OAEP_256)],
-        encryptionMethodsSupported: [.init(.A128CBC_HS256)],
+        algorithmsSupported: [.init(.ECDH_ES)],
+        encryptionMethodsSupported: [.init(.A128GCM)],
         privateKeyData: privateKeyData
       )
       

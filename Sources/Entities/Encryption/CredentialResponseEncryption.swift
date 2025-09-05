@@ -44,9 +44,18 @@ public enum CredentialResponseEncryption: Decodable, Sendable {
     if !encryptionRequired {
       self = .notRequired
     } else {
-      let algorithmsSupported = try container.decode([JWEAlgorithm].self, forKey: .algorithmsSupported)
-      let encryptionMethodsSupported = try container.decode([JOSEEncryptionMethod].self, forKey: .encryptionMethodsSupported)
-      self = .required(algorithmsSupported: algorithmsSupported, encryptionMethodsSupported: encryptionMethodsSupported)
+      let algorithmsSupported = try container.decode(
+        [JWEAlgorithm].self,
+        forKey: .algorithmsSupported
+      )
+      let encryptionMethodsSupported = try container.decode(
+        [JOSEEncryptionMethod].self,
+        forKey: .encryptionMethodsSupported
+      )
+      self = .required(
+        algorithmsSupported: algorithmsSupported,
+        encryptionMethodsSupported: encryptionMethodsSupported
+      )
     }
   }
 }
