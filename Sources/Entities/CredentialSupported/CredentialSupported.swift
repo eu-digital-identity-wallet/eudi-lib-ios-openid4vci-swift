@@ -74,7 +74,7 @@ public extension CredentialSupported {
       
       if let responseEncryptionSpec {
         switch issuerEncryption {
-        case .notRequired: break
+        case .notSupported: break
         case .required(
           let algorithmsSupported,
           let encryptionMethodsSupported
@@ -92,7 +92,7 @@ public extension CredentialSupported {
       }
      
       return try credentialConfiguration.toIssuanceRequest(
-        responseEncryptionSpec: issuerEncryption.notRequired ? nil : responseEncryptionSpec,
+        responseEncryptionSpec: issuerEncryption.notSupported ? nil : responseEncryptionSpec,
         requestPayload: issuancePayload,
         proofs: proofs
       )
@@ -103,7 +103,7 @@ public extension CredentialSupported {
       
       if let responseEncryptionSpec {
         switch issuerEncryption {
-        case .notRequired: break
+        case .notSupported: break
         case .required(
           let algorithmsSupported,
           let encryptionMethodsSupported
@@ -121,7 +121,7 @@ public extension CredentialSupported {
       }
      
       return try credentialConfiguration.toIssuanceRequest(
-        responseEncryptionSpec: issuerEncryption.notRequired ? nil : responseEncryptionSpec,
+        responseEncryptionSpec: issuerEncryption.notSupported ? nil : responseEncryptionSpec,
         requestPayload: issuancePayload,
         proofs: proofs
       )

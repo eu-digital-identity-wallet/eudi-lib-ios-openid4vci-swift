@@ -149,7 +149,7 @@ public actor IssuanceRequester: IssuanceRequesterType {
       switch request {
       case .msoMdoc(let credential):
         switch issuerMetadata.credentialResponseEncryption {
-        case .notRequired:
+        case .notSupported:
           guard let response = SingleIssuanceSuccessResponse.fromJSONString(string) else {
             return .failure(ValidationError.todo(reason: "Cannot decode .notRequired response"))
           }
@@ -194,7 +194,7 @@ public actor IssuanceRequester: IssuanceRequesterType {
         }
       case .sdJwtVc(let credential):
         switch issuerMetadata.credentialResponseEncryption {
-        case .notRequired:
+        case .notSupported:
           guard let response = SingleIssuanceSuccessResponse.fromJSONString(string) else {
             return .failure(ValidationError.todo(reason: "Cannot decode .notRequired response"))
           }

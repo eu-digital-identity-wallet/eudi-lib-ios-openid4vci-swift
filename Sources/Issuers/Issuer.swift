@@ -667,7 +667,7 @@ public extension Issuer {
     privateKeyData: Data? = nil
   ) -> IssuanceResponseEncryptionSpec? {
     switch issuerResponseEncryptionMetadata {
-    case .notRequired:
+    case .notSupported:
       return Self.createResponseEncryptionSpecFrom(
         algorithmsSupported: [.init(.ECDH_ES)],
         encryptionMethodsSupported: [.init(.A128GCM)],

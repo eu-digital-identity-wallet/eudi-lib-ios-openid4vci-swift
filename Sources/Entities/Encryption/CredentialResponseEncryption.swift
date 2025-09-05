@@ -16,7 +16,7 @@
 import Foundation
 
 public enum CredentialResponseEncryption: Decodable, Sendable {
-  case notRequired
+  case notSupported
   case required(
     algorithmsSupported: [JWEAlgorithm],
     encryptionMethodsSupported: [JOSEEncryptionMethod]
@@ -28,9 +28,9 @@ public enum CredentialResponseEncryption: Decodable, Sendable {
     case encryptionMethodsSupported = "enc_values_supported"
   }
   
-  var notRequired: Bool {
+  var notSupported: Bool {
     switch self {
-    case .notRequired:
+    case .notSupported:
       true
     default:
       false
@@ -42,7 +42,7 @@ public enum CredentialResponseEncryption: Decodable, Sendable {
     let encryptionRequired = try container.decode(Bool.self, forKey: .encryptionRequired)
     
     if !encryptionRequired {
-      self = .notRequired
+      self = .notSupported
     } else {
       let algorithmsSupported = try container.decode(
         [JWEAlgorithm].self,
