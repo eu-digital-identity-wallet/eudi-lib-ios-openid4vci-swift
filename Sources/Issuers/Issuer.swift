@@ -673,8 +673,13 @@ public extension Issuer {
         encryptionMethodsSupported: [.init(.A128GCM)],
         privateKeyData: privateKeyData
       )
-      
     case let .required(algorithmsSupported, encryptionMethodsSupported):
+      return Self.createResponseEncryptionSpecFrom(
+        algorithmsSupported: algorithmsSupported,
+        encryptionMethodsSupported: encryptionMethodsSupported,
+        privateKeyData: privateKeyData
+      )
+    case let .notRequired(algorithmsSupported, encryptionMethodsSupported):
       return Self.createResponseEncryptionSpecFrom(
         algorithmsSupported: algorithmsSupported,
         encryptionMethodsSupported: encryptionMethodsSupported,

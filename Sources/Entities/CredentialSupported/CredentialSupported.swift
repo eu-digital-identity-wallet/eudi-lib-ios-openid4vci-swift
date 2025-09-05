@@ -78,6 +78,9 @@ public extension CredentialSupported {
         case .required(
           let algorithmsSupported,
           let encryptionMethodsSupported
+        ), .notRequired(
+          let algorithmsSupported,
+          let encryptionMethodsSupported
         ):
           if !algorithmsSupported.contains(responseEncryptionSpec.algorithm) {
             throw CredentialIssuanceError.responseEncryptionAlgorithmNotSupportedByIssuer
@@ -105,6 +108,9 @@ public extension CredentialSupported {
         switch issuerEncryption {
         case .notSupported: break
         case .required(
+          let algorithmsSupported,
+          let encryptionMethodsSupported
+        ), .notRequired(
           let algorithmsSupported,
           let encryptionMethodsSupported
         ):

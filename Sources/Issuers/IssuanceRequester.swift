@@ -154,7 +154,7 @@ public actor IssuanceRequester: IssuanceRequesterType {
             return .failure(ValidationError.todo(reason: "Cannot decode .notRequired response"))
           }
           return .success(try response.toDomain())
-        case .required:
+        case .required, .notRequired:
           do {
             guard let key = credential.credentialEncryptionKey else {
               return .failure(ValidationError.error(reason: "Invalid private key"))
@@ -199,7 +199,7 @@ public actor IssuanceRequester: IssuanceRequesterType {
             return .failure(ValidationError.todo(reason: "Cannot decode .notRequired response"))
           }
           return .success(try response.toDomain())
-        case .required:
+        case .required, .notRequired:
           guard let key = credential.credentialEncryptionKey else {
             return .failure(ValidationError.error(reason: "Invalid private key"))
           }
