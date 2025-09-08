@@ -443,7 +443,10 @@ extension Wallet {
       case .success(let response):
         if let result = response.credentialResponses.first {
           switch result {
-          case .deferred(let transactionId):
+          case .deferred(let transactionId, let interval):
+            
+            print("--> [DEFERRED] Retry after: \(interval)")
+            
             return try await deferredCredentialUseCase(
               issuer: issuer,
               authorized: authorized,

@@ -36,7 +36,7 @@ public enum CredentialIssuanceError: Error, LocalizedError {
   case unsupportedCredentialFormat
   case invalidEncryptionParameters
   case invalidProof(errorDescription: String?)
-  case deferredCredentialIssuancePending(interval: Int?)
+  case deferredCredentialIssuancePending(interval: TimeInterval?)
   case notificationFailed(reason: String)
   case proofTypeKeyAttestationRequired
   case combinationOfBindingKeys

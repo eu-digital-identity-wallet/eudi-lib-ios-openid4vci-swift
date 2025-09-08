@@ -17,7 +17,7 @@ import Foundation
 
 public enum DeferredCredentialIssuanceResponse: Codable, Sendable {
   case issued(credential: Credential)
-  case issuancePending(transactionId: TransactionId)
+  case issuancePending(transactionId: TransactionId, interval: TimeInterval)
   case errored(error: String?, errorDescription: String?)
   
   private enum CodingKeys: String, CodingKey {
@@ -25,14 +25,21 @@ public enum DeferredCredentialIssuanceResponse: Codable, Sendable {
     case credential
     case credentials
     case transactionId = "transaction_id"
+    case interval
     case error
     case errorDescription = "error_description"
   }
   
   public init(from decoder: Decoder) throws {
     let container = try decoder.container(keyedBy: CodingKeys.self)
-    if let transactionId = try? container.decode(String.self, forKey: .transactionId) {
-      self = .issuancePending(transactionId: try .init(value: transactionId))
+    if let transactionId = try? container.decode(String.self, forKey: .transactionId),
+       let interval = try? container.decode(TimeInterval.self, forKey: .interval) {
+      self = .issuancePending(
+        transactionId: try .init(
+          value: transactionId
+        ),
+        interval: interval
+      )
       
     } else if let credential = try? container.decode(Credential.self, forKey: .credential) {
       self = .issued(credential: credential)
@@ -56,9 +63,10 @@ public enum DeferredCredentialIssuanceResponse: Codable, Sendable {
       try container.encode("issued", forKey: .type)
       try container.encode(credential, forKey: .credential)
       
-    case let .issuancePending(transactionId):
+    case let .issuancePending(transactionId, interval):
       try container.encode("issuancePending", forKey: .type)
       try container.encode(transactionId, forKey: .transactionId)
+      try container.encode(interval, forKey: .interval)
       
     case let .errored(error, errorDescription):
       try container.encode("errored", forKey: .type)
