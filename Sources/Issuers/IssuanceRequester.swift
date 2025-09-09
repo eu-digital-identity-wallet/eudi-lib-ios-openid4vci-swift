@@ -264,6 +264,15 @@ public actor IssuanceRequester: IssuanceRequesterType {
         headers: authorizationHeader,
         body: encodedRequest
       )
+      
+      if let interval = response.body.interval {
+        return .success(
+          .issuancePending(
+            transactionId: transactionId,
+            interval: interval
+          )
+        )
+      }
       return .success(response.body)
       
     } catch PostError.useDpopNonce(let nonce) {

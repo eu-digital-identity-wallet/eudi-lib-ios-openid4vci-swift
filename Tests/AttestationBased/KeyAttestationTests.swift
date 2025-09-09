@@ -69,7 +69,7 @@ class KeyAttestationTests: XCTestCase {
       privateKey: .secKey(data.privateKey)
     )
     
-    let altBindingKey: BindingKey = .jwk(
+    let _: BindingKey = .jwk(
       algorithm: .init(.ES256),
       jwk: data.publicKey,
       privateKey: .secKey(data.privateKey)

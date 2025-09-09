@@ -18,6 +18,7 @@ import Foundation
 public enum DeferredCredentialIssuanceResponse: Codable, Sendable {
   case issued(credential: Credential)
   case issuancePending(transactionId: TransactionId, interval: TimeInterval)
+  case issuanceStillPending(interval: TimeInterval)
   case errored(error: String?, errorDescription: String?)
   
   private enum CodingKeys: String, CodingKey {
@@ -28,6 +29,19 @@ public enum DeferredCredentialIssuanceResponse: Codable, Sendable {
     case interval
     case error
     case errorDescription = "error_description"
+  }
+  
+  public var interval: TimeInterval? {
+    return switch self {
+    case .issued:
+      nil
+    case .issuancePending:
+      nil
+    case .errored:
+      nil
+    case .issuanceStillPending(let interval):
+      interval
+    }
   }
   
   public init(from decoder: Decoder) throws {
@@ -46,6 +60,11 @@ public enum DeferredCredentialIssuanceResponse: Codable, Sendable {
       
     } else if let credentials = try? container.decode(Credential.self, forKey: .credentials) {
       self = .issued(credential: credentials)
+      
+    } else if let interval = try? container.decode(TimeInterval.self, forKey: .interval) {
+      self = .issuanceStillPending(
+        interval: interval
+      )
       
     } else {
       self = .errored(
@@ -72,6 +91,10 @@ public enum DeferredCredentialIssuanceResponse: Codable, Sendable {
       try container.encode("errored", forKey: .type)
       try container.encode(error, forKey: .error)
       try container.encode(errorDescription, forKey: .errorDescription)
+      
+    case .issuanceStillPending(let interval):
+      try container.encode("issuanceStillPending", forKey: .type)
+      try container.encode(interval, forKey: .interval)
     }
   }
 }
