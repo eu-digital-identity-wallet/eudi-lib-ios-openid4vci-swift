@@ -23,13 +23,15 @@ public enum CredentialResponseEncryption: Decodable, Sendable {
   )
   case required(
     algorithmsSupported: [JWEAlgorithm],
-    encryptionMethodsSupported: [JOSEEncryptionMethod]
+    encryptionMethodsSupported: [JOSEEncryptionMethod],
+    compressionMethodsSupported: [CompressionAlgorithm]?
   )
   
   private enum CodingKeys: String, CodingKey {
     case encryptionRequired = "encryption_required"
     case algorithmsSupported = "alg_values_supported"
     case encryptionMethodsSupported = "enc_values_supported"
+    case compressionMethodsSupported = "zip_values_supported"
   }
   
   var notSupported: Bool {

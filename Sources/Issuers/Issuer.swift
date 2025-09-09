@@ -677,6 +677,7 @@ public extension Issuer {
       return Self.createResponseEncryptionSpecFrom(
         algorithmsSupported: algorithmsSupported,
         encryptionMethodsSupported: encryptionMethodsSupported,
+        compressionMethodsSupported: compressionMethodsSupported,
         privateKeyData: privateKeyData
       )
     case let .notRequired(algorithmsSupported, encryptionMethodsSupported):
@@ -691,6 +692,7 @@ public extension Issuer {
   static func createResponseEncryptionSpecFrom(
     algorithmsSupported: [JWEAlgorithm],
     encryptionMethodsSupported: [JOSEEncryptionMethod],
+    compressionMethodsSupported: [CompressionAlgorithm]? = nil,
     privateKeyData: Data? = nil
   ) -> IssuanceResponseEncryptionSpec? {
     let firstAsymmetricAlgorithm = algorithmsSupported.first {
