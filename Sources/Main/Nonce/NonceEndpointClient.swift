@@ -24,7 +24,7 @@ public struct CNonceResponse: Codable, Sendable {
 }
 
 public protocol NonceEndpointClientType: Sendable {
-  func getNonce() async throws -> Result<CNonceResponse, Error>
+  func getNonce() async throws -> Result<(nonce: CNonceResponse, dPoPNonce: Nonce?), Error>
 }
 
 public actor NonceEndpointClient: NonceEndpointClientType {
@@ -40,7 +40,7 @@ public actor NonceEndpointClient: NonceEndpointClientType {
     self.nonceEndpoint = nonceEndpoint
   }
   
-  public func getNonce() async throws -> Result<CNonceResponse, Error> {
+  public func getNonce() async throws -> Result<(nonce: CNonceResponse, dPoPNonce: Nonce?), Error> {
 
     var request = URLRequest(url: nonceEndpoint.url)
     request.httpMethod = HTTPMethod.POST.rawValue
@@ -51,7 +51,7 @@ public actor NonceEndpointClient: NonceEndpointClientType {
     
     switch result {
     case .success(let response):
-      return .success(response.body)
+      return .success((response.body, response.dpopNonce()))
     case .failure(let error):
       return .failure(error)
     }

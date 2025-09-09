@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 import Foundation
+import JOSESwift
 
 public enum CredentialSupported: Codable, Sendable {
   case scope(Scope)
@@ -73,8 +74,11 @@ public extension CredentialSupported {
       
       if let responseEncryptionSpec {
         switch issuerEncryption {
-        case .notRequired: break
+        case .notSupported: break
         case .required(
+          let algorithmsSupported,
+          let encryptionMethodsSupported
+        ), .notRequired(
           let algorithmsSupported,
           let encryptionMethodsSupported
         ):
@@ -91,7 +95,7 @@ public extension CredentialSupported {
       }
      
       return try credentialConfiguration.toIssuanceRequest(
-        responseEncryptionSpec: issuerEncryption.notRequired ? nil : responseEncryptionSpec,
+        responseEncryptionSpec: issuerEncryption.notSupported ? nil : responseEncryptionSpec,
         requestPayload: issuancePayload,
         proofs: proofs
       )
@@ -102,8 +106,11 @@ public extension CredentialSupported {
       
       if let responseEncryptionSpec {
         switch issuerEncryption {
-        case .notRequired: break
+        case .notSupported: break
         case .required(
+          let algorithmsSupported,
+          let encryptionMethodsSupported
+        ), .notRequired(
           let algorithmsSupported,
           let encryptionMethodsSupported
         ):
@@ -120,7 +127,7 @@ public extension CredentialSupported {
       }
      
       return try credentialConfiguration.toIssuanceRequest(
-        responseEncryptionSpec: issuerEncryption.notRequired ? nil : responseEncryptionSpec,
+        responseEncryptionSpec: issuerEncryption.notSupported ? nil : responseEncryptionSpec,
         requestPayload: issuancePayload,
         proofs: proofs
       )
@@ -139,6 +146,25 @@ public extension CredentialSupported {
       spec.proofTypesSupported
     default:
       nil
+    }
+  }
+  
+  func proofTypes(type: ProofType) -> [SignatureAlgorithm] {
+    switch self {
+    case .msoMdoc(let spec):
+      spec.proofTypesSupported?[type.rawValue].map { meta in
+        meta.algorithms.compactMap { algorithm in
+          SignatureAlgorithm(rawValue: algorithm)
+        }
+      } ?? []
+    case .sdJwtVc(let spec):
+      spec.proofTypesSupported?[type.rawValue].map { meta in
+        meta.algorithms.compactMap { algorithm in
+          SignatureAlgorithm(rawValue: algorithm)
+        }
+      } ?? []
+    default:
+      []
     }
   }
 }
