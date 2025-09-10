@@ -363,7 +363,7 @@ class VCIFlowWithOffer: XCTestCase {
     )
     
     let dPoPClientConfig: OpenId4VCIConfig = .init(
-      client: .public(id: "wallet-dev"),
+      client: .public(id: WALLET_DEV_CLIENT_ID),
       authFlowRedirectionURI: URL(string: "urn:ietf:wg:oauth:2.0:oob")!,
       authorizeIssuanceConfig: .favorScopes
     )
@@ -414,7 +414,7 @@ class VCIFlowWithOffer: XCTestCase {
     )
     
     let dPoPClientConfig: OpenId4VCIConfig = .init(
-      client: .public(id: "wallet-dev"),
+      client: .public(id: WALLET_DEV_CLIENT_ID),
       authFlowRedirectionURI: URL(string: "urn:ietf:wg:oauth:2.0:oob")!,
       authorizeIssuanceConfig: .favorScopes
     )
@@ -465,7 +465,7 @@ class VCIFlowWithOffer: XCTestCase {
     )
     
     let dPoPClientConfig: OpenId4VCIConfig = .init(
-      client: .public(id: "wallet-dev"),
+      client: .public(id: WALLET_DEV_CLIENT_ID),
       authFlowRedirectionURI: URL(string: "urn:ietf:wg:oauth:2.0:oob")!,
       authorizeIssuanceConfig: .favorScopes
     )
@@ -489,7 +489,7 @@ private func walletInitiatedIssuanceWithOfferSdJWT(
   wallet: Wallet
 ) async throws {
   
-  print("[[Scenario: Offer passed to wallet via url]] ")
+  print(OFFER_BASED_SCENARIO)
   
   let url = "\(CREDENTIAL_ISSUER_PUBLIC_URL)/credentialoffer?credential_offer=\(SdJwtVC_CredentialOffer)"
   let credential = try await wallet.issueByCredentialOfferUrl(
@@ -505,7 +505,7 @@ private func walletInitiatedIssuanceWithOfferMDL(
   wallet: Wallet
 ) async throws {
   
-  print("[[Scenario: Offer passed to wallet via url]] ")
+  print(OFFER_BASED_SCENARIO)
   
   let url = "\(CREDENTIAL_ISSUER_PUBLIC_URL)/credentialoffer?credential_offer=\(MDL_CredentialOffer)"
   let credential = try await wallet.issueByCredentialOfferUrl(
@@ -522,7 +522,7 @@ private func walletInitiatedIssuanceWithOfferMDL_DPoP(
   config: OpenId4VCIConfig
 ) async throws {
   
-  print("[[Scenario: Offer passed to wallet via url]] ")
+  print(OFFER_BASED_SCENARIO)
   
   let url = "\(CREDENTIAL_ISSUER_PUBLIC_URL)/credentialoffer?credential_offer=\(MDL_CredentialOffer)"
   let credential = try await wallet.issueByCredentialOfferUrl_DPoP(
@@ -539,7 +539,7 @@ private func walletInitiatedIssuanceWithOfferSDJWT_DPoP(
   config: OpenId4VCIConfig
 ) async throws {
   
-  print("[[Scenario: Offer passed to wallet via url]] ")
+  print(OFFER_BASED_SCENARIO)
   
   let url = "\(CREDENTIAL_ISSUER_PUBLIC_URL)/credentialoffer?credential_offer=\(SdJwtVC_CredentialOffer)"
   let credential = try await wallet.issueByCredentialOfferUrl_DPoP(
@@ -555,7 +555,7 @@ private func walletInitiatedIssuanceWithOfferMdoc(
   wallet: Wallet
 ) async throws {
   
-  print("[[Scenario: Offer passed to wallet via url]] ")
+  print(OFFER_BASED_SCENARIO)
   
   let url = "\(CREDENTIAL_ISSUER_PUBLIC_URL)/credentialoffer?credential_offer=\(MsoMdoc_CredentialOffer)"
   let credential = try await wallet.issueByCredentialOfferUrl(
@@ -571,7 +571,7 @@ private func walletInitiatedIssuanceWithOfferArray(
   wallet: Wallet
 ) async throws {
   
-  print("[[Scenario: Offer passed to wallet via url]] ")
+  print(OFFER_BASED_SCENARIO)
   
   let url = "\(CREDENTIAL_ISSUER_PUBLIC_URL)/credentialoffer?credential_offer=\(All_Supported_CredentialOffer)"
   let credentials = try await wallet.issueByCredentialOfferUrlMultipleFormats(
@@ -579,7 +579,7 @@ private func walletInitiatedIssuanceWithOfferArray(
     config: clientConfig
   )
   
-  print("--> [ISSUANCE] Issued credentials:")
+  print(ISSUANCE_MESSAGE)
   for credential in credentials {
     print("\t [\(credential.0)]: \(credential.1)")
   }
@@ -596,14 +596,14 @@ private func walletInitiatedIssuanceWithOfferUrl(
     return
   }
   
-  print("[[Scenario: Offer passed to wallet via url]] ")
+  print(OFFER_BASED_SCENARIO)
   
   let credentials = try await wallet.issueByCredentialOfferUrlMultipleFormats(
     offerUri: url,
     config: clientConfig
   )
   
-  print("--> [ISSUANCE] Issued credentials:")
+  print(ISSUANCE_MESSAGE)
   for credential in credentials {
     print("\t [\(credential.0)]: \(credential.1)")
   }
@@ -620,14 +620,14 @@ private func walletInitiatedIssuanceWithTertiaryOfferUrl(
     return
   }
   
-  print("[[Scenario: Offer passed to wallet via url]] ")
+  print(OFFER_BASED_SCENARIO)
   
   let credentials = try await wallet.issueByCredentialOfferUrlMultipleFormats(
     offerUri: url,
     config: clientConfig
   )
   
-  print("--> [ISSUANCE] Issued credentials:")
+  print(ISSUANCE_MESSAGE)
   for credential in credentials {
     print("\t [\(credential.0)]: \(credential.1)")
   }

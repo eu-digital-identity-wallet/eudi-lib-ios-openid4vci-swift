@@ -27,11 +27,6 @@ public enum CredentialIssuanceRequest: Sendable {
   case single(SingleCredential, IssuanceResponseEncryptionSpec?)
 }
 
-public struct DeferredCredentialRequest: Codable {
-  let transactionId: String
-  let token: IssuanceAccessToken
-}
-
 public enum SingleCredential: Sendable {
   case msoMdoc(MsoMdocFormat.MsoMdocSingleCredential)
   case sdJwtVc(SdJwtVcFormat.SdJwtVcSingleCredential)
@@ -71,7 +66,7 @@ public extension SingleCredential {
     return switch self {
       case .msoMdoc(let credential):
         try createPayload(
-          proofOrProofs: credential.proofs.proofOrProofs(),
+          proofs: credential.proofs.proofs(),
           credentialId: extractCredentialId(
             from: credential.requestPayload
           ),
@@ -80,7 +75,7 @@ public extension SingleCredential {
         
       case .sdJwtVc(let credential):
         try createPayload(
-          proofOrProofs: credential.proofs.proofOrProofs(),
+          proofs: credential.proofs.proofs(),
           credentialId: extractCredentialId(
             from: credential.requestPayload
           ),
@@ -103,7 +98,7 @@ public extension SingleCredential {
   
   // Helper function to create the JSON dictionary
   private func createPayload(
-    proofOrProofs: (Proof?, ProofsTO?),
+    proofs: ProofsTO?,
     credentialId: (id: String, value: String?),
     additionalFields: [String: Any?] = [:],
     encryption: RequestedCredentialResponseEncryption
@@ -114,7 +109,7 @@ public extension SingleCredential {
     switch encryption {
     case .notRequested:
       return try JSON.createFrom(
-        proofOrProofs: proofOrProofs,
+        proofs: proofs,
         dictionary: dictionary.compactMapValues { $0 }
       )
       
@@ -130,7 +125,7 @@ public extension SingleCredential {
         "enc": responseEncryptionMethod.name
       ]
       return try JSON.createFrom(
-        proofOrProofs: proofOrProofs,
+        proofs: proofs,
         dictionary: dictionary.compactMapValues { $0 }
       )
     }
@@ -138,12 +133,16 @@ public extension SingleCredential {
 }
 
 private extension Array where Element == Proof {
-  func proofOrProofs() -> (Proof?, ProofsTO?) {
+  func proofs() -> ProofsTO? {
     if self.isEmpty {
-      return (nil, nil)
+      return nil
       
     } else if self.count == 1 {
-      return (self.first, nil)
+      if let first = self.first {
+        return .init(jwtProofs: [first.proof])
+      } else {
+        return nil
+      }
       
     } else {
       let jwtProofs: [String] = self.compactMap { proof in
@@ -166,24 +165,22 @@ private extension Array where Element == Proof {
       ProofsTO(jwtProofs: jwtProofs) :
       ProofsTO(attestationProofs: attestationProofs)
       
-      return (nil, proofsTO)
+      return proofsTO
     }
   }
 }
 
 private extension JSON {
-  static func toJSON(_ tuple: (Proof?, ProofsTO?)) -> JSON? {
-    if let proof = tuple.0 {
-      return try? .init(["proof": proof.toDictionary()])
-    } else if let proofs = tuple.1 {
+  static func toJSON(_ proofs: ProofsTO?) -> JSON? {
+    if let proofs = proofs {
       return try? .init(["proofs": proofs.toDictionary()])
     } else {
       return nil
     }
   }
   
-  static func createFrom(proofOrProofs: (Proof?, ProofsTO?), dictionary: [String: Any?]) throws -> JSON {
-    var json: JSON = Self.toJSON(proofOrProofs) ?? JSON([:])
+  static func createFrom(proofs: ProofsTO?, dictionary: [String: Any?]) throws -> JSON {
+    var json: JSON = Self.toJSON(proofs) ?? JSON([:])
     try json.merge(with: JSON(
       dictionary.compactMapValues { $0 }
     ))

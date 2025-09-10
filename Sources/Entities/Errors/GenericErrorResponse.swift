@@ -18,7 +18,7 @@ import Foundation
 public struct GenericErrorResponse: Codable, Sendable {
   public let error: String
   public let errorDescription: String?
-  public let interval: Int?
+  public let interval: TimeInterval?
   
   private enum CodingKeys: String, CodingKey {
     case error
@@ -29,7 +29,7 @@ public struct GenericErrorResponse: Codable, Sendable {
   public init(
     error: String,
     errorDescription: String? = nil,
-    interval: Int? = nil
+    interval: TimeInterval? = nil
   ) {
     self.error = error
     self.errorDescription = errorDescription

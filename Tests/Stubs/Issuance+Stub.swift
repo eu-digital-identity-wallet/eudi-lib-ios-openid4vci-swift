@@ -23,9 +23,9 @@ extension NotificationObject: Stubbable {
     ObjectIdentifier(NSObject())
   }
   
-  static func stub() -> NotificationObject {
+  static func stub() throws -> NotificationObject {
     .init(
-      id: try! .init(value: "String"),
+      id: try .init(value: "String"),
       event: .init(rawValue: "CREDENTIAL_ACCEPTED")!,
       eventDescription: "String?"
     )

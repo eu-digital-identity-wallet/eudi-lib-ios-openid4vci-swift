@@ -56,7 +56,7 @@ public struct CredentialIssuerMetadata: Decodable, Equatable, Sendable {
     deferredCredentialEndpoint: CredentialIssuerEndpoint?,
     nonceEndpoint: CredentialIssuerEndpoint?,
     notificationEndpoint: CredentialIssuerEndpoint?,
-    credentialResponseEncryption: CredentialResponseEncryption = .notRequired,
+    credentialResponseEncryption: CredentialResponseEncryption = .notSupported,
     credentialConfigurationsSupported: [CredentialConfigurationIdentifier: CredentialSupported],
     signedMetadata: String?,
     display: [Display]?,
@@ -129,7 +129,7 @@ public struct CredentialIssuerMetadata: Decodable, Equatable, Sendable {
     credentialResponseEncryption = (try? container.decode(
       CredentialResponseEncryption.self,
       forKey: .credentialResponseEncryption
-    )) ?? .notRequired
+    )) ?? .notSupported
     
     let json = try container.decodeIfPresent(JSON.self, forKey: .credentialConfigurationsSupported) ?? []
     var mapIdentifierCredential: [CredentialConfigurationIdentifier: CredentialSupported] = [:]

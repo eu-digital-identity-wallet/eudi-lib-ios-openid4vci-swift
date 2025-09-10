@@ -149,12 +149,12 @@ public actor IssuanceRequester: IssuanceRequesterType {
       switch request {
       case .msoMdoc(let credential):
         switch issuerMetadata.credentialResponseEncryption {
-        case .notRequired:
+        case .notSupported:
           guard let response = SingleIssuanceSuccessResponse.fromJSONString(string) else {
             return .failure(ValidationError.todo(reason: "Cannot decode .notRequired response"))
           }
           return .success(try response.toDomain())
-        case .required:
+        case .required, .notRequired:
           do {
             guard let key = credential.credentialEncryptionKey else {
               return .failure(ValidationError.error(reason: "Invalid private key"))
@@ -194,12 +194,12 @@ public actor IssuanceRequester: IssuanceRequesterType {
         }
       case .sdJwtVc(let credential):
         switch issuerMetadata.credentialResponseEncryption {
-        case .notRequired:
+        case .notSupported:
           guard let response = SingleIssuanceSuccessResponse.fromJSONString(string) else {
             return .failure(ValidationError.todo(reason: "Cannot decode .notRequired response"))
           }
           return .success(try response.toDomain())
-        case .required:
+        case .required, .notRequired:
           guard let key = credential.credentialEncryptionKey else {
             return .failure(ValidationError.error(reason: "Invalid private key"))
           }
@@ -264,6 +264,15 @@ public actor IssuanceRequester: IssuanceRequesterType {
         headers: authorizationHeader,
         body: encodedRequest
       )
+      
+      if let interval = response.body.interval {
+        return .success(
+          .issuancePending(
+            transactionId: transactionId,
+            interval: interval
+          )
+        )
+      }
       return .success(response.body)
       
     } catch PostError.useDpopNonce(let nonce) {
@@ -283,8 +292,13 @@ public actor IssuanceRequester: IssuanceRequesterType {
       
       let issuanceError = response.toIssuanceError()
       
-      if case .deferredCredentialIssuancePending = issuanceError {
-        return .success(.issuancePending(transactionId: transactionId))
+      if case .deferredCredentialIssuancePending(let interval) = issuanceError {
+        return .success(
+          .issuancePending(
+            transactionId: transactionId,
+            interval: interval ?? .zero
+          )
+        )
       }
       
       return .failure(issuanceError)
@@ -587,10 +601,15 @@ private extension SingleIssuanceSuccessResponse {
           )
         ]
       )
-    } else if let transactionId = transactionId {
+    } else if let transactionId = transactionId, let interval = interval {
       return CredentialIssuanceResponse(
         credentialResponses: [
-          .deferred(transactionId: try .init(value: transactionId))
+          .deferred(
+            transactionId: try .init(
+              value: transactionId
+            ),
+            interval: interval
+          )
         ]
       )
       

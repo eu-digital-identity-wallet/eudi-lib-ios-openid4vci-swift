@@ -21,17 +21,17 @@ import XCTest
 class IssuanceFlowsTest: XCTestCase {
   
   func testDeferredIssuerConstruction() async throws {
-   
+    let example = "https://www.example.com"
     let issuer = try Issuer.createDeferredIssuer(
-      deferredCredentialEndpoint: .init(string: "https://www.example.com"),
+      deferredCredentialEndpoint: .init(string: example),
       deferredRequesterPoster: Poster(),
       config: .init(
         client: .public(id: ""),
-        authFlowRedirectionURI: URL(string: "https://www.example.com")!
+        authFlowRedirectionURI: URL(string: example)!
       )
     )
       
     let endPoint = await issuer.issuerMetadata.deferredCredentialEndpoint!.url.absoluteString
-    XCTAssertEqual(endPoint, "https://www.example.com")
+    XCTAssertEqual(endPoint, example)
   }
 }

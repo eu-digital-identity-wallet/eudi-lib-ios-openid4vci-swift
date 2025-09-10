@@ -20,12 +20,14 @@ public struct SingleIssuanceSuccessResponse: Codable, Sendable {
   public let credential: JSON?
   public let credentials: [JSON]?
   public let transactionId: String?
+  public let interval: TimeInterval?
   public let notificationId: String?
   
   enum CodingKeys: String, CodingKey {
-    case credential = "credential"
-    case credentials = "credentials"
+    case credential
+    case credentials
     case transactionId = "transaction_id"
+    case interval
     case notificationId = "notification_id"
   }
   
@@ -33,11 +35,13 @@ public struct SingleIssuanceSuccessResponse: Codable, Sendable {
     credential: JSON?,
     credentials: [JSON]?,
     transactionId: String?,
+    interval: TimeInterval?,
     notificationId: String?
   ) {
     self.credential = credential
     self.credentials = credentials
     self.transactionId = transactionId
+    self.interval = interval
     self.notificationId = notificationId
   }
   
@@ -45,10 +49,11 @@ public struct SingleIssuanceSuccessResponse: Codable, Sendable {
     let container = try decoder.container(keyedBy: CodingKeys.self)
     
     // Decode fields
-    credential = try container.decodeIfPresent(JSON.self, forKey: .credential)
-    credentials = try container.decodeIfPresent([JSON].self, forKey: .credentials)
-    transactionId = try container.decodeIfPresent(String.self, forKey: .transactionId)
-    notificationId = try container.decodeIfPresent(String.self, forKey: .notificationId)
+    credential = try? container.decodeIfPresent(JSON.self, forKey: .credential)
+    credentials = try? container.decodeIfPresent([JSON].self, forKey: .credentials)
+    transactionId = try? container.decodeIfPresent(String.self, forKey: .transactionId)
+    interval = try? container.decodeIfPresent(TimeInterval.self, forKey: .interval)
+    notificationId = try? container.decodeIfPresent(String.self, forKey: .notificationId)
   
     if transactionId == nil && (credential == nil && credentials == nil) {
       throw DecodingError.dataCorruptedError(
@@ -71,10 +76,15 @@ public struct SingleIssuanceSuccessResponse: Codable, Sendable {
 public extension SingleIssuanceSuccessResponse {
   
   func toDomain() throws -> CredentialIssuanceResponse {
-    if let transactionId = transactionId {
+    if let transactionId = transactionId, let interval = interval {
       return .init(
         credentialResponses: [
-          .deferred(transactionId: try .init(value: transactionId))
+          .deferred(
+            transactionId: try .init(
+              value: transactionId
+            ),
+            interval: interval
+          )
         ]
       )
     } else if let credential = credential,

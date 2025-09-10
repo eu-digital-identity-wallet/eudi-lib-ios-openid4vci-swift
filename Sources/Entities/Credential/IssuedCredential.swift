@@ -24,6 +24,7 @@ public enum IssuedCredential: Codable, Sendable {
     additionalInfo: JSON?
   )
   case deferred(
-    transactionId: TransactionId
+    transactionId: TransactionId,
+    interval: TimeInterval
   )
 }

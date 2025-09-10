@@ -39,7 +39,7 @@ final class NetworkingMock: Networking {
   ) async throws -> (Data, URLResponse) {
     let path = Bundle.module.path(forResource: self.path, ofType: self.extension)
     let url = URL(fileURLWithPath: path!)
-    let data = try! Data(contentsOf: url)
+    let data = try Data(contentsOf: url)
     let result = Result<Data, Error>.success(data)
     let response = HTTPURLResponse(
       url: .stub(),

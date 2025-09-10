@@ -22,7 +22,7 @@ import JOSESwift
 class IssuanceEncryptionTest: XCTestCase {
   
   let config: OpenId4VCIConfig = .init(
-    client: .public(id: "wallet-dev"),
+    client: .public(id: WALLET_DEV_CLIENT_ID),
     authFlowRedirectionURI: URL(string: "urn:ietf:wg:oauth:2.0:oob")!,
     authorizeIssuanceConfig: .favorScopes
   )

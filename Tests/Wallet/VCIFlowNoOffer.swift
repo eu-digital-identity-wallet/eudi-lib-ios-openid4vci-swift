@@ -74,6 +74,51 @@ class VCIFlowNoOffer: XCTestCase {
     XCTAssert(true)
   }
   
+  func testNoOfferSdJWTDeferred() async throws {
+    
+    let privateKey = try KeyController.generateECDHPrivateKey()
+    let publicKey = try KeyController.generateECDHPublicKey(from: privateKey)
+    
+    let alg = JWSAlgorithm(.ES256)
+    let publicKeyJWK = try ECPublicKey(
+      publicKey: publicKey,
+      additionalParameters: [
+        "alg": alg.name,
+        "use": "sig",
+        "kid": UUID().uuidString
+      ])
+    
+    let bindingKey: BindingKey = .jwk(
+      algorithm: alg,
+      jwk: publicKeyJWK,
+      privateKey: .secKey(privateKey)
+    )
+    
+    let user = ActingUser(
+      username: "tneal",
+      password: "password"
+    )
+    
+    let wallet = Wallet(
+      actingUser: user,
+      bindingKeys: [bindingKey]
+    )
+    
+    do {
+      try await walletInitiatedIssuanceNoOfferSdJwt(
+        wallet: wallet,
+        id: PID_SdJwtVC_config_id_deferred
+      )
+      
+    } catch {
+      
+      XCTExpectFailure()
+      XCTAssert(false, error.localizedDescription)
+    }
+    
+    XCTAssert(true)
+  }
+  
   func testNoOfferMdoc() async throws {
     
     let privateKey = try KeyController.generateECDHPrivateKey()
@@ -386,7 +431,7 @@ private func walletInitiatedIssuanceNoOfferSdJwtClientAuthentication(
   wallet: Wallet
 ) async throws {
   
-  print("[[Scenario: No offer passed, wallet initiates issuance by credetial scopes and client authentication]]")
+  print(NO_OFFER_BASED_SCENARIO)
   
   let credential = try await wallet.issueByCredentialIdentifier(
     PID_SdJwtVC_config_id,
@@ -397,24 +442,25 @@ private func walletInitiatedIssuanceNoOfferSdJwtClientAuthentication(
 }
 
 private func walletInitiatedIssuanceNoOfferSdJwt(
-  wallet: Wallet
+  wallet: Wallet,
+  id: String? = nil
 ) async throws {
   
-  print("[[Scenario: No offer passed, wallet initiates issuance by credetial scopes]]")
+  print(NO_OFFER_BASED_SCENARIO)
   
   let credential = try await wallet.issueByCredentialIdentifier(
     PID_SdJwtVC_config_id,
     config: clientConfig
   )
   
-  print("--> [ISSUANCE] Issued PID in format \(PID_SdJwtVC_config_id): \(credential)")
+  print("--> [ISSUANCE] Issued PID in format \(id ?? PID_SdJwtVC_config_id): \(credential)")
 }
 
 private func walletInitiatedIssuanceNoOfferMdoc(
   wallet: Wallet
 ) async throws {
   
-  print("[[Scenario: No offer passed, wallet initiates issuance by credetial scopes]]")
+  print(NO_OFFER_BASED_SCENARIO)
   
   let credential = try await wallet.issueByCredentialIdentifier(
     PID_MsoMdoc_config_id,
@@ -426,7 +472,7 @@ private func walletInitiatedIssuanceNoOfferMdoc(
 
 private func walletInitiatedIssuanceNoOfferMDL(wallet: Wallet) async throws {
   
-  print("[[Scenario: No offer passed, wallet initiates issuance by credetial scopes]]")
+  print(NO_OFFER_BASED_SCENARIO)
   
   let credential = try await wallet.issueByCredentialIdentifier(
     MDL_config_id,

@@ -50,6 +50,9 @@ public struct OpenId4VCIConfig: Sendable {
   /// Policy defining how issuer metadata should be handled.
   public let issuerMetadataPolicy: IssuerMetadataPolicy
   
+  /// Client supported compression algorithms
+  public let supportedCompressionAlgorithms: [CompressionAlgorithm]?
+  
   /// Initializes an `OpenId4VCIConfig` instance with the given parameters.
   /// - Parameters:
   ///   - client: The client used for OpenID4VCI operations.
@@ -64,7 +67,8 @@ public struct OpenId4VCIConfig: Sendable {
     authorizeIssuanceConfig: AuthorizeIssuanceConfig = .favorScopes,
     usePAR: Bool = true,
     clientAttestationPoPBuilder: ClientAttestationPoPBuilder? = nil,
-    issuerMetadataPolicy: IssuerMetadataPolicy = .ignoreSigned
+    issuerMetadataPolicy: IssuerMetadataPolicy = .ignoreSigned,
+    supportedCompressionAlgorithms: [CompressionAlgorithm]? = nil
   ) {
     self.client = client
     self.authFlowRedirectionURI = authFlowRedirectionURI
@@ -72,5 +76,6 @@ public struct OpenId4VCIConfig: Sendable {
     self.usePAR = usePAR
     self.clientAttestationPoPBuilder = clientAttestationPoPBuilder
     self.issuerMetadataPolicy = issuerMetadataPolicy
+    self.supportedCompressionAlgorithms = supportedCompressionAlgorithms
   }
 }

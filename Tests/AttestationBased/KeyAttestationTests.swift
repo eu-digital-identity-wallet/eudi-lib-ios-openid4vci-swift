@@ -35,7 +35,7 @@ class KeyAttestationTests: XCTestCase {
     try await super.setUp()
     
     config = .init(
-      client: .public(id: "wallet-dev"),
+      client: .public(id: WALLET_DEV_CLIENT_ID),
       authFlowRedirectionURI: URL(string: "urn:ietf:wg:oauth:2.0:oob")!,
       authorizeIssuanceConfig: .favorScopes
     )
@@ -69,7 +69,7 @@ class KeyAttestationTests: XCTestCase {
       privateKey: .secKey(data.privateKey)
     )
     
-    let altBindingKey: BindingKey = .jwk(
+    let _: BindingKey = .jwk(
       algorithm: .init(.ES256),
       jwk: data.publicKey,
       privateKey: .secKey(data.privateKey)

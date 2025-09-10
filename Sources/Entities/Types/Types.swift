@@ -51,7 +51,14 @@ public enum Proof: Codable, Sendable {
     }
   }
   
-  // MARK: - Codable
+  public var proof: String {
+    switch self {
+    case .jwt(let jwt):
+      return jwt
+    case .attestation(let attestation):
+      return attestation.jws.compactSerializedString
+    }
+  }
   
   public init(from decoder: Decoder) throws {
     let container = try decoder.singleValueContainer()
