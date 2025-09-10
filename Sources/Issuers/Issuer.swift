@@ -132,6 +132,15 @@ public protocol IssuerType: Sendable {
     authorizedRequest: AuthorizedRequest,
     dPopNonce: Nonce?
   ) async -> Result<AuthorizedRequest, Error>
+  
+  /// Sets the deferred response encryption specification to be used for issuance responses.
+  ///
+  /// - Parameter deferredResponseEncryptionSpec:
+  ///   The encryption specification that defines how deferred issuance responses
+  ///   should be encrypted. Pass `nil` to clear the existing specification.
+  func setDeferredResponseEncryptionSpec(
+    _ deferredResponseEncryptionSpec: IssuanceResponseEncryptionSpec?
+  ) async
 }
 
 public actor Issuer: IssuerType {
@@ -263,7 +272,7 @@ public actor Issuer: IssuerType {
     }
   }
   
-  public func setDeferredResponseEncryptionSpec(_ deferredResponseEncryptionSpec: IssuanceResponseEncryptionSpec?) {
+  public func setDeferredResponseEncryptionSpec(_ deferredResponseEncryptionSpec: IssuanceResponseEncryptionSpec?) async {
     self.deferredResponseEncryptionSpec = deferredResponseEncryptionSpec
   }
   
