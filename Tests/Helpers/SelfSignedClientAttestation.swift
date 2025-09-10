@@ -77,15 +77,16 @@ internal func selfSignedClient(
       jwsSigner: signer
     )
   )
-  
-  func isECPrivateKey(_ secKey: SecKey) -> Bool {
-    guard let attributes = SecKeyCopyAttributes(secKey) as? [CFString: Any] else {
-      return false
-    }
-    
-    let isPrivateKey = (attributes[kSecAttrKeyClass] as? String) == (kSecAttrKeyClassPrivate as String)
-    let isECKey = (attributes[kSecAttrKeyType] as? String) == (kSecAttrKeyTypeEC as String)
-    
-    return isPrivateKey && isECKey
+}
+
+
+func isECPrivateKey(_ secKey: SecKey) -> Bool {
+  guard let attributes = SecKeyCopyAttributes(secKey) as? [CFString: Any] else {
+    return false
   }
+  
+  let isPrivateKey = (attributes[kSecAttrKeyClass] as? String) == (kSecAttrKeyClassPrivate as String)
+  let isECKey = (attributes[kSecAttrKeyType] as? String) == (kSecAttrKeyTypeEC as String)
+  
+  return isPrivateKey && isECKey
 }
