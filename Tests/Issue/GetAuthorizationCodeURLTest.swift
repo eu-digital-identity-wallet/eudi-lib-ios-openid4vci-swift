@@ -33,7 +33,7 @@ class GetAuthorizationCodeURLTests: XCTestCase {
   }
   
   func testNonHTTPSURL() {
-    XCTAssertThrowsError(try AuthorizationCodeURL(urlString: "http://example.com?client_id=123")) { error in
+    XCTAssertThrowsError(try AuthorizationCodeURL(urlString: "http://example1.com?client_id=123")) { error in
       XCTAssertTrue(error is ValidationError)
     }
   }

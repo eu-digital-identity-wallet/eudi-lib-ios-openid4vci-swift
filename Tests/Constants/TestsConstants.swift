@@ -85,15 +85,17 @@ let MDL_CredentialOffer = """
     }
 """
 
+let WALLET_DEV_CLIENT_ID = "wallet-dev"
+
 let clientConfig: OpenId4VCIConfig = .init(
-  client: .public(id: "wallet-dev"),
+  client: .public(id: WALLET_DEV_CLIENT_ID),
   authFlowRedirectionURI: URL(string: "urn:ietf:wg:oauth:2.0:oob")!,
   authorizeIssuanceConfig: .favorScopes
 )
 
 let attestationConfig: OpenId4VCIConfig = .init(
   client: try! selfSignedClient(
-    clientId: "wallet-dev",
+    clientId: WALLET_DEV_CLIENT_ID,
     privateKey: try KeyController.generateECDHPrivateKey()
   ),
   authFlowRedirectionURI: URL(string: "urn:ietf:wg:oauth:2.0:oob")!,
@@ -186,7 +188,7 @@ struct TestsConstants {
   static let unAuthorizedRequest: AuthorizationRequestPrepared = .prepared(
     .init(
       credentials: (try? [.init(value: "UniversityDegree_JWT")]) ?? [],
-      authorizationCodeURL: (try? .init(urlString: "https://example.com?client_id=wallet-dev&request_uri=https://request_uri.example.com&state=5A201471-D088-4544-B1E9-5476E5935A95"))!,
+      authorizationCodeURL: (try? .init(urlString: "https://example.com?client_id=\(WALLET_DEV_CLIENT_ID)&request_uri=https://request_uri.example.com&state=5A201471-D088-4544-B1E9-5476E5935A95"))!,
       pkceVerifier: (try? .init(
         codeVerifier: "GVaOE~J~xQmkE4aCKm4RNYviYW5QaFiFOxVv-8enIDL",
         codeVerifierMethod: "S256"))!,
@@ -423,3 +425,7 @@ final class TestSinger: AsyncSignerProtocol {
     return jws.signature
   }
 }
+
+let ISSUANCE_MESSAGE = "--> [ISSUANCE] Issued credentials:"
+let OFFER_BASED_SCENARIO = "[[Scenario: Offer passed to wallet via url]] "
+let NO_OFFER_BASED_SCENARIO = "[[Scenario: No offer passed, wallet initiates issuance by credetial scopes]]"

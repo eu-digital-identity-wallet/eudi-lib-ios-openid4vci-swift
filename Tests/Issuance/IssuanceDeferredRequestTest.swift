@@ -22,7 +22,7 @@ import JOSESwift
 class IssuanceDeferredRequestTest: XCTestCase {
   
   let config: OpenId4VCIConfig = .init(
-    client: .public(id: "wallet-dev"),
+    client: .public(id: WALLET_DEV_CLIENT_ID),
     authFlowRedirectionURI: URL(string: "urn:ietf:wg:oauth:2.0:oob")!,
     authorizeIssuanceConfig: .favorScopes
   )
@@ -134,7 +134,7 @@ class IssuanceDeferredRequestTest: XCTestCase {
             case .invalidProof:
               XCTAssert(false, ".invalidProof")
             }
-            XCTAssert(false, "Unexpected request")
+            XCTAssert(false, "An unexpected request")
           case .failure(let error):
             XCTAssert(false, error.localizedDescription)
           }

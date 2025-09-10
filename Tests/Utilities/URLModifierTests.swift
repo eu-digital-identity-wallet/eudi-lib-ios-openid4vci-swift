@@ -29,10 +29,12 @@ class URLModifierTests: XCTestCase {
   }
   
   func testAppendPathComponents() async throws {
+    let wellKnown = ".well-known"
+    let configuration = "openid-configuration"
     if let url = URL(string: "https://keycloak.netcompany.com/realms/pid-issuer-realm") {
       let modifiedURL = await resolver.modifyURL(
         url: url,
-        modificationType: .appendPathComponents(".well-known", "openid-configuration")
+        modificationType: .appendPathComponents(wellKnown, configuration)
       )
       XCTAssertEqual(
         modifiedURL?.absoluteString,
@@ -44,38 +46,44 @@ class URLModifierTests: XCTestCase {
   }
   
   func testInsertPathComponents() async throws {
+    let wellKnown = ".well-known"
+    let configuration = "openid-configuration"
     if let url = URL(string: "https://keycloak.netcompany.com/realms/pid-issuer-realm") {
       let modifiedURL = await resolver.modifyURL(
         url: url,
-        modificationType: .insertPathComponents(".well-known", "openid-configuration")
+        modificationType: .insertPathComponents(wellKnown, configuration)
       )
       XCTAssertEqual(modifiedURL?.absoluteString, "https://keycloak.netcompany.com/.well-known/openid-configuration/realms/pid-issuer-realm")
     } else {
-      XCTFail("Failed to create URL")
+      XCTFail("Failed to create the URL")
     }
   }
   
   func testAppendPathComponentsEmptyPath() async throws {
+    let wellKnown = ".well-known"
+    let configuration = "openid-configuration"
     if let url = URL(string: "https://keycloak.netcompany.com") {
       let modifiedURL = await resolver.modifyURL(
         url: url,
-        modificationType: .appendPathComponents(".well-known", "openid-configuration")
+        modificationType: .appendPathComponents(wellKnown, configuration)
       )
       XCTAssertEqual(modifiedURL?.absoluteString, "https://keycloak.netcompany.com/.well-known/openid-configuration")
     } else {
-      XCTFail("Failed to create URL")
+      XCTFail("Failed to create auth URL")
     }
   }
   
   func testInsertPathComponentsEmptyPath() async throws {
+    let wellKnown = ".well-known"
+    let configuration = "openid-configuration"
     if let url = URL(string: "https://keycloak.netcompany.com") {
       let modifiedURL = await resolver.modifyURL(
         url: url,
-        modificationType: .insertPathComponents(".well-known", "openid-configuration")
+        modificationType: .insertPathComponents(wellKnown, configuration)
       )
       XCTAssertEqual(modifiedURL?.absoluteString, "https://keycloak.netcompany.com/.well-known/openid-configuration")
     } else {
-      XCTFail("Failed to create URL")
+      XCTFail("Failed to create the auth URL")
     }
   }
 }

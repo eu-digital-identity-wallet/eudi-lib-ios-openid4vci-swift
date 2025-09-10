@@ -16,5 +16,5 @@
 import Foundation
 
 protocol Stubbable: Identifiable {
-  static func stub() -> Self
+  static func stub() throws -> Self
 }

@@ -386,7 +386,7 @@ private func walletInitiatedIssuanceNoOfferSdJwtClientAuthentication(
   wallet: Wallet
 ) async throws {
   
-  print("[[Scenario: No offer passed, wallet initiates issuance by credetial scopes and client authentication]]")
+  print(NO_OFFER_BASED_SCENARIO)
   
   let credential = try await wallet.issueByCredentialIdentifier(
     PID_SdJwtVC_config_id,
@@ -400,7 +400,7 @@ private func walletInitiatedIssuanceNoOfferSdJwt(
   wallet: Wallet
 ) async throws {
   
-  print("[[Scenario: No offer passed, wallet initiates issuance by credetial scopes]]")
+  print(NO_OFFER_BASED_SCENARIO)
   
   let credential = try await wallet.issueByCredentialIdentifier(
     PID_SdJwtVC_config_id,
@@ -414,7 +414,7 @@ private func walletInitiatedIssuanceNoOfferMdoc(
   wallet: Wallet
 ) async throws {
   
-  print("[[Scenario: No offer passed, wallet initiates issuance by credetial scopes]]")
+  print(NO_OFFER_BASED_SCENARIO)
   
   let credential = try await wallet.issueByCredentialIdentifier(
     PID_MsoMdoc_config_id,
@@ -426,7 +426,7 @@ private func walletInitiatedIssuanceNoOfferMdoc(
 
 private func walletInitiatedIssuanceNoOfferMDL(wallet: Wallet) async throws {
   
-  print("[[Scenario: No offer passed, wallet initiates issuance by credetial scopes]]")
+  print(NO_OFFER_BASED_SCENARIO)
   
   let credential = try await wallet.issueByCredentialIdentifier(
     MDL_config_id,
