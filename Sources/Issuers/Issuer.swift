@@ -17,7 +17,7 @@ import Foundation
 import JOSESwift
 
 /// A protocol defining the operations required for an issuer in the credential issuance process.
-public protocol IssuerType {
+public protocol IssuerType: Sendable {
   
   /// Initiates an authorization request using a credential offer.
   ///
