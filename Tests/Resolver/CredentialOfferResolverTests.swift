@@ -210,4 +210,47 @@ class CredentialOfferResolverTests: XCTestCase {
       XCTAssert(false, error.localizedDescription)
     }
   }
+  
+  
+  func testBuildWellKnownURL_withoutPath() async throws {
+      let resolver = CredentialIssuerMetadataResolver()
+      let input = URL(string: "https://issuer.example.com")!
+      
+      let result = try await resolver.buildWellKnownCredentialIssuerURL(from: input)
+      
+      XCTAssertEqual(
+        result.absoluteString,
+        "https://issuer.example.com/.well-known/openid-credential-issuer"
+      )
+    }
+    
+  func testBuildWellKnownURL_withPath() async throws {
+      let resolver = CredentialIssuerMetadataResolver()
+      let input = URL(string: "https://issuer.example.com/tenant")!
+      
+      let result = try await resolver.buildWellKnownCredentialIssuerURL(from: input)
+      
+      XCTAssertEqual(
+        result.absoluteString,
+        "https://issuer.example.com/.well-known/openid-credential-issuer/tenant"
+      )
+    }
+    
+  func testBuildWellKnownURL_invalidUrl() async {
+      let resolver = CredentialIssuerMetadataResolver()
+      let input = URL(string: "http://")! // deliberately invalid
+
+      do {
+          _ = try await resolver.buildWellKnownCredentialIssuerURL(from: input)
+      } catch let error as FetchError {
+          switch error {
+          case .invalidUrl:
+            XCTAssert(true)
+          default:
+              XCTFail("Unexpected FetchError case: \(error)")
+          }
+      } catch {
+          XCTFail("Unexpected error type: \(error)")
+      }
+  }
 }
