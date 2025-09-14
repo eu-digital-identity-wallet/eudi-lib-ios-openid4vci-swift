@@ -77,10 +77,12 @@ public extension CredentialSupported {
         case .notSupported: break
         case .required(
           let algorithmsSupported,
-          let encryptionMethodsSupported
+          let encryptionMethodsSupported,
+          let compressionMethodsSupported
         ), .notRequired(
           let algorithmsSupported,
-          let encryptionMethodsSupported
+          let encryptionMethodsSupported,
+          let compressionMethodsSupported
         ):
           if !algorithmsSupported.contains(responseEncryptionSpec.algorithm) {
             throw CredentialIssuanceError.responseEncryptionAlgorithmNotSupportedByIssuer
@@ -90,6 +92,14 @@ public extension CredentialSupported {
             responseEncryptionSpec.encryptionMethod
           ) {
             throw CredentialIssuanceError.responseEncryptionMethodNotSupportedByIssuer
+          }
+          
+          if let compressionMethodsSupported,
+             let compressioMethod = responseEncryptionSpec.compressionMethod,
+             !compressionMethodsSupported.contains(
+              compressioMethod
+          ) {
+            throw CredentialIssuanceError.responseCompressionMethodNotSupportedByIssuer
           }
         }
       }
@@ -109,10 +119,12 @@ public extension CredentialSupported {
         case .notSupported: break
         case .required(
           let algorithmsSupported,
-          let encryptionMethodsSupported
+          let encryptionMethodsSupported,
+          let compressionMethodsSupported
         ), .notRequired(
           let algorithmsSupported,
-          let encryptionMethodsSupported
+          let encryptionMethodsSupported,
+          let compressionMethodsSupported
         ):
           if !algorithmsSupported.contains(responseEncryptionSpec.algorithm) {
             throw CredentialIssuanceError.responseEncryptionAlgorithmNotSupportedByIssuer
@@ -122,6 +134,14 @@ public extension CredentialSupported {
             responseEncryptionSpec.encryptionMethod
           ) {
             throw CredentialIssuanceError.responseEncryptionMethodNotSupportedByIssuer
+          }
+          
+          if let compressionMethodsSupported,
+             let compressioMethod = responseEncryptionSpec.compressionMethod,
+             !compressionMethodsSupported.contains(
+              compressioMethod
+          ) {
+            throw CredentialIssuanceError.responseCompressionMethodNotSupportedByIssuer
           }
         }
       }

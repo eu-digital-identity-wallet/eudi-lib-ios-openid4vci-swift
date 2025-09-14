@@ -19,7 +19,8 @@ public enum CredentialResponseEncryption: Decodable, Sendable {
   case notSupported
   case notRequired(
     algorithmsSupported: [JWEAlgorithm],
-    encryptionMethodsSupported: [JOSEEncryptionMethod]
+    encryptionMethodsSupported: [JOSEEncryptionMethod],
+    compressionMethodsSupported: [CompressionAlgorithm]?
   )
   case required(
     algorithmsSupported: [JWEAlgorithm],
@@ -56,6 +57,11 @@ public enum CredentialResponseEncryption: Decodable, Sendable {
       forKey: .encryptionMethodsSupported
     )
     
+    let compressionMethodsSupported = try? container.decode(
+      [CompressionAlgorithm].self,
+      forKey: .compressionMethodsSupported
+    )
+    
     if !encryptionRequired {
       guard
         let algorithmsSupported,
@@ -67,7 +73,8 @@ public enum CredentialResponseEncryption: Decodable, Sendable {
       
       self = .notRequired(
         algorithmsSupported: algorithmsSupported,
-        encryptionMethodsSupported: encryptionMethodsSupported
+        encryptionMethodsSupported: encryptionMethodsSupported,
+        compressionMethodsSupported: compressionMethodsSupported
       )
       
     } else {
@@ -83,7 +90,8 @@ public enum CredentialResponseEncryption: Decodable, Sendable {
       }
       self = .required(
         algorithmsSupported: algorithmsSupported,
-        encryptionMethodsSupported: encryptionMethodsSupported
+        encryptionMethodsSupported: encryptionMethodsSupported,
+        compressionMethodsSupported: compressionMethodsSupported
       )
     }
   }
