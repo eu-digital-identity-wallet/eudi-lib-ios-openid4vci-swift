@@ -15,7 +15,7 @@
  */
 import Foundation
 
-enum CredentialIssuerMetadataError: Error {
+public enum CredentialIssuerMetadataError: Error {
   case unableToFetchCredentialIssuerMetadata(cause: Error)
   case nonParseableCredentialIssuerMetadata(cause: Error)
   
@@ -28,6 +28,8 @@ enum CredentialIssuerMetadataError: Error {
    * Indicates the signed metadata of the Credential Issuer are not valid.
    */
   case invalidSignedMetadata(String)
+  case nonParseableSignedMetadata
+  case invalidIssuerTrust
   
   func toException() -> CredentialIssuerMetadataException {
     return CredentialIssuerMetadataException(error: self)

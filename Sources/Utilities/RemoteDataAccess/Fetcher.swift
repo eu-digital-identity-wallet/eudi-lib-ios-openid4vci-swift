@@ -43,6 +43,34 @@ public enum FetchError: LocalizedError {
   }
 }
 
+/**
+ A structure that contains both the response data and HTTP headers.
+ */
+public struct RawFetchResponse: Decodable, Sendable {
+  public let data: Data
+  public let headers: [String: String]
+  
+  public init(
+    data: Data,
+    headers: [String: String]
+  ) {
+    self.data = data
+    self.headers = headers
+  }
+}
+
+public protocol RawFetching: Sendable {
+  /// Fetches raw data with headers from the provided URL
+  /// - Parameters:
+  ///   - url: The URL from which to fetch the data
+  ///   - additionalHeaders: Additional headers to include in the request
+  /// - Returns: A Result containing RawFetchResponse or FetchError
+  func fetchRawWithHeaders(
+    url: URL,
+    additionalHeaders: [String: String]
+  ) async -> Result<RawFetchResponse, FetchError>
+}
+
 public protocol Fetching: Sendable {
   var session: Networking { get set }
 
@@ -60,7 +88,7 @@ public protocol Fetching: Sendable {
   func fetch(url: URL) async -> Result<Element, FetchError>
 }
 
-public struct Fetcher<Element: Decodable>: Fetching {
+public struct Fetcher<Element: Decodable>: Fetching, RawFetching {
 
   public var session: Networking
 
@@ -125,6 +153,50 @@ public struct Fetcher<Element: Decodable>: Fetching {
 
         return .failure(.decodingError(error))
       }
+    }
+  }
+  
+  public func fetchRawWithHeaders(
+    url: URL,
+    additionalHeaders: [String: String] = [:]
+  ) async -> Result<RawFetchResponse, FetchError> {
+    do {
+      var request = URLRequest(url: url)
+      
+      for (key, value) in additionalHeaders {
+        request.setValue(value, forHTTPHeaderField: key)
+      }
+      
+      let (data, response) = try await self.session.data(for: request)
+      
+      let httpResponse = response as? HTTPURLResponse
+      let statusCode = httpResponse?.statusCode ?? 0
+      
+      if !statusCode.isWithinRange(HTTPStatusCode.ok...HTTPStatusCode.imUsed) {
+        throw FetchError.invalidStatusCode(url, statusCode)
+      }
+      
+      // Extract headers from the HTTP response
+      let headers = httpResponse?.allHeaderFields.compactMapValues { value in
+        value as? String
+      }.reduce(into: [String: String]()) { result, element in
+        result[element.key as? String ?? ""] = element.value
+      } ?? [:]
+      
+      let fetchResponse = RawFetchResponse(
+        data: data,
+        headers: headers
+      )
+      
+      return .success(fetchResponse)
+    } catch let error as NSError {
+      if error.domain == NSURLErrorDomain {
+        return .failure(.networkError(error))
+      } else {
+        return .failure(.networkError(error))
+      }
+    } catch {
+      return .failure(.networkError(error))
     }
   }
 }

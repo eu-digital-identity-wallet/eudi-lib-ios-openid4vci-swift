@@ -20,15 +20,22 @@ import XCTest
 
 class CredentialOfferResolverTests: XCTestCase {
   
+  func createMetadataFetcher(
+    session: Networking = NetworkingMock(
+      path: "credential_issuer_metadata",
+      extension: "json"
+  )) -> MetadataFetcher {
+    MetadataFetcher(
+      rawFetcher: RawDataFetcher(
+        session: session))
+  }
+    
+  
   func testValidCredentialOfferDataAndOIDVWhenAResolutionIsRequestedSucessWithValidData() async throws {
     
     // Given
     let credentialIssuerMetadataResolver = CredentialIssuerMetadataResolver(
-      fetcher: Fetcher<CredentialIssuerMetadata>(session: NetworkingMock(
-        path: "credential_issuer_metadata",
-        extension: "json"
-      )
-    ))
+      fetcher: createMetadataFetcher())
     
     let authorizationServerMetadataResolver = AuthorizationServerMetadataResolver(
       oidcFetcher: Fetcher<OIDCProviderMetadata>(session: NetworkingMock(
@@ -80,11 +87,7 @@ class CredentialOfferResolverTests: XCTestCase {
     
     // Given
     let credentialIssuerMetadataResolver = CredentialIssuerMetadataResolver(
-      fetcher: Fetcher<CredentialIssuerMetadata>(session: NetworkingMock(
-        path: "credential_issuer_metadata",
-        extension: "json"
-      )
-    ))
+      fetcher: createMetadataFetcher())
     
     let authorizationServerMetadataResolver = AuthorizationServerMetadataResolver(
       oidcFetcher: Fetcher<OIDCProviderMetadata>(session: NetworkingMock(
@@ -127,11 +130,7 @@ class CredentialOfferResolverTests: XCTestCase {
     
     // Given
     let credentialIssuerMetadataResolver = CredentialIssuerMetadataResolver(
-      fetcher: Fetcher<CredentialIssuerMetadata>(session: NetworkingMock(
-        path: "credential_issuer_metadata",
-        extension: "json"
-      )
-    ))
+      fetcher: createMetadataFetcher())
     
     let authorizationServerMetadataResolver = AuthorizationServerMetadataResolver(
       oidcFetcher: Fetcher<OIDCProviderMetadata>(session: NetworkingMock(
@@ -173,11 +172,7 @@ class CredentialOfferResolverTests: XCTestCase {
     
     // Given
     let credentialIssuerMetadataResolver = CredentialIssuerMetadataResolver(
-      fetcher: Fetcher<CredentialIssuerMetadata>(session: NetworkingMock(
-        path: "credential_issuer_metadata",
-        extension: "json"
-      )
-    ))
+      fetcher: createMetadataFetcher())
     
     // When
     let result = try await credentialIssuerMetadataResolver.resolve(
