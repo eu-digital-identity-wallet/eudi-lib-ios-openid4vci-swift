@@ -86,7 +86,7 @@ public extension W3CJsonLdDataIntegrityFormat {
     public let cryptographicBindingMethodsSupported: [String]?
     public let credentialSigningAlgValuesSupported: [String]?
     public let proofTypesSupported: [String: ProofTypeSupportedMeta]?
-    public let display: [Display]?
+    public let credentialMetadata: ConfigurationCredentialMetadata?
     public let context: [String]
     public let type: [String]
     public let credentialDefinition: CredentialDefinitionTO
@@ -97,7 +97,7 @@ public extension W3CJsonLdDataIntegrityFormat {
       case cryptographicBindingMethodsSupported = "cryptographic_binding_methods_supported"
       case credentialSigningAlgValuesSupported = "credential_signing_alg_values_supported"
       case proofTypesSupported = "proof_types_supported"
-      case display
+      case credentialMetadata = "credential_metadata"
       case context = "@context"
       case type
       case credentialDefinition = "credential_definition"
@@ -109,7 +109,7 @@ public extension W3CJsonLdDataIntegrityFormat {
       cryptographicBindingMethodsSupported: [String]? = nil,
       credentialSigningAlgValuesSupported: [String]? = nil,
       proofTypesSupported: [String: ProofTypeSupportedMeta]? = nil,
-      display: [Display]? = nil,
+      credentialMetadata: ConfigurationCredentialMetadata? = nil,
       context: [String] = [],
       type: [String] = [],
       credentialDefinition: CredentialDefinitionTO
@@ -119,7 +119,7 @@ public extension W3CJsonLdDataIntegrityFormat {
       self.cryptographicBindingMethodsSupported = cryptographicBindingMethodsSupported
       self.credentialSigningAlgValuesSupported = credentialSigningAlgValuesSupported
       self.proofTypesSupported = proofTypesSupported
-      self.display = display
+      self.credentialMetadata = credentialMetadata
       self.context = context
       self.type = type
       self.credentialDefinition = credentialDefinition
@@ -130,9 +130,6 @@ public extension W3CJsonLdDataIntegrityFormat {
       let bindingMethods = try cryptographicBindingMethodsSupported?.compactMap {
         try CryptographicBindingMethod(method: $0)
       } ?? []
-      let display: [Display] = self.display ?? []
-      let context: [String] = self.context
-      let type: [String] = self.type
       let credentialSigningAlgValuesSupported: [String] = self.credentialSigningAlgValuesSupported ?? []
       let credentialDefinition = self.credentialDefinition.toDomain()
       
@@ -141,7 +138,7 @@ public extension W3CJsonLdDataIntegrityFormat {
         cryptographicBindingMethodsSupported: bindingMethods,
         credentialSigningAlgValuesSupported: credentialSigningAlgValuesSupported,
         proofTypesSupported: proofTypesSupported,
-        display: display,
+        credentialMedata: credentialMetadata,
         context: context,
         type: type,
         credentialDefinition: credentialDefinition
@@ -154,7 +151,7 @@ public extension W3CJsonLdDataIntegrityFormat {
     public let cryptographicBindingMethodsSupported: [CryptographicBindingMethod]
     public let credentialSigningAlgValuesSupported: [String]
     public let proofTypesSupported: [String: ProofTypeSupportedMeta]??
-    public let display: [Display]
+    public let credentialMetadata: ConfigurationCredentialMetadata?
     public let context: [String]
     public let type: [String]
     public let credentialDefinition: CredentialDefinition
@@ -164,7 +161,7 @@ public extension W3CJsonLdDataIntegrityFormat {
       case cryptographicBindingMethodsSupported = "cryptographic_binding_methods_supported"
       case credentialSigningAlgValuesSupported = "credential_signing_alg_values_supported"
       case proofTypesSupported = "proof_types_supported"
-      case display
+      case credentialMedata = "credential_metadata"
       case context = "@context"
       case type
       case credentialDefinition = "credential_definition"
@@ -175,7 +172,7 @@ public extension W3CJsonLdDataIntegrityFormat {
       cryptographicBindingMethodsSupported: [CryptographicBindingMethod],
       credentialSigningAlgValuesSupported: [String],
       proofTypesSupported: [String: ProofTypeSupportedMeta]?,
-      display: [Display],
+      credentialMedata: ConfigurationCredentialMetadata?,
       context: [String],
       type: [String],
       credentialDefinition: CredentialDefinition
@@ -184,7 +181,7 @@ public extension W3CJsonLdDataIntegrityFormat {
       self.cryptographicBindingMethodsSupported = cryptographicBindingMethodsSupported
       self.credentialSigningAlgValuesSupported = credentialSigningAlgValuesSupported
       self.proofTypesSupported = proofTypesSupported
-      self.display = display
+      self.credentialMetadata = credentialMedata
       self.context = context
       self.type = type
       self.credentialDefinition = credentialDefinition
@@ -197,7 +194,7 @@ public extension W3CJsonLdDataIntegrityFormat {
       cryptographicBindingMethodsSupported = try container.decode([CryptographicBindingMethod].self, forKey: .cryptographicBindingMethodsSupported)
       credentialSigningAlgValuesSupported = try container.decode([String].self, forKey: .credentialSigningAlgValuesSupported)
       proofTypesSupported = try? container.decode([String: ProofTypeSupportedMeta].self, forKey: .proofTypesSupported)
-      display = try container.decode([Display].self, forKey: .display)
+      credentialMetadata = try container.decode(ConfigurationCredentialMetadata.self, forKey: .credentialMedata)
       context = try container.decode([String].self, forKey: .context)
       type = try container.decode([String].self, forKey: .type)
       credentialDefinition = try container.decode(CredentialDefinition.self, forKey: .credentialDefinition)
@@ -210,7 +207,7 @@ public extension W3CJsonLdDataIntegrityFormat {
       try container.encode(cryptographicBindingMethodsSupported, forKey: .cryptographicBindingMethodsSupported)
       try container.encode(credentialSigningAlgValuesSupported, forKey: .credentialSigningAlgValuesSupported)
       try container.encode(proofTypesSupported, forKey: .proofTypesSupported)
-      try container.encode(display, forKey: .display)
+      try container.encode(credentialMetadata, forKey: .credentialMedata)
       try container.encode(context, forKey: .context)
       try container.encode(type, forKey: .type)
       try container.encode(credentialDefinition, forKey: .credentialDefinition)
@@ -235,9 +232,7 @@ public extension W3CJsonLdDataIntegrityFormat {
         }
         return nil
       }
-      self.display = json["display"].arrayValue.map { json in
-        Display(json: json)
-      }
+      self.credentialMetadata = try ConfigurationCredentialMetadata(json: json["credential_metadata"])
       self.context = json["@context"].arrayValue.map {
         $0.stringValue
       }

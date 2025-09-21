@@ -194,7 +194,7 @@ class CredentialOfferResolverTests: XCTestCase {
       
       switch credentialSupported {
       case .msoMdoc(let credential):
-        let claims = credential.claims
+        let claims = credential.credentialMetadata?.claims ?? []
         XCTAssert(claims.count == 4)
         XCTAssert(claims[0].path == ClaimPath.claim("org.iso.18013.5.1").claim("given_name"))
         

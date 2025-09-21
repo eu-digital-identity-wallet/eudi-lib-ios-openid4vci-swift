@@ -15,6 +15,7 @@
  */
 import Foundation
 import JOSESwift
+import SwiftyJSON
 
 public enum CredentialSupported: Codable, Sendable {
   case scope(Scope)
@@ -186,5 +187,29 @@ public extension CredentialSupported {
     default:
       []
     }
+  }
+}
+
+
+public struct ConfigurationCredentialMetadata: Codable, Sendable {
+  public let display: [Display]
+  public let claims: [Claim]
+  
+  enum CodingKeys: String, CodingKey {
+    case display
+    case claims
+  }
+  
+  public init(display: [Display], claims: [Claim]) {
+    self.display = display
+    self.claims = claims
+  }
+  
+  public init(json: JSON) throws {
+    self.display = json["display"].arrayValue.map { json in
+      Display(json: json)
+    }
+    let claims = try json["claims"].array?.compactMap({ try Claim(json: $0)}) ?? []
+    self.claims = claims
   }
 }
