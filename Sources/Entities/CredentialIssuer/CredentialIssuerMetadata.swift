@@ -25,6 +25,7 @@ public struct CredentialIssuerMetadata: Decodable, Equatable, Sendable {
   public let nonceEndpoint: CredentialIssuerEndpoint?
   public let notificationEndpoint: CredentialIssuerEndpoint?
   public let credentialResponseEncryption: CredentialResponseEncryption
+  public let credentialRequestEncryption: CredentialRequestEncryption?
   public let credentialsSupported: [CredentialConfigurationIdentifier: CredentialSupported]
   public let credentialIdentifiersSupported: Bool?
   public let display: [Display]
@@ -43,6 +44,7 @@ public struct CredentialIssuerMetadata: Decodable, Equatable, Sendable {
     case credentialConfigurationsSupported = "credential_configurations_supported"
     case display = "display"
     case credentialResponseEncryption = "credential_response_encryption"
+    case credentialRequestEncryption = "credential_request_encryption"
     case credentialIdentifiersSupported = "credential_identifiers_supported"
     case batchCredentialIssuance = "batch_credential_issuance"
   }
@@ -54,6 +56,7 @@ public struct CredentialIssuerMetadata: Decodable, Equatable, Sendable {
     deferredCredentialEndpoint: CredentialIssuerEndpoint?,
     nonceEndpoint: CredentialIssuerEndpoint?,
     notificationEndpoint: CredentialIssuerEndpoint?,
+    credentialRequestEncryption: CredentialRequestEncryption = .notSupported,
     credentialResponseEncryption: CredentialResponseEncryption = .notSupported,
     credentialConfigurationsSupported: [CredentialConfigurationIdentifier: CredentialSupported],
     display: [Display]?,
@@ -68,6 +71,7 @@ public struct CredentialIssuerMetadata: Decodable, Equatable, Sendable {
     self.nonceEndpoint = nonceEndpoint
     self.notificationEndpoint = notificationEndpoint
     
+    self.credentialRequestEncryption = credentialRequestEncryption
     self.credentialResponseEncryption = credentialResponseEncryption
     self.credentialsSupported = credentialConfigurationsSupported
     
@@ -124,6 +128,11 @@ public struct CredentialIssuerMetadata: Decodable, Equatable, Sendable {
     credentialResponseEncryption = (try? container.decode(
       CredentialResponseEncryption.self,
       forKey: .credentialResponseEncryption
+    )) ?? .notSupported
+    
+    credentialRequestEncryption = (try? container.decode(
+      CredentialRequestEncryption.self,
+      forKey: .credentialRequestEncryption
     )) ?? .notSupported
     
     let json = try container.decodeIfPresent(JSON.self, forKey: .credentialConfigurationsSupported) ?? []

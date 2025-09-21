@@ -55,18 +55,3 @@ public struct CompressionAlgorithm: RawRepresentable, Codable, Hashable, Sendabl
   public var description: String { rawValue }
 }
 
-
-
-
-//public struct CompressionAlgorithm: Decodable, Sendable {
-//  public let name: String
-//  
-//  public init(name: String) {
-//    self.name = name
-//  }
-//  
-//  public init(from decoder: Decoder) throws {
-//    let container = try decoder.singleValueContainer()
-//    self.name = try container.decode(String.self)
-//  }
-//}
