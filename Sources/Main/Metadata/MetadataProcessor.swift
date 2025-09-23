@@ -34,10 +34,12 @@ public struct MetadataProcessor: MetadataProcessing {
     issuerId: CredentialIssuerId
   ) async throws -> CredentialIssuerMetadata {
     
-    let contentType = getContentType(from: rawResponse.headers)
-    let isJWTResponse = contentType?.contains("application/jwt") == true
+   let isJWT = try validateContentType(
+      headers: rawResponse.headers,
+      policy: policy
+    )
     
-    if isJWTResponse {
+    if isJWT {
       return try await handleJWTMetadata(
         data: rawResponse.data,
         policy: policy,
@@ -50,6 +52,40 @@ public struct MetadataProcessor: MetadataProcessing {
 }
 
 private extension MetadataProcessor {
+  
+  func validateContentType(
+    headers: [String: String],
+    policy: IssuerMetadataPolicy
+  ) throws -> Bool {
+    
+    guard let contentType = headers.first(where: { $0.key.lowercased() == "content-type" })?.value.lowercased() else {
+      throw CredentialIssuerMetadataError.missingContentType("Credential issuer did not respond with a content type header")
+    }
+    
+    let isJWT = contentType.contains(Constants.CONTENT_TYPE_APPLICATION_JWT)
+    let isJSON = contentType.contains(Constants.CONTENT_TYPE_APPLICATION_JSON)
+    
+    // Validate content type based on policy and determine if JWT response
+    switch policy {
+    case .requireSigned:
+      guard isJWT else {
+        throw CredentialIssuerMetadataError.missingRightContentTypeHeader
+      }
+      return true
+      
+    case .preferSigned:
+      guard isJWT || isJSON else {
+        throw CredentialIssuerMetadataError.missingRightContentTypeHeader
+      }
+      return isJWT
+      
+    case .ignoreSigned:
+      guard isJSON else {
+        throw CredentialIssuerMetadataError.missingRightContentTypeHeader
+      }
+      return false
+    }
+  }
   
   func handleJWTMetadata(
     data: Data,
@@ -80,42 +116,13 @@ private extension MetadataProcessor {
     }
   }
   
-  func getContentType(from headers: [String: String]) -> String? {
-    for (key, value) in headers {
-      if key.lowercased() == "content-type" {
-        return value.lowercased()
-      }
-    }
-    return nil
-  }
   
   func getIssuerTrust(for policy: IssuerMetadataPolicy) -> IssuerTrust? {
     switch policy {
-    case .requireSigned(let trust):
-      return trust
-    case .preferSigned(let trust):
+    case .requireSigned(let trust), .preferSigned(let trust):
       return trust
     case .ignoreSigned:
       return nil
-    }
-    
-    func parseAndVerifySignedMetadata(
-      _ metadata: String,
-      issuerTrust: IssuerTrust,
-      issuerId: CredentialIssuerId
-    ) async throws -> CredentialIssuerMetadata {
-      
-      guard
-        let jws = try? JWS(compactSerialization: metadata),
-        let x5c = jws.header.x5c
-      else {
-        throw CredentialIssuerMetadataError.missingSignedMetadata
-      }
-      
-      try await issuerTrust.verify(jws: jws, chain: x5c)
-      
-      let payloadData = jws.payload.data()
-      return try JSONDecoder().decode(CredentialIssuerMetadata.self, from: payloadData)
     }
   }
   
@@ -125,19 +132,59 @@ private extension MetadataProcessor {
     issuerId: CredentialIssuerId
   ) async throws -> CredentialIssuerMetadata {
     
-    guard
-      let jws = try? JWS(compactSerialization: metadata),
-      let x5c = jws.header.x5c
-    else {
-      throw CredentialIssuerMetadataError.missingSignedMetadata
+    let jws = try JWS(compactSerialization: metadata)
+    
+    try validateJOSEHeader(jws.header)
+    
+    // Verify signature + claims in one centralized place
+    let verifiedJWS: JWS
+    if let x5c = jws.header.x5c {
+      verifiedJWS = try await issuerTrust.verify(jws: jws, chain: x5c)
+    } else {
+      verifiedJWS = try await issuerTrust.verify(jws: jws, chain: [])
     }
     
-    try await issuerTrust.verify(jws: jws, chain: x5c)
-    
-    let payloadData = jws.payload.data()
-    return try JSONDecoder().decode(CredentialIssuerMetadata.self, from: payloadData)
+    let payloadData = verifiedJWS.payload.data()
+    let metadata = try JSONDecoder().decode(CredentialIssuerMetadata.self, from: payloadData)
+    try validateJWTClaims(jws: verifiedJWS, expectedSubject: issuerId.url.absoluteString)
+    return metadata
   }
   
+
+  private func validateJOSEHeader(_ header: JWSHeader) throws {
+    guard let
+            headerType = header.typ,
+          headerType == Constants.SIGNED_METADATA_JWT_TYPE
+    else {
+      throw CredentialIssuerMetadataError.invalidSignedMetadata(
+        "Invalid 'typ' header. Expected: \(Constants.SIGNED_METADATA_JWT_TYPE)"
+      )
+    }
+  }
+
+  private func validateJWTClaims(jws: JWS, expectedSubject: String) throws {
+    let data = jws.payload.data()
+    guard
+      let claims = try JSONSerialization.jsonObject(with: data, options: []) as? [String: Any],
+      let sub = claims[JWTClaimNames.subject] as? String,
+      let iat = claims[JWTClaimNames.issuedAt] as? TimeInterval
+    else {
+      throw CredentialIssuerMetadataError.invalidSignedMetadata("Missing required claims")
+    }
+    
+    guard sub == expectedSubject else {
+      throw CredentialIssuerMetadataError.invalidSignedMetadata("Invalid 'sub' claim. Expected: \(expectedSubject)")
+    }
+    
+    let currentTime = Date().timeIntervalSince1970
+    if iat > currentTime + 300 { // 5 min clock skew
+      throw CredentialIssuerMetadataError.invalidSignedMetadata("JWT issued in the future")
+    }
+    
+    if let exp = claims[JWTClaimNames.expirationTime] as? TimeInterval, exp <= currentTime {
+      throw CredentialIssuerMetadataError.invalidSignedMetadata("JWT has expired")
+    }
+  }
 }
 
 private extension IssuerTrust {

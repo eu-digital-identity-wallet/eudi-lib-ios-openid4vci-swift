@@ -74,11 +74,11 @@ public struct MetadataFetcher: MetadataFetching {
   private func determineAcceptHeader(for policy: IssuerMetadataPolicy) -> String {
     switch policy {
     case .requireSigned:
-      return "application/jwt"
+      return Constants.CONTENT_TYPE_APPLICATION_JWT
     case .preferSigned:
-      return "application/jwt, application/json"
+      return "\(Constants.CONTENT_TYPE_APPLICATION_JWT), \(Constants.CONTENT_TYPE_APPLICATION_JSON)"
     case .ignoreSigned:
-      return "application/json"
+      return Constants.CONTENT_TYPE_APPLICATION_JSON
     }
   }
 }

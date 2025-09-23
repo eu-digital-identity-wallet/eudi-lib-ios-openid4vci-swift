@@ -23,11 +23,15 @@ public enum CredentialIssuerMetadataError: Error {
     * Indicates the Credential Issuer does not provide signed metadata.
     */
   case missingSignedMetadata
+  case missingContentType(String)
+  case missingRightContentTypeHeader
 
   /**
    * Indicates the signed metadata of the Credential Issuer are not valid.
    */
   case invalidSignedMetadata(String)
+  case invalidJOSEHeader(String)
+  case invalidJWTClaims(String)
   case nonParseableSignedMetadata
   case invalidIssuerTrust
   
