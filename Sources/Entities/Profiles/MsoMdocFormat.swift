@@ -163,12 +163,11 @@ public extension MsoMdocFormat {
         try CryptographicBindingMethod(method: $0)
       } ?? []
       
-      let credentialSigningAlgValuesSupported: [String] = self.credentialSigningAlgValuesSupported ?? []
       return .init(
         format: format,
         scope: scope,
         cryptographicBindingMethodsSupported: bindingMethods,
-        credentialSigningAlgValuesSupported: credentialSigningAlgValuesSupported,
+        credentialSigningAlgValuesSupported: credentialSigningAlgValuesSupported ?? [],
         proofTypesSupported: self.proofTypesSupported,
         credentialMetadata: credentialMetadata,
         docType: docType,

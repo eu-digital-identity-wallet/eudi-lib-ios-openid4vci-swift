@@ -67,8 +67,8 @@ public extension W3CJsonLdSignedJwtFormat {
       context = json["@context"].arrayValue.map { $0.stringValue }
       type = json["type"].arrayValue.map { $0.stringValue }
       
-      let claims = try json["claims"].array?.compactMap({ try Claim(json: $0)}) ?? []
-      self.claims = claims
+      let claimsArray = try json["claims"].array?.compactMap({ try Claim(json: $0)}) ?? []
+      self.claims = claimsArray
     }
     
     func toDomain() -> CredentialDefinition {
@@ -128,13 +128,12 @@ public extension W3CJsonLdSignedJwtFormat {
       } ?? []
       let context: [String] = self.context
       
-      let credentialSigningAlgValuesSupported: [String] = self.credentialSigningAlgValuesSupported ?? []
       let credentialDefinition = self.credentialDefinition.toDomain()
       
       return .init(
         scope: scope,
         cryptographicBindingMethodsSupported: bindingMethods,
-        credentialSigningAlgValuesSupported: credentialSigningAlgValuesSupported,
+        credentialSigningAlgValuesSupported: credentialSigningAlgValuesSupported ?? [],
         proofTypesSupported: proofTypesSupported,
         credentialMetadata: credentialMetadata,
         context: context,
@@ -262,8 +261,8 @@ public extension W3CJsonLdSignedJwtFormat {
       context = json["@context"].arrayValue.map { $0.stringValue }
       type = json["type"].arrayValue.map { $0.stringValue }
       
-      let claims = try json["claims"].array?.compactMap({ try Claim(json: $0)}) ?? []
-      self.claims = claims
+      let claimsArray = try json["claims"].array?.compactMap({ try Claim(json: $0)}) ?? []
+      self.claims = claimsArray
     }
   }
 }

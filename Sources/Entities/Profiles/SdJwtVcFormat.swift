@@ -160,8 +160,8 @@ public extension SdJwtVcFormat {
     
     public init(json: JSON) throws {
       type = json["type"].stringValue
-      let claims = try json["claims"].array?.compactMap({ try Claim(json: $0)}) ?? []
-      self.claims = claims
+      let claimsArray = try json["claims"].array?.compactMap({ try Claim(json: $0)}) ?? []
+      self.claims = claimsArray
     }
     
     func toDomain() -> CredentialDefinition {
@@ -219,14 +219,13 @@ public extension SdJwtVcFormat {
         try CryptographicBindingMethod(method: $0)
       } ?? []
 
-      let credentialSigningAlgValuesSupported: [String] = self.credentialSigningAlgValuesSupported ?? []
       let credentialDefinition = self.credentialDefinition.toDomain()
       
       return .init(
         scope: scope, 
         vct: vct,
         cryptographicBindingMethodsSupported: bindingMethods,
-        credentialSigningAlgValuesSupported: credentialSigningAlgValuesSupported,
+        credentialSigningAlgValuesSupported: credentialSigningAlgValuesSupported ?? [],
         proofTypesSupported: self.proofTypesSupported,
         credentialMetadata: credentialMetadata,
         credentialDefinition: credentialDefinition
@@ -368,8 +367,8 @@ public extension SdJwtVcFormat {
     
     public init(json: JSON) throws {
       self.type = json["type"].stringValue
-      let claims = try json["claims"].array?.compactMap({ try Claim(json: $0)}) ?? []
-      self.claims = claims
+      let claimsArray = try json["claims"].array?.compactMap({ try Claim(json: $0)}) ?? []
+      self.claims = claimsArray
     }
   }
 }
