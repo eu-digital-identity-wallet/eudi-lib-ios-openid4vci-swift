@@ -68,43 +68,14 @@ public extension CredentialSupported {
     issuancePayload: IssuanceRequestPayload,
     responseEncryptionSpecProvider: (_ issuerResponseEncryptionMetadata: CredentialResponseEncryption) -> IssuanceResponseEncryptionSpec?
   ) throws -> CredentialIssuanceRequest {
+    
+    let (issuerEncryption, responseEncryptionSpec) = try validateAndPrepareEncryption(
+      requester: requester,
+      responseEncryptionSpecProvider: responseEncryptionSpecProvider
+    )
+    
     switch self {
     case .msoMdoc(let credentialConfiguration):
-      let issuerEncryption = requester.issuerMetadata.credentialResponseEncryption
-      let responseEncryptionSpec = responseEncryptionSpecProvider(issuerEncryption)
-      
-      if let responseEncryptionSpec {
-        switch issuerEncryption {
-        case .notSupported: break
-        case .required(
-          let algorithmsSupported,
-          let encryptionMethodsSupported,
-          let compressionMethodsSupported
-        ), .notRequired(
-          let algorithmsSupported,
-          let encryptionMethodsSupported,
-          let compressionMethodsSupported
-        ):
-          if !algorithmsSupported.contains(responseEncryptionSpec.algorithm) {
-            throw CredentialIssuanceError.responseEncryptionAlgorithmNotSupportedByIssuer
-          }
-          
-          if !encryptionMethodsSupported.contains(
-            responseEncryptionSpec.encryptionMethod
-          ) {
-            throw CredentialIssuanceError.responseEncryptionMethodNotSupportedByIssuer
-          }
-          
-          if let compressionMethodsSupported,
-             let compressioMethod = responseEncryptionSpec.compressionMethod,
-             !compressionMethodsSupported.contains(
-              compressioMethod
-          ) {
-            throw CredentialIssuanceError.responseCompressionMethodNotSupportedByIssuer
-          }
-        }
-      }
-     
       return try credentialConfiguration.toIssuanceRequest(
         responseEncryptionSpec: issuerEncryption.notSupported ? nil : responseEncryptionSpec,
         requestPayload: issuancePayload,
@@ -112,41 +83,6 @@ public extension CredentialSupported {
       )
 
     case .sdJwtVc(let credentialConfiguration):
-      let issuerEncryption = requester.issuerMetadata.credentialResponseEncryption
-      let responseEncryptionSpec = responseEncryptionSpecProvider(issuerEncryption)
-      
-      if let responseEncryptionSpec {
-        switch issuerEncryption {
-        case .notSupported: break
-        case .required(
-          let algorithmsSupported,
-          let encryptionMethodsSupported,
-          let compressionMethodsSupported
-        ), .notRequired(
-          let algorithmsSupported,
-          let encryptionMethodsSupported,
-          let compressionMethodsSupported
-        ):
-          if !algorithmsSupported.contains(responseEncryptionSpec.algorithm) {
-            throw CredentialIssuanceError.responseEncryptionAlgorithmNotSupportedByIssuer
-          }
-          
-          if !encryptionMethodsSupported.contains(
-            responseEncryptionSpec.encryptionMethod
-          ) {
-            throw CredentialIssuanceError.responseEncryptionMethodNotSupportedByIssuer
-          }
-          
-          if let compressionMethodsSupported,
-             let compressioMethod = responseEncryptionSpec.compressionMethod,
-             !compressionMethodsSupported.contains(
-              compressioMethod
-          ) {
-            throw CredentialIssuanceError.responseCompressionMethodNotSupportedByIssuer
-          }
-        }
-      }
-     
       return try credentialConfiguration.toIssuanceRequest(
         responseEncryptionSpec: issuerEncryption.notSupported ? nil : responseEncryptionSpec,
         requestPayload: issuancePayload,
@@ -157,6 +93,45 @@ public extension CredentialSupported {
         reason: "Unsupported profile for issuance request"
       )
     }
+  }
+  
+  private func validateAndPrepareEncryption(
+    requester: IssuanceRequesterType,
+    responseEncryptionSpecProvider: (CredentialResponseEncryption) -> IssuanceResponseEncryptionSpec?
+  ) throws -> (CredentialResponseEncryption, IssuanceResponseEncryptionSpec?) {
+    let issuerEncryption = requester.issuerMetadata.credentialResponseEncryption
+    let responseEncryptionSpec = responseEncryptionSpecProvider(issuerEncryption)
+    
+    if let responseEncryptionSpec {
+      switch issuerEncryption {
+      case .notSupported:
+        break
+        
+      case .required(
+        let algorithmsSupported,
+        let encryptionMethodsSupported,
+        let compressionMethodsSupported
+      ), .notRequired(
+        let algorithmsSupported,
+        let encryptionMethodsSupported,
+        let compressionMethodsSupported
+      ):
+        if !algorithmsSupported.contains(responseEncryptionSpec.algorithm) {
+          throw CredentialIssuanceError.responseEncryptionAlgorithmNotSupportedByIssuer
+        }
+        
+        if !encryptionMethodsSupported.contains(responseEncryptionSpec.encryptionMethod) {
+          throw CredentialIssuanceError.responseEncryptionMethodNotSupportedByIssuer
+        }
+        
+        if let compressionMethodsSupported,
+           let compressionMethod = responseEncryptionSpec.compressionMethod,
+           !compressionMethodsSupported.contains(compressionMethod) {
+          throw CredentialIssuanceError.responseCompressionMethodNotSupportedByIssuer
+        }
+      }
+    }
+    return (issuerEncryption, responseEncryptionSpec)
   }
   
   var proofTypesSupported: [String: ProofTypeSupportedMeta]? {
