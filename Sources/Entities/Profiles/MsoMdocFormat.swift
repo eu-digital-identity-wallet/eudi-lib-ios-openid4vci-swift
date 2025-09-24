@@ -318,6 +318,14 @@ public extension MsoMdocFormat {
     }) {
       switch credentialConfigurationsSupported.value {
       case .msoMdoc(let profile):
+        
+        // Validation: proof_types_supported must be present if cryptographic_binding_methods_supported is present
+        if !profile.cryptographicBindingMethodsSupported.isEmpty {
+          guard let proofTypes = profile.proofTypesSupported, !proofTypes.isEmpty else {
+            throw ValidationError.error(reason: "Property `proof_types_supported` must be present if `cryptographic_binding_methods_supported` is present")
+          }
+        }
+        
         return .msoMdoc(.init(docType: docType, scope: profile.scope))
       default: break
       }

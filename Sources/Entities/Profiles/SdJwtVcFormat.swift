@@ -392,6 +392,14 @@ public extension SdJwtVcFormat {
     }) {
       switch credentialConfigurationsSupported.value {
       case .sdJwtVc(let profile):
+        
+        // Validation: proof_types_supported must be present if cryptographic_binding_methods_supported is present
+        if !profile.cryptographicBindingMethodsSupported.isEmpty {
+          guard let proofTypes = profile.proofTypesSupported, !proofTypes.isEmpty else {
+            throw ValidationError.error(reason: "Property `proof_types_supported` must be present if `cryptographic_binding_methods_supported` is present")
+          }
+        }
+        
         return .sdJwtVc(.init(
           type: credentialDefinition.type,
           scope: profile.scope

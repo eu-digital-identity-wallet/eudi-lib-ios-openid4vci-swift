@@ -147,7 +147,7 @@ public extension W3CJsonLdSignedJwtFormat {
     public let scope: String?
     public let cryptographicBindingMethodsSupported: [CryptographicBindingMethod]
     public let credentialSigningAlgValuesSupported: [String]
-    public let proofTypesSupported: [String: ProofTypeSupportedMeta]??
+    public let proofTypesSupported: [String: ProofTypeSupportedMeta]?
     public let credentialMetadata: ConfigurationCredentialMetadata?
     public let context: [String]
     public let credentialDefinition: CredentialDefinition
@@ -286,6 +286,14 @@ public extension W3CJsonLdSignedJwtFormat {
     }) {
       switch credentialConfigurationsSupported.value {
       case .w3CJsonLdSignedJwt(let profile):
+        
+        // Validation: proof_types_supported must be present if cryptographic_binding_methods_supported is present
+        if !profile.cryptographicBindingMethodsSupported.isEmpty {
+          guard let proofTypes = profile.proofTypesSupported, !proofTypes.isEmpty else {
+            throw ValidationError.error(reason: "Property `proof_types_supported` must be present if `cryptographic_binding_methods_supported` is present")
+          }
+        }
+        
         return .w3CJsonLdSignedJwt(.init(
           credentialDefinition: profile.credentialDefinition,
           scope: profile.scope,
