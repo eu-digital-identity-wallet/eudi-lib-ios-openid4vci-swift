@@ -15,8 +15,6 @@
  */
 import Foundation
 
-extension AnyHashable: @retroactive @unchecked Sendable {}
-
 // Result type for responses with headers
 public struct ResponseWithHeaders<Response: Sendable>: Sendable {
   nonisolated(unsafe) public let headers: [AnyHashable: Any]

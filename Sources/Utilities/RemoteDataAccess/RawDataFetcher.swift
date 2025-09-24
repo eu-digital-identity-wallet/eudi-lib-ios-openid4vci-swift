@@ -80,12 +80,6 @@ public struct RawDataFetcher: RawDataFetching {
       
       return .success(fetchResponse)
     } catch let error as NSError {
-      if error.domain == NSURLErrorDomain {
-        return .failure(.networkError(error))
-      } else {
-        return .failure(.networkError(error))
-      }
-    } catch {
       return .failure(.networkError(error))
     }
   }
