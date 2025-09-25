@@ -65,10 +65,9 @@ public actor CredentialIssuerMetadataResolver: CredentialIssuerMetadataType {
     switch source {
     case .credentialIssuer(let issuerId):
       let wellKnownURL = try buildWellKnownCredentialIssuerURL(from: issuerId.url)
-      let result = await fetcher.fetch(url: wellKnownURL)
       
       return await fetcher.fetchMetadata(
-        url: url,
+        url: wellKnownURL,
         policy: policy,
         issuerId: issuerId
       )
@@ -76,3 +75,24 @@ public actor CredentialIssuerMetadataResolver: CredentialIssuerMetadataType {
   }
 }
       
+extension CredentialIssuerMetadataResolver {
+  func buildWellKnownCredentialIssuerURL(
+    from issuerURL: URL
+  ) throws -> URL {
+    
+    guard
+      var components = URLComponents(url: issuerURL, resolvingAgainstBaseURL: false)
+    else {
+      throw FetchError.invalidUrl
+    }
+    
+    let originalPath = components.percentEncodedPath
+    components.percentEncodedPath = "/.well-known/openid-credential-issuer" + originalPath
+    
+    guard let wellKnownURL = components.url else {
+      throw FetchError.invalidUrl
+    }
+    
+    return wellKnownURL
+  }
+}
