@@ -426,20 +426,35 @@ class VCIFlowNoOffer: XCTestCase {
     XCTAssert(true)
   }
   
-  func testNoOfferEHICSdJWTClientAuthentication() async throws {
+  func testNoOfferEHICJWSJSONSdJWTKeyAttestation() async throws {
     
-    let privateKey = try KeyController.generateECDHPrivateKey()
+    let privateKey = TestsConstants.keyAttestationPrivateKey
+    let cert = TestsConstants.keyAttestationCertificate
     let publicKey = try KeyController.generateECDHPublicKey(from: privateKey)
+    let alg = JWSAlgorithm(.ES256)
+    let publicKeyJWK = try ECPublicKey(
+      publicKey: publicKey,
+      additionalParameters: [
+        "alg": alg.name,
+        "use": "sig",
+        "kid": UUID().uuidString
+      ])
     
+    let algorithm = JWSAlgorithm(.ES256)
     let bindingKey: BindingKey = try! .keyAttestation(
-      algorithm: JWSAlgorithm(.ES256),
-      keyAttestationJWT: .init(
-        jws: .init(
-          compactSerialization: TestsConstants.ketAttestationJWT
+      algorithm: algorithm,
+      keyAttestationJWT: { nonce, proxy, jwk in
+        return try await TestsConstants.keyAttestationJWT(
+          nonce,
+          proxy,
+          jwk,
+          cert
         )
-      ),
-      keyIndex: 1,
-      privateKey: .secKey(privateKey)
+      },
+      keyIndex: 0,
+      privateKey: .secKey(privateKey),
+      publicJWK: publicKeyJWK,
+      issuer: "wallet-dev"
     )
     
     let user = ActingUser(
@@ -455,7 +470,63 @@ class VCIFlowNoOffer: XCTestCase {
     do {
       try await walletInitiatedIssuanceNoOfferSdJwtClientAuthentication(
         wallet: wallet,
-        id: EHIC_SdJwtVC_config_id_deferred
+        id: EHIC_JwsJson_config_id
+      )
+      
+    } catch {
+      
+      XCTExpectFailure()
+      XCTAssert(false, error.localizedDescription)
+    }
+    
+    XCTAssert(true)
+  }
+  
+  func testNoOfferEHICCompactSdJWTKeyAttestation() async throws {
+    
+    let privateKey = TestsConstants.keyAttestationPrivateKey
+    let cert = TestsConstants.keyAttestationCertificate
+    let publicKey = try KeyController.generateECDHPublicKey(from: privateKey)
+    let alg = JWSAlgorithm(.ES256)
+    let publicKeyJWK = try ECPublicKey(
+      publicKey: publicKey,
+      additionalParameters: [
+        "alg": alg.name,
+        "use": "sig",
+        "kid": UUID().uuidString
+      ])
+    
+    let algorithm = JWSAlgorithm(.ES256)
+    let bindingKey: BindingKey = try! .keyAttestation(
+      algorithm: algorithm,
+      keyAttestationJWT: { nonce, proxy, jwk in
+        return try await TestsConstants.keyAttestationJWT(
+          nonce,
+          proxy,
+          jwk,
+          cert
+        )
+      },
+      keyIndex: 0,
+      privateKey: .secKey(privateKey),
+      publicJWK: publicKeyJWK,
+      issuer: "wallet-dev"
+    )
+    
+    let user = ActingUser(
+      username: "tneal",
+      password: "password"
+    )
+    
+    let wallet = Wallet(
+      actingUser: user,
+      bindingKeys: [bindingKey]
+    )
+    
+    do {
+      try await walletInitiatedIssuanceNoOfferSdJwtClientAuthentication(
+        wallet: wallet,
+        id: EHIC_JwsCompact_config_id
       )
       
     } catch {
