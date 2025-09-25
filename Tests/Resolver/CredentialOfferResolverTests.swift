@@ -193,7 +193,7 @@ class CredentialOfferResolverTests: XCTestCase {
       XCTAssert(result.credentialIssuerIdentifier.url.absoluteString == "https://credential-issuer.example.com")
       XCTAssert(result.nonceEndpoint!.url.absoluteString == "https://credential-issuer.example.com/nonce")
       
-      let credentialSupported = result.credentialsSupported[try! .init(value: "MobileDrivingLicense_msoMdoc")]!
+      let credentialSupported = result.credentialsSupported[try .init(value: "MobileDrivingLicense_msoMdoc")]!
       
       XCTAssert(result.credentialsSupported.count == 4)
       

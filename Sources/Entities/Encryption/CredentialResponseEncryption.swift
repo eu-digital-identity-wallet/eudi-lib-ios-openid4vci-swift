@@ -16,7 +16,11 @@
 import Foundation
 
 public enum CredentialResponseEncryption: Decodable, Sendable {
-  case notRequired
+  case notSupported
+  case notRequired(
+    algorithmsSupported: [JWEAlgorithm],
+    encryptionMethodsSupported: [JOSEEncryptionMethod]
+  )
   case required(
     algorithmsSupported: [JWEAlgorithm],
     encryptionMethodsSupported: [JOSEEncryptionMethod]
@@ -28,9 +32,9 @@ public enum CredentialResponseEncryption: Decodable, Sendable {
     case encryptionMethodsSupported = "enc_values_supported"
   }
   
-  var notRequired: Bool {
+  var notSupported: Bool {
     switch self {
-    case .notRequired:
+    case .notSupported:
       true
     default:
       false
@@ -41,12 +45,44 @@ public enum CredentialResponseEncryption: Decodable, Sendable {
     let container = try decoder.container(keyedBy: CodingKeys.self)
     let encryptionRequired = try container.decode(Bool.self, forKey: .encryptionRequired)
     
+    let algorithmsSupported = try? container.decode(
+      [JWEAlgorithm].self,
+      forKey: .algorithmsSupported
+    )
+    let encryptionMethodsSupported = try? container.decode(
+      [JOSEEncryptionMethod].self,
+      forKey: .encryptionMethodsSupported
+    )
+    
     if !encryptionRequired {
-      self = .notRequired
+      guard
+        let algorithmsSupported,
+        let encryptionMethodsSupported
+      else {
+        self = .notSupported
+        return
+      }
+      
+      self = .notRequired(
+        algorithmsSupported: algorithmsSupported,
+        encryptionMethodsSupported: encryptionMethodsSupported
+      )
+      
     } else {
-      let algorithmsSupported = try container.decode([JWEAlgorithm].self, forKey: .algorithmsSupported)
-      let encryptionMethodsSupported = try container.decode([JOSEEncryptionMethod].self, forKey: .encryptionMethodsSupported)
-      self = .required(algorithmsSupported: algorithmsSupported, encryptionMethodsSupported: encryptionMethodsSupported)
+      
+      guard
+        let algorithmsSupported,
+        let encryptionMethodsSupported
+      else {
+        throw ValidationError
+          .error(
+            reason: "No algorithms and encryption methods supported"
+          )
+      }
+      self = .required(
+        algorithmsSupported: algorithmsSupported,
+        encryptionMethodsSupported: encryptionMethodsSupported
+      )
     }
   }
 }

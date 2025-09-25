@@ -22,6 +22,10 @@ let CREDENTIAL_ISSUER_PUBLIC_URL = "https://dev.issuer-backend.eudiw.dev"
 let MDL_config_id = "org.iso.18013.5.1.mDL"
 let PID_MsoMdoc_config_id = "eu.europa.ec.eudi.pid_mso_mdoc"
 let PID_SdJwtVC_config_id = "eu.europa.ec.eudi.pid_vc_sd_jwt"
+let PID_SdJwtVC_config_id_deferred = "eu.europa.ec.eudi.pid_vc_sd_jwt_deferred"
+let EHIC_SdJwtVC_config_id_deferred = "urn:eudi:ehic:1:dc+sd-jwt-compact"
+let EHIC_JwsJson_config_id = "urn:eudi:ehic:1:dc+sd-jwt-jws-json"
+let EHIC_JwsCompact_config_id = "urn:eudi:ehic:1:dc+sd-jwt-compact"
 
 // let CREDENTIAL_ISSUER_PUBLIC_URL = "https://dev.issuer.eudiw.dev"
 // let PID_SdJwtVC_config_id = "eu.europa.ec.eudi.pid_vc_sd_jwt"
@@ -85,15 +89,17 @@ let MDL_CredentialOffer = """
     }
 """
 
+let WALLET_DEV_CLIENT_ID = "wallet-dev"
+
 let clientConfig: OpenId4VCIConfig = .init(
-  client: .public(id: "wallet-dev"),
+  client: .public(id: WALLET_DEV_CLIENT_ID),
   authFlowRedirectionURI: URL(string: "urn:ietf:wg:oauth:2.0:oob")!,
   authorizeIssuanceConfig: .favorScopes
 )
 
 let attestationConfig: OpenId4VCIConfig = .init(
   client: try! selfSignedClient(
-    clientId: "wallet-dev",
+    clientId: WALLET_DEV_CLIENT_ID,
     privateKey: try KeyController.generateECDHPrivateKey()
   ),
   authFlowRedirectionURI: URL(string: "urn:ietf:wg:oauth:2.0:oob")!,
@@ -186,7 +192,7 @@ struct TestsConstants {
   static let unAuthorizedRequest: AuthorizationRequestPrepared = .prepared(
     .init(
       credentials: (try? [.init(value: "UniversityDegree_JWT")]) ?? [],
-      authorizationCodeURL: (try? .init(urlString: "https://example.com?client_id=wallet-dev&request_uri=https://request_uri.example.com&state=5A201471-D088-4544-B1E9-5476E5935A95"))!,
+      authorizationCodeURL: (try? .init(urlString: "https://example.com?client_id=\(WALLET_DEV_CLIENT_ID)&request_uri=https://request_uri.example.com&state=5A201471-D088-4544-B1E9-5476E5935A95"))!,
       pkceVerifier: (try? .init(
         codeVerifier: "GVaOE~J~xQmkE4aCKm4RNYviYW5QaFiFOxVv-8enIDL",
         codeVerifierMethod: "S256"))!,
@@ -378,6 +384,58 @@ struct TestsConstants {
     x: "ilzt0a_ukEX-nl0S05S2RAlbQFL2DSOpTjT3xf52JBY",
     y: "q-fNv_d0nlZf_S_3S-KmrktIsylB0cybRiL6rZMLZHI"
   )
+  
+  static let keyAttestationPrivateKey = createECPrivateSecKey(
+    xStr: "EP85TbpuolaxA-5JL_Jy5rRlrSuuOcWcVbUwCFmOD2g",
+    yStr: "57i2YwPJ6VHTRqN4BUoqYxUqGnd6fMbdHFGxGFNJdYY",
+    dStr: "pVSBXMFGpWsW_FKIEsOp-tTnvheTdadCueGPMjAEciQ"
+  )!
+
+  static let keyAttestationCertificate = "MIIBXDCCAQKgAwIBAgIUWehiP2nqV9QcfFSEW+MBmFVPSqgwCgYIKoZIzj0EAwIwLjELMAkGA1UEBhMCVVQxHzAdBgNVBAMMFmtleS1hdHRlc3RhdGlvbi1pc3N1ZXIwHhcNMjUwNzI5MDgzMTU2WhcNMjYwNzI5MDgzMTU2WjAuMQswCQYDVQQGEwJVVDEfMB0GA1UEAwwWa2V5LWF0dGVzdGF0aW9uLWlzc3VlcjBZMBMGByqGSM49AgEGCCqGSM49AwEHA0IABBD/OU26bqJWsQPuSS/ycua0Za0rrjnFnFW1MAhZjg9o57i2YwPJ6VHTRqN4BUoqYxUqGnd6fMbdHFGxGFNJdYYwCgYIKoZIzj0EAwIDSAAwRQIhALqh3nRBGeb4YP0MgnwiDK15RdGx8qgK143FAIPTygpIAiARQtRHbFI4MFwajzUYLrZrMUZUURb+lDvLn4rojCUN5w=="
+  
+  static func keyAttestationJWT(_ nonce: String?, _ proxy: SigningKeyProxy, _ jwk: JWK, _ cert: String) async throws -> KeyAttestationJWT {
+    let duration: TimeInterval = 300.0
+    let now = Int(Date().timeIntervalSince1970)
+    let exp = Int(Date().addingTimeInterval(duration).timeIntervalSince1970)
+    var payloadDictionary = [
+      "attested_keys": [
+        try jwk.toDictionary()
+      ],
+      "exp": exp,
+      "iat": now,
+      "key_storage": [
+        "iso_18045_moderate"
+      ],
+      "user_authentication": [
+        "iso_18045_moderate"
+      ]
+    ] as [String : Any]
+    
+    if let nonce {
+      payloadDictionary["nonce"] = nonce
+    }
+    
+    let header: JWSHeader = try .init(parameters: [
+      "alg": "ES256",
+      "typ": KeyAttestationJWT.keyAttestationJWTType,
+      "x5c": [
+        cert
+      ]
+    ])
+    let payload = Payload(try payloadDictionary.toThrowingJSONData())
+    
+    let keyAttestationJWS: JWS = try! .init(
+      header: header,
+      payload: payload,
+      signer: await BindingKey.createSigner(
+        with: header,
+        and: payload,
+        for: proxy,
+        and: .ES256
+      )
+    )
+    return try .init(jws: keyAttestationJWS)
+  }
 }
 
 final class TestSinger: AsyncSignerProtocol {
@@ -422,4 +480,63 @@ final class TestSinger: AsyncSignerProtocol {
     
     return jws.signature
   }
+}
+
+let ISSUANCE_MESSAGE = "--> [ISSUANCE] Issued credentials:"
+let OFFER_BASED_SCENARIO = "[[Scenario: Offer passed to wallet via url]] "
+let NO_OFFER_BASED_SCENARIO = "[[Scenario: No offer passed, wallet initiates issuance by credetial scopes]]"
+
+func createECPrivateSecKey(xStr: String, yStr: String, dStr: String) -> SecKey? {
+  // Fix padding for Base64URL → Base64
+  func fixBase64Padding(_ base64url: String) -> String {
+    var base64 = base64url
+      .replacingOccurrences(of: "-", with: "+")
+      .replacingOccurrences(of: "_", with: "/")
+    let padding = base64.count % 4
+    if padding == 2 {
+      base64.append("==")
+    } else if padding == 3 {
+      base64.append("=")
+    } else if padding == 1 {
+      base64.append("===") // rare case
+    }
+    return base64
+  }
+  
+  // Decode base64URL strings
+  guard let xBytes = Data(base64Encoded: fixBase64Padding(xStr)),
+        let yBytes = Data(base64Encoded: fixBase64Padding(yStr)),
+        let dBytes = Data(base64Encoded: fixBase64Padding(dStr)) else {
+    print("❌ Base64 decoding failed")
+    return nil
+  }
+  
+  // Create uncompressed public key format: 0x04 || x || y
+  let keyData = NSMutableData(bytes: [0x04], length: 1)
+  keyData.append(xBytes)
+  keyData.append(yBytes)
+  
+  // This is just the public key part, but you want a private key, so dBytes must be included in the right format.
+  // Append private key d — this by itself doesn't make a valid private key structure,
+  // but we are assuming your environment accepts raw private key with appended dBytes.
+  keyData.append(dBytes)
+  
+  // Attributes
+  let attributes: [String: Any] = [
+    kSecAttrKeyType as String: kSecAttrKeyTypeECSECPrimeRandom,
+    kSecAttrKeyClass as String: kSecAttrKeyClassPrivate,
+    kSecAttrKeySizeInBits as String: 256,
+    kSecAttrIsPermanent as String: false
+  ]
+  
+  // Create SecKey
+  var error: Unmanaged<CFError>?
+  guard let keyReference = SecKeyCreateWithData(keyData as CFData,
+                                                attributes as CFDictionary,
+                                                &error) else {
+    print("❌ SecKeyCreateWithData failed:", error!.takeRetainedValue())
+    return nil
+  }
+  
+  return keyReference
 }
