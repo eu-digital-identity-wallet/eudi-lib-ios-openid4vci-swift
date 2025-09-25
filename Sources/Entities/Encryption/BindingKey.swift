@@ -35,9 +35,10 @@ public enum BindingKey: Sendable, Equatable {
   // Key attestation Binding Key
   case keyAttestation(
     algorithm: JWSAlgorithm,
-    keyAttestationJWT: KeyAttestationJWT,
+    keyAttestationJWT: @Sendable (_ nonce: String?, _ proxy: SigningKeyProxy, _ publicJWK: JWK) async throws -> KeyAttestationJWT,
     keyIndex: UInt,
     privateKey: SigningKeyProxy,
+    publicJWK: JWK,
     issuer: String? = nil
   )
   
@@ -48,6 +49,8 @@ public enum BindingKey: Sendable, Equatable {
 }
 
 public extension BindingKey {
+  
+  static let OpenID4VCIProofJWT = "openid4vci-proof+jwt"
   
   static func == (lhs: BindingKey, rhs: BindingKey) -> Bool {
     switch (lhs, rhs) {
@@ -94,10 +97,10 @@ public extension BindingKey {
       
       let aud = issuanceRequester.issuerMetadata.credentialIssuerIdentifier.url.absoluteString
       
-      let header = try JWSHeader(parameters: [
-        "typ": "openid4vci-proof+jwt",
-        "alg": algorithm.name,
-        "jwk": jwk.toDictionary()
+      let header: JWSHeader = try .init(parameters: [
+        JWTClaimNames.type: Self.OpenID4VCIProofJWT,
+        JWTClaimNames.algorithm: algorithm.name,
+        JWTClaimNames.JWK: jwk.toDictionary()
       ])
       
       let dictionary: [String: Any] = [
@@ -137,21 +140,32 @@ public extension BindingKey {
       let keyAttestationJWT,
       let keyIndex,
       let privateKey,
+      let jwk,
       let issuer
     ):
       let proofTypesSupported = credentialSpec.proofTypesSupported
       let keyAttestationRequirement = proofTypesSupported?["jwt"]?.keyAttestationRequirement
       switch keyAttestationRequirement {
       case .required, .requiredNoConstraints:
-        throw CredentialIssuanceError.proofTypeKeyAttestationRequired
-      default: break
+        break
+      case .notRequired:
+        break
+      case .none:
+        break
       }
-      
-      let header = try JWSHeader(parameters: [
-        "alg": algorithm.name,
-        "kid": "\(keyIndex)",
-        "key_attestation": keyAttestationJWT.jws.compactSerializedString
-      ])
+
+      let header: JWSHeader = try .init(
+        parameters: [
+          JWTClaimNames.algorithm: algorithm.name,
+          JWTClaimNames.kid: "\(keyIndex)",
+          JWTClaimNames.type: Self.OpenID4VCIProofJWT,
+          JWTClaimNames.keyAttestation: await keyAttestationJWT(
+            cNonce,
+            privateKey,
+            jwk
+          ).jws.compactSerializedString
+        ]
+      )
       
       let aud = issuanceRequester.issuerMetadata.credentialIssuerIdentifier.url.absoluteString
       let dictionary: [String: Any] = [

@@ -64,9 +64,8 @@ public actor CredentialIssuerMetadataResolver: CredentialIssuerMetadataType {
   ) async throws -> Result<CredentialIssuerMetadata, CredentialIssuerMetadataError> {
     switch source {
     case .credentialIssuer(let issuerId):
-      let url = issuerId.url
-        .appendingPathComponent(".well-known")
-        .appendingPathComponent("openid-credential-issuer")
+      let wellKnownURL = try buildWellKnownCredentialIssuerURL(from: issuerId.url)
+      let result = await fetcher.fetch(url: wellKnownURL)
       
       return await fetcher.fetchMetadata(
         url: url,

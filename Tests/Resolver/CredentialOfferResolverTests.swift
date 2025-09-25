@@ -188,7 +188,7 @@ class CredentialOfferResolverTests: XCTestCase {
       XCTAssert(result.credentialIssuerIdentifier.url.absoluteString == "https://credential-issuer.example.com")
       XCTAssert(result.nonceEndpoint!.url.absoluteString == "https://credential-issuer.example.com/nonce")
       
-      let credentialSupported = result.credentialsSupported[try! .init(value: "MobileDrivingLicense_msoMdoc")]!
+      let credentialSupported = result.credentialsSupported[try .init(value: "MobileDrivingLicense_msoMdoc")]!
       
       XCTAssert(result.credentialsSupported.count == 4)
       
@@ -204,5 +204,48 @@ class CredentialOfferResolverTests: XCTestCase {
     case .failure(let error):
       XCTAssert(false, error.localizedDescription)
     }
+  }
+  
+  
+  func testBuildWellKnownURL_withoutPath() async throws {
+      let resolver = CredentialIssuerMetadataResolver()
+      let input = URL(string: "https://issuer.example.com")!
+      
+      let result = try await resolver.buildWellKnownCredentialIssuerURL(from: input)
+      
+      XCTAssertEqual(
+        result.absoluteString,
+        "https://issuer.example.com/.well-known/openid-credential-issuer"
+      )
+    }
+    
+  func testBuildWellKnownURL_withPath() async throws {
+      let resolver = CredentialIssuerMetadataResolver()
+      let input = URL(string: "https://issuer.example.com/tenant")!
+      
+      let result = try await resolver.buildWellKnownCredentialIssuerURL(from: input)
+      
+      XCTAssertEqual(
+        result.absoluteString,
+        "https://issuer.example.com/.well-known/openid-credential-issuer/tenant"
+      )
+    }
+    
+  func testBuildWellKnownURL_invalidUrl() async {
+      let resolver = CredentialIssuerMetadataResolver()
+      let input = URL(string: "http://")! // deliberately invalid
+
+      do {
+          _ = try await resolver.buildWellKnownCredentialIssuerURL(from: input)
+      } catch let error as FetchError {
+          switch error {
+          case .invalidUrl:
+            XCTAssert(true)
+          default:
+              XCTFail("Unexpected FetchError case: \(error)")
+          }
+      } catch {
+          XCTFail("Unexpected error type: \(error)")
+      }
   }
 }
