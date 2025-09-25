@@ -119,7 +119,7 @@ class IssuanceDeferredRequestTest: XCTestCase {
             case .success(let response):
               if let result = response.credentialResponses.first {
                 switch result {
-                case .deferred(let transactionId):
+                case .deferred(let transactionId, let interval):
                   XCTAssert(true, "transaction_id: \(transactionId)")
                   return
                 case .issued(_, let credential, _, _):
