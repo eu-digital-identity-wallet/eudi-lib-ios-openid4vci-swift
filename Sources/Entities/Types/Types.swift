@@ -120,6 +120,7 @@ public struct Scope: Codable, Sendable {
 public enum ContentType: String {
   case form = "application/x-www-form-urlencoded"
   case json = "application/json"
+  case jwt = "application/jwt"
   
   public static let key = "Content-Type"
 }
