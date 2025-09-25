@@ -23,7 +23,8 @@ class CredentialOfferResolverTests: XCTestCase {
   func createMetadataFetcher(
     session: Networking = NetworkingMock(
       path: "credential_issuer_metadata",
-      extension: "json"
+      extension: "json",
+      headers: ["Content-Type": "application/json"]
   )) -> MetadataFetcher {
     MetadataFetcher(
       rawFetcher: RawDataFetcher(

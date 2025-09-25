@@ -205,7 +205,8 @@ struct TestsConstants {
     let credentialIssuerMetadataResolver = CredentialIssuerMetadataResolver(
       fetcher: MetadataFetcher(rawFetcher: RawDataFetcher(session: NetworkingMock(
         path: "credential_issuer_metadata",
-        extension: "json"
+        extension: "json",
+        headers: ["Content-type": "application/json"]
       ))))
     
     let authorizationServerMetadataResolver = AuthorizationServerMetadataResolver(
@@ -238,7 +239,8 @@ struct TestsConstants {
     let credentialIssuerMetadataResolver = CredentialIssuerMetadataResolver(
       fetcher: MetadataFetcher(rawFetcher: RawDataFetcher(session: NetworkingMock(
         path: "openid-credential-issuer_no_encryption",
-        extension: "json"
+        extension: "json",
+        headers: ["Content-type": "application/json"]
       ))))
     
     let authorizationServerMetadataResolver = AuthorizationServerMetadataResolver(
@@ -271,7 +273,8 @@ struct TestsConstants {
     let credentialIssuerMetadataResolver = CredentialIssuerMetadataResolver(
       fetcher: MetadataFetcher(rawFetcher: RawDataFetcher(session: NetworkingMock(
         path: "openid-credential-issuer_key_attestation_required",
-        extension: "json"
+        extension: "json",
+        headers: ["Content-type": "application/json"]
       ))))
     
     let authorizationServerMetadataResolver = AuthorizationServerMetadataResolver(
@@ -304,7 +307,8 @@ struct TestsConstants {
     let credentialIssuerMetadataResolver = CredentialIssuerMetadataResolver(
       fetcher: MetadataFetcher(rawFetcher: RawDataFetcher(session: NetworkingMock(
         path: "openid-credential-issuer_no_encryption_batch",
-        extension: "json"
+        extension: "json",
+        headers: ["Content-type": "application/json"]
       ))))
     
     let authorizationServerMetadataResolver = AuthorizationServerMetadataResolver(
@@ -337,7 +341,8 @@ struct TestsConstants {
     let credentialIssuerMetadataResolver = CredentialIssuerMetadataResolver(
       fetcher: MetadataFetcher(rawFetcher: RawDataFetcher(session: NetworkingMock(
         path: "credential_issuer_metadata",
-        extension: "json"
+        extension: "json",
+        headers: ["Content-type": "application/json"]
       ))))
     
     let authorizationServerMetadataResolver = AuthorizationServerMetadataResolver(
