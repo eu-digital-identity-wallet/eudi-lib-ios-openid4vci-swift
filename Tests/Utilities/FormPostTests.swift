@@ -35,8 +35,8 @@ final class FormPostTests: XCTestCase {
       contentType: .form,
       formData: [:]
     )
-    XCTAssertEqual(formPost.url, URL(string: "http://example4.com")!)
-    XCTAssertEqual(formPost.urlRequest.url, URL(string: "http://example5.com")!)
+    XCTAssertEqual(formPost.url, URL(string: "http://example3.com")!)
+    XCTAssertEqual(formPost.urlRequest.url, URL(string: "http://example3.com")!)
   }
 
   func testContentTypeIsSetInRequestHeaders() throws {
