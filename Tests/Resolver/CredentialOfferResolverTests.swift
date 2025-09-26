@@ -15,6 +15,7 @@
  */
 import Foundation
 import XCTest
+import JOSESwift
 
 @testable import OpenID4VCI
 
@@ -30,6 +31,96 @@ class CredentialOfferResolverTests: XCTestCase {
       rawFetcher: RawDataFetcher(
         session: session))
   }
+  
+  
+  func testSignedIssuerMetadataWithInvalidData() async throws {
+    let fetcher = MetadataFetcher(
+      rawFetcher: RawDataFetcher(
+        session: NetworkingMock(
+          path: "credential_issuer_metadata_with_signed_invalid",
+          extension: "txt",
+          headers: ["Content-Type": "application/jwt"]
+      )))
+  
+    let credentialIssuerMetadataResolver = CredentialIssuerMetadataResolver(
+      fetcher: fetcher)
+    
+    let jwkJSON = """
+        {
+          "kty": "EC",
+          "d": "hmQqQjKufUDXOBaVs-alU0sl1j9_WR1U9ia3J680s2E",
+          "crv": "P-256",
+          "x": "ilzt0a_ukEX-nl0S05S2RAlbQFL2DSOpTjT3xf52JBY",
+          "y": "q-fNv_d0nlZf_S_3S-KmrktIsylB0cybRiL6rZMLZHI"
+        }
+        """
+        
+        guard let jsonData = jwkJSON.data(using: .utf8) else {
+          XCTAssert(false, "Failed to convert JWK JSON string to Data")
+          return
+        }
+    
+    // When
+    let result = try await credentialIssuerMetadataResolver.resolve(
+      source: .credentialIssuer(CredentialIssuerId("https://credential-issuer.example.com")),
+      policy: .requireSigned(issuerTrust: .byPublicKey(jwk: ECPublicKey(data: jsonData))
+    ))
+    
+    switch result {
+    case .success(let result):
+      XCTAssert(false, "Expected failure but got success: \(result)")
+    case .failure(let error):
+      if case CredentialIssuerMetadataError.invalidSignedMetadata(let message) = error {
+              XCTAssertTrue(message.contains("Invalid 'typ' header"),
+                           "Error message should mention invalid 'typ' header")
+          } else {
+              XCTFail("Expected CredentialIssuerMetadataError.invalidSignedMetadata but got: \(error)")
+          }
+    }
+  }
+  
+  
+  func testSignedIssuerMetadataWithValidData() async throws {
+    let fetcher = MetadataFetcher(
+      rawFetcher: RawDataFetcher(
+        session: NetworkingMock(
+          path: "credential_issuer_metadata_with_signed_full",
+          extension: "txt",
+          headers: ["Content-Type": "application/jwt"]
+      )))
+  
+    let credentialIssuerMetadataResolver = CredentialIssuerMetadataResolver(
+      fetcher: fetcher)
+    
+    let jwkJSON = """
+        {
+          "kty": "EC",
+          "d": "hmQqQjKufUDXOBaVs-alU0sl1j9_WR1U9ia3J680s2E",
+          "crv": "P-256",
+          "x": "ilzt0a_ukEX-nl0S05S2RAlbQFL2DSOpTjT3xf52JBY",
+          "y": "q-fNv_d0nlZf_S_3S-KmrktIsylB0cybRiL6rZMLZHI"
+        }
+        """
+        
+        guard let jsonData = jwkJSON.data(using: .utf8) else {
+          XCTAssert(false, "Failed to convert JWK JSON string to Data")
+          return
+        }
+    
+    // When
+    let result = try await credentialIssuerMetadataResolver.resolve(
+      source: .credentialIssuer(CredentialIssuerId("https://credential-issuer.example.com")),
+      policy: .requireSigned(issuerTrust: .byPublicKey(jwk: ECPublicKey(data: jsonData))
+    ))
+    
+    switch result {
+    case .success(let result):
+      print(result)
+    case .failure(let error):
+      XCTAssert(false, error.localizedDescription)
+    }
+  }
+    
     
   
   func testValidCredentialOfferDataAndOIDVWhenAResolutionIsRequestedSucessWithValidData() async throws {

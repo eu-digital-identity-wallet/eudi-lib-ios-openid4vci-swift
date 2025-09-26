@@ -19,6 +19,9 @@ public enum CredentialIssuerMetadataError: Error {
   case unableToFetchCredentialIssuerMetadata(cause: Error)
   case nonParseableCredentialIssuerMetadata(cause: Error)
   
+  case invalidCredentialIssuerId
+  case credentialResponseAsymmetricEncryptionAlgorithmsRequired
+  
   /**
     * Indicates the Credential Issuer does not provide signed metadata.
     */
