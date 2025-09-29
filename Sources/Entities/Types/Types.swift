@@ -20,6 +20,7 @@ import SwiftyJSON
 public enum EncryptionKey: String {
   case jwk, alg, enc, JWT
   case credentialResponseEncryption = "credential_response_encryption"
+  case type = "typ"
 }
 
 public typealias JWT = String
