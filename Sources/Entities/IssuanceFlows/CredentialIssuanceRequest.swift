@@ -119,10 +119,10 @@ public extension SingleCredential {
       let responseEncryptionAlg,
       let responseEncryptionMethod
     ):
-      dictionary["credential_response_encryption"] = [
-        "jwk": try encryptionJwk.toDictionary(),
-        "alg": responseEncryptionAlg.name,
-        "enc": responseEncryptionMethod.name
+      dictionary[EncryptionKey.credentialResponseEncryption.rawValue] = [
+        EncryptionKey.jwk: try encryptionJwk.toDictionary(),
+        EncryptionKey.alg: responseEncryptionAlg.name,
+        EncryptionKey.enc: responseEncryptionMethod.name
       ]
       return try JSON.createFrom(
         proofs: proofs,

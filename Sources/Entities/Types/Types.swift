@@ -17,6 +17,11 @@
 import SwiftyJSON
 @preconcurrency import JOSESwift
 
+public enum EncryptionKey: String {
+  case jwk, alg, enc, JWT
+  case credentialResponseEncryption = "credential_response_encryption"
+}
+
 public typealias JWT = String
 
 public struct IssuanceResponseEncryptionSpec: Sendable {
