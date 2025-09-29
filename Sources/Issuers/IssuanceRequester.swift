@@ -155,7 +155,11 @@ public actor IssuanceRequester: IssuanceRequesterType {
         switch issuerMetadata.credentialResponseEncryption {
         case .notSupported:
           guard let response = SingleIssuanceSuccessResponse.fromJSONString(string) else {
-            return .failure(ValidationError.todo(reason: "Cannot decode .notRequired response"))
+            return .failure(
+              ValidationError.todo(
+                reason: "Cannot decode .notRequired response"
+              )
+            )
           }
           return .success(try response.toDomain())
         case .required, .notRequired:
@@ -178,7 +182,11 @@ public actor IssuanceRequester: IssuanceRequesterType {
                 let keyManagementAlgorithm = KeyManagementAlgorithm(algorithm: responseEncryptionAlg),
                 let contentEncryptionAlgorithm = ContentEncryptionAlgorithm(encryptionMethod: responseEncryptionMethod)
               else {
-                return .failure(ValidationError.error(reason: "Unsupported encryption algorithms: \(responseEncryptionAlg.name), \(responseEncryptionMethod.name)"))
+                return .failure(
+                  ValidationError.error(
+                    reason: "Unsupported encryption algorithms: \(responseEncryptionAlg.name), \(responseEncryptionMethod.name)"
+                  )
+                )
               }
               
               let payload = try decrypt(
@@ -188,7 +196,10 @@ public actor IssuanceRequester: IssuanceRequesterType {
                 privateKey: key
               )
               
-              let response = try JSONDecoder().decode(SingleIssuanceSuccessResponse.self, from: payload.data())
+              let response = try JSONDecoder().decode(
+                SingleIssuanceSuccessResponse.self,
+                from: payload.data()
+              )
               return .success(try response.toDomain())
             }
             
