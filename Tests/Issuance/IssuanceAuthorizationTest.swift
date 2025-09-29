@@ -418,7 +418,6 @@ class IssuanceAuthorizationTest: XCTestCase {
       request: request,
       bindingKeys: [bindingKey],
       requestPayload: payload,
-      encryptionSpec: nil,
       responseEncryptionSpecProvider: {
         Issuer.createResponseEncryptionSpec($0)
       }
@@ -545,7 +544,6 @@ class IssuanceAuthorizationTest: XCTestCase {
         request: request,
         bindingKeys: [bindingKey],
         requestPayload: payload,
-        encryptionSpec: nil,
         responseEncryptionSpecProvider: {
           Issuer.createResponseEncryptionSpec($0)
         }
@@ -652,7 +650,6 @@ class IssuanceAuthorizationTest: XCTestCase {
       request: request,
       bindingKeys: [bindingKey],
       requestPayload: payload,
-      encryptionSpec: nil,
       responseEncryptionSpecProvider: {
         Issuer.createResponseEncryptionSpec($0)
     })
@@ -764,7 +761,6 @@ class IssuanceAuthorizationTest: XCTestCase {
       request: request,
       bindingKeys: [bindingKey],
       requestPayload: payload,
-      encryptionSpec: nil,
       responseEncryptionSpecProvider: {
         Issuer.createResponseEncryptionSpec($0)
       })

@@ -90,7 +90,6 @@ class KeyAttestationTests: XCTestCase {
           keyBindingKey
         ],
         requestPayload: sdJwtVCpayload,
-        encryptionSpec: nil,
         responseEncryptionSpecProvider: { _ in
           spec
         })
@@ -140,7 +139,6 @@ class KeyAttestationTests: XCTestCase {
           keyBindingKey
         ],
         requestPayload: sdJwtVCpayload,
-        encryptionSpec: nil,
         responseEncryptionSpecProvider: { _ in
           spec
         })

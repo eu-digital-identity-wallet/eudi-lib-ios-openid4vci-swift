@@ -429,12 +429,10 @@ extension Wallet {
       credentialConfigurationIdentifier: credentialConfigurationIdentifier
     )
     
-    let encryptionSpec = testEncryptionSpec()
     let requestOutcome = try await issuer.requestCredential(
       request: authorized,
       bindingKeys: bindingKeys,
-      requestPayload: payload,
-      encryptionSpec: encryptionSpec
+      requestPayload: payload
     ) {
       Issuer.createResponseEncryptionSpec($0)
     }

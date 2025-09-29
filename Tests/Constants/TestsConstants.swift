@@ -570,9 +570,9 @@ func testEncryptionSpec() -> EncryptionSpec? {
       "kty": "EC",
       "use": "enc",
       "crv": "P-256",
-      "kid": "2389b221-f19c-44fc-8895-400803a207e4",
-      "x": "xpe0IfGxHQ_bi8v0wu7VcdrcyXb1N2F7_tlCLNPihLw",
-      "y": "aLwt-hGZe7pnFx00iYTuu1fXhGrSNS9vRVhCPC16LDU",
+      "kid": "d3102833-700c-42fe-979b-4880ba88ee22",
+      "x": "9Yx_0Huh1XTF6hUScqikf07674hci1McgQqK5NwTDLg",
+      "y": "JGcPMr7d1_KLTm5euw7EolLYsU4J2pg-2tC_xrTjFaQ",
       "alg": "ECDH-ES"
     ])),
     encryptionMethod: .init(.A128GCM)
