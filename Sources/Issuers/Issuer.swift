@@ -91,6 +91,7 @@ public protocol IssuerType: Sendable {
     request: AuthorizedRequest,
     bindingKeys: [BindingKey],
     requestPayload: IssuanceRequestPayload,
+    encryptionSpec: EncryptionSpec?,
     responseEncryptionSpecProvider: @Sendable (_ issuerResponseEncryptionMetadata: CredentialResponseEncryption) -> IssuanceResponseEncryptionSpec?
   ) async throws -> Result<SubmittedRequest, Error>
   
@@ -389,6 +390,7 @@ public actor Issuer: IssuerType {
     request: AuthorizedRequest,
     bindingKeys: [BindingKey],
     requestPayload: IssuanceRequestPayload,
+    encryptionSpec: EncryptionSpec?,
     responseEncryptionSpecProvider: @Sendable (_ issuerResponseEncryptionMetadata: CredentialResponseEncryption) -> IssuanceResponseEncryptionSpec?
   ) async throws -> Result<SubmittedRequest, Error> {
     switch requestPayload {
@@ -403,6 +405,7 @@ public actor Issuer: IssuerType {
         credentialIdentifier: credentialIdentifier,
         issuancePayload: requestPayload,
         credentialConfigurationIdentifier: credentialConfigurationIdentifier,
+        encryptionSpec: encryptionSpec,
         responseEncryptionSpecProvider: responseEncryptionSpecProvider
       )
       
@@ -415,6 +418,7 @@ public actor Issuer: IssuerType {
         bindingKeys: bindingKeys,
         credentialConfigurationIdentifier: credentialConfigurationIdentifier,
         issuancePayload: requestPayload,
+        encryptionSpec: encryptionSpec,
         responseEncryptionSpecProvider: responseEncryptionSpecProvider
       )
     }
@@ -426,6 +430,7 @@ private extension Issuer {
   private func requestIssuance(
     token: IssuanceAccessToken,
     dPopNonce: Nonce?,
+    requestEncryptionSpec: EncryptionSpec?,
     issuanceRequestSupplier: () async throws -> CredentialIssuanceRequest
   ) async throws -> Result<SubmittedRequest, Error> {
     let credentialRequest = try await issuanceRequestSupplier()
@@ -436,7 +441,8 @@ private extension Issuer {
         accessToken: token,
         request: single,
         dPopNonce: dPopNonce,
-        retry: true
+        retry: true,
+        encryptionSpec: requestEncryptionSpec
       )
       switch result {
       case .success(let response):
@@ -485,6 +491,7 @@ private extension Issuer {
     bindingKeys: [BindingKey] = [],
     credentialConfigurationIdentifier: CredentialConfigurationIdentifier,
     issuancePayload: IssuanceRequestPayload,
+    encryptionSpec: EncryptionSpec?,
     responseEncryptionSpecProvider: (_ issuerResponseEncryptionMetadata: CredentialResponseEncryption) -> IssuanceResponseEncryptionSpec?
   ) async throws -> Result<SubmittedRequest, Error> {
     
@@ -502,7 +509,8 @@ private extension Issuer {
     
     return try await requestIssuance(
       token: token,
-      dPopNonce: proofs.dPopNonce ?? authorizedRequest.dPopNonce
+      dPopNonce: proofs.dPopNonce ?? authorizedRequest.dPopNonce,
+      requestEncryptionSpec: encryptionSpec
     ) {
       return try supportedCredential.toIssuanceRequest(
         requester: issuanceRequester,
@@ -520,6 +528,7 @@ private extension Issuer {
     credentialIdentifier: CredentialIdentifier,
     issuancePayload: IssuanceRequestPayload,
     credentialConfigurationIdentifier: CredentialConfigurationIdentifier,
+    encryptionSpec: EncryptionSpec?,
     responseEncryptionSpecProvider: (_ issuerResponseEncryptionMetadata: CredentialResponseEncryption) -> IssuanceResponseEncryptionSpec?
   ) async throws -> Result<SubmittedRequest, Error> {
     
@@ -537,7 +546,8 @@ private extension Issuer {
     
     return try await requestIssuance(
       token: token,
-      dPopNonce: proofs.dPopNonce ?? authorizedRequest.dPopNonce
+      dPopNonce: proofs.dPopNonce ?? authorizedRequest.dPopNonce,
+      requestEncryptionSpec: encryptionSpec
     ) {
       return try supportedCredential.toIssuanceRequest(
         requester: issuanceRequester,
@@ -844,6 +854,7 @@ internal extension Client {
       guard tokenEndpointAuthMethods.contains(expectedMethod) else {
         throw ValidationError.error(reason: ("\(Self.ATTEST_JWT_CLIENT_AUTH) not supported by authorization server"))
       }
+      
     default:
       break
     }
