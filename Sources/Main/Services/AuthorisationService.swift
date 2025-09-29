@@ -14,6 +14,17 @@
  * limitations under the License.
  */
 import Foundation
+import JOSESwift
+import SwiftyJSON
+
+public enum JWEBuilderError: Error {
+  case unsupportedKeyType
+  case unsupportedAlgorithm
+  case unsupportedEncryptionMethod
+  case unsupportedCurve
+  case invalidRecipientKey
+  case encrypterInitFailed
+}
 
 /// A protocol for an authorization service.
 public protocol AuthorisationServiceType: Sendable {
@@ -42,7 +53,8 @@ public protocol AuthorisationServiceType: Sendable {
     poster: PostingType,
     url: URL,
     headers: [String: String],
-    body: [String: any Sendable]
+    body: [String: any Sendable],
+    encryptionSpec: EncryptionSpec?
   ) async throws -> ResponseWithHeaders<U>
 }
 
@@ -105,16 +117,78 @@ public actor AuthorisationService: AuthorisationServiceType {
     poster: PostingType,
     url: URL,
     headers: [String: String],
-    body: [String: any Sendable]
+    body: [String: any Sendable],
+    encryptionSpec: EncryptionSpec?
   ) async throws -> ResponseWithHeaders<U> {
-    let post = try FormPost(
-      url: url,
-      contentType: .json,
-      additionalHeaders: headers,
-      formData: body
-    )
+    
+    let post: FormPost = if let encryptionSpec {
+      try .init(
+        url: url,
+        contentType: .jwt,
+        additionalHeaders: headers,
+        formData: ["jwt": makeJWE(
+          spec: encryptionSpec,
+          body: body
+        ).compactSerializedData]
+      )
+    } else {
+      try .init(
+        url: url,
+        contentType: .json,
+        additionalHeaders: headers,
+        formData: body
+      )
+    }
     
     let result: Result<ResponseWithHeaders<U>, PostError> = await poster.post(request: post.urlRequest)
     return try result.get()
+  }
+}
+
+private extension AuthorisationService {
+  
+  /// Build a JWE from an EncryptionSpec and a dictionary payload.
+  func makeJWE(
+      spec: EncryptionSpec,
+      body: [String: any Sendable]
+  ) throws -> JWE {
+    // 1. Serialize the body into JSON `Data`
+    let data = try body.toData()
+    let payload = Payload(data)
+
+      // 2. Build JWE header
+    var headerParams: [String: Any] = [
+      "alg": spec.algorithm.name,
+      "enc": spec.encryptionMethod.name,
+      "typ": "JWT"
+    ]
+
+    // If the spec's key is a JWK, embed it in the header.
+    // Adjust depending on your JWK type.
+    if let jwkDict = try? spec.recipientKey.toDictionary() {
+      headerParams["jwk"] = jwkDict
+    }
+
+    let header = try JWEHeader(parameters: headerParams)
+
+    // 3. Build encrypter
+    // This example assumes EC keys; extend for RSA/OKP as needed.
+    guard spec.recipientKey.keyType == .EC else {
+      throw JWEBuilderError.unsupportedKeyType
+    }
+    
+    guard
+      let keyManagementAlg = KeyManagementAlgorithm(algorithm: spec.algorithm),
+      let contentEncryptionAlg = ContentEncryptionAlgorithm(encryptionMethod: spec.encryptionMethod),
+      let encrypter: Encrypter = .init(
+        keyManagementAlgorithm: keyManagementAlg,
+        contentEncryptionAlgorithm: contentEncryptionAlg,
+        encryptionKey: spec.recipientKey
+      )
+    else {
+      throw JWEBuilderError.encrypterInitFailed
+    }
+    
+    return try JWE(header: header, payload: payload, encrypter: encrypter)
   }
 }
