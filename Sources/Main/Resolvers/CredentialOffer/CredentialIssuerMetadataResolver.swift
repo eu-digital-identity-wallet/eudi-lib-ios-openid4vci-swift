@@ -43,10 +43,11 @@ public protocol CredentialIssuerMetadataType {
 
 public actor CredentialIssuerMetadataResolver: CredentialIssuerMetadataType {
   
-  private let fetcher: Fetcher<CredentialIssuerMetadata>
+  private let fetcher: any MetadataFetching
+  
   
   public init(
-    fetcher: Fetcher<CredentialIssuerMetadata> = Fetcher()
+    fetcher: MetadataFetching = MetadataFetcher()
   ) {
     self.fetcher = fetcher
   }
@@ -60,39 +61,20 @@ public actor CredentialIssuerMetadataResolver: CredentialIssuerMetadataType {
   public func resolve(
     source: CredentialIssuerSource,
     policy: IssuerMetadataPolicy
-  ) async throws -> Result<CredentialIssuerMetadata, some Error> {
+  ) async throws -> Result<CredentialIssuerMetadata, CredentialIssuerMetadataError> {
     switch source {
     case .credentialIssuer(let issuerId):
       let wellKnownURL = try buildWellKnownCredentialIssuerURL(from: issuerId.url)
-      let result = await fetcher.fetch(url: wellKnownURL)
       
-      switch result {
-      case .success(let metadata):
-        switch policy {
-        case .requireSigned(let issuerTrust):
-          try await parseAndVerifySignedMetadata(
-            metadata.signedMetadata,
-            issuerTrust: issuerTrust,
-            issuerId: issuerId
-          )
-          return result
-          
-        case .preferSigned(let issuerTrust):
-          try? await parseAndVerifySignedMetadata(
-            metadata.signedMetadata,
-            issuerTrust: issuerTrust,
-            issuerId: issuerId
-          )
-          return result
-        case .ignoreSigned: return result
-        }
-      case .failure(let error):
-        return .failure(error)
-      }
+      return await fetcher.fetchMetadata(
+        url: wellKnownURL,
+        policy: policy,
+        issuerId: issuerId
+      )
     }
   }
 }
-
+      
 extension CredentialIssuerMetadataResolver {
   func buildWellKnownCredentialIssuerURL(
     from issuerURL: URL
@@ -112,128 +94,5 @@ extension CredentialIssuerMetadataResolver {
     }
     
     return wellKnownURL
-  }
-}
-
-
-private extension CredentialIssuerMetadataResolver {
-  func parseAndVerifySignedMetadata(
-    _ metadata: String?,
-    issuerTrust: IssuerTrust,
-    issuerId: CredentialIssuerId
-  ) async throws {
-    guard
-      let metadata,
-      let jws = try? JWS(compactSerialization: metadata),
-      let x5c = jws.header.x5c
-    else {
-      throw CredentialIssuerMetadataError.missingSignedMetadata
-    }
-    
-    try await issuerTrust.verify(
-      jws: jws,
-      chain: x5c
-    )
-  }
-}
-
-private extension IssuerTrust {
-  
-  @discardableResult
-  func verify(
-    jws: JWS,
-    chain: [String]
-  ) async throws -> JWS {
-    switch self {
-    case .byPublicKey(let jwk):
-      let algorithm: SignatureAlgorithm
-      switch jwk.keyType {
-      case .RSA:
-        algorithm = .RS256
-      case .EC:
-        algorithm = .ES256
-      default:
-        throw CredentialIssuerMetadataError.invalidSignedMetadata(
-          "Unsupported key type: \(jwk.keyType)"
-        )
-      }
-      
-      guard
-        let key = try JWKSecKeyConverter(jwk: jwk).secKey(),
-        let verifier: Verifier = .init(
-          signatureAlgorithm: algorithm,
-          key: key
-        ) else {
-        throw CredentialIssuerMetadataError.invalidSignedMetadata(
-          "Failed to create verifier"
-        )
-      }
-      return try jws.validate(using: verifier)
-      
-    case .byCertificateChain(let certificateChainTrust):
-      guard certificateChainTrust.isValid(chain: chain) else {
-        throw CredentialIssuerMetadataError.invalidSignedMetadata(
-          "Failed to verify chain (.byCertificateChain)"
-        )
-      }
-      
-      let utilities: SecCertificateHelper = .init()
-      guard
-        let first = chain.first,
-        let key = utilities.publicKey(fromPem: first),
-        let algorithm: SignatureAlgorithm = switch key.keyAlgorithm() {
-        case "RSA": .RS256
-        case "EC": .ES256
-        default: nil
-        },
-      let verifier: Verifier = .init(
-        signatureAlgorithm: algorithm,
-        key: key
-      )
-      else {
-        throw CredentialIssuerMetadataError.invalidSignedMetadata(
-          "Failed to create verifier (.byCertificateChain)"
-        )
-      }
-      
-      let verifiedJWS = try jws
-        .validate(using: verifier)
-        .validateSignedMetadataClaims()
-      
-      return verifiedJWS
-    }
-  }
-}
-
-private extension JWS {
-  
-  /// Validates the required claims: `iat`, `iss`, and `sub`
-  /// - Returns: `self` if all claims are present and valid, throws otherwise.
-  func validateSignedMetadataClaims() throws -> JWS {
-    
-    let data = self.payload.data()
-    /// Decode Payload (Assuming it's a JSON object)
-    guard
-      let json = try JSONSerialization.jsonObject(
-        with: data,
-        options: []
-      ) as? [String: Any]
-    else {
-      throw CredentialIssuerMetadataError.invalidSignedMetadata(
-        "Unable to decode JWS"
-      )
-    }
-    
-    /// Validate required claims
-    guard
-      let _ = json[JWTClaimNames.issuedAt] as? TimeInterval,
-      let _ = json[JWTClaimNames.issuer] as? String,
-      let _ = json[JWTClaimNames.subject] as? String
-    else {
-      throw CredentialIssuerMetadataError.invalidSignedMetadata(
-        "Expected claims not found in signed metadata"
-      )
-    }
-    return self
   }
 }

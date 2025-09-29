@@ -122,9 +122,8 @@ public extension MsoMdocFormat {
     public let cryptographicBindingMethodsSupported: [String]?
     public let credentialSigningAlgValuesSupported: [String]?
     public let proofTypesSupported: [String: ProofTypeSupportedMeta]?
-    public let display: [Display]?
+    public let credentialMetadata: ConfigurationCredentialMetadata?
     public let docType: String
-    public let claims: [Claim]
     public let policy: Policy?
     
     enum CodingKeys: String, CodingKey {
@@ -133,9 +132,8 @@ public extension MsoMdocFormat {
       case cryptographicBindingMethodsSupported = "cryptographic_binding_methods_supported"
       case credentialSigningAlgValuesSupported = "credential_signing_alg_values_supported"
       case proofTypesSupported = "proof_types_supported"
-      case display
+      case credentialMetadata = "credential_metadata"
       case docType = "doctype"
-      case claims
       case policy
     }
     
@@ -145,9 +143,8 @@ public extension MsoMdocFormat {
       cryptographicBindingMethodsSupported: [String]? = nil,
       credentialSigningAlgValuesSupported: [String]? = nil,
       proofTypesSupported: [String: ProofTypeSupportedMeta]? = nil,
-      display: [Display]? = nil,
+      credentialMetadata: ConfigurationCredentialMetadata? = nil,
       docType: String,
-      claims: [Claim] = [],
       policy: Policy? = nil
     ) {
       self.format = format
@@ -155,9 +152,8 @@ public extension MsoMdocFormat {
       self.cryptographicBindingMethodsSupported = cryptographicBindingMethodsSupported
       self.credentialSigningAlgValuesSupported = credentialSigningAlgValuesSupported
       self.proofTypesSupported = proofTypesSupported
-      self.display = display
+      self.credentialMetadata = credentialMetadata
       self.docType = docType
-      self.claims = claims
       self.policy = policy
     }
     
@@ -166,18 +162,15 @@ public extension MsoMdocFormat {
       let bindingMethods = try cryptographicBindingMethodsSupported?.compactMap {
         try CryptographicBindingMethod(method: $0)
       } ?? []
-      let display: [Display] = self.display ?? []
       
-      let credentialSigningAlgValuesSupported: [String] = self.credentialSigningAlgValuesSupported ?? []
       return .init(
         format: format,
         scope: scope,
         cryptographicBindingMethodsSupported: bindingMethods,
-        credentialSigningAlgValuesSupported: credentialSigningAlgValuesSupported,
+        credentialSigningAlgValuesSupported: credentialSigningAlgValuesSupported ?? [],
         proofTypesSupported: self.proofTypesSupported,
-        display: display,
+        credentialMetadata: credentialMetadata,
         docType: docType,
-        claims: claims,
         policy: policy
       )
     }
@@ -189,9 +182,8 @@ public extension MsoMdocFormat {
     public let cryptographicBindingMethodsSupported: [CryptographicBindingMethod]
     public let credentialSigningAlgValuesSupported: [String]
     public let proofTypesSupported: [String: ProofTypeSupportedMeta]?
-    public let display: [Display]
+    public let credentialMetadata: ConfigurationCredentialMetadata?
     public let docType: String
-    public let claims: [Claim]
     public let policy: Policy?
     
     enum CodingKeys: String, CodingKey {
@@ -200,9 +192,8 @@ public extension MsoMdocFormat {
       case cryptographicBindingMethodsSupported = "cryptographic_binding_methods_supported"
       case credentialSigningAlgValuesSupported = "credential_signing_alg_values_supported"
       case proofTypesSupported = "proof_types_supported"
-      case display
+      case credentialMetadata = "credential_metadata"
       case docType = "doctype"
-      case claims
       case policy
     }
     
@@ -212,9 +203,8 @@ public extension MsoMdocFormat {
       cryptographicBindingMethodsSupported: [CryptographicBindingMethod],
       credentialSigningAlgValuesSupported: [String],
       proofTypesSupported: [String: ProofTypeSupportedMeta]?,
-      display: [Display],
+      credentialMetadata: ConfigurationCredentialMetadata?,
       docType: String,
-      claims: [Claim],
       policy: Policy?
     ) {
       self.format = format
@@ -222,9 +212,8 @@ public extension MsoMdocFormat {
       self.cryptographicBindingMethodsSupported = cryptographicBindingMethodsSupported
       self.credentialSigningAlgValuesSupported = credentialSigningAlgValuesSupported
       self.proofTypesSupported = proofTypesSupported
-      self.display = display
+      self.credentialMetadata = credentialMetadata
       self.docType = docType
-      self.claims = claims
       self.policy = policy
     }
     
@@ -239,9 +228,8 @@ public extension MsoMdocFormat {
       let proofTypes = try? container.decode([String: ProofTypeSupportedMeta].self, forKey: .proofTypesSupported)
       proofTypesSupported = proofTypes
       
-      display = try container.decode([Display].self, forKey: .display)
+      credentialMetadata = try container.decode(ConfigurationCredentialMetadata.self, forKey: .credentialMetadata)
       docType = try container.decode(String.self, forKey: .docType)
-      claims = try container.decode([Claim].self, forKey: .claims)
       policy = try? container.decode(Policy.self, forKey: .policy)
     }
     
@@ -253,9 +241,8 @@ public extension MsoMdocFormat {
       try container.encode(cryptographicBindingMethodsSupported, forKey: .cryptographicBindingMethodsSupported)
       try container.encode(credentialSigningAlgValuesSupported, forKey: .credentialSigningAlgValuesSupported)
       try container.encode(proofTypesSupported, forKey: .proofTypesSupported)
-      try container.encode(display, forKey: .display)
+      try container.encode(credentialMetadata, forKey: .credentialMetadata)
       try container.encode(docType, forKey: .docType)
-      try container.encode(claims, forKey: .claims)
       try container.encode(policy, forKey: .policy)
     }
     
@@ -281,15 +268,8 @@ public extension MsoMdocFormat {
         return nil
       }
       
-      self.display = json["display"].arrayValue.map { json in
-        Display(json: json)
-      }
+      self.credentialMetadata = try ConfigurationCredentialMetadata(json: json["credential_metadata"])
       self.docType = json["doctype"].stringValue
-      
-      let claims = json["claims"].array?.compactMap({
-        try? Claim(json: $0)
-      }) ?? []
-      self.claims = claims
       self.policy = .init(json: json["policy"])
     }
     
@@ -310,7 +290,7 @@ public extension MsoMdocFormat {
             credentialResponseEncryptionAlg: responseEncryptionSpec?.algorithm,
             credentialResponseEncryptionMethod: responseEncryptionSpec?.encryptionMethod,
             requestPayload: requestPayload,
-            display: display
+            display: credentialMetadata?.display ?? []
           )
         ), responseEncryptionSpec
       )
@@ -337,6 +317,14 @@ public extension MsoMdocFormat {
     }) {
       switch credentialConfigurationsSupported.value {
       case .msoMdoc(let profile):
+        
+        // Validation: proof_types_supported must be present if cryptographic_binding_methods_supported is present
+        if !profile.cryptographicBindingMethodsSupported.isEmpty {
+          guard let proofTypes = profile.proofTypesSupported, !proofTypes.isEmpty else {
+            throw ValidationError.error(reason: "Property `proof_types_supported` must be present if `cryptographic_binding_methods_supported` is present")
+          }
+        }
+        
         return .msoMdoc(.init(docType: docType, scope: profile.scope))
       default: break
       }

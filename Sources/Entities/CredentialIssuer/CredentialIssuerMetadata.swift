@@ -25,9 +25,9 @@ public struct CredentialIssuerMetadata: Decodable, Equatable, Sendable {
   public let nonceEndpoint: CredentialIssuerEndpoint?
   public let notificationEndpoint: CredentialIssuerEndpoint?
   public let credentialResponseEncryption: CredentialResponseEncryption
+  public let credentialRequestEncryption: CredentialRequestEncryption?
   public let credentialsSupported: [CredentialConfigurationIdentifier: CredentialSupported]
   public let credentialIdentifiersSupported: Bool?
-  public let signedMetadata: String?
   public let display: [Display]
   public let batchCredentialIssuance: BatchCredentialIssuance?
   
@@ -44,7 +44,7 @@ public struct CredentialIssuerMetadata: Decodable, Equatable, Sendable {
     case credentialConfigurationsSupported = "credential_configurations_supported"
     case display = "display"
     case credentialResponseEncryption = "credential_response_encryption"
-    case signedMetadata = "signed_metadata"
+    case credentialRequestEncryption = "credential_request_encryption"
     case credentialIdentifiersSupported = "credential_identifiers_supported"
     case batchCredentialIssuance = "batch_credential_issuance"
   }
@@ -56,9 +56,9 @@ public struct CredentialIssuerMetadata: Decodable, Equatable, Sendable {
     deferredCredentialEndpoint: CredentialIssuerEndpoint?,
     nonceEndpoint: CredentialIssuerEndpoint?,
     notificationEndpoint: CredentialIssuerEndpoint?,
+    credentialRequestEncryption: CredentialRequestEncryption = .notSupported,
     credentialResponseEncryption: CredentialResponseEncryption = .notSupported,
     credentialConfigurationsSupported: [CredentialConfigurationIdentifier: CredentialSupported],
-    signedMetadata: String?,
     display: [Display]?,
     credentialIdentifiersSupported: Bool? = nil,
     batchCredentialIssuance: BatchCredentialIssuance? = nil
@@ -71,10 +71,10 @@ public struct CredentialIssuerMetadata: Decodable, Equatable, Sendable {
     self.nonceEndpoint = nonceEndpoint
     self.notificationEndpoint = notificationEndpoint
     
+    self.credentialRequestEncryption = credentialRequestEncryption
     self.credentialResponseEncryption = credentialResponseEncryption
     self.credentialsSupported = credentialConfigurationsSupported
     
-    self.signedMetadata = signedMetadata
     self.display = display ?? []
     
     self.credentialIdentifiersSupported = credentialIdentifiersSupported
@@ -90,7 +90,6 @@ public struct CredentialIssuerMetadata: Decodable, Equatable, Sendable {
       nonceEndpoint: nil,
       notificationEndpoint: nil,
       credentialConfigurationsSupported: [:],
-      signedMetadata: nil,
       display: nil
     )
   }
@@ -131,6 +130,11 @@ public struct CredentialIssuerMetadata: Decodable, Equatable, Sendable {
       forKey: .credentialResponseEncryption
     )) ?? .notSupported
     
+    credentialRequestEncryption = (try? container.decode(
+      CredentialRequestEncryption.self,
+      forKey: .credentialRequestEncryption
+    )) ?? .notSupported
+    
     let json = try container.decodeIfPresent(JSON.self, forKey: .credentialConfigurationsSupported) ?? []
     var mapIdentifierCredential: [CredentialConfigurationIdentifier: CredentialSupported] = [:]
     for (key, value): (String, JSON) in json {
@@ -169,11 +173,6 @@ public struct CredentialIssuerMetadata: Decodable, Equatable, Sendable {
       [Display].self,
       forKey: .display
     ) ?? []
-    
-    signedMetadata = try? container.decodeIfPresent(
-      String.self,
-      forKey: .signedMetadata
-    )
     
     credentialIdentifiersSupported = try? container.decodeIfPresent(
       Bool.self,

@@ -692,16 +692,26 @@ public extension Issuer {
         encryptionMethodsSupported: [.init(.A128GCM)],
         privateKeyData: privateKeyData
       )
-    case let .required(algorithmsSupported, encryptionMethodsSupported):
+    case let .required(
+      algorithmsSupported,
+      encryptionMethodsSupported,
+      compressionMethodsSupported
+    ):
       return Self.createResponseEncryptionSpecFrom(
         algorithmsSupported: algorithmsSupported,
         encryptionMethodsSupported: encryptionMethodsSupported,
+        compressionMethodsSupported: compressionMethodsSupported,
         privateKeyData: privateKeyData
       )
-    case let .notRequired(algorithmsSupported, encryptionMethodsSupported):
+    case let .notRequired(
+      algorithmsSupported,
+      encryptionMethodsSupported,
+      compressionMethodsSupported
+    ):
       return Self.createResponseEncryptionSpecFrom(
         algorithmsSupported: algorithmsSupported,
         encryptionMethodsSupported: encryptionMethodsSupported,
+        compressionMethodsSupported: compressionMethodsSupported,
         privateKeyData: privateKeyData
       )
     }
@@ -710,6 +720,7 @@ public extension Issuer {
   static func createResponseEncryptionSpecFrom(
     algorithmsSupported: [JWEAlgorithm],
     encryptionMethodsSupported: [JOSEEncryptionMethod],
+    compressionMethodsSupported: [CompressionAlgorithm]? = nil,
     privateKeyData: Data? = nil
   ) -> IssuanceResponseEncryptionSpec? {
     let firstAsymmetricAlgorithm = algorithmsSupported.first {

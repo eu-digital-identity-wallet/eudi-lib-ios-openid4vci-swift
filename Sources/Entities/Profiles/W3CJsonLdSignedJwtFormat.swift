@@ -67,8 +67,8 @@ public extension W3CJsonLdSignedJwtFormat {
       context = json["@context"].arrayValue.map { $0.stringValue }
       type = json["type"].arrayValue.map { $0.stringValue }
       
-      let claims = try json["claims"].array?.compactMap({ try Claim(json: $0)}) ?? []
-      self.claims = claims
+      let claimsArray = try json["claims"].array?.compactMap({ try Claim(json: $0)}) ?? []
+      self.claims = claimsArray
     }
     
     func toDomain() -> CredentialDefinition {
@@ -86,7 +86,7 @@ public extension W3CJsonLdSignedJwtFormat {
     public let cryptographicBindingMethodsSupported: [String]?
     public let credentialSigningAlgValuesSupported: [String]?
     public let proofTypesSupported: [String: ProofTypeSupportedMeta]?
-    public let display: [Display]?
+    public let credentialMetadata: ConfigurationCredentialMetadata?
     public let context: [String]
     public let credentialDefinition: CredentialDefinitionTO
     
@@ -96,7 +96,7 @@ public extension W3CJsonLdSignedJwtFormat {
       case cryptographicBindingMethodsSupported = "cryptographic_binding_methods_supported"
       case credentialSigningAlgValuesSupported = "credential_signing_alg_values_supported"
       case proofTypesSupported = "proof_types_supported"
-      case display
+      case credentialMetadata = "credential_metadata"
       case context = "@context"
       case credentialDefinition = "credential_definition"
     }
@@ -107,7 +107,7 @@ public extension W3CJsonLdSignedJwtFormat {
       cryptographicBindingMethodsSupported: [String]? = nil,
       credentialSigningAlgValuesSupported: [String]? = nil,
       proofTypesSupported: [String: ProofTypeSupportedMeta]? = nil,
-      display: [Display]? = nil,
+      credentialMetadata: ConfigurationCredentialMetadata? = nil,
       context: [String] = [],
       credentialDefinition: CredentialDefinitionTO
     ) {
@@ -116,7 +116,7 @@ public extension W3CJsonLdSignedJwtFormat {
       self.cryptographicBindingMethodsSupported = cryptographicBindingMethodsSupported
       self.credentialSigningAlgValuesSupported = credentialSigningAlgValuesSupported
       self.proofTypesSupported = proofTypesSupported
-      self.display = display
+      self.credentialMetadata = credentialMetadata
       self.context = context
       self.credentialDefinition = credentialDefinition
     }
@@ -126,18 +126,16 @@ public extension W3CJsonLdSignedJwtFormat {
       let bindingMethods = try cryptographicBindingMethodsSupported?.compactMap {
         try CryptographicBindingMethod(method: $0)
       } ?? []
-      let display: [Display] = self.display ?? []
       let context: [String] = self.context
       
-      let credentialSigningAlgValuesSupported: [String] = self.credentialSigningAlgValuesSupported ?? []
       let credentialDefinition = self.credentialDefinition.toDomain()
       
       return .init(
         scope: scope,
         cryptographicBindingMethodsSupported: bindingMethods,
-        credentialSigningAlgValuesSupported: credentialSigningAlgValuesSupported,
+        credentialSigningAlgValuesSupported: credentialSigningAlgValuesSupported ?? [],
         proofTypesSupported: proofTypesSupported,
-        display: display, 
+        credentialMetadata: credentialMetadata,
         context: context,
         credentialDefinition: credentialDefinition
       )
@@ -148,8 +146,8 @@ public extension W3CJsonLdSignedJwtFormat {
     public let scope: String?
     public let cryptographicBindingMethodsSupported: [CryptographicBindingMethod]
     public let credentialSigningAlgValuesSupported: [String]
-    public let proofTypesSupported: [String: ProofTypeSupportedMeta]??
-    public let display: [Display]
+    public let proofTypesSupported: [String: ProofTypeSupportedMeta]?
+    public let credentialMetadata: ConfigurationCredentialMetadata?
     public let context: [String]
     public let credentialDefinition: CredentialDefinition
     
@@ -158,7 +156,7 @@ public extension W3CJsonLdSignedJwtFormat {
       case cryptographicBindingMethodsSupported = "cryptographic_binding_methods_supported"
       case credentialSigningAlgValuesSupported = "credential_signing_alg_values_supported"
       case proofTypesSupported = "proof_types_supported"
-      case display
+      case credentialMetadata = "credential_metadata"
       case context = "@context"
       case credentialDefinition = "credential_definition"
     }
@@ -168,7 +166,7 @@ public extension W3CJsonLdSignedJwtFormat {
       cryptographicBindingMethodsSupported: [CryptographicBindingMethod],
       credentialSigningAlgValuesSupported: [String],
       proofTypesSupported: [String: ProofTypeSupportedMeta]?,
-      display: [Display],
+      credentialMetadata: ConfigurationCredentialMetadata?,
       context: [String],
       credentialDefinition: CredentialDefinition
     ) {
@@ -176,7 +174,7 @@ public extension W3CJsonLdSignedJwtFormat {
       self.cryptographicBindingMethodsSupported = cryptographicBindingMethodsSupported
       self.credentialSigningAlgValuesSupported = credentialSigningAlgValuesSupported
       self.proofTypesSupported = proofTypesSupported
-      self.display = display
+      self.credentialMetadata = credentialMetadata
       self.context = context
       self.credentialDefinition = credentialDefinition
     }
@@ -188,7 +186,7 @@ public extension W3CJsonLdSignedJwtFormat {
       cryptographicBindingMethodsSupported = try container.decode([CryptographicBindingMethod].self, forKey: .cryptographicBindingMethodsSupported)
       credentialSigningAlgValuesSupported = try container.decode([String].self, forKey: .credentialSigningAlgValuesSupported)
       proofTypesSupported = try? container.decode([String: ProofTypeSupportedMeta]?.self, forKey: .proofTypesSupported)
-      display = try container.decode([Display].self, forKey: .display)
+      credentialMetadata = try container.decode(ConfigurationCredentialMetadata.self, forKey: .credentialMetadata)
       context = try container.decode([String].self, forKey: .context)
       credentialDefinition = try container.decode(CredentialDefinition.self, forKey: .credentialDefinition)
     }
@@ -200,7 +198,7 @@ public extension W3CJsonLdSignedJwtFormat {
       try container.encode(cryptographicBindingMethodsSupported, forKey: .cryptographicBindingMethodsSupported)
       try container.encode(credentialSigningAlgValuesSupported, forKey: .credentialSigningAlgValuesSupported)
       try container.encode(proofTypesSupported, forKey: .proofTypesSupported)
-      try container.encode(display, forKey: .display)
+      try container.encode(credentialMetadata, forKey: .credentialMetadata)
       try container.encode(context, forKey: .context)
       try container.encode(credentialDefinition, forKey: .credentialDefinition)
     }
@@ -224,9 +222,7 @@ public extension W3CJsonLdSignedJwtFormat {
         }
         return nil
       }
-      self.display = json["display"].arrayValue.map { json in
-        Display(json: json)
-      }
+      self.credentialMetadata = try ConfigurationCredentialMetadata(json: json["credential_metadata"])
       self.context = json["@context"].arrayValue.map {
         $0.stringValue
       }
@@ -265,8 +261,8 @@ public extension W3CJsonLdSignedJwtFormat {
       context = json["@context"].arrayValue.map { $0.stringValue }
       type = json["type"].arrayValue.map { $0.stringValue }
       
-      let claims = try json["claims"].array?.compactMap({ try Claim(json: $0)}) ?? []
-      self.claims = claims
+      let claimsArray = try json["claims"].array?.compactMap({ try Claim(json: $0)}) ?? []
+      self.claims = claimsArray
     }
   }
 }
@@ -289,6 +285,14 @@ public extension W3CJsonLdSignedJwtFormat {
     }) {
       switch credentialConfigurationsSupported.value {
       case .w3CJsonLdSignedJwt(let profile):
+        
+        // Validation: proof_types_supported must be present if cryptographic_binding_methods_supported is present
+        if !profile.cryptographicBindingMethodsSupported.isEmpty {
+          guard let proofTypes = profile.proofTypesSupported, !proofTypes.isEmpty else {
+            throw ValidationError.error(reason: "Property `proof_types_supported` must be present if `cryptographic_binding_methods_supported` is present")
+          }
+        }
+        
         return .w3CJsonLdSignedJwt(.init(
           credentialDefinition: profile.credentialDefinition,
           scope: profile.scope,

@@ -15,28 +15,41 @@
  */
 import Foundation
 import SwiftyJSON
+import JOSESwift
 
-public struct CredentialResponseEncryptionSpecTO: Codable {
-  public let jwk: JSON
-  public let encryptionAlgorithm: String
-  public let encryptionMethod: String
-  public var compressionMethod: String? = nil
+public struct CredentialRequestEncryptionSpec {
+  public let selectedJWK: JWK
+  public let encryptionMethod: JOSEEncryptionMethod
+  public let compressionMethod: CompressionAlgorithm?
   
   public init(
-    jwk: JSON,
-    encryptionAlgorithm: String,
+    selectedJWK: JWK,
+    encryptionMethod: JOSEEncryptionMethod,
+    compressionMethod: CompressionAlgorithm? = nil
+  ) {
+    self.selectedJWK = selectedJWK
+    self.encryptionMethod = encryptionMethod
+    self.compressionMethod = compressionMethod
+  }
+}
+
+public struct CredentialRequestEncryptionSpecTO: Codable {
+  public let kid: String  
+  public let encryptionMethod: String
+  public let compressionMethod: String?
+  
+  public init(
+    kid: String,
     encryptionMethod: String,
     compressionMethod: String? = nil
   ) {
-    self.jwk = jwk
-    self.encryptionAlgorithm = encryptionAlgorithm
+    self.kid = kid
     self.encryptionMethod = encryptionMethod
     self.compressionMethod = compressionMethod
   }
   
   private enum CodingKeys: String, CodingKey {
-    case jwk
-    case encryptionAlgorithm = "alg"
+    case kid
     case encryptionMethod = "enc"
     case compressionMethod = "zip"
   }

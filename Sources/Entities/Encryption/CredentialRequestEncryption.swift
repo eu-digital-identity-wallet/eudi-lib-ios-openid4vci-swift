@@ -14,23 +14,25 @@
  * limitations under the License.
  */
 import Foundation
+import SwiftyJSON
+@preconcurrency import JOSESwift
 
-public enum CredentialResponseEncryption: Decodable, Sendable {
+public enum CredentialRequestEncryption: Decodable, Sendable {
   case notSupported
   case notRequired(
-    algorithmsSupported: [JWEAlgorithm],
+    jwks: [JWK],
     encryptionMethodsSupported: [JOSEEncryptionMethod],
     compressionMethodsSupported: [CompressionAlgorithm]?
   )
   case required(
-    algorithmsSupported: [JWEAlgorithm],
+    jwks: [JWK],
     encryptionMethodsSupported: [JOSEEncryptionMethod],
     compressionMethodsSupported: [CompressionAlgorithm]?
   )
   
   private enum CodingKeys: String, CodingKey {
     case encryptionRequired = "encryption_required"
-    case algorithmsSupported = "alg_values_supported"
+    case jwks = "jwks"
     case encryptionMethodsSupported = "enc_values_supported"
     case compressionMethodsSupported = "zip_values_supported"
   }
@@ -44,14 +46,16 @@ public enum CredentialResponseEncryption: Decodable, Sendable {
     }
   }
   
+  
+  
   public init(from decoder: Decoder) throws {
     let container = try decoder.container(keyedBy: CodingKeys.self)
+    
     let encryptionRequired = try container.decode(Bool.self, forKey: .encryptionRequired)
     
-    let algorithmsSupported = try? container.decode(
-      [JWEAlgorithm].self,
-      forKey: .algorithmsSupported
-    )
+    let jwkWrappers = try container.decodeIfPresent([AnyJWK].self, forKey: .jwks) ?? []
+    let jwks: [JWK] = jwkWrappers.map { $0.key }
+      
     let encryptionMethodsSupported = try? container.decode(
       [JOSEEncryptionMethod].self,
       forKey: .encryptionMethodsSupported
@@ -64,7 +68,7 @@ public enum CredentialResponseEncryption: Decodable, Sendable {
     
     if !encryptionRequired {
       guard
-        let algorithmsSupported,
+        !jwks.isEmpty,
         let encryptionMethodsSupported
       else {
         self = .notSupported
@@ -72,7 +76,7 @@ public enum CredentialResponseEncryption: Decodable, Sendable {
       }
       
       self = .notRequired(
-        algorithmsSupported: algorithmsSupported,
+        jwks: jwks,
         encryptionMethodsSupported: encryptionMethodsSupported,
         compressionMethodsSupported: compressionMethodsSupported
       )
@@ -80,19 +84,46 @@ public enum CredentialResponseEncryption: Decodable, Sendable {
     } else {
       
       guard
-        let algorithmsSupported,
+        !jwks.isEmpty,
         let encryptionMethodsSupported
       else {
         throw ValidationError
           .error(
-            reason: "No algorithms and encryption methods supported"
+            reason: "No JWKS and encryption methods supported for required request encryption"
           )
       }
       self = .required(
-        algorithmsSupported: algorithmsSupported,
+        jwks: jwks,
         encryptionMethodsSupported: encryptionMethodsSupported,
         compressionMethodsSupported: compressionMethodsSupported
       )
     }
   }
+}
+
+
+struct AnyJWK: Decodable {
+    let key: JWK
+    
+    private enum KtyKeys: String, CodingKey {
+        case kty
+    }
+    
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: KtyKeys.self)
+        let kty = try container.decode(String.self, forKey: .kty)
+        
+        switch kty {
+        case "RSA":
+            self.key = try RSAPublicKey(from: decoder)
+        case "EC":
+            self.key = try ECPublicKey(from: decoder)
+        default:
+            throw DecodingError.dataCorruptedError(
+                forKey: KtyKeys.kty,
+                in: container,
+                debugDescription: "Unsupported JWK type: \(kty)"
+            )
+        }
+    }
 }
