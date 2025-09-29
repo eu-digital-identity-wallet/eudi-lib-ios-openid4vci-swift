@@ -91,7 +91,6 @@ public protocol IssuerType: Sendable {
     request: AuthorizedRequest,
     bindingKeys: [BindingKey],
     requestPayload: IssuanceRequestPayload,
-    encryptionSpec: EncryptionSpec?,
     responseEncryptionSpecProvider: @Sendable (_ issuerResponseEncryptionMetadata: CredentialResponseEncryption) -> IssuanceResponseEncryptionSpec?
   ) async throws -> Result<SubmittedRequest, Error>
   
@@ -158,6 +157,40 @@ public actor Issuer: IssuerType {
   private let issuanceRequester: IssuanceRequesterType
   private let deferredIssuanceRequester: IssuanceRequesterType
   private let notifyIssuer: NotifyIssuerType
+  
+  func encryptionSpec() -> EncryptionSpec? {
+    
+    switch issuerMetadata.credentialRequestEncryption {
+    case .notRequired(
+      let jwks,
+      let encryptionMethodsSupported,
+      let _ /// compressionMethods
+    ):
+      guard let jwk = jwks.first, let method = encryptionMethodsSupported.first else {
+        return nil
+      }
+      return .init(
+        recipientKey: jwk,
+        encryptionMethod: method
+      )
+      
+    case .required(
+      let jwks,
+      let encryptionMethodsSupported,
+      let _ /// compressionMethods
+    ):
+      guard let jwk = jwks.first, let method = encryptionMethodsSupported.first else {
+        return nil
+      }
+      return .init(
+        recipientKey: jwk,
+        encryptionMethod: method
+      )
+    default:
+      /// Not supported
+      return nil
+    }
+  }
   
   public init(
     authorizationServerMetadata: IdentityAndAccessManagementMetadata,
@@ -390,9 +423,11 @@ public actor Issuer: IssuerType {
     request: AuthorizedRequest,
     bindingKeys: [BindingKey],
     requestPayload: IssuanceRequestPayload,
-    encryptionSpec: EncryptionSpec?,
     responseEncryptionSpecProvider: @Sendable (_ issuerResponseEncryptionMetadata: CredentialResponseEncryption) -> IssuanceResponseEncryptionSpec?
   ) async throws -> Result<SubmittedRequest, Error> {
+    
+    let encryptionSpec = encryptionSpec()
+    
     switch requestPayload {
     case .identifierBased(
       let credentialConfigurationIdentifier,
@@ -861,7 +896,6 @@ internal extension Client {
     switch self {
     case .attested:
       let expectedMethod = Self.ATTEST_JWT_CLIENT_AUTH
-      
       guard tokenEndpointAuthMethods.contains(expectedMethod) else {
         throw ValidationError.error(reason: ("\(Self.ATTEST_JWT_CLIENT_AUTH) not supported by authorization server"))
       }
