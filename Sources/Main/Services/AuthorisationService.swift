@@ -152,34 +152,38 @@ private extension AuthorisationService {
       spec: EncryptionSpec,
       body: [String: any Sendable]
   ) throws -> JWE {
-    // 1. Serialize the body into JSON `Data`
+    
+    /// Serialize the body into JSON `Data`
     let data = try body.toData()
     let payload = Payload(data)
 
-      // 2. Build JWE header
+    /// Build JWE header
     var headerParams: [String: Any] = [
-      "alg": spec.algorithm.name,
-      "enc": spec.encryptionMethod.name,
-      "typ": "JWT"
+      EncryptionKey.alg.rawValue: spec.algorithm.name,
+      EncryptionKey.enc.rawValue: spec.encryptionMethod.name,
+      EncryptionKey.type.rawValue: EncryptionKey.JWT.rawValue
     ]
 
-    // If the spec's key is a JWK, embed it in the header.
-    // Adjust depending on your JWK type.
+    /// If the spec's key is a JWK, embed it in the header.
     if let jwkDict = try? spec.recipientKey.toDictionary() {
       headerParams["jwk"] = jwkDict
     }
 
     let header = try JWEHeader(parameters: headerParams)
 
-    // 3. Build encrypter
-    // This example assumes EC keys; extend for RSA/OKP as needed.
+    /// Build encrypter
+    /// This example assumes EC keys
     guard spec.recipientKey.keyType == .EC else {
       throw JWEBuilderError.unsupportedKeyType
     }
     
     guard
-      let keyManagementAlg = KeyManagementAlgorithm(algorithm: spec.algorithm),
-      let contentEncryptionAlg = ContentEncryptionAlgorithm(encryptionMethod: spec.encryptionMethod),
+      let keyManagementAlg = KeyManagementAlgorithm(
+        algorithm: spec.algorithm
+      ),
+      let contentEncryptionAlg = ContentEncryptionAlgorithm(
+        encryptionMethod: spec.encryptionMethod
+      ),
       let encrypter: Encrypter = .init(
         keyManagementAlgorithm: keyManagementAlg,
         contentEncryptionAlgorithm: contentEncryptionAlg,
@@ -189,6 +193,10 @@ private extension AuthorisationService {
       throw JWEBuilderError.encrypterInitFailed
     }
     
-    return try JWE(header: header, payload: payload, encrypter: encrypter)
+    return try .init(
+      header: header,
+      payload: payload,
+      encrypter: encrypter
+    )
   }
 }
