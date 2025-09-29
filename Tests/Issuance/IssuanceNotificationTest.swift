@@ -116,6 +116,7 @@ class IssuanceNotificationTest: XCTestCase {
             request: authorized,
             bindingKeys: [],
             requestPayload: payload,
+            encryptionSpec: nil,
             responseEncryptionSpecProvider: { _ in
               spec
             })
@@ -262,6 +263,7 @@ class IssuanceNotificationTest: XCTestCase {
             request: authorized,
             bindingKeys: [],
             requestPayload: payload,
+            encryptionSpec: nil,
             responseEncryptionSpecProvider: { _ in
               spec
             })

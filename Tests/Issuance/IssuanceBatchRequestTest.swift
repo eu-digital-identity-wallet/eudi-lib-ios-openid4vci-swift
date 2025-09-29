@@ -111,6 +111,7 @@ class IssuanceBatchRequestTest: XCTestCase {
             request: authorized,
             bindingKeys: [],
             requestPayload: msoMdocPayload,
+            encryptionSpec: nil,
             responseEncryptionSpecProvider: { _ in
               spec
             })

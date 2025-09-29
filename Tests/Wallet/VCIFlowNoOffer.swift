@@ -562,7 +562,7 @@ private func walletInitiatedIssuanceNoOfferSdJwt(
   print(NO_OFFER_BASED_SCENARIO)
   
   let credential = try await wallet.issueByCredentialIdentifier(
-    PID_SdJwtVC_config_id,
+    id ?? PID_SdJwtVC_config_id,
     config: clientConfig
   )
   

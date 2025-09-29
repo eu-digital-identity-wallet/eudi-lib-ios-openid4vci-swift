@@ -15,6 +15,7 @@
  */
 @preconcurrency import Foundation
 @preconcurrency import JOSESwift
+import SwiftyJSON
 
 @testable import OpenID4VCI
 
@@ -390,7 +391,7 @@ struct TestsConstants {
     yStr: "57i2YwPJ6VHTRqN4BUoqYxUqGnd6fMbdHFGxGFNJdYY",
     dStr: "pVSBXMFGpWsW_FKIEsOp-tTnvheTdadCueGPMjAEciQ"
   )!
-
+  
   static let keyAttestationCertificate = "MIIBXDCCAQKgAwIBAgIUWehiP2nqV9QcfFSEW+MBmFVPSqgwCgYIKoZIzj0EAwIwLjELMAkGA1UEBhMCVVQxHzAdBgNVBAMMFmtleS1hdHRlc3RhdGlvbi1pc3N1ZXIwHhcNMjUwNzI5MDgzMTU2WhcNMjYwNzI5MDgzMTU2WjAuMQswCQYDVQQGEwJVVDEfMB0GA1UEAwwWa2V5LWF0dGVzdGF0aW9uLWlzc3VlcjBZMBMGByqGSM49AgEGCCqGSM49AwEHA0IABBD/OU26bqJWsQPuSS/ycua0Za0rrjnFnFW1MAhZjg9o57i2YwPJ6VHTRqN4BUoqYxUqGnd6fMbdHFGxGFNJdYYwCgYIKoZIzj0EAwIDSAAwRQIhALqh3nRBGeb4YP0MgnwiDK15RdGx8qgK143FAIPTygpIAiARQtRHbFI4MFwajzUYLrZrMUZUURb+lDvLn4rojCUN5w=="
   
   static func keyAttestationJWT(_ nonce: String?, _ proxy: SigningKeyProxy, _ jwk: JWK, _ cert: String) async throws -> KeyAttestationJWT {
@@ -539,4 +540,41 @@ func createECPrivateSecKey(xStr: String, yStr: String, dStr: String) -> SecKey? 
   }
   
   return keyReference
+}
+
+func testEncryptionSpec() -> EncryptionSpec? {
+  
+  func dictionaryToData(_ dict: [String: any Sendable]) throws -> Data {
+    // Convert values that might be SwiftyJSON.JSON into plain `Any`
+    let normalized = dict.mapValues { value -> Any in
+      if let jsonValue = value as? JSON {
+        return jsonValue.object   // get raw object from SwiftyJSON
+      }
+      return value
+    }
+    
+    // Ensure the result is valid JSON
+    guard JSONSerialization.isValidJSONObject(normalized) else {
+      throw NSError(
+        domain: "DictionaryToDataError",
+        code: 1,
+        userInfo: [NSLocalizedDescriptionKey: "Dictionary is not a valid JSON object"]
+      )
+    }
+    
+    return try JSONSerialization.data(withJSONObject: normalized, options: [])
+  }
+  
+  return .init(
+    recipientKey: try! ECPublicKey(data: try! dictionaryToData([
+      "kty": "EC",
+      "use": "enc",
+      "crv": "P-256",
+      "kid": "2389b221-f19c-44fc-8895-400803a207e4",
+      "x": "xpe0IfGxHQ_bi8v0wu7VcdrcyXb1N2F7_tlCLNPihLw",
+      "y": "aLwt-hGZe7pnFx00iYTuu1fXhGrSNS9vRVhCPC16LDU",
+      "alg": "ECDH-ES"
+    ])),
+    encryptionMethod: .init(.A128GCM)
+  )
 }

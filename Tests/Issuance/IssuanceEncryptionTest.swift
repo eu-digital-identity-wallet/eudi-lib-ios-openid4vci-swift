@@ -66,6 +66,7 @@ class IssuanceEncryptionTest: XCTestCase {
         request: authorizedRequest,
         bindingKeys: [],
         requestPayload: payload,
+        encryptionSpec: nil,
         responseEncryptionSpecProvider: { _ in
           return spec
         }
@@ -119,6 +120,7 @@ class IssuanceEncryptionTest: XCTestCase {
         request: authorizedRequest,
         bindingKeys: [],
         requestPayload: payload,
+        encryptionSpec: nil,
         responseEncryptionSpecProvider: { _ in
           return spec
         }
@@ -158,6 +160,7 @@ class IssuanceEncryptionTest: XCTestCase {
         request: authorizedRequest,
         bindingKeys: [],
         requestPayload: payload,
+        encryptionSpec: nil,
         responseEncryptionSpecProvider: { _ in
           return spec
         }

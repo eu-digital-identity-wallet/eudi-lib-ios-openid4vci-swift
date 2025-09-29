@@ -109,6 +109,7 @@ class IssuanceDeferredRequestTest: XCTestCase {
             request: authorized,
             bindingKeys: [],
             requestPayload: payload,
+            encryptionSpec: nil,
             responseEncryptionSpecProvider: { _ in
               spec
             })
@@ -120,7 +121,7 @@ class IssuanceDeferredRequestTest: XCTestCase {
               if let result = response.credentialResponses.first {
                 switch result {
                 case .deferred(let transactionId, let interval):
-                  XCTAssert(true, "transaction_id: \(transactionId)")
+                  XCTAssert(true, "transaction_id: \(transactionId) interval: \(interval)")
                   return
                 case .issued(_, let credential, _, _):
                   XCTAssert(false, "credential: \(credential)")
