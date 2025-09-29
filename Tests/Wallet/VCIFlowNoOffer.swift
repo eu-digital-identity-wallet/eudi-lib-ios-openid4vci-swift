@@ -74,6 +74,51 @@ class VCIFlowNoOffer: XCTestCase {
     XCTAssert(true)
   }
   
+  func testNoOfferSdJWTPreferSigned() async throws {
+    
+    let privateKey = try KeyController.generateECDHPrivateKey()
+    let publicKey = try KeyController.generateECDHPublicKey(from: privateKey)
+    
+    let alg = JWSAlgorithm(.ES256)
+    let publicKeyJWK = try ECPublicKey(
+      publicKey: publicKey,
+      additionalParameters: [
+        "alg": alg.name,
+        "use": "sig",
+        "kid": UUID().uuidString
+      ])
+    
+    let bindingKey: BindingKey = .jwk(
+      algorithm: alg,
+      jwk: publicKeyJWK,
+      privateKey: .secKey(privateKey)
+    )
+    
+    let user = ActingUser(
+      username: "tneal",
+      password: "password"
+    )
+    
+    let wallet = Wallet(
+      actingUser: user,
+      bindingKeys: [bindingKey]
+    )
+    
+    do {
+      try await walletInitiatedIssuanceNoOfferSdJwt(
+        wallet: wallet,
+        config: preferSignedClientConfig
+      )
+      
+    } catch {
+      
+      XCTExpectFailure()
+      XCTAssert(false, error.localizedDescription)
+    }
+    
+    XCTAssert(true)
+  }
+  
   func testNoOfferSdJWTDeferred() async throws {
     
     let privateKey = try KeyController.generateECDHPrivateKey()
@@ -556,14 +601,15 @@ private func walletInitiatedIssuanceNoOfferSdJwtClientAuthentication(
 
 private func walletInitiatedIssuanceNoOfferSdJwt(
   wallet: Wallet,
-  id: String? = nil
+  id: String? = nil,
+  config: OpenId4VCIConfig = clientConfig
 ) async throws {
   
   print(NO_OFFER_BASED_SCENARIO)
   
   let credential = try await wallet.issueByCredentialIdentifier(
     id ?? PID_SdJwtVC_config_id,
-    config: clientConfig
+    config: config
   )
   
   print("--> [ISSUANCE] Issued PID in format \(id ?? PID_SdJwtVC_config_id): \(credential)")

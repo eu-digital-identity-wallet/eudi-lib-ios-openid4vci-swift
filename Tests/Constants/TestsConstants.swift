@@ -98,6 +98,19 @@ let clientConfig: OpenId4VCIConfig = .init(
   authorizeIssuanceConfig: .favorScopes
 )
 
+struct TestTrust: CertificateChainTrust {
+  func isValid(chain: [String]) -> Bool {
+    true
+  }
+}
+
+let preferSignedClientConfig: OpenId4VCIConfig = .init(
+  client: .public(id: WALLET_DEV_CLIENT_ID),
+  authFlowRedirectionURI: URL(string: "urn:ietf:wg:oauth:2.0:oob")!,
+  authorizeIssuanceConfig: .favorScopes,
+  issuerMetadataPolicy: .preferSigned(issuerTrust: .byCertificateChain(certificateChainTrust: TestTrust()))
+)
+
 let attestationConfig: OpenId4VCIConfig = .init(
   client: try! selfSignedClient(
     clientId: WALLET_DEV_CLIENT_ID,
