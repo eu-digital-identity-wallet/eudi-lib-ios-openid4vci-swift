@@ -53,8 +53,8 @@ extension Wallet {
     let credentialIssuerIdentifier = try CredentialIssuerId(CREDENTIAL_ISSUER_PUBLIC_URL)
     
     let resolver = CredentialIssuerMetadataResolver(
-      fetcher: Fetcher(session: self.session)
-    )
+      fetcher:  MetadataFetcher(rawFetcher: RawDataFetcher(session: self.session)))
+
     let issuerMetadata = try await resolver.resolve(
       source: .credentialIssuer(
         credentialIssuerIdentifier
@@ -180,7 +180,7 @@ extension Wallet {
     let resolver = CredentialOfferRequestResolver(
       fetcher: Fetcher(session: self.session),
       credentialIssuerMetadataResolver: CredentialIssuerMetadataResolver(
-        fetcher: Fetcher(session: self.session)
+        fetcher: MetadataFetcher(rawFetcher: RawDataFetcher(session: self.session))
       ),
       authorizationServerMetadataResolver: AuthorizationServerMetadataResolver(
         oidcFetcher: Fetcher(session: self.session),
@@ -214,7 +214,7 @@ extension Wallet {
       let result = await CredentialOfferRequestResolver(
         fetcher: Fetcher(session: self.session),
         credentialIssuerMetadataResolver: CredentialIssuerMetadataResolver(
-          fetcher: Fetcher(session: self.session)
+          fetcher: MetadataFetcher(rawFetcher: RawDataFetcher(session: self.session))
         ),
         authorizationServerMetadataResolver: AuthorizationServerMetadataResolver(
           oidcFetcher: Fetcher(session: self.session),
@@ -247,7 +247,7 @@ extension Wallet {
     let result = await CredentialOfferRequestResolver(
       fetcher: Fetcher(session: self.session),
       credentialIssuerMetadataResolver: CredentialIssuerMetadataResolver(
-        fetcher: Fetcher(session: self.session)
+        fetcher: MetadataFetcher(rawFetcher: RawDataFetcher(session: self.session))
       ),
       authorizationServerMetadataResolver: AuthorizationServerMetadataResolver(
         oidcFetcher: Fetcher(session: self.session),

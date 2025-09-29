@@ -24,17 +24,20 @@ public struct IssuanceResponseEncryptionSpec: Sendable {
   public let privateKey: SecKey?
   public let algorithm: JWEAlgorithm
   public let encryptionMethod: JOSEEncryptionMethod
+  public let compressionMethod: CompressionAlgorithm?
   
   public init(
     jwk: JWK? = nil,
     privateKey: SecKey?,
     algorithm: JWEAlgorithm,
-    encryptionMethod: JOSEEncryptionMethod
+    encryptionMethod: JOSEEncryptionMethod,
+    compressionMethod: CompressionAlgorithm? = nil
   ) {
     self.jwk = jwk
     self.privateKey = privateKey
     self.algorithm = algorithm
     self.encryptionMethod = encryptionMethod
+    self.compressionMethod = compressionMethod
   }
 }
 

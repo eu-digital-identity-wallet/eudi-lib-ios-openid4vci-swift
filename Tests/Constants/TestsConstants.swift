@@ -203,11 +203,11 @@ struct TestsConstants {
   
   static func createMockCredentialOffer() async -> CredentialOffer? {
     let credentialIssuerMetadataResolver = CredentialIssuerMetadataResolver(
-      fetcher: Fetcher<CredentialIssuerMetadata>(session: NetworkingMock(
+      fetcher: MetadataFetcher(rawFetcher: RawDataFetcher(session: NetworkingMock(
         path: "credential_issuer_metadata",
-        extension: "json"
-      )
-      ))
+        extension: "json",
+        headers: ["Content-type": "application/json"]
+      ))))
     
     let authorizationServerMetadataResolver = AuthorizationServerMetadataResolver(
       oidcFetcher: Fetcher<OIDCProviderMetadata>(session: NetworkingMock(
@@ -237,11 +237,11 @@ struct TestsConstants {
   
   static func createMockCredentialOfferValidEncryption() async -> CredentialOffer? {
     let credentialIssuerMetadataResolver = CredentialIssuerMetadataResolver(
-      fetcher: Fetcher<CredentialIssuerMetadata>(session: NetworkingMock(
+      fetcher: MetadataFetcher(rawFetcher: RawDataFetcher(session: NetworkingMock(
         path: "openid-credential-issuer_no_encryption",
-        extension: "json"
-      )
-      ))
+        extension: "json",
+        headers: ["Content-type": "application/json"]
+      ))))
     
     let authorizationServerMetadataResolver = AuthorizationServerMetadataResolver(
       oidcFetcher: Fetcher<OIDCProviderMetadata>(session: NetworkingMock(
@@ -271,11 +271,11 @@ struct TestsConstants {
   
   static func createMockCredentialOfferopenidKeyAttestationRequired() async -> CredentialOffer? {
     let credentialIssuerMetadataResolver = CredentialIssuerMetadataResolver(
-      fetcher: Fetcher<CredentialIssuerMetadata>(session: NetworkingMock(
+      fetcher: MetadataFetcher(rawFetcher: RawDataFetcher(session: NetworkingMock(
         path: "openid-credential-issuer_key_attestation_required",
-        extension: "json"
-      )
-      ))
+        extension: "json",
+        headers: ["Content-type": "application/json"]
+      ))))
     
     let authorizationServerMetadataResolver = AuthorizationServerMetadataResolver(
       oidcFetcher: Fetcher<OIDCProviderMetadata>(session: NetworkingMock(
@@ -305,11 +305,11 @@ struct TestsConstants {
   
   static func createMockCredentialOfferValidEncryptionWithBatchLimit() async -> CredentialOffer? {
     let credentialIssuerMetadataResolver = CredentialIssuerMetadataResolver(
-      fetcher: Fetcher<CredentialIssuerMetadata>(session: NetworkingMock(
+      fetcher: MetadataFetcher(rawFetcher: RawDataFetcher(session: NetworkingMock(
         path: "openid-credential-issuer_no_encryption_batch",
-        extension: "json"
-      )
-      ))
+        extension: "json",
+        headers: ["Content-type": "application/json"]
+      ))))
     
     let authorizationServerMetadataResolver = AuthorizationServerMetadataResolver(
       oidcFetcher: Fetcher<OIDCProviderMetadata>(session: NetworkingMock(
@@ -339,11 +339,11 @@ struct TestsConstants {
   
   static func createMockPreAuthCredentialOffer() async -> CredentialOffer? {
     let credentialIssuerMetadataResolver = CredentialIssuerMetadataResolver(
-      fetcher: Fetcher<CredentialIssuerMetadata>(session: NetworkingMock(
+      fetcher: MetadataFetcher(rawFetcher: RawDataFetcher(session: NetworkingMock(
         path: "credential_issuer_metadata",
-        extension: "json"
-      )
-      ))
+        extension: "json",
+        headers: ["Content-type": "application/json"]
+      ))))
     
     let authorizationServerMetadataResolver = AuthorizationServerMetadataResolver(
       oidcFetcher: Fetcher<OIDCProviderMetadata>(session: NetworkingMock(

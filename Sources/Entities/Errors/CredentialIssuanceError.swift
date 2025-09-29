@@ -28,6 +28,13 @@ public enum CredentialIssuanceError: Error, LocalizedError {
   case issuerDoesNotSupportEncryptedResponses
   case responseEncryptionAlgorithmNotSupportedByIssuer
   case responseEncryptionMethodNotSupportedByIssuer
+  case responseCompressionMethodNotSupportedByIssuer
+  
+  case requestEncryptionNotSupportedByIssuer
+  case requestEncryptionAlgorithmNotSupportedByIssuer
+  case requestEncryptionMethodNotSupportedByIssuer
+  case requestCompressionMethodNotSupportedByIssuer
+  case requestEncryptionRequiredByIssuer
   
   case invalidToken
   case issuanceRequestFailed(error: String, errorDescription: String?)
@@ -66,6 +73,20 @@ public enum CredentialIssuanceError: Error, LocalizedError {
       return "Response encryption algorithm not supported by issuer."
     case .responseEncryptionMethodNotSupportedByIssuer:
       return "Response encryption method not supported by issuer."
+    case .responseCompressionMethodNotSupportedByIssuer:
+      return "Response compression method not supported by issuer."
+    
+    case .requestEncryptionNotSupportedByIssuer:
+      return "Encrypted request not supported by issuer."
+    case .requestEncryptionAlgorithmNotSupportedByIssuer:
+      return "Requested encryption algorithm not supported by issuer."
+    case .requestEncryptionMethodNotSupportedByIssuer:
+      return "Requested encryption method not supported by issuer."
+    case .requestCompressionMethodNotSupportedByIssuer:
+      return "Requested compression method not supported by issuer."
+    case .requestEncryptionRequiredByIssuer:
+      return "Request encryption is required by the issuer."
+    
     case .invalidToken:
       return "Invalid token."
     case .invalidTransactionId:

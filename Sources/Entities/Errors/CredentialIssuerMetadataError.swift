@@ -15,19 +15,28 @@
  */
 import Foundation
 
-enum CredentialIssuerMetadataError: Error {
+public enum CredentialIssuerMetadataError: Error {
   case unableToFetchCredentialIssuerMetadata(cause: Error)
   case nonParseableCredentialIssuerMetadata(cause: Error)
+  
+  case invalidCredentialIssuerId
+  case credentialResponseAsymmetricEncryptionAlgorithmsRequired
   
   /**
     * Indicates the Credential Issuer does not provide signed metadata.
     */
   case missingSignedMetadata
+  case missingContentType(String)
+  case missingRightContentTypeHeader
 
   /**
    * Indicates the signed metadata of the Credential Issuer are not valid.
    */
   case invalidSignedMetadata(String)
+  case invalidJOSEHeader(String)
+  case invalidJWTClaims(String)
+  case nonParseableSignedMetadata
+  case invalidIssuerTrust
   
   func toException() -> CredentialIssuerMetadataException {
     return CredentialIssuerMetadataException(error: self)
