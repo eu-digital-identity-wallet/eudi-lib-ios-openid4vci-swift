@@ -122,7 +122,7 @@ public extension SingleCredential {
       let responseEncryptionAlg,
       let responseEncryptionMethod
     ):
-      if let encryptionSpec {
+      if encryptionSpec != nil {
         dictionary[EncryptionKey.credentialResponseEncryption.rawValue] = [
           EncryptionKey.jwk: try encryptionJwk.toDictionary(),
           EncryptionKey.alg: responseEncryptionAlg.name,
