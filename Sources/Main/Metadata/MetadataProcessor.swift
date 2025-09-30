@@ -93,7 +93,7 @@ private extension MetadataProcessor {
     issuerId: CredentialIssuerId
   ) async throws -> CredentialIssuerMetadata {
     
-    guard let jwsString = String(data: data, encoding: .utf8) else {
+    guard let jwsString = String(data: data, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines) else {
       throw CredentialIssuerMetadataError.nonParseableSignedMetadata
     }
     

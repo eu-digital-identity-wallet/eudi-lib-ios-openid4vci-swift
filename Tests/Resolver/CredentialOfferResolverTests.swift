@@ -97,7 +97,7 @@ class CredentialOfferResolverTests: XCTestCase {
       source: 
           .credentialIssuer(
             CredentialIssuerId(
-              "https://credential-issuer.example.com"
+              "https://dev.issuer-backend.eudiw.dev"
             )
           ),
       policy: 
