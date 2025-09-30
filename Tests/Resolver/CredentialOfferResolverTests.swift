@@ -92,26 +92,21 @@ class CredentialOfferResolverTests: XCTestCase {
     let credentialIssuerMetadataResolver = CredentialIssuerMetadataResolver(
       fetcher: fetcher)
     
-    let jwkJSON = """
-        {
-          "kty": "EC",
-          "d": "hmQqQjKufUDXOBaVs-alU0sl1j9_WR1U9ia3J680s2E",
-          "crv": "P-256",
-          "x": "ilzt0a_ukEX-nl0S05S2RAlbQFL2DSOpTjT3xf52JBY",
-          "y": "q-fNv_d0nlZf_S_3S-KmrktIsylB0cybRiL6rZMLZHI"
-        }
-        """
-        
-        guard let jsonData = jwkJSON.data(using: .utf8) else {
-          XCTAssert(false, "Failed to convert JWK JSON string to Data")
-          return
-        }
-    
     // When
     let result = try await credentialIssuerMetadataResolver.resolve(
-      source: .credentialIssuer(CredentialIssuerId("https://credential-issuer.example.com")),
-      policy: .requireSigned(issuerTrust: .byPublicKey(jwk: ECPublicKey(data: jsonData))
-    ))
+      source: 
+          .credentialIssuer(
+            CredentialIssuerId(
+              "https://credential-issuer.example.com"
+            )
+          ),
+      policy: 
+          .requireSigned(
+            issuerTrust: .byCertificateChain(
+              certificateChainTrust: TestTrust()
+            )
+          )
+    )
     
     switch result {
     case .success(let result):

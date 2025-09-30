@@ -137,12 +137,7 @@ private extension MetadataProcessor {
     try validateJOSEHeader(jws.header)
     
     // Verify signature + claims in one centralized place
-    let verifiedJWS: JWS
-    if let x5c = jws.header.x5c {
-      verifiedJWS = try await issuerTrust.verify(jws: jws, chain: x5c)
-    } else {
-      throw ValidationError.error(reason: "No x5c header found")
-    }
+    let verifiedJWS = try await issuerTrust.verify(jws: jws)
     
     let payloadData = verifiedJWS.payload.data()
     let metadata = try JSONDecoder().decode(CredentialIssuerMetadata.self, from: payloadData)
@@ -191,8 +186,7 @@ private extension IssuerTrust {
   
   @discardableResult
   func verify(
-    jws: JWS,
-    chain: [String]
+    jws: JWS
   ) async throws -> JWS {
     switch self {
     case .byPublicKey(let jwk):
@@ -221,6 +215,7 @@ private extension IssuerTrust {
       return try jws.validate(using: verifier)
       
     case .byCertificateChain(let certificateChainTrust):
+      let chain = jws.header.x5c ?? []
       guard certificateChainTrust.isValid(chain: chain) else {
         throw CredentialIssuerMetadataError.invalidSignedMetadata(
           "Failed to verify chain (.byCertificateChain)"
