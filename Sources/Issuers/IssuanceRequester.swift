@@ -115,7 +115,7 @@ public actor IssuanceRequester: IssuanceRequesterType {
         endpoint: endpoint
       )
       
-      let encodedRequest: [String: any Sendable] = try request.toPayload().dictionaryValue
+      let encodedRequest: [String: any Sendable] = try request.toPayload(encryptionSpec: encryptionSpec).dictionaryValue
       
       try ensureJwtAlgIsSupported(
         credentialConfigurationIdentifier: request.credentialConfigurationIdentifier,
