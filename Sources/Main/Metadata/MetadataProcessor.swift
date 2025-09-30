@@ -141,7 +141,7 @@ private extension MetadataProcessor {
     if let x5c = jws.header.x5c {
       verifiedJWS = try await issuerTrust.verify(jws: jws, chain: x5c)
     } else {
-      verifiedJWS = try await issuerTrust.verify(jws: jws, chain: [])
+      throw ValidationError.error(reason: "No x5c header found")
     }
     
     let payloadData = verifiedJWS.payload.data()
