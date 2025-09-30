@@ -218,7 +218,7 @@ public actor Issuer: IssuerType {
       issuerMetadata: issuerMetadata
     )
     
-    try config.client.ensureSupportedByAuthorizationServer(
+    try? config.client.ensureSupportedByAuthorizationServer(
       self.authorizationServerMetadata
     )
     
@@ -276,7 +276,7 @@ public actor Issuer: IssuerType {
       issuerMetadata: issuerMetadata
     )
     
-    try config.client.ensureSupportedByAuthorizationServer(
+    try? config.client.ensureSupportedByAuthorizationServer(
       self.authorizationServerMetadata
     )
     
