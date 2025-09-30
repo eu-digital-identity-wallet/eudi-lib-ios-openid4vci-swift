@@ -119,6 +119,51 @@ class VCIFlowNoOffer: XCTestCase {
     XCTAssert(true)
   }
   
+  func testNoOfferSdJWTRequireSigned() async throws {
+    
+    let privateKey = try KeyController.generateECDHPrivateKey()
+    let publicKey = try KeyController.generateECDHPublicKey(from: privateKey)
+    
+    let alg = JWSAlgorithm(.ES256)
+    let publicKeyJWK = try ECPublicKey(
+      publicKey: publicKey,
+      additionalParameters: [
+        "alg": alg.name,
+        "use": "sig",
+        "kid": UUID().uuidString
+      ])
+    
+    let bindingKey: BindingKey = .jwk(
+      algorithm: alg,
+      jwk: publicKeyJWK,
+      privateKey: .secKey(privateKey)
+    )
+    
+    let user = ActingUser(
+      username: "tneal",
+      password: "password"
+    )
+    
+    let wallet = Wallet(
+      actingUser: user,
+      bindingKeys: [bindingKey]
+    )
+    
+    do {
+      try await walletInitiatedIssuanceNoOfferSdJwt(
+        wallet: wallet,
+        config: requireSignedClientConfig
+      )
+      
+    } catch {
+      
+      XCTExpectFailure()
+      XCTAssert(false, error.localizedDescription)
+    }
+    
+    XCTAssert(true)
+  }
+  
   func testNoOfferSdJWTDeferred() async throws {
     
     let privateKey = try KeyController.generateECDHPrivateKey()

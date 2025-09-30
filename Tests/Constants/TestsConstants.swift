@@ -111,6 +111,13 @@ let preferSignedClientConfig: OpenId4VCIConfig = .init(
   issuerMetadataPolicy: .preferSigned(issuerTrust: .byCertificateChain(certificateChainTrust: TestTrust()))
 )
 
+let requireSignedClientConfig: OpenId4VCIConfig = .init(
+  client: .public(id: WALLET_DEV_CLIENT_ID),
+  authFlowRedirectionURI: URL(string: "urn:ietf:wg:oauth:2.0:oob")!,
+  authorizeIssuanceConfig: .favorScopes,
+  issuerMetadataPolicy: .requireSigned(issuerTrust: .byCertificateChain(certificateChainTrust: TestTrust()))
+)
+
 let attestationConfig: OpenId4VCIConfig = .init(
   client: try! selfSignedClient(
     clientId: WALLET_DEV_CLIENT_ID,
