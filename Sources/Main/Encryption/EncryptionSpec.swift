@@ -22,6 +22,7 @@ public enum EncryptionSpecError: Swift.Error, LocalizedError, Equatable {
   case notAsymmetricAlgorithm
   case keyAndAlgorithmMismatch
   case cannotParseAlgorithm(String)
+  case unsupportedKeyTypeForAsymmetricEncryption(String)
   
   public var errorDescription: String? {
     switch self {
@@ -35,6 +36,8 @@ public enum EncryptionSpecError: Swift.Error, LocalizedError, Equatable {
       return "Encryption key and encryption algorithm do not match"
     case .cannotParseAlgorithm(let name):
       return "Cannot parse JWEAlgorithm from '\(name)'"
+    case .unsupportedKeyTypeForAsymmetricEncryption(let name):
+      return "Unsupported key type for asymmetric encryption '\(name)'"
     }
   }
 }
@@ -53,10 +56,36 @@ public struct EncryptionSpec: Sendable {
     recipientKey: JWK,
     encryptionMethod: JOSEEncryptionMethod,
     compressionAlgorithm: CompressionAlgorithm? = nil
-  ) {
+  ) throws {
     self.recipientKey = recipientKey
     self.encryptionMethod = encryptionMethod
     self.compressionAlgorithm = compressionAlgorithm
-    self.algorithm = .init(.ECDH_ES)
+    self.algorithm = try JWEAlgorithm.defaultFor(recipientKey: recipientKey)
+  }
+}
+
+private extension JWEAlgorithm {
+  /// Heuristic: pick a reasonable default based on JWK key type.
+  static func defaultFor(
+    recipientKey: JWK
+  ) throws -> JWEAlgorithm {
+    switch recipientKey.keyType.rawValue
+      .uppercased() { // e.g., "EC", "RSA", "OKP", "oct"
+    case "EC":
+      // ECDH-ES family is the standard asymmetric *encryption* choice for EC keys.
+      return .init(
+        .ECDH_ES
+      )
+    case "RSA":
+      // Prefer OAEP-256 these days; change to `.RSA_OAEP` if needed for interop.
+      return .init(
+        .RSA_OAEP_256
+      )
+    default:
+      throw EncryptionSpecError
+        .unsupportedKeyTypeForAsymmetricEncryption(
+          recipientKey.keyType.rawValue
+        )
+    }
   }
 }
