@@ -192,7 +192,7 @@ class KeyAttestationTests: XCTestCase {
     XCTAssertThrowsError(try KeyAttestationJWT(jws: try JWS(
       header: .init(parameters: [
         "alg": "ES256",
-        "typ": "keyattestation+jwt"
+        "typ": "key-attestation+jwt"
       ]),
       payload: .init([
         "no-iat":"value"
@@ -217,7 +217,7 @@ class KeyAttestationTests: XCTestCase {
     XCTAssertThrowsError(try KeyAttestationJWT(jws: try JWS(
       header: .init(parameters: [
         "alg": "ES256",
-        "typ": "keyattestation+jwt"
+        "typ": "key-attestation+jwt"
       ]),
       payload: .init([
         "iat": Date().timeIntervalSince1970
@@ -242,7 +242,7 @@ class KeyAttestationTests: XCTestCase {
     _ = try KeyAttestationJWT(jws: try JWS(
       header: .init(parameters: [
         "alg": "ES256",
-        "typ": "keyattestation+jwt"
+        "typ": "key-attestation+jwt"
       ]),
       payload: .init([
         "iat": Date().timeIntervalSince1970,
