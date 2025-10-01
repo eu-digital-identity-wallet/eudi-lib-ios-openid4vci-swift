@@ -702,7 +702,6 @@ class IssuanceAuthorizationTest: XCTestCase {
     let privateKey = try KeyController.generateECDHPrivateKey()
     let publicKey = try KeyController.generateECDHPublicKey(from: privateKey)
     
-    let privateKeyProxy: SigningKeyProxy = .secKey(privateKey)
     let alg = JWSAlgorithm(.ES256)
     let jwk = try ECPublicKey(
       publicKey: publicKey,

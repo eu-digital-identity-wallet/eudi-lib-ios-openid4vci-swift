@@ -17,6 +17,12 @@
 import SwiftyJSON
 @preconcurrency import JOSESwift
 
+public enum EncryptionKey: String {
+  case jwk, alg, enc, JWT
+  case credentialResponseEncryption = "credential_response_encryption"
+  case type = "typ"
+}
+
 public typealias JWT = String
 
 public struct IssuanceResponseEncryptionSpec: Sendable {
@@ -123,6 +129,7 @@ public struct Scope: Codable, Sendable {
 public enum ContentType: String {
   case form = "application/x-www-form-urlencoded"
   case json = "application/json"
+  case jwt = "application/jwt"
   
   public static let key = "Content-Type"
 }

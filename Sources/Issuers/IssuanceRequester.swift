@@ -41,7 +41,8 @@ public protocol IssuanceRequesterType: Sendable {
     accessToken: IssuanceAccessToken,
     request: SingleCredential,
     dPopNonce: Nonce?,
-    retry: Bool
+    retry: Bool,
+    encryptionSpec: EncryptionSpec?
   ) async throws -> Result<CredentialIssuanceResponse, Error>
   
   /// Places a request for a deferred credential issuance.
@@ -102,7 +103,8 @@ public actor IssuanceRequester: IssuanceRequesterType {
     accessToken: IssuanceAccessToken,
     request: SingleCredential,
     dPopNonce: Nonce?,
-    retry: Bool
+    retry: Bool,
+    encryptionSpec: EncryptionSpec?
   ) async throws -> Result<CredentialIssuanceResponse, Error> {
     let endpoint = issuerMetadata.credentialEndpoint.url
     
@@ -113,7 +115,7 @@ public actor IssuanceRequester: IssuanceRequesterType {
         endpoint: endpoint
       )
       
-      let encodedRequest: [String: any Sendable] = try request.toPayload().dictionaryValue
+      let encodedRequest: [String: any Sendable] = try request.toPayload(encryptionSpec: encryptionSpec).dictionaryValue
       
       try ensureJwtAlgIsSupported(
         credentialConfigurationIdentifier: request.credentialConfigurationIdentifier,
@@ -125,7 +127,8 @@ public actor IssuanceRequester: IssuanceRequesterType {
         poster: poster,
         url: endpoint,
         headers: authorizationHeader,
-        body: encodedRequest
+        body: encodedRequest,
+        encryptionSpec: encryptionSpec
       )
       
       return .success(try response.body.toSingleIssuanceResponse())
@@ -136,7 +139,8 @@ public actor IssuanceRequester: IssuanceRequesterType {
           accessToken: accessToken,
           request: request,
           dPopNonce: nonce,
-          retry: false
+          retry: false,
+          encryptionSpec: encryptionSpec
         )
       } else {
         return .failure(ValidationError.retryFailedAfterDpopNonce)
@@ -151,7 +155,11 @@ public actor IssuanceRequester: IssuanceRequesterType {
         switch issuerMetadata.credentialResponseEncryption {
         case .notSupported:
           guard let response = SingleIssuanceSuccessResponse.fromJSONString(string) else {
-            return .failure(ValidationError.todo(reason: "Cannot decode .notRequired response"))
+            return .failure(
+              ValidationError.todo(
+                reason: "Cannot decode .notRequired response"
+              )
+            )
           }
           return .success(try response.toDomain())
         case .required, .notRequired:
@@ -174,7 +182,11 @@ public actor IssuanceRequester: IssuanceRequesterType {
                 let keyManagementAlgorithm = KeyManagementAlgorithm(algorithm: responseEncryptionAlg),
                 let contentEncryptionAlgorithm = ContentEncryptionAlgorithm(encryptionMethod: responseEncryptionMethod)
               else {
-                return .failure(ValidationError.error(reason: "Unsupported encryption algorithms: \(responseEncryptionAlg.name), \(responseEncryptionMethod.name)"))
+                return .failure(
+                  ValidationError.error(
+                    reason: "Unsupported encryption algorithms: \(responseEncryptionAlg.name), \(responseEncryptionMethod.name)"
+                  )
+                )
               }
               
               let payload = try decrypt(
@@ -184,7 +196,10 @@ public actor IssuanceRequester: IssuanceRequesterType {
                 privateKey: key
               )
               
-              let response = try JSONDecoder().decode(SingleIssuanceSuccessResponse.self, from: payload.data())
+              let response = try JSONDecoder().decode(
+                SingleIssuanceSuccessResponse.self,
+                from: payload.data()
+              )
               return .success(try response.toDomain())
             }
             
@@ -262,7 +277,8 @@ public actor IssuanceRequester: IssuanceRequesterType {
         poster: poster,
         url: deferredCredentialEndpoint.url,
         headers: authorizationHeader,
-        body: encodedRequest
+        body: encodedRequest,
+        encryptionSpec: nil
       )
       
       if let interval = response.body.interval {
@@ -371,7 +387,8 @@ public actor IssuanceRequester: IssuanceRequesterType {
           poster: poster,
           url: endpoint,
           headers: authorizationHeader,
-          body: encodedRequest
+          body: encodedRequest,
+          encryptionSpec: nil
         )
         return .success(())
         

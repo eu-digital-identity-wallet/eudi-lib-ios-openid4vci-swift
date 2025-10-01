@@ -62,7 +62,7 @@ public extension SingleCredential {
     }
   }
   
-  func toPayload() throws -> JSON {
+  func toPayload(encryptionSpec: EncryptionSpec?) throws -> JSON {
     return switch self {
       case .msoMdoc(let credential):
         try createPayload(
@@ -70,6 +70,7 @@ public extension SingleCredential {
           credentialId: extractCredentialId(
             from: credential.requestPayload
           ),
+          encryptionSpec: encryptionSpec,
           encryption: credential.requestedCredentialResponseEncryption
         )
         
@@ -79,6 +80,7 @@ public extension SingleCredential {
           credentialId: extractCredentialId(
             from: credential.requestPayload
           ),
+          encryptionSpec: encryptionSpec,
           encryption: credential.requestedCredentialResponseEncryption
         )
       }
@@ -101,6 +103,7 @@ public extension SingleCredential {
     proofs: ProofsTO?,
     credentialId: (id: String, value: String?),
     additionalFields: [String: Any?] = [:],
+    encryptionSpec: EncryptionSpec?,
     encryption: RequestedCredentialResponseEncryption
   ) throws -> JSON {
     var dictionary: [String: Any?] = additionalFields
@@ -119,11 +122,14 @@ public extension SingleCredential {
       let responseEncryptionAlg,
       let responseEncryptionMethod
     ):
-      dictionary["credential_response_encryption"] = [
-        "jwk": try encryptionJwk.toDictionary(),
-        "alg": responseEncryptionAlg.name,
-        "enc": responseEncryptionMethod.name
-      ]
+      if encryptionSpec != nil {
+        dictionary[EncryptionKey.credentialResponseEncryption.rawValue] = [
+          EncryptionKey.jwk: try encryptionJwk.toDictionary(),
+          EncryptionKey.alg: responseEncryptionAlg.name,
+          EncryptionKey.enc: responseEncryptionMethod.name
+        ]
+      }
+      
       return try JSON.createFrom(
         proofs: proofs,
         dictionary: dictionary.compactMapValues { $0 }

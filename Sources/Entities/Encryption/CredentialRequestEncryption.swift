@@ -46,15 +46,13 @@ public enum CredentialRequestEncryption: Decodable, Sendable {
     }
   }
   
-  
-  
   public init(from decoder: Decoder) throws {
     let container = try decoder.container(keyedBy: CodingKeys.self)
     
-    let encryptionRequired = try container.decode(Bool.self, forKey: .encryptionRequired)
+    let encryptionRequired = try? container.decode(Bool.self, forKey: .encryptionRequired)
     
-    let jwkWrappers = try container.decodeIfPresent([AnyJWK].self, forKey: .jwks) ?? []
-    let jwks: [JWK] = jwkWrappers.map { $0.key }
+    let jwkWrappers = try? container.decodeIfPresent(JWKSet.self, forKey: .jwks)
+    let jwks: [JWK] = jwkWrappers?.keys.map { $0.key } ?? []
       
     let encryptionMethodsSupported = try? container.decode(
       [JOSEEncryptionMethod].self,
@@ -66,7 +64,8 @@ public enum CredentialRequestEncryption: Decodable, Sendable {
       forKey: .compressionMethodsSupported
     )
     
-    if !encryptionRequired {
+    let required = encryptionRequired ?? false
+    if !required {
       guard
         !jwks.isEmpty,
         let encryptionMethodsSupported
@@ -101,29 +100,32 @@ public enum CredentialRequestEncryption: Decodable, Sendable {
   }
 }
 
+package struct JWKSet: Decodable {
+  package let keys: [AnyJWK]
+}
 
-struct AnyJWK: Decodable {
-    let key: JWK
+package struct AnyJWK: Decodable {
+  let key: JWK
+  
+  private enum KtyKeys: String, CodingKey {
+    case kty
+  }
+  
+  package init(from decoder: Decoder) throws {
+    let container = try decoder.container(keyedBy: KtyKeys.self)
+    let kty = try container.decode(String.self, forKey: .kty)
     
-    private enum KtyKeys: String, CodingKey {
-        case kty
+    switch kty {
+    case "RSA":
+      self.key = try RSAPublicKey(from: decoder)
+    case "EC":
+      self.key = try ECPublicKey(from: decoder)
+    default:
+      throw DecodingError.dataCorruptedError(
+        forKey: KtyKeys.kty,
+        in: container,
+        debugDescription: "Unsupported JWK type: \(kty)"
+      )
     }
-    
-    init(from decoder: Decoder) throws {
-        let container = try decoder.container(keyedBy: KtyKeys.self)
-        let kty = try container.decode(String.self, forKey: .kty)
-        
-        switch kty {
-        case "RSA":
-            self.key = try RSAPublicKey(from: decoder)
-        case "EC":
-            self.key = try ECPublicKey(from: decoder)
-        default:
-            throw DecodingError.dataCorruptedError(
-                forKey: KtyKeys.kty,
-                in: container,
-                debugDescription: "Unsupported JWK type: \(kty)"
-            )
-        }
-    }
+  }
 }

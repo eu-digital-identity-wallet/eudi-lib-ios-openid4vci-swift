@@ -57,6 +57,8 @@ public struct FormPost: Request {
       self.body = try FormURLEncoder.body(from: formData)
     case .json:
       self.body = try JSON(formData).rawData()
+    case .jwt:
+      self.body = formData["jwt"] as? Data
     }
   }
 

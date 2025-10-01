@@ -15,6 +15,7 @@
  */
 @preconcurrency import Foundation
 @preconcurrency import JOSESwift
+import SwiftyJSON
 
 @testable import OpenID4VCI
 
@@ -95,6 +96,26 @@ let clientConfig: OpenId4VCIConfig = .init(
   client: .public(id: WALLET_DEV_CLIENT_ID),
   authFlowRedirectionURI: URL(string: "urn:ietf:wg:oauth:2.0:oob")!,
   authorizeIssuanceConfig: .favorScopes
+)
+
+struct TestTrust: CertificateChainTrust {
+  func isValid(chain: [String]) -> Bool {
+    true
+  }
+}
+
+let preferSignedClientConfig: OpenId4VCIConfig = .init(
+  client: .public(id: WALLET_DEV_CLIENT_ID),
+  authFlowRedirectionURI: URL(string: "urn:ietf:wg:oauth:2.0:oob")!,
+  authorizeIssuanceConfig: .favorScopes,
+  issuerMetadataPolicy: .preferSigned(issuerTrust: .byCertificateChain(certificateChainTrust: TestTrust()))
+)
+
+let requireSignedClientConfig: OpenId4VCIConfig = .init(
+  client: .public(id: WALLET_DEV_CLIENT_ID),
+  authFlowRedirectionURI: URL(string: "urn:ietf:wg:oauth:2.0:oob")!,
+  authorizeIssuanceConfig: .favorScopes,
+  issuerMetadataPolicy: .requireSigned(issuerTrust: .byCertificateChain(certificateChainTrust: TestTrust()))
 )
 
 let attestationConfig: OpenId4VCIConfig = .init(
@@ -390,7 +411,7 @@ struct TestsConstants {
     yStr: "57i2YwPJ6VHTRqN4BUoqYxUqGnd6fMbdHFGxGFNJdYY",
     dStr: "pVSBXMFGpWsW_FKIEsOp-tTnvheTdadCueGPMjAEciQ"
   )!
-
+  
   static let keyAttestationCertificate = "MIIBXDCCAQKgAwIBAgIUWehiP2nqV9QcfFSEW+MBmFVPSqgwCgYIKoZIzj0EAwIwLjELMAkGA1UEBhMCVVQxHzAdBgNVBAMMFmtleS1hdHRlc3RhdGlvbi1pc3N1ZXIwHhcNMjUwNzI5MDgzMTU2WhcNMjYwNzI5MDgzMTU2WjAuMQswCQYDVQQGEwJVVDEfMB0GA1UEAwwWa2V5LWF0dGVzdGF0aW9uLWlzc3VlcjBZMBMGByqGSM49AgEGCCqGSM49AwEHA0IABBD/OU26bqJWsQPuSS/ycua0Za0rrjnFnFW1MAhZjg9o57i2YwPJ6VHTRqN4BUoqYxUqGnd6fMbdHFGxGFNJdYYwCgYIKoZIzj0EAwIDSAAwRQIhALqh3nRBGeb4YP0MgnwiDK15RdGx8qgK143FAIPTygpIAiARQtRHbFI4MFwajzUYLrZrMUZUURb+lDvLn4rojCUN5w=="
   
   static func keyAttestationJWT(_ nonce: String?, _ proxy: SigningKeyProxy, _ jwk: JWK, _ cert: String) async throws -> KeyAttestationJWT {
@@ -539,4 +560,41 @@ func createECPrivateSecKey(xStr: String, yStr: String, dStr: String) -> SecKey? 
   }
   
   return keyReference
+}
+
+func testEncryptionSpec() -> EncryptionSpec? {
+  
+  func dictionaryToData(_ dict: [String: any Sendable]) throws -> Data {
+    // Convert values that might be SwiftyJSON.JSON into plain `Any`
+    let normalized = dict.mapValues { value -> Any in
+      if let jsonValue = value as? JSON {
+        return jsonValue.object   // get raw object from SwiftyJSON
+      }
+      return value
+    }
+    
+    // Ensure the result is valid JSON
+    guard JSONSerialization.isValidJSONObject(normalized) else {
+      throw NSError(
+        domain: "DictionaryToDataError",
+        code: 1,
+        userInfo: [NSLocalizedDescriptionKey: "Dictionary is not a valid JSON object"]
+      )
+    }
+    
+    return try JSONSerialization.data(withJSONObject: normalized, options: [])
+  }
+  
+  return .init(
+    recipientKey: try! ECPublicKey(data: try! dictionaryToData([
+      "kty": "EC",
+      "use": "enc",
+      "crv": "P-256",
+      "kid": "d3102833-700c-42fe-979b-4880ba88ee22",
+      "x": "9Yx_0Huh1XTF6hUScqikf07674hci1McgQqK5NwTDLg",
+      "y": "JGcPMr7d1_KLTm5euw7EolLYsU4J2pg-2tC_xrTjFaQ",
+      "alg": "ECDH-ES"
+    ])),
+    encryptionMethod: .init(.A128GCM)
+  )
 }
