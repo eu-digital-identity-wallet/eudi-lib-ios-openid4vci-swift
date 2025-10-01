@@ -45,7 +45,7 @@ public struct KeyAttestationJWT: Sendable {
   
   // MARK: - Constants
   
-  public static let keyAttestationJWTType = "keyattestation+jwt"
+  public static let keyAttestationJWTType = "key-attestation+jwt"
   
   // MARK: - Validation Helpers
   
