@@ -490,7 +490,7 @@ extension Wallet {
       case .errored(_, let errorDescription):
         throw ValidationError.error(reason: "\(errorDescription ?? "Something went wrong with your deferred request response")")
       case .issuanceStillPending(let interval):
-        throw ValidationError.error(reason: "Credential not ready yet. Try after \(interval)")
+        throw ValidationError.error(reason: "Credential still not ready yet. Try after \(interval)")
       }
     case .failure(let error):
       throw ValidationError.error(reason: error.localizedDescription)
