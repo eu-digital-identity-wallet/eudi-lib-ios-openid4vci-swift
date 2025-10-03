@@ -158,18 +158,18 @@ public actor Issuer: IssuerType {
   private let deferredIssuanceRequester: IssuanceRequesterType
   private let notifyIssuer: NotifyIssuerType
   
-  func encryptionSpec() -> EncryptionSpec? {
+  func encryptionSpec() throws -> EncryptionSpec? {
     
     switch issuerMetadata.credentialRequestEncryption {
     case .notRequired(
       let jwks,
       let encryptionMethodsSupported,
-      let _ /// compressionMethods
+      _ /// compressionMethods
     ):
       guard let jwk = jwks.first, let method = encryptionMethodsSupported.first else {
         return nil
       }
-      return .init(
+      return try .init(
         recipientKey: jwk,
         encryptionMethod: method
       )
@@ -177,12 +177,12 @@ public actor Issuer: IssuerType {
     case .required(
       let jwks,
       let encryptionMethodsSupported,
-      let _ /// compressionMethods
+      _ /// compressionMethods
     ):
       guard let jwk = jwks.first, let method = encryptionMethodsSupported.first else {
         return nil
       }
-      return .init(
+      return try .init(
         recipientKey: jwk,
         encryptionMethod: method
       )
@@ -209,7 +209,7 @@ public actor Issuer: IssuerType {
       config: config,
       authorizationServerMetadata: authorizationServerMetadata,
       credentialIssuerIdentifier: issuerMetadata.credentialIssuerIdentifier,
-      dpopConstructor: dpopConstructor
+      dpopConstructor: config.useDpopIfSupported ? dpopConstructor : nil
     )
     
     authorizeIssuance = AuthorizeIssuance(
@@ -426,7 +426,7 @@ public actor Issuer: IssuerType {
     responseEncryptionSpecProvider: @Sendable (_ issuerResponseEncryptionMetadata: CredentialResponseEncryption) -> IssuanceResponseEncryptionSpec?
   ) async throws -> Result<SubmittedRequest, Error> {
     
-    let encryptionSpec = encryptionSpec()
+    let encryptionSpec = try encryptionSpec()
     
     switch requestPayload {
     case .identifierBased(

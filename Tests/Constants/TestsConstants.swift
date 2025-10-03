@@ -585,7 +585,7 @@ func testEncryptionSpec() -> EncryptionSpec? {
     return try JSONSerialization.data(withJSONObject: normalized, options: [])
   }
   
-  return .init(
+  return try! .init(
     recipientKey: try! ECPublicKey(data: try! dictionaryToData([
       "kty": "EC",
       "use": "enc",

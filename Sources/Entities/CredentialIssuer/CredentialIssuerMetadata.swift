@@ -135,6 +135,14 @@ public struct CredentialIssuerMetadata: Decodable, Equatable, Sendable {
       forKey: .credentialRequestEncryption
     )) ?? .notSupported
     
+    /*
+    if credentialResponseEncryption.required && (credentialRequestEncryption?.notSupported ?? true) {
+      throw ValidationError.error(
+        reason: "Response and request encryption both need to be supported"
+      )
+    }
+     */
+    
     let json = try container.decodeIfPresent(JSON.self, forKey: .credentialConfigurationsSupported) ?? []
     var mapIdentifierCredential: [CredentialConfigurationIdentifier: CredentialSupported] = [:]
     for (key, value): (String, JSON) in json {

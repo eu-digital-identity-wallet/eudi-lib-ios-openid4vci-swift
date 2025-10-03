@@ -115,9 +115,7 @@ class CredentialOfferResolverTests: XCTestCase {
       XCTAssert(false, error.localizedDescription)
     }
   }
-    
-    
-  
+
   func testValidCredentialOfferDataAndOIDVWhenAResolutionIsRequestedSucessWithValidData() async throws {
     
     // Given
