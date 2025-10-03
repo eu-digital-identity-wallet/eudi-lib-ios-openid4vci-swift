@@ -53,6 +53,9 @@ public struct OpenId4VCIConfig: Sendable {
   /// Client supported compression algorithms
   public let supportedCompressionAlgorithms: [CompressionAlgorithm]?
   
+  /// If dpop is supported then use it, otherwise always don't
+  public let useDpopIfSupported: Bool
+  
   /// Initializes an `OpenId4VCIConfig` instance with the given parameters.
   /// - Parameters:
   ///   - client: The client used for OpenID4VCI operations.
@@ -61,6 +64,7 @@ public struct OpenId4VCIConfig: Sendable {
   ///   - usePAR: Whether to use Pushed Authorization Requests (default: `true`).
   ///   - clientAttestationPoPBuilder: An optional client attestation PoP builder (default: `nil`).
   ///   - issuerMetadataPolicy: Policy defining how issuer metadata should be handled (default: `.ignoreSigned`).
+  ///   - useDpopIfSupported: If dpop is supported then use it, otherwise always don't
   public init(
     client: Client,
     authFlowRedirectionURI: URL,
@@ -68,7 +72,8 @@ public struct OpenId4VCIConfig: Sendable {
     usePAR: Bool = true,
     clientAttestationPoPBuilder: ClientAttestationPoPBuilder? = nil,
     issuerMetadataPolicy: IssuerMetadataPolicy = .ignoreSigned,
-    supportedCompressionAlgorithms: [CompressionAlgorithm]? = nil
+    supportedCompressionAlgorithms: [CompressionAlgorithm]? = nil,
+    useDpopIfSupported: Bool = true
   ) {
     self.client = client
     self.authFlowRedirectionURI = authFlowRedirectionURI
@@ -77,5 +82,6 @@ public struct OpenId4VCIConfig: Sendable {
     self.clientAttestationPoPBuilder = clientAttestationPoPBuilder
     self.issuerMetadataPolicy = issuerMetadataPolicy
     self.supportedCompressionAlgorithms = supportedCompressionAlgorithms
+    self.useDpopIfSupported = useDpopIfSupported
   }
 }

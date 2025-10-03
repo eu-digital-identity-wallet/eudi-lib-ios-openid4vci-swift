@@ -209,7 +209,7 @@ public actor Issuer: IssuerType {
       config: config,
       authorizationServerMetadata: authorizationServerMetadata,
       credentialIssuerIdentifier: issuerMetadata.credentialIssuerIdentifier,
-      dpopConstructor: dpopConstructor
+      dpopConstructor: config.useDpopIfSupported ? dpopConstructor : nil
     )
     
     authorizeIssuance = AuthorizeIssuance(
