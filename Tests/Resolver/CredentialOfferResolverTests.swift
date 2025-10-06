@@ -115,6 +115,40 @@ class CredentialOfferResolverTests: XCTestCase {
       XCTAssert(false, error.localizedDescription)
     }
   }
+  
+  func testResolutionFailsWhenResponseEncryptionExistsButNoRequestEncryption() async throws {
+    
+    // Given: Metadata JSON that includes credential_response_encryption but no credential_request_encryption
+    let fetcher = MetadataFetcher(
+      rawFetcher: RawDataFetcher(
+        session: NetworkingMock(
+          path: "credential_issuer_metadata_no_request_encryption",
+          extension: "json",
+          headers: ["Content-Type": "application/json"]
+        )))
+    
+    let credentialIssuerMetadataResolver = CredentialIssuerMetadataResolver(
+      fetcher: fetcher)
+    
+    // when
+    do {
+      _ = try await credentialIssuerMetadataResolver.resolve(
+        source: .credentialIssuer(CredentialIssuerId(
+          "https://credential-issuer.example.com"
+        )),
+        policy: .ignoreSigned
+      )
+    } catch let error as CredentialIssuerMetadataError {
+      switch error {
+      case .credentialRequestEncryptionMustExistIfCredentialResponseEncryptionExists:
+        XCTAssertTrue(true)
+      default:
+        XCTFail("Expected CredentialRequestEncryptionMustExistIfCredentialResponseEncryptionExists but got: \(error)")
+      }
+    } catch {
+      XCTFail("Unexpected error type: \(error)")
+    }
+  }
     
     
   
