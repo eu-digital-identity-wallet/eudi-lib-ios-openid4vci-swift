@@ -50,4 +50,6 @@ public extension JWTClaimNames {
   static let algorithm = "alg"
   static let JWK = "jwk"
   static let cnf = "cnf"
+  static let kid = "kid"
+  static let keyAttestation = "key_attestation"
 }

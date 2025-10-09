@@ -15,6 +15,21 @@
  */
 import Foundation
 
-protocol Stubbable: Identifiable {
-  static func stub() throws -> Self
+/// Represents payload compression support.
+public enum PayloadCompression: Codable, Equatable, Sendable {
+  
+  /// Compression not supported.
+  case notSupported
+  
+  /// Compression supported with the given algorithms.
+  case supported([CompressionAlgorithm])
+  
+  public init(_ algorithms: [CompressionAlgorithm]?) {
+    if let algs = algorithms, !algs.isEmpty {
+      self = .supported(algs)
+    } else {
+      self = .notSupported
+    }
+  }
 }
+

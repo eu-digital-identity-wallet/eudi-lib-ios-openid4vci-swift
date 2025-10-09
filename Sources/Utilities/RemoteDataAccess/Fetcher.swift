@@ -43,6 +43,34 @@ public enum FetchError: LocalizedError {
   }
 }
 
+/**
+ A structure that contains both the response data and HTTP headers.
+ */
+public struct RawFetchResponse: Decodable, Sendable {
+  public let data: Data
+  public let headers: [String: String]
+  
+  public init(
+    data: Data,
+    headers: [String: String]
+  ) {
+    self.data = data
+    self.headers = headers
+  }
+}
+
+public protocol RawFetching: Sendable {
+  /// Fetches raw data with headers from the provided URL
+  /// - Parameters:
+  ///   - url: The URL from which to fetch the data
+  ///   - additionalHeaders: Additional headers to include in the request
+  /// - Returns: A Result containing RawFetchResponse or FetchError
+  func fetchRawWithHeaders(
+    url: URL,
+    additionalHeaders: [String: String]
+  ) async -> Result<RawFetchResponse, FetchError>
+}
+
 public protocol Fetching: Sendable {
   var session: Networking { get set }
 
@@ -106,23 +134,23 @@ public struct Fetcher<Element: Decodable>: Fetching {
   public func fetchString(url: URL) async throws -> Result<String, FetchError> {
     do {
       let (data, response) = try await self.session.data(from: url)
-
+      
       let statusCode = (response as? HTTPURLResponse)?.statusCode ?? 0
       if !statusCode.isWithinRange(HTTPStatusCode.ok...HTTPStatusCode.imUsed) {
         throw FetchError.invalidStatusCode(url, statusCode)
       }
-
+      
       if let string = String(data: data, encoding: .utf8) {
         return .success(string)
-
+        
       } else {
-
+        
         let error = NSError(
           domain: "com.networking",
           code: 0,
           userInfo: [NSLocalizedDescriptionKey: "Failed to convert data to string"]
         )
-
+        
         return .failure(.decodingError(error))
       }
     }

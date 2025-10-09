@@ -17,7 +17,7 @@ import Foundation
 import JOSESwift
 
 /// A protocol defining the operations required for an issuer in the credential issuance process.
-public protocol IssuerType {
+public protocol IssuerType: Sendable {
   
   /// Initiates an authorization request using a credential offer.
   ///
@@ -132,6 +132,15 @@ public protocol IssuerType {
     authorizedRequest: AuthorizedRequest,
     dPopNonce: Nonce?
   ) async -> Result<AuthorizedRequest, Error>
+  
+  /// Sets the deferred response encryption specification to be used for issuance responses.
+  ///
+  /// - Parameter deferredResponseEncryptionSpec:
+  ///   The encryption specification that defines how deferred issuance responses
+  ///   should be encrypted. Pass `nil` to clear the existing specification.
+  func setDeferredResponseEncryptionSpec(
+    _ deferredResponseEncryptionSpec: IssuanceResponseEncryptionSpec?
+  ) async
 }
 
 public actor Issuer: IssuerType {
@@ -148,6 +157,40 @@ public actor Issuer: IssuerType {
   private let issuanceRequester: IssuanceRequesterType
   private let deferredIssuanceRequester: IssuanceRequesterType
   private let notifyIssuer: NotifyIssuerType
+  
+  func encryptionSpec() throws -> EncryptionSpec? {
+    
+    switch issuerMetadata.credentialRequestEncryption {
+    case .notRequired(
+      let jwks,
+      let encryptionMethodsSupported,
+      _ /// compressionMethods
+    ):
+      guard let jwk = jwks.first, let method = encryptionMethodsSupported.first else {
+        return nil
+      }
+      return try .init(
+        recipientKey: jwk,
+        encryptionMethod: method
+      )
+      
+    case .required(
+      let jwks,
+      let encryptionMethodsSupported,
+      _ /// compressionMethods
+    ):
+      guard let jwk = jwks.first, let method = encryptionMethodsSupported.first else {
+        return nil
+      }
+      return try .init(
+        recipientKey: jwk,
+        encryptionMethod: method
+      )
+    default:
+      /// Not supported
+      return nil
+    }
+  }
   
   public init(
     authorizationServerMetadata: IdentityAndAccessManagementMetadata,
@@ -166,7 +209,7 @@ public actor Issuer: IssuerType {
       config: config,
       authorizationServerMetadata: authorizationServerMetadata,
       credentialIssuerIdentifier: issuerMetadata.credentialIssuerIdentifier,
-      dpopConstructor: dpopConstructor
+      dpopConstructor: config.useDpopIfSupported ? dpopConstructor : nil
     )
     
     authorizeIssuance = AuthorizeIssuance(
@@ -175,7 +218,7 @@ public actor Issuer: IssuerType {
       issuerMetadata: issuerMetadata
     )
     
-    try config.client.ensureSupportedByAuthorizationServer(
+    try? config.client.ensureSupportedByAuthorizationServer(
       self.authorizationServerMetadata
     )
     
@@ -233,7 +276,7 @@ public actor Issuer: IssuerType {
       issuerMetadata: issuerMetadata
     )
     
-    try config.client.ensureSupportedByAuthorizationServer(
+    try? config.client.ensureSupportedByAuthorizationServer(
       self.authorizationServerMetadata
     )
     
@@ -263,7 +306,7 @@ public actor Issuer: IssuerType {
     }
   }
   
-  public func setDeferredResponseEncryptionSpec(_ deferredResponseEncryptionSpec: IssuanceResponseEncryptionSpec?) {
+  public func setDeferredResponseEncryptionSpec(_ deferredResponseEncryptionSpec: IssuanceResponseEncryptionSpec?) async {
     self.deferredResponseEncryptionSpec = deferredResponseEncryptionSpec
   }
   
@@ -382,6 +425,9 @@ public actor Issuer: IssuerType {
     requestPayload: IssuanceRequestPayload,
     responseEncryptionSpecProvider: @Sendable (_ issuerResponseEncryptionMetadata: CredentialResponseEncryption) -> IssuanceResponseEncryptionSpec?
   ) async throws -> Result<SubmittedRequest, Error> {
+    
+    let encryptionSpec = try encryptionSpec()
+    
     switch requestPayload {
     case .identifierBased(
       let credentialConfigurationIdentifier,
@@ -394,6 +440,7 @@ public actor Issuer: IssuerType {
         credentialIdentifier: credentialIdentifier,
         issuancePayload: requestPayload,
         credentialConfigurationIdentifier: credentialConfigurationIdentifier,
+        encryptionSpec: encryptionSpec,
         responseEncryptionSpecProvider: responseEncryptionSpecProvider
       )
       
@@ -406,6 +453,7 @@ public actor Issuer: IssuerType {
         bindingKeys: bindingKeys,
         credentialConfigurationIdentifier: credentialConfigurationIdentifier,
         issuancePayload: requestPayload,
+        encryptionSpec: encryptionSpec,
         responseEncryptionSpecProvider: responseEncryptionSpecProvider
       )
     }
@@ -417,6 +465,7 @@ private extension Issuer {
   private func requestIssuance(
     token: IssuanceAccessToken,
     dPopNonce: Nonce?,
+    requestEncryptionSpec: EncryptionSpec?,
     issuanceRequestSupplier: () async throws -> CredentialIssuanceRequest
   ) async throws -> Result<SubmittedRequest, Error> {
     let credentialRequest = try await issuanceRequestSupplier()
@@ -427,7 +476,8 @@ private extension Issuer {
         accessToken: token,
         request: single,
         dPopNonce: dPopNonce,
-        retry: true
+        retry: true,
+        encryptionSpec: requestEncryptionSpec
       )
       switch result {
       case .success(let response):
@@ -476,6 +526,7 @@ private extension Issuer {
     bindingKeys: [BindingKey] = [],
     credentialConfigurationIdentifier: CredentialConfigurationIdentifier,
     issuancePayload: IssuanceRequestPayload,
+    encryptionSpec: EncryptionSpec?,
     responseEncryptionSpecProvider: (_ issuerResponseEncryptionMetadata: CredentialResponseEncryption) -> IssuanceResponseEncryptionSpec?
   ) async throws -> Result<SubmittedRequest, Error> {
     
@@ -493,11 +544,12 @@ private extension Issuer {
     
     return try await requestIssuance(
       token: token,
-      dPopNonce: authorizedRequest.dPopNonce
+      dPopNonce: proofs.dPopNonce ?? authorizedRequest.dPopNonce,
+      requestEncryptionSpec: encryptionSpec
     ) {
       return try supportedCredential.toIssuanceRequest(
         requester: issuanceRequester,
-        proofs: proofs,
+        proofs: proofs.actualProofs,
         issuancePayload: issuancePayload,
         responseEncryptionSpecProvider: responseEncryptionSpecProvider
       )
@@ -511,6 +563,7 @@ private extension Issuer {
     credentialIdentifier: CredentialIdentifier,
     issuancePayload: IssuanceRequestPayload,
     credentialConfigurationIdentifier: CredentialConfigurationIdentifier,
+    encryptionSpec: EncryptionSpec?,
     responseEncryptionSpecProvider: (_ issuerResponseEncryptionMetadata: CredentialResponseEncryption) -> IssuanceResponseEncryptionSpec?
   ) async throws -> Result<SubmittedRequest, Error> {
     
@@ -528,11 +581,12 @@ private extension Issuer {
     
     return try await requestIssuance(
       token: token,
-      dPopNonce: authorizedRequest.dPopNonce
+      dPopNonce: proofs.dPopNonce ?? authorizedRequest.dPopNonce,
+      requestEncryptionSpec: encryptionSpec
     ) {
       return try supportedCredential.toIssuanceRequest(
         requester: issuanceRequester,
-        proofs: proofs,
+        proofs: proofs.actualProofs,
         issuancePayload: issuancePayload,
         responseEncryptionSpecProvider: responseEncryptionSpecProvider
       )
@@ -544,11 +598,11 @@ private extension Issuer {
     batchCredentialIssuance: BatchCredentialIssuance?,
     bindingKeys: [BindingKey],
     supportedCredential: CredentialSupported
-  ) async throws -> [Proof] {
+  ) async throws -> (actualProofs: [Proof], dPopNonce: Nonce?) {
     let proofsRequired = proofsRequirement(credentialSupported: supportedCredential)
     switch proofsRequired {
     case .proofNotRequired:
-      return []
+      return ([], nil)
     default:
       let cNonce = try? await nonceEndpointClient?.getNonce().get()
       
@@ -560,19 +614,19 @@ private extension Issuer {
       let proofs = await calculateProofs(
         bindingKeys: bindingKeys,
         supportedCredential: supportedCredential,
-        nonce: cNonce?.cNonce
+        nonce: cNonce?.nonce.cNonce
       )
       switch proofs.count {
       case .zero:
-        return proofs
+        return (proofs, cNonce?.dPoPNonce)
       case 1:
-        return proofs
+        return (proofs, cNonce?.dPoPNonce)
       default:
         if let batchSize = batchCredentialIssuance?.batchSize,
            proofs.count > batchSize {
           throw ValidationError.issuerBatchSizeLimitExceeded(batchSize)
         }
-        return proofs
+        return (proofs, cNonce?.dPoPNonce)
       }
     }
   }
@@ -667,17 +721,32 @@ public extension Issuer {
     privateKeyData: Data? = nil
   ) -> IssuanceResponseEncryptionSpec? {
     switch issuerResponseEncryptionMetadata {
-    case .notRequired:
+    case .notSupported:
       return Self.createResponseEncryptionSpecFrom(
-        algorithmsSupported: [.init(.RSA_OAEP_256)],
-        encryptionMethodsSupported: [.init(.A128CBC_HS256)],
+        algorithmsSupported: [.init(.ECDH_ES)],
+        encryptionMethodsSupported: [.init(.A128GCM)],
         privateKeyData: privateKeyData
       )
-      
-    case let .required(algorithmsSupported, encryptionMethodsSupported):
+    case let .required(
+      algorithmsSupported,
+      encryptionMethodsSupported,
+      compressionMethodsSupported
+    ):
       return Self.createResponseEncryptionSpecFrom(
         algorithmsSupported: algorithmsSupported,
         encryptionMethodsSupported: encryptionMethodsSupported,
+        compressionMethodsSupported: compressionMethodsSupported,
+        privateKeyData: privateKeyData
+      )
+    case let .notRequired(
+      algorithmsSupported,
+      encryptionMethodsSupported,
+      compressionMethodsSupported
+    ):
+      return Self.createResponseEncryptionSpecFrom(
+        algorithmsSupported: algorithmsSupported,
+        encryptionMethodsSupported: encryptionMethodsSupported,
+        compressionMethodsSupported: compressionMethodsSupported,
         privateKeyData: privateKeyData
       )
     }
@@ -686,6 +755,7 @@ public extension Issuer {
   static func createResponseEncryptionSpecFrom(
     algorithmsSupported: [JWEAlgorithm],
     encryptionMethodsSupported: [JOSEEncryptionMethod],
+    compressionMethodsSupported: [CompressionAlgorithm]? = nil,
     privateKeyData: Data? = nil
   ) -> IssuanceResponseEncryptionSpec? {
     let firstAsymmetricAlgorithm = algorithmsSupported.first {
@@ -826,10 +896,10 @@ internal extension Client {
     switch self {
     case .attested:
       let expectedMethod = Self.ATTEST_JWT_CLIENT_AUTH
-      
       guard tokenEndpointAuthMethods.contains(expectedMethod) else {
         throw ValidationError.error(reason: ("\(Self.ATTEST_JWT_CLIENT_AUTH) not supported by authorization server"))
       }
+      
     default:
       break
     }

@@ -79,7 +79,6 @@ internal func selfSignedClient(
   )
 }
 
-
 func isECPrivateKey(_ secKey: SecKey) -> Bool {
   guard let attributes = SecKeyCopyAttributes(secKey) as? [CFString: Any] else {
     return false

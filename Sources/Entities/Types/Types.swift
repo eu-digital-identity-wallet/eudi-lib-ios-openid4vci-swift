@@ -17,6 +17,12 @@
 import SwiftyJSON
 @preconcurrency import JOSESwift
 
+public enum EncryptionKey: String {
+  case jwk, alg, enc, JWT
+  case credentialResponseEncryption = "credential_response_encryption"
+  case type = "typ"
+}
+
 public typealias JWT = String
 
 public struct IssuanceResponseEncryptionSpec: Sendable {
@@ -24,17 +30,20 @@ public struct IssuanceResponseEncryptionSpec: Sendable {
   public let privateKey: SecKey?
   public let algorithm: JWEAlgorithm
   public let encryptionMethod: JOSEEncryptionMethod
+  public let compressionMethod: CompressionAlgorithm?
   
   public init(
     jwk: JWK? = nil,
     privateKey: SecKey?,
     algorithm: JWEAlgorithm,
-    encryptionMethod: JOSEEncryptionMethod
+    encryptionMethod: JOSEEncryptionMethod,
+    compressionMethod: CompressionAlgorithm? = nil
   ) {
     self.jwk = jwk
     self.privateKey = privateKey
     self.algorithm = algorithm
     self.encryptionMethod = encryptionMethod
+    self.compressionMethod = compressionMethod
   }
 }
 
@@ -51,7 +60,14 @@ public enum Proof: Codable, Sendable {
     }
   }
   
-  // MARK: - Codable
+  public var proof: String {
+    switch self {
+    case .jwt(let jwt):
+      return jwt
+    case .attestation(let attestation):
+      return attestation.jws.compactSerializedString
+    }
+  }
   
   public init(from decoder: Decoder) throws {
     let container = try decoder.singleValueContainer()
@@ -113,6 +129,7 @@ public struct Scope: Codable, Sendable {
 public enum ContentType: String {
   case form = "application/x-www-form-urlencoded"
   case json = "application/json"
+  case jwt = "application/jwt"
   
   public static let key = "Content-Type"
 }

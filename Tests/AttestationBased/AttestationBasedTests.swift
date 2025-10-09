@@ -59,7 +59,7 @@ class AttestationBasedTests: XCTestCase {
   func testClientAttestationJWT() async throws {
     
     let client = try selfSignedClient(
-      clientId: "wallet-dev",
+      clientId: WALLET_DEV_CLIENT_ID,
       privateKey: try! KeyController.generateECDHPrivateKey()
     )
     

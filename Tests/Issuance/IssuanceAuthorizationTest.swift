@@ -22,7 +22,7 @@ import JOSESwift
 class IssuanceAuthorizationTest: XCTestCase {
   
   let config: OpenId4VCIConfig = .init(
-    client: .public(id: "wallet-dev"),
+    client: .public(id: WALLET_DEV_CLIENT_ID),
     authFlowRedirectionURI: URL(string: "urn:ietf:wg:oauth:2.0:oob")!,
     authorizeIssuanceConfig: .favorScopes
   )
@@ -616,7 +616,7 @@ class IssuanceAuthorizationTest: XCTestCase {
         preAuthorizationCode: code.preAuthorizedCode,
         txCode: code.txCode
       ),
-      client: .public(id: "wallet-dev"),
+      client: .public(id: WALLET_DEV_CLIENT_ID),
       transactionCode: "12345"
     )
 
@@ -702,7 +702,6 @@ class IssuanceAuthorizationTest: XCTestCase {
     let privateKey = try KeyController.generateECDHPrivateKey()
     let publicKey = try KeyController.generateECDHPublicKey(from: privateKey)
     
-    let privateKeyProxy: SigningKeyProxy = .secKey(privateKey)
     let alg = JWSAlgorithm(.ES256)
     let jwk = try ECPublicKey(
       publicKey: publicKey,

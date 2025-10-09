@@ -127,3 +127,29 @@ extension Dictionary where Key == AnyHashable {
     return self.first { ($0.key as? String)?.caseInsensitiveCompare(key) == .orderedSame }?.value
   }
 }
+
+public extension Dictionary where Key == String, Value == any Sendable {
+  
+  /// Converts the dictionary into `Data` (JSON encoded).
+  /// Automatically unwraps `SwiftyJSON.JSON` values into raw JSON-compatible objects.
+  /// - Throws: `NSError` if the dictionary is not a valid JSON object.
+  func toData(prettyPrinted: Bool = false) throws -> Data {
+    let normalized = self.mapValues { value -> Any in
+      if let jsonValue = value as? JSON {
+        return jsonValue.object
+      }
+      return value
+    }
+    
+    guard JSONSerialization.isValidJSONObject(normalized) else {
+      throw NSError(
+        domain: "DictionaryToDataError",
+        code: 1,
+        userInfo: [NSLocalizedDescriptionKey: "Dictionary is not a valid JSON object"]
+      )
+    }
+    
+    let options: JSONSerialization.WritingOptions = prettyPrinted ? [.prettyPrinted] : []
+    return try JSONSerialization.data(withJSONObject: normalized, options: options)
+  }
+}

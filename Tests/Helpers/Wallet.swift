@@ -53,8 +53,8 @@ extension Wallet {
     let credentialIssuerIdentifier = try CredentialIssuerId(CREDENTIAL_ISSUER_PUBLIC_URL)
     
     let resolver = CredentialIssuerMetadataResolver(
-      fetcher: Fetcher(session: self.session)
-    )
+      fetcher:  MetadataFetcher(rawFetcher: RawDataFetcher(session: self.session)))
+
     let issuerMetadata = try await resolver.resolve(
       source: .credentialIssuer(
         credentialIssuerIdentifier
@@ -180,7 +180,7 @@ extension Wallet {
     let resolver = CredentialOfferRequestResolver(
       fetcher: Fetcher(session: self.session),
       credentialIssuerMetadataResolver: CredentialIssuerMetadataResolver(
-        fetcher: Fetcher(session: self.session)
+        fetcher: MetadataFetcher(rawFetcher: RawDataFetcher(session: self.session))
       ),
       authorizationServerMetadataResolver: AuthorizationServerMetadataResolver(
         oidcFetcher: Fetcher(session: self.session),
@@ -214,7 +214,7 @@ extension Wallet {
       let result = await CredentialOfferRequestResolver(
         fetcher: Fetcher(session: self.session),
         credentialIssuerMetadataResolver: CredentialIssuerMetadataResolver(
-          fetcher: Fetcher(session: self.session)
+          fetcher: MetadataFetcher(rawFetcher: RawDataFetcher(session: self.session))
         ),
         authorizationServerMetadataResolver: AuthorizationServerMetadataResolver(
           oidcFetcher: Fetcher(session: self.session),
@@ -247,7 +247,7 @@ extension Wallet {
     let result = await CredentialOfferRequestResolver(
       fetcher: Fetcher(session: self.session),
       credentialIssuerMetadataResolver: CredentialIssuerMetadataResolver(
-        fetcher: Fetcher(session: self.session)
+        fetcher: MetadataFetcher(rawFetcher: RawDataFetcher(session: self.session))
       ),
       authorizationServerMetadataResolver: AuthorizationServerMetadataResolver(
         oidcFetcher: Fetcher(session: self.session),
@@ -443,7 +443,10 @@ extension Wallet {
       case .success(let response):
         if let result = response.credentialResponses.first {
           switch result {
-          case .deferred(let transactionId):
+          case .deferred(let transactionId, let interval):
+            
+            print("--> [DEFERRED] Retry after: \(interval)")
+            
             return try await deferredCredentialUseCase(
               issuer: issuer,
               authorized: authorized,
@@ -482,10 +485,12 @@ extension Wallet {
       switch response {
       case .issued(let credential):
         return credential
-      case .issuancePending(let transactionId):
-        throw ValidationError.error(reason: "Credential not ready yet. Try after \(transactionId.interval ?? 0)")
+      case .issuancePending(_, let interval):
+        throw ValidationError.error(reason: "Credential not ready yet. Try after \(interval)")
       case .errored(_, let errorDescription):
         throw ValidationError.error(reason: "\(errorDescription ?? "Something went wrong with your deferred request response")")
+      case .issuanceStillPending(let interval):
+        throw ValidationError.error(reason: "Credential still not ready yet. Try after \(interval)")
       }
     case .failure(let error):
       throw ValidationError.error(reason: error.localizedDescription)

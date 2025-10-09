@@ -15,20 +15,112 @@
  */
 import Foundation
 import XCTest
+import JOSESwift
 
 @testable import OpenID4VCI
 
 class CredentialOfferResolverTests: XCTestCase {
   
+  func createMetadataFetcher(
+    session: Networking = NetworkingMock(
+      path: "credential_issuer_metadata",
+      extension: "json",
+      headers: ["Content-Type": "application/json"]
+  )) -> MetadataFetcher {
+    MetadataFetcher(
+      rawFetcher: RawDataFetcher(
+        session: session))
+  }
+  
+  
+  func testSignedIssuerMetadataWithInvalidData() async throws {
+    let fetcher = MetadataFetcher(
+      rawFetcher: RawDataFetcher(
+        session: NetworkingMock(
+          path: "credential_issuer_metadata_with_signed_invalid",
+          extension: "txt",
+          headers: ["Content-Type": "application/jwt"]
+      )))
+  
+    let credentialIssuerMetadataResolver = CredentialIssuerMetadataResolver(
+      fetcher: fetcher)
+    
+    let jwkJSON = """
+        {
+          "kty": "EC",
+          "d": "hmQqQjKufUDXOBaVs-alU0sl1j9_WR1U9ia3J680s2E",
+          "crv": "P-256",
+          "x": "ilzt0a_ukEX-nl0S05S2RAlbQFL2DSOpTjT3xf52JBY",
+          "y": "q-fNv_d0nlZf_S_3S-KmrktIsylB0cybRiL6rZMLZHI"
+        }
+        """
+        
+        guard let jsonData = jwkJSON.data(using: .utf8) else {
+          XCTAssert(false, "Failed to convert JWK JSON string to Data")
+          return
+        }
+    
+    // When
+    let result = try await credentialIssuerMetadataResolver.resolve(
+      source: .credentialIssuer(CredentialIssuerId("https://credential-issuer.example.com")),
+      policy: .requireSigned(issuerTrust: .byPublicKey(jwk: ECPublicKey(data: jsonData))
+    ))
+    
+    switch result {
+    case .success(let result):
+      XCTAssert(false, "Expected failure but got success: \(result)")
+    case .failure(let error):
+      if case CredentialIssuerMetadataError.invalidSignedMetadata(let message) = error {
+              XCTAssertTrue(message.contains("Invalid 'typ' header"),
+                           "Error message should mention invalid 'typ' header")
+          } else {
+              XCTFail("Expected CredentialIssuerMetadataError.invalidSignedMetadata but got: \(error)")
+          }
+    }
+  }
+  
+  
+  func testSignedIssuerMetadataWithValidData() async throws {
+    let fetcher = MetadataFetcher(
+      rawFetcher: RawDataFetcher(
+        session: NetworkingMock(
+          path: "credential_issuer_metadata_with_signed_full",
+          extension: "txt",
+          headers: ["Content-Type": "application/jwt"]
+      )))
+  
+    let credentialIssuerMetadataResolver = CredentialIssuerMetadataResolver(
+      fetcher: fetcher)
+    
+    // When
+    let result = try await credentialIssuerMetadataResolver.resolve(
+      source: 
+          .credentialIssuer(
+            CredentialIssuerId(
+              "https://dev.issuer-backend.eudiw.dev"
+            )
+          ),
+      policy: 
+          .requireSigned(
+            issuerTrust: .byCertificateChain(
+              certificateChainTrust: TestTrust()
+            )
+          )
+    )
+    
+    switch result {
+    case .success(let result):
+      print(result)
+    case .failure(let error):
+      XCTAssert(false, error.localizedDescription)
+    }
+  }
+
   func testValidCredentialOfferDataAndOIDVWhenAResolutionIsRequestedSucessWithValidData() async throws {
     
     // Given
     let credentialIssuerMetadataResolver = CredentialIssuerMetadataResolver(
-      fetcher: Fetcher<CredentialIssuerMetadata>(session: NetworkingMock(
-        path: "credential_issuer_metadata",
-        extension: "json"
-      )
-    ))
+      fetcher: createMetadataFetcher())
     
     let authorizationServerMetadataResolver = AuthorizationServerMetadataResolver(
       oidcFetcher: Fetcher<OIDCProviderMetadata>(session: NetworkingMock(
@@ -80,11 +172,7 @@ class CredentialOfferResolverTests: XCTestCase {
     
     // Given
     let credentialIssuerMetadataResolver = CredentialIssuerMetadataResolver(
-      fetcher: Fetcher<CredentialIssuerMetadata>(session: NetworkingMock(
-        path: "credential_issuer_metadata",
-        extension: "json"
-      )
-    ))
+      fetcher: createMetadataFetcher())
     
     let authorizationServerMetadataResolver = AuthorizationServerMetadataResolver(
       oidcFetcher: Fetcher<OIDCProviderMetadata>(session: NetworkingMock(
@@ -127,11 +215,7 @@ class CredentialOfferResolverTests: XCTestCase {
     
     // Given
     let credentialIssuerMetadataResolver = CredentialIssuerMetadataResolver(
-      fetcher: Fetcher<CredentialIssuerMetadata>(session: NetworkingMock(
-        path: "credential_issuer_metadata",
-        extension: "json"
-      )
-    ))
+      fetcher: createMetadataFetcher())
     
     let authorizationServerMetadataResolver = AuthorizationServerMetadataResolver(
       oidcFetcher: Fetcher<OIDCProviderMetadata>(session: NetworkingMock(
@@ -173,11 +257,7 @@ class CredentialOfferResolverTests: XCTestCase {
     
     // Given
     let credentialIssuerMetadataResolver = CredentialIssuerMetadataResolver(
-      fetcher: Fetcher<CredentialIssuerMetadata>(session: NetworkingMock(
-        path: "credential_issuer_metadata",
-        extension: "json"
-      )
-    ))
+      fetcher: createMetadataFetcher())
     
     // When
     let result = try await credentialIssuerMetadataResolver.resolve(
@@ -193,13 +273,13 @@ class CredentialOfferResolverTests: XCTestCase {
       XCTAssert(result.credentialIssuerIdentifier.url.absoluteString == "https://credential-issuer.example.com")
       XCTAssert(result.nonceEndpoint!.url.absoluteString == "https://credential-issuer.example.com/nonce")
       
-      let credentialSupported = result.credentialsSupported[try! .init(value: "MobileDrivingLicense_msoMdoc")]!
+      let credentialSupported = result.credentialsSupported[try .init(value: "MobileDrivingLicense_msoMdoc")]!
       
       XCTAssert(result.credentialsSupported.count == 4)
       
       switch credentialSupported {
       case .msoMdoc(let credential):
-        let claims = credential.claims
+        let claims = credential.credentialMetadata?.claims ?? []
         XCTAssert(claims.count == 4)
         XCTAssert(claims[0].path == ClaimPath.claim("org.iso.18013.5.1").claim("given_name"))
         
@@ -209,5 +289,48 @@ class CredentialOfferResolverTests: XCTestCase {
     case .failure(let error):
       XCTAssert(false, error.localizedDescription)
     }
+  }
+  
+  
+  func testBuildWellKnownURL_withoutPath() async throws {
+      let resolver = CredentialIssuerMetadataResolver()
+      let input = URL(string: "https://issuer.example.com")!
+      
+      let result = try await resolver.buildWellKnownCredentialIssuerURL(from: input)
+      
+      XCTAssertEqual(
+        result.absoluteString,
+        "https://issuer.example.com/.well-known/openid-credential-issuer"
+      )
+    }
+    
+  func testBuildWellKnownURL_withPath() async throws {
+      let resolver = CredentialIssuerMetadataResolver()
+      let input = URL(string: "https://issuer.example.com/tenant")!
+      
+      let result = try await resolver.buildWellKnownCredentialIssuerURL(from: input)
+      
+      XCTAssertEqual(
+        result.absoluteString,
+        "https://issuer.example.com/.well-known/openid-credential-issuer/tenant"
+      )
+    }
+    
+  func testBuildWellKnownURL_invalidUrl() async {
+      let resolver = CredentialIssuerMetadataResolver()
+      let input = URL(string: "http://")! // deliberately invalid
+
+      do {
+          _ = try await resolver.buildWellKnownCredentialIssuerURL(from: input)
+      } catch let error as FetchError {
+          switch error {
+          case .invalidUrl:
+            XCTAssert(true)
+          default:
+              XCTFail("Unexpected FetchError case: \(error)")
+          }
+      } catch {
+          XCTFail("Unexpected error type: \(error)")
+      }
   }
 }

@@ -15,9 +15,9 @@
  */
 import Foundation
 
-public enum ProofType: Decodable, Sendable {
+public enum ProofType: String, Decodable, Sendable {
   case jwt
-  case ldpVp
+  case diVp
   case unsupported
   case attestation
   
@@ -32,8 +32,8 @@ public enum ProofType: Decodable, Sendable {
     switch rawValue {
     case "JWT", "jwt":
       self = .jwt
-    case "LDP_VP", "ldp_vp":
-      self = .ldpVp
+    case "DI_VP", "di_vp":
+      self = .diVp
     case "attestation":
       self = .attestation
     default:
@@ -45,8 +45,8 @@ public enum ProofType: Decodable, Sendable {
     switch type {
     case "JWT", "jwt":
       self = .jwt
-    case "LDP_VP", "ldp_vp":
-      self = .ldpVp
+    case "DI_VP", "di_vp":
+      self = .diVp
     case "attestation":
       self = .attestation
     default:

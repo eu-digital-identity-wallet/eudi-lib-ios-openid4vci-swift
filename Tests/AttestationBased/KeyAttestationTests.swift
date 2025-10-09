@@ -35,7 +35,7 @@ class KeyAttestationTests: XCTestCase {
     try await super.setUp()
     
     config = .init(
-      client: .public(id: "wallet-dev"),
+      client: .public(id: WALLET_DEV_CLIENT_ID),
       authFlowRedirectionURI: URL(string: "urn:ietf:wg:oauth:2.0:oob")!,
       authorizeIssuanceConfig: .favorScopes
     )
@@ -60,19 +60,16 @@ class KeyAttestationTests: XCTestCase {
     
     let keyBindingKey: BindingKey = try! .keyAttestation(
       algorithm: .init(.ES256),
-      keyAttestationJWT: .init(
-        jws: .init(
-          compactSerialization: TestsConstants.ketAttestationJWT
+      keyAttestationJWT: {_, _, _ in
+        try! .init(
+          jws: .init(
+            compactSerialization: TestsConstants.ketAttestationJWT
+          )
         )
-      ),
+      },
       keyIndex: 1,
-      privateKey: .secKey(data.privateKey)
-    )
-    
-    let altBindingKey: BindingKey = .jwk(
-      algorithm: .init(.ES256),
-      jwk: data.publicKey,
-      privateKey: .secKey(data.privateKey)
+      privateKey: .secKey(data.privateKey),
+      publicJWK: data.publicKey
     )
     
     // When
@@ -195,7 +192,7 @@ class KeyAttestationTests: XCTestCase {
     XCTAssertThrowsError(try KeyAttestationJWT(jws: try JWS(
       header: .init(parameters: [
         "alg": "ES256",
-        "typ": "keyattestation+jwt"
+        "typ": KeyAttestationJWT.keyAttestationJWTType
       ]),
       payload: .init([
         "no-iat":"value"
@@ -220,7 +217,7 @@ class KeyAttestationTests: XCTestCase {
     XCTAssertThrowsError(try KeyAttestationJWT(jws: try JWS(
       header: .init(parameters: [
         "alg": "ES256",
-        "typ": "keyattestation+jwt"
+        "typ": KeyAttestationJWT.keyAttestationJWTType
       ]),
       payload: .init([
         "iat": Date().timeIntervalSince1970
@@ -245,7 +242,7 @@ class KeyAttestationTests: XCTestCase {
     _ = try KeyAttestationJWT(jws: try JWS(
       header: .init(parameters: [
         "alg": "ES256",
-        "typ": "keyattestation+jwt"
+        "typ": KeyAttestationJWT.keyAttestationJWTType
       ]),
       payload: .init([
         "iat": Date().timeIntervalSince1970,
@@ -289,7 +286,7 @@ extension KeyAttestationTests {
       jwk: publicKeyJWK,
       privateKey: privateKey,
       algorithm: .init(.ECDH_ES),
-      encryptionMethod: .init(.A128CBC_HS256)
+      encryptionMethod: .init(.A128GCM)
     )
     
     let offer = await TestsConstants.createMockCredentialOfferopenidKeyAttestationRequired()!

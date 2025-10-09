@@ -41,7 +41,8 @@ public protocol IssuanceRequesterType: Sendable {
     accessToken: IssuanceAccessToken,
     request: SingleCredential,
     dPopNonce: Nonce?,
-    retry: Bool
+    retry: Bool,
+    encryptionSpec: EncryptionSpec?
   ) async throws -> Result<CredentialIssuanceResponse, Error>
   
   /// Places a request for a deferred credential issuance.
@@ -102,7 +103,8 @@ public actor IssuanceRequester: IssuanceRequesterType {
     accessToken: IssuanceAccessToken,
     request: SingleCredential,
     dPopNonce: Nonce?,
-    retry: Bool
+    retry: Bool,
+    encryptionSpec: EncryptionSpec?
   ) async throws -> Result<CredentialIssuanceResponse, Error> {
     let endpoint = issuerMetadata.credentialEndpoint.url
     
@@ -113,13 +115,20 @@ public actor IssuanceRequester: IssuanceRequesterType {
         endpoint: endpoint
       )
       
-      let encodedRequest: [String: any Sendable] = try request.toPayload().dictionaryValue
+      let encodedRequest: [String: any Sendable] = try request.toPayload(encryptionSpec: encryptionSpec).dictionaryValue
+      
+      try ensureJwtAlgIsSupported(
+        credentialConfigurationIdentifier: request.credentialConfigurationIdentifier,
+        issuerMetadata: issuerMetadata,
+        proofs: request.proofs
+      )
       
       let response: ResponseWithHeaders<SingleIssuanceSuccessResponse> = try await service.formPost(
         poster: poster,
         url: endpoint,
         headers: authorizationHeader,
-        body: encodedRequest
+        body: encodedRequest,
+        encryptionSpec: encryptionSpec
       )
       
       return .success(try response.body.toSingleIssuanceResponse())
@@ -130,7 +139,8 @@ public actor IssuanceRequester: IssuanceRequesterType {
           accessToken: accessToken,
           request: request,
           dPopNonce: nonce,
-          retry: false
+          retry: false,
+          encryptionSpec: encryptionSpec
         )
       } else {
         return .failure(ValidationError.retryFailedAfterDpopNonce)
@@ -143,12 +153,16 @@ public actor IssuanceRequester: IssuanceRequesterType {
       switch request {
       case .msoMdoc(let credential):
         switch issuerMetadata.credentialResponseEncryption {
-        case .notRequired:
+        case .notSupported:
           guard let response = SingleIssuanceSuccessResponse.fromJSONString(string) else {
-            return .failure(ValidationError.todo(reason: "Cannot decode .notRequired response"))
+            return .failure(
+              ValidationError.todo(
+                reason: "Cannot decode .notRequired response"
+              )
+            )
           }
           return .success(try response.toDomain())
-        case .required:
+        case .required, .notRequired:
           do {
             guard let key = credential.credentialEncryptionKey else {
               return .failure(ValidationError.error(reason: "Invalid private key"))
@@ -168,7 +182,11 @@ public actor IssuanceRequester: IssuanceRequesterType {
                 let keyManagementAlgorithm = KeyManagementAlgorithm(algorithm: responseEncryptionAlg),
                 let contentEncryptionAlgorithm = ContentEncryptionAlgorithm(encryptionMethod: responseEncryptionMethod)
               else {
-                return .failure(ValidationError.error(reason: "Unsupported encryption algorithms: \(responseEncryptionAlg.name), \(responseEncryptionMethod.name)"))
+                return .failure(
+                  ValidationError.error(
+                    reason: "Unsupported encryption algorithms: \(responseEncryptionAlg.name), \(responseEncryptionMethod.name)"
+                  )
+                )
               }
               
               let payload = try decrypt(
@@ -178,7 +196,10 @@ public actor IssuanceRequester: IssuanceRequesterType {
                 privateKey: key
               )
               
-              let response = try JSONDecoder().decode(SingleIssuanceSuccessResponse.self, from: payload.data())
+              let response = try JSONDecoder().decode(
+                SingleIssuanceSuccessResponse.self,
+                from: payload.data()
+              )
               return .success(try response.toDomain())
             }
             
@@ -188,12 +209,12 @@ public actor IssuanceRequester: IssuanceRequesterType {
         }
       case .sdJwtVc(let credential):
         switch issuerMetadata.credentialResponseEncryption {
-        case .notRequired:
+        case .notSupported:
           guard let response = SingleIssuanceSuccessResponse.fromJSONString(string) else {
             return .failure(ValidationError.todo(reason: "Cannot decode .notRequired response"))
           }
           return .success(try response.toDomain())
-        case .required:
+        case .required, .notRequired:
           guard let key = credential.credentialEncryptionKey else {
             return .failure(ValidationError.error(reason: "Invalid private key"))
           }
@@ -256,8 +277,18 @@ public actor IssuanceRequester: IssuanceRequesterType {
         poster: poster,
         url: deferredCredentialEndpoint.url,
         headers: authorizationHeader,
-        body: encodedRequest
+        body: encodedRequest,
+        encryptionSpec: nil
       )
+      
+      if let interval = response.body.interval {
+        return .success(
+          .issuancePending(
+            transactionId: transactionId,
+            interval: interval
+          )
+        )
+      }
       return .success(response.body)
       
     } catch PostError.useDpopNonce(let nonce) {
@@ -277,8 +308,13 @@ public actor IssuanceRequester: IssuanceRequesterType {
       
       let issuanceError = response.toIssuanceError()
       
-      if case .deferredCredentialIssuancePending = issuanceError {
-        return .success(.issuancePending(transactionId: transactionId))
+      if case .deferredCredentialIssuancePending(let interval) = issuanceError {
+        return .success(
+          .issuancePending(
+            transactionId: transactionId,
+            interval: interval ?? .zero
+          )
+        )
       }
       
       return .failure(issuanceError)
@@ -351,7 +387,8 @@ public actor IssuanceRequester: IssuanceRequesterType {
           poster: poster,
           url: endpoint,
           headers: authorizationHeader,
-          body: encodedRequest
+          body: encodedRequest,
+          encryptionSpec: nil
         )
         return .success(())
         
@@ -382,6 +419,146 @@ public actor IssuanceRequester: IssuanceRequesterType {
 }
 
 private extension IssuanceRequester {
+  
+  func ensureJwtAlgIsSupported(
+    credentialConfigurationIdentifier: CredentialConfigurationIdentifier?,
+    issuerMetadata: CredentialIssuerMetadata,
+    proofs: [Proof]
+  ) throws {
+    
+    guard proofs.isEmpty == false else {
+      return
+    }
+    
+    // Input
+    let configId = try requireConfigId(credentialConfigurationIdentifier)
+
+    // Split proofs by type
+    let (jwtTokens, attestations) = partitionProofs(proofs)
+    guard !jwtTokens.isEmpty || !attestations.isEmpty else {
+      throw ValidationError.error(reason: "No proofs provided")
+    }
+
+    // Validate JWT proofs
+    if !jwtTokens.isEmpty {
+      let advertised = try advertisedAlgs(
+        for: .jwt,
+        configId: configId,
+        issuerMetadata: issuerMetadata
+      )
+      try validateJWTAlgs(jwtTokens, against: advertised, proofLabel: "JWT proof")
+    }
+
+    // Validate KeyAttestation proofs
+    if !attestations.isEmpty {
+      let advertised = try advertisedAlgs(
+        for: .jwt,
+        configId: configId,
+        issuerMetadata: issuerMetadata
+      )
+      try validateAttestationAlgs(attestations, against: advertised, proofLabel: "attestation proof")
+    }
+  }
+
+  /// Ensures we have a valid configuration identifier.
+  private func requireConfigId(_ id: CredentialConfigurationIdentifier?) throws -> CredentialConfigurationIdentifier {
+    guard let id else {
+      throw ValidationError.error(reason: "Invalid CredentialConfigurationIdentifier")
+    }
+    return id
+  }
+
+  /// Reads issuer-advertised algorithms for a given proof type.
+  /// Assumes your `proofTypes(type:)` returns `[SignatureAlgorithm]`.
+  private func advertisedAlgs(
+    for type: ProofType,
+    configId: CredentialConfigurationIdentifier,
+    issuerMetadata: CredentialIssuerMetadata
+  ) throws -> [SignatureAlgorithm] {
+    guard
+      let algs = issuerMetadata
+        .credentialsSupported[configId]?
+        .proofTypes(type: type),
+      !algs.isEmpty
+    else {
+      let label = (type == .jwt) ? "JWT" : "attestation"
+      throw ValidationError.error(reason: "Issuer did not advertise any algorithms for \(label) proofs")
+    }
+    return algs
+  }
+
+  /// Splits proofs into `.jwt` strings and `.attestation` objects.
+  private func partitionProofs(_ proofs: [Proof]) -> (jwtTokens: [String], attestations: [KeyAttestationJWT]) {
+    var jwtTokens: [String] = []
+    var attestations: [KeyAttestationJWT] = []
+    for proof in proofs {
+      switch proof {
+      case .jwt(let jwt):
+        jwtTokens.append(jwt)
+      case .attestation(let ka):
+        attestations.append(ka)
+      }
+    }
+    return (jwtTokens, attestations)
+  }
+
+  /// Validates algorithms for compact-serialized JWT strings.
+  private func validateJWTAlgs(
+    _ jwtTokens: [String],
+    against advertised: [SignatureAlgorithm],
+    proofLabel: String
+  ) throws {
+    for (idx, token) in jwtTokens.enumerated() {
+      let jws: JWS
+      do {
+        jws = try JWS(compactSerialization: token)
+      } catch {
+        throw ValidationError.error(
+          reason: "Invalid JWS compact serialization for \(proofLabel) at index \(idx): \(error)"
+        )
+      }
+      let alg = try requireAlg(in: jws, proofLabel: proofLabel, index: idx)
+      try requireAlgSupported(alg, advertised: advertised, proofLabel: proofLabel, index: idx)
+    }
+  }
+
+  /// Validates algorithms for already-parsed KeyAttestationJWTs.
+  private func validateAttestationAlgs(
+    _ attestations: [KeyAttestationJWT],
+    against advertised: [SignatureAlgorithm],
+    proofLabel: String
+  ) throws {
+    for (idx, att) in attestations.enumerated() {
+      let alg = try requireAlg(in: att.jws, proofLabel: proofLabel, index: idx)
+      try requireAlgSupported(alg, advertised: advertised, proofLabel: proofLabel, index: idx)
+    }
+  }
+
+  /// Extracts `alg` from a JOSESwift JWS header.
+  private func requireAlg(in jws: JWS, proofLabel: String, index: Int) throws -> SignatureAlgorithm {
+    guard let alg = jws.header.algorithm else {
+      throw ValidationError.error(
+        reason: "JWT header missing 'alg' for \(proofLabel) at index \(index)"
+      )
+    }
+    return alg
+  }
+
+  /// Ensures `alg` exists in the advertised algorithms.
+  private func requireAlgSupported(
+    _ alg: SignatureAlgorithm,
+    advertised: [SignatureAlgorithm],
+    proofLabel: String,
+    index: Int
+  ) throws {
+    guard advertised.contains(alg) else {
+      let supported = advertised.map { $0.rawValue }.sorted().joined(separator: ", ")
+      throw ValidationError.error(
+        reason: "Unsupported JWT algorithm '\(alg.rawValue)' for \(proofLabel) at index \(index). Supported: \(supported)"
+      )
+    }
+  }
+  
   func decrypt(
     jwtString: String,
     keyManagementAlgorithm: KeyManagementAlgorithm,
@@ -441,10 +618,15 @@ private extension SingleIssuanceSuccessResponse {
           )
         ]
       )
-    } else if let transactionId = transactionId {
+    } else if let transactionId = transactionId, let interval = interval {
       return CredentialIssuanceResponse(
         credentialResponses: [
-          .deferred(transactionId: try .init(value: transactionId))
+          .deferred(
+            transactionId: try .init(
+              value: transactionId
+            ),
+            interval: interval
+          )
         ]
       )
       

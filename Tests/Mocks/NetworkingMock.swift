@@ -23,15 +23,18 @@ final class NetworkingMock: Networking {
   let path: String
   let `extension`: String
   let statusCode: Int
+  let headers: [String: String]
   
   init(
     path: String,
     `extension`: String,
-    statusCode: Int = 200
+    statusCode: Int = 200,
+    headers: [String: String] = [:]
   ) {
     self.path = path
     self.extension = `extension`
     self.statusCode = statusCode
+    self.headers = headers
   }
   
   func data(
@@ -39,13 +42,13 @@ final class NetworkingMock: Networking {
   ) async throws -> (Data, URLResponse) {
     let path = Bundle.module.path(forResource: self.path, ofType: self.extension)
     let url = URL(fileURLWithPath: path!)
-    let data = try! Data(contentsOf: url)
+    let data = try Data(contentsOf: url)
     let result = Result<Data, Error>.success(data)
     let response = HTTPURLResponse(
       url: .stub(),
       statusCode: statusCode,
       httpVersion: nil,
-      headerFields: [:]
+      headerFields: headers
     )
     return try (result.get(), response!)
   }

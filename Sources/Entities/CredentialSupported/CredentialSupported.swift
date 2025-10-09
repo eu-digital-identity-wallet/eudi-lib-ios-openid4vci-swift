@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 import Foundation
+import JOSESwift
+import SwiftyJSON
 
 public enum CredentialSupported: Codable, Sendable {
   case scope(Scope)
@@ -66,61 +68,23 @@ public extension CredentialSupported {
     issuancePayload: IssuanceRequestPayload,
     responseEncryptionSpecProvider: (_ issuerResponseEncryptionMetadata: CredentialResponseEncryption) -> IssuanceResponseEncryptionSpec?
   ) throws -> CredentialIssuanceRequest {
+    
+    let (issuerEncryption, responseEncryptionSpec) = try validateAndPrepareEncryption(
+      requester: requester,
+      responseEncryptionSpecProvider: responseEncryptionSpecProvider
+    )
+    
     switch self {
     case .msoMdoc(let credentialConfiguration):
-      let issuerEncryption = requester.issuerMetadata.credentialResponseEncryption
-      let responseEncryptionSpec = responseEncryptionSpecProvider(issuerEncryption)
-      
-      if let responseEncryptionSpec {
-        switch issuerEncryption {
-        case .notRequired: break
-        case .required(
-          let algorithmsSupported,
-          let encryptionMethodsSupported
-        ):
-          if !algorithmsSupported.contains(responseEncryptionSpec.algorithm) {
-            throw CredentialIssuanceError.responseEncryptionAlgorithmNotSupportedByIssuer
-          }
-          
-          if !encryptionMethodsSupported.contains(
-            responseEncryptionSpec.encryptionMethod
-          ) {
-            throw CredentialIssuanceError.responseEncryptionMethodNotSupportedByIssuer
-          }
-        }
-      }
-     
       return try credentialConfiguration.toIssuanceRequest(
-        responseEncryptionSpec: issuerEncryption.notRequired ? nil : responseEncryptionSpec,
+        responseEncryptionSpec: issuerEncryption.notSupported ? nil : responseEncryptionSpec,
         requestPayload: issuancePayload,
         proofs: proofs
       )
 
     case .sdJwtVc(let credentialConfiguration):
-      let issuerEncryption = requester.issuerMetadata.credentialResponseEncryption
-      let responseEncryptionSpec = responseEncryptionSpecProvider(issuerEncryption)
-      
-      if let responseEncryptionSpec {
-        switch issuerEncryption {
-        case .notRequired: break
-        case .required(
-          let algorithmsSupported,
-          let encryptionMethodsSupported
-        ):
-          if !algorithmsSupported.contains(responseEncryptionSpec.algorithm) {
-            throw CredentialIssuanceError.responseEncryptionAlgorithmNotSupportedByIssuer
-          }
-          
-          if !encryptionMethodsSupported.contains(
-            responseEncryptionSpec.encryptionMethod
-          ) {
-            throw CredentialIssuanceError.responseEncryptionMethodNotSupportedByIssuer
-          }
-        }
-      }
-     
       return try credentialConfiguration.toIssuanceRequest(
-        responseEncryptionSpec: issuerEncryption.notRequired ? nil : responseEncryptionSpec,
+        responseEncryptionSpec: issuerEncryption.notSupported ? nil : responseEncryptionSpec,
         requestPayload: issuancePayload,
         proofs: proofs
       )
@@ -129,6 +93,45 @@ public extension CredentialSupported {
         reason: "Unsupported profile for issuance request"
       )
     }
+  }
+  
+  private func validateAndPrepareEncryption(
+    requester: IssuanceRequesterType,
+    responseEncryptionSpecProvider: (CredentialResponseEncryption) -> IssuanceResponseEncryptionSpec?
+  ) throws -> (CredentialResponseEncryption, IssuanceResponseEncryptionSpec?) {
+    let issuerEncryption = requester.issuerMetadata.credentialResponseEncryption
+    let responseEncryptionSpec = responseEncryptionSpecProvider(issuerEncryption)
+    
+    if let responseEncryptionSpec {
+      switch issuerEncryption {
+      case .notSupported:
+        break
+        
+      case .required(
+        let algorithmsSupported,
+        let encryptionMethodsSupported,
+        let compressionMethodsSupported
+      ), .notRequired(
+        let algorithmsSupported,
+        let encryptionMethodsSupported,
+        let compressionMethodsSupported
+      ):
+        if !algorithmsSupported.contains(responseEncryptionSpec.algorithm) {
+          throw CredentialIssuanceError.responseEncryptionAlgorithmNotSupportedByIssuer
+        }
+        
+        if !encryptionMethodsSupported.contains(responseEncryptionSpec.encryptionMethod) {
+          throw CredentialIssuanceError.responseEncryptionMethodNotSupportedByIssuer
+        }
+        
+        if let compressionMethodsSupported,
+           let compressionMethod = responseEncryptionSpec.compressionMethod,
+           !compressionMethodsSupported.contains(compressionMethod) {
+          throw CredentialIssuanceError.responseCompressionMethodNotSupportedByIssuer
+        }
+      }
+    }
+    return (issuerEncryption, responseEncryptionSpec)
   }
   
   var proofTypesSupported: [String: ProofTypeSupportedMeta]? {
@@ -140,5 +143,48 @@ public extension CredentialSupported {
     default:
       nil
     }
+  }
+  
+  func proofTypes(type: ProofType) -> [SignatureAlgorithm] {
+    switch self {
+    case .msoMdoc(let spec):
+      spec.proofTypesSupported?[type.rawValue].map { meta in
+        meta.algorithms.compactMap { algorithm in
+          SignatureAlgorithm(rawValue: algorithm)
+        }
+      } ?? []
+    case .sdJwtVc(let spec):
+      spec.proofTypesSupported?[type.rawValue].map { meta in
+        meta.algorithms.compactMap { algorithm in
+          SignatureAlgorithm(rawValue: algorithm)
+        }
+      } ?? []
+    default:
+      []
+    }
+  }
+}
+
+
+public struct ConfigurationCredentialMetadata: Codable, Sendable {
+  public let display: [Display]
+  public let claims: [Claim]
+  
+  enum CodingKeys: String, CodingKey {
+    case display
+    case claims
+  }
+  
+  public init(display: [Display], claims: [Claim]) {
+    self.display = display
+    self.claims = claims
+  }
+  
+  public init(json: JSON) throws {
+    self.display = json["display"].arrayValue.map { json in
+      Display(json: json)
+    }
+    let claims = try json["claims"].array?.compactMap({ try Claim(json: $0)}) ?? []
+    self.claims = claims
   }
 }
