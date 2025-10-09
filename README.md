@@ -20,7 +20,7 @@ the [EUDI Wallet Reference Implementation project description](https://github.co
 ## Overview
 
 This is a Swift library, that supports 
-the  [OpenId4VCI (draft 15)](https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0-15.html) protocol.
+the  [OpenId4VCI 1.0](https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html) protocol.
 
 In particular, the library focuses on the wallet's role in the protocol to:
 - Resolve credential issuer metadata 
