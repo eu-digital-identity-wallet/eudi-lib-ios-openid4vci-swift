@@ -22,6 +22,8 @@ public enum CredentialIssuerMetadataError: Error {
   case invalidCredentialIssuerId
   case credentialResponseAsymmetricEncryptionAlgorithmsRequired
   case credentialRequestEncryptionMustExistIfCredentialResponseEncryptionExists
+  case unsupportedRequestEncryptionMethods
+  case unsupportedResponseEncryptionMethods
   
   /**
     * Indicates the Credential Issuer does not provide signed metadata.

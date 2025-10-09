@@ -39,61 +39,50 @@ public enum CredentialRequestEncryption: Decodable, Sendable {
   
   var notSupported: Bool {
     switch self {
-    case .notSupported:
-      true
-    default:
-      false
+    case .notSupported: true
+    default: false
     }
   }
   
   public init(from decoder: Decoder) throws {
     let container = try decoder.container(keyedBy: CodingKeys.self)
     
-    let encryptionRequired = try? container.decode(Bool.self, forKey: .encryptionRequired)
-    
+    let encryptionRequired = (try? container.decode(Bool.self, forKey: .encryptionRequired)) ?? false
     let jwkWrappers = try? container.decodeIfPresent(JWKSet.self, forKey: .jwks)
-    let jwks: [JWK] = jwkWrappers?.keys.map { $0.key } ?? []
+    let jwks = jwkWrappers?.keys.map(\.key) ?? []
+    let encryptionMethodsSupported = try? container.decode([JOSEEncryptionMethod].self, forKey: .encryptionMethodsSupported)
+    let compressionMethodsSupported = try? container.decode([CompressionAlgorithm].self, forKey: .compressionMethodsSupported)
+
+    guard !jwks.isEmpty,
+          let encryptionMethodsSupported,
+          !encryptionMethodsSupported.isEmpty else {
       
-    let encryptionMethodsSupported = try? container.decode(
-      [JOSEEncryptionMethod].self,
-      forKey: .encryptionMethodsSupported
+      if encryptionRequired {
+        throw ValidationError.error(
+          reason: "No JWKS and encryption methods supported for required request encryption"
+        )
+      }
+
+      self = .notSupported
+      return
+    }
+
+    // Validate and reorder methods for platform
+    let validatedEncryptionMethods = try JOSEEncryptionMethod.validateForPlatform(
+      encryptionMethodsSupported,
+      unsupportedError: CredentialIssuerMetadataError.unsupportedRequestEncryptionMethods
     )
     
-    let compressionMethodsSupported = try? container.decode(
-      [CompressionAlgorithm].self,
-      forKey: .compressionMethodsSupported
-    )
-    
-    let required = encryptionRequired ?? false
-    if !required {
-      guard
-        !jwks.isEmpty,
-        let encryptionMethodsSupported
-      else {
-        self = .notSupported
-        return
-      }
-      
-      self = .notRequired(
-        jwks: jwks,
-        encryptionMethodsSupported: encryptionMethodsSupported,
-        compressionMethodsSupported: compressionMethodsSupported
-      )
-      
-    } else {
-      
-      guard
-        !jwks.isEmpty,
-        let encryptionMethodsSupported
-      else {
-        throw ValidationError
-          .error(
-            reason: "No JWKS and encryption methods supported for required request encryption"
-          )
-      }
+    if encryptionRequired {
       self = .required(
         jwks: jwks,
-        encryptionMethodsSupported: encryptionMethodsSupported,
+        encryptionMethodsSupported: validatedEncryptionMethods,
+        compressionMethodsSupported: compressionMethodsSupported
+      )
+    } else {
+      self = .notRequired(
+        jwks: jwks,
+        encryptionMethodsSupported: validatedEncryptionMethods,
         compressionMethodsSupported: compressionMethodsSupported
       )
     }
