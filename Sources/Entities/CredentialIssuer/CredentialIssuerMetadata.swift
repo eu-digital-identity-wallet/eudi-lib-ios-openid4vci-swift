@@ -135,8 +135,8 @@ public struct CredentialIssuerMetadata: Decodable, Equatable, Sendable {
       forKey: .credentialRequestEncryption
     )) ?? .notSupported
     
-    // If issuer supports or requires credential response encryption then it must advertise its request encryption capabilities
-    if !credentialResponseEncryption.notSupported {
+    // If issuer supports and requires credential response encryption then it must advertise its request encryption capabilities
+    if !credentialResponseEncryption.notSupported, credentialResponseEncryption.required {
         guard let requestEncryption = credentialRequestEncryption,
               !requestEncryption.notSupported else {
             throw CredentialIssuerMetadataError
