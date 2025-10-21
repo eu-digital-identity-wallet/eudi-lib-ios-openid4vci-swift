@@ -487,6 +487,37 @@ final class TestSinger: AsyncSignerProtocol {
   }
 }
 
+final class AsyncSigner: AsyncSignerProtocol {
+  let signer: Signer
+  
+  init(signer: Signer) {
+    self.signer = signer
+  }
+  
+  func signAsync(_ header: Data, _ payload: Data) async throws -> Data {
+    
+    guard
+      let jwsHeader = JWSHeader(header)
+    else {
+      throw NSError(
+        domain: "SignerErrorDomain",
+        code: 1,
+        userInfo: [NSLocalizedDescriptionKey: "Unable to create signer"]
+      )
+    }
+    
+    let jws = try JWS(
+      header: jwsHeader,
+      payload: .init(
+        payload
+      ),
+      signer: self.signer
+    )
+    
+    return jws.signature
+  }
+}
+
 let ISSUANCE_MESSAGE = "--> [ISSUANCE] Issued credentials:"
 let OFFER_BASED_SCENARIO = "[[Scenario: Offer passed to wallet via url]] "
 let NO_OFFER_BASED_SCENARIO = "[[Scenario: No offer passed, wallet initiates issuance by credetial scopes]]"

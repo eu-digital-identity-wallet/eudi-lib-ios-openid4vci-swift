@@ -58,15 +58,18 @@ internal actor AuthorizeIssuance: AuthorizeIssuanceType {
   
   let config: OpenId4VCIConfig
   let authorizer: AuthorizationServerClientType
+  let challenger: ChallengeEndpointClientType?
   let issuerMetadata: CredentialIssuerMetadata
   
   init(
     config: OpenId4VCIConfig,
     authorizer: AuthorizationServerClientType,
+    challenger: ChallengeEndpointClientType?,
     issuerMetadata: CredentialIssuerMetadata
   ) {
     self.config = config
     self.authorizer = authorizer
+    self.challenger = challenger
     self.issuerMetadata = issuerMetadata
   }
   
@@ -123,6 +126,7 @@ internal actor AuthorizeIssuance: AuthorizeIssuanceType {
         case .include(let filter): credentialOffer.credentialConfigurationIdentifiers.filter(filter)
         }
         
+        let challenge = try? await challenger?.getChallenge().get()
         let response = try await authorizer.requestAccessTokenPreAuthFlow(
           preAuthorizedCode: authorisation,
           txCode: txCode,
@@ -130,6 +134,7 @@ internal actor AuthorizeIssuance: AuthorizeIssuanceType {
           transactionCode: transactionCode,
           identifiers: credConfigIdsAsAuthDetails,
           dpopNonce: nil,
+          challenge: challenge,
           retry: true
         )
         
@@ -185,6 +190,7 @@ internal actor AuthorizeIssuance: AuthorizeIssuanceType {
           case .include(let filter): request.configurationIds.filter(filter)
           }
           
+          let challenge = try? await challenger?.getChallenge().get()
           let response: (
             accessToken: IssuanceAccessToken,
             refreshToken: IssuanceRefreshToken,
@@ -197,6 +203,7 @@ internal actor AuthorizeIssuance: AuthorizeIssuanceType {
             codeVerifier: request.pkceVerifier.codeVerifier,
             identifiers: credConfigIdsAsAuthDetails,
             dpopNonce: request.dpopNonce,
+            challenge: challenge,
             retry: true
           ).get()
           
@@ -296,6 +303,7 @@ private extension AuthorizeIssuance {
         issuerState: issuerState,
         resource: resource,
         dpopNonce: nil,
+        challenge: nil,
         retry: true
       ).get()
 

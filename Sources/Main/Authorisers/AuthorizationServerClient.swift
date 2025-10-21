@@ -66,6 +66,7 @@ protocol AuthorizationServerClientType: Sendable {
     issuerState: String?,
     resource: String?,
     dpopNonce: Nonce?,
+    challenge: Nonce?,
     retry: Bool
   ) async throws -> Result<(PKCEVerifier, AuthorizationCodeURL, Nonce?), Error>
   
@@ -76,6 +77,7 @@ protocol AuthorizationServerClientType: Sendable {
   ///   - codeVerifier: The PKCE code verifier.
   ///   - identifiers: Identifiers for the credential configurations.
   ///   - dpopNonce: An optional nonce for DPoP.
+  ///   - challenge: An optional challenge
   ///   - retry: A flag indicating whether to retry on failure.
   /// - Returns: A result containing the access token, refresh token, authorization details, token type, expiration time, and an optional nonce, or an error if the operation fails.
   func requestAccessTokenAuthFlow(
@@ -83,6 +85,7 @@ protocol AuthorizationServerClientType: Sendable {
     codeVerifier: String,
     identifiers: [CredentialConfigurationIdentifier],
     dpopNonce: Nonce?,
+    challenge: Nonce?,
     retry: Bool
   ) async throws -> Result<(
     IssuanceAccessToken,
@@ -102,6 +105,7 @@ protocol AuthorizationServerClientType: Sendable {
   ///   - transactionCode: An optional transaction code string.
   ///   - identifiers: Identifiers for the credential configurations.
   ///   - dpopNonce: An optional nonce for DPoP.
+  ///   - challenge: An optional challenge
   ///   - retry: A flag indicating whether to retry on failure.
   /// - Returns: A result containing the access token, refresh token, authorization details, expiration time, and an optional nonce, or an error if the operation fails.
   func requestAccessTokenPreAuthFlow(
@@ -111,6 +115,7 @@ protocol AuthorizationServerClientType: Sendable {
     transactionCode: String?,
     identifiers: [CredentialConfigurationIdentifier],
     dpopNonce: Nonce?,
+    challenge: Nonce?,
     retry: Bool
   ) async throws -> Result<(
     IssuanceAccessToken,
@@ -283,6 +288,7 @@ internal actor AuthorizationServerClient: AuthorizationServerClientType {
     issuerState: String?,
     resource: String? = nil,
     dpopNonce: Nonce? = nil,
+    challenge: Nonce? = nil,
     retry: Bool = true
   ) async throws -> Result<(PKCEVerifier, AuthorizationCodeURL, Nonce?), Error> {
     
@@ -320,12 +326,13 @@ internal actor AuthorizationServerClient: AuthorizationServerClientType {
         )
       }
       
-      let clientAttestationHeaders = clientAttestationHeaders(
+      let clientAttestationHeaders = await clientAttestationHeaders(
         clientAttestation: try generateClientAttestationIfNeeded(
           clock: Clock(),
           authServerId: URL(
             string: authorizationServerMetadata.issuer ?? ""
-          )
+          ),
+          challenge: challenge
         )
       )
       
@@ -402,6 +409,7 @@ internal actor AuthorizationServerClient: AuthorizationServerClientType {
     codeVerifier: String,
     identifiers: [CredentialConfigurationIdentifier],
     dpopNonce: Nonce?,
+    challenge: Nonce?,
     retry: Bool
   ) async throws -> Result<(
     IssuanceAccessToken,
@@ -421,12 +429,13 @@ internal actor AuthorizationServerClient: AuthorizationServerClientType {
     )
     
     do {
-      let clientAttestationHeaders = clientAttestationHeaders(
+      let clientAttestationHeaders = await clientAttestationHeaders(
         clientAttestation: try generateClientAttestationIfNeeded(
           clock: Clock(),
           authServerId: URL(
             string: authorizationServerMetadata.issuer ?? ""
-          )
+          ),
+          challenge: challenge
         )
       )
       
@@ -479,6 +488,7 @@ internal actor AuthorizationServerClient: AuthorizationServerClientType {
               codeVerifier: codeVerifier,
               identifiers: identifiers,
               dpopNonce: nonce,
+              challenge: challenge,
               retry: false
             )
           } else {
@@ -490,6 +500,7 @@ internal actor AuthorizationServerClient: AuthorizationServerClientType {
                 codeVerifier: codeVerifier,
                 identifiers: identifiers,
                 dpopNonce: dpopNonce,
+                challenge: challenge,
                 retry: false
             )
         default:
@@ -593,6 +604,7 @@ internal actor AuthorizationServerClient: AuthorizationServerClientType {
     transactionCode: String?,
     identifiers: [CredentialConfigurationIdentifier],
     dpopNonce: Nonce?,
+    challenge: Nonce?,
     retry: Bool
   ) async throws -> Result<(
     IssuanceAccessToken,
@@ -610,12 +622,13 @@ internal actor AuthorizationServerClient: AuthorizationServerClientType {
       )
       
       do {
-        let clientAttestationHeaders = clientAttestationHeaders(
+        let clientAttestationHeaders = await clientAttestationHeaders(
           clientAttestation: try generateClientAttestationIfNeeded(
             clock: Clock(),
             authServerId: URL(
               string: authorizationServerMetadata.issuer ?? ""
-            )
+            ),
+            challenge: challenge
           )
         )
         
@@ -632,7 +645,14 @@ internal actor AuthorizationServerClient: AuthorizationServerClientType {
         )
         
         switch response.body {
-        case .success(let tokenType, let accessToken, let refreshToken, let expiresIn, _, let identifiers):
+        case .success(
+          let tokenType,
+          let accessToken,
+          let refreshToken,
+          let expiresIn,
+          _,
+          let identifiers
+        ):
           return .success(
             (
               try .init(
@@ -667,7 +687,9 @@ internal actor AuthorizationServerClient: AuthorizationServerClientType {
                 transactionCode: transactionCode,
                 identifiers: identifiers,
                 dpopNonce: nonce,
-                retry: false)
+                challenge: challenge,
+                retry: false
+              )
             } else {
               return .failure(ValidationError.retryFailedAfterDpopNonce)
             }
@@ -717,8 +739,9 @@ private extension AuthorizationServerClient {
   
   func generateClientAttestationIfNeeded(
     clock: ClockType,
-    authServerId: URL?
-  ) throws -> (ClientAttestationJWT, ClientAttestationPoPJWT)? {
+    authServerId: URL?,
+    challenge: Nonce?
+  ) async throws -> (ClientAttestationJWT, ClientAttestationPoPJWT)? {
     switch client {
     case .public:
       return nil
@@ -730,11 +753,14 @@ private extension AuthorizationServerClient {
       guard let authServerId = authServerId else {
         return nil
       }
+      
       let popJWT = try clientAttestationPoPBuilder.buildAttestationPoPJWT(
         for: client,
         clock: clock,
-        authServerId: authServerId
+        authServerId: authServerId,
+        challenge: challenge?.value
       )
+      
       return (attestationJWT, popJWT)
     }
   }
