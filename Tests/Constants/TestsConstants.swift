@@ -235,10 +235,7 @@ struct TestsConstants {
         path: "oidc_authorization_server_metadata",
         extension: "json"
       )),
-      oauthFetcher: Fetcher<AuthorizationServerMetadata>(session: NetworkingMock(
-        path: "test",
-        extension: "json"
-      ))
+      oauthFetcher: Fetcher<AuthorizationServerMetadata>()
     )
     
     let credentialOfferRequestResolver = CredentialOfferRequestResolver(
@@ -269,10 +266,7 @@ struct TestsConstants {
         path: "oidc_authorization_server_metadata",
         extension: "json"
       )),
-      oauthFetcher: Fetcher<AuthorizationServerMetadata>(session: NetworkingMock(
-        path: "test",
-        extension: "json"
-      ))
+      oauthFetcher: Fetcher<AuthorizationServerMetadata>()
     )
     
     let credentialOfferRequestResolver = CredentialOfferRequestResolver(
@@ -301,10 +295,6 @@ struct TestsConstants {
     let authorizationServerMetadataResolver = AuthorizationServerMetadataResolver(
       oidcFetcher: Fetcher<OIDCProviderMetadata>(session: NetworkingMock(
         path: "oidc_authorization_server_metadata",
-        extension: "json"
-      )),
-      oauthFetcher: Fetcher<AuthorizationServerMetadata>(session: NetworkingMock(
-        path: "test",
         extension: "json"
       ))
     )
@@ -337,10 +327,7 @@ struct TestsConstants {
         path: "oidc_authorization_server_metadata",
         extension: "json"
       )),
-      oauthFetcher: Fetcher<AuthorizationServerMetadata>(session: NetworkingMock(
-        path: "test",
-        extension: "json"
-      ))
+      oauthFetcher: Fetcher<AuthorizationServerMetadata>()
     )
     
     let credentialOfferRequestResolver = CredentialOfferRequestResolver(
@@ -371,10 +358,7 @@ struct TestsConstants {
         path: "oidc_authorization_server_metadata",
         extension: "json"
       )),
-      oauthFetcher: Fetcher<AuthorizationServerMetadata>(session: NetworkingMock(
-        path: "test",
-        extension: "json"
-      ))
+      oauthFetcher: Fetcher<AuthorizationServerMetadata>()
     )
     
     let credentialOfferRequestResolver = CredentialOfferRequestResolver(
