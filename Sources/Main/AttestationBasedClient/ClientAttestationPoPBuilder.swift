@@ -38,7 +38,8 @@ public protocol ClientAttestationPoPBuilder: Sendable {
   func buildAttestationPoPJWT(
     for client: Client,
     clock: ClockType,
-    authServerId: URL
+    authServerId: URL,
+    challenge: String?
   ) throws -> ClientAttestationPoPJWT
 }
 
@@ -46,25 +47,32 @@ public struct DefaultClientAttestationPoPBuilder: ClientAttestationPoPBuilder {
   public func buildAttestationPoPJWT(
     for client: Client,
     clock: ClockType,
-    authServerId: URL
+    authServerId: URL,
+    challenge: String?
   ) throws -> ClientAttestationPoPJWT {
     switch client {
     case .attested(let attestationJWT, let popJwtSpec):
+      
       let now = Date().timeIntervalSince1970
       let exp = Date().addingTimeInterval(popJwtSpec.duration).timeIntervalSince1970
+      let payload: [String: Any?] = [
+        JWTClaimNames.issuer: attestationJWT.clientId,
+        JWTClaimNames.jwtId: String.randomBase64URLString(length: 20),
+        JWTClaimNames.expirationTime: exp,
+        JWTClaimNames.issuedAt: now,
+        JWTClaimNames.audience: authServerId.absoluteString,
+        JWTClaimNames.cnf: attestationJWT.cnf,
+        JWTClaimNames.challenge: challenge
+      ]
+      
       let jws: JWS = try .init(
         header: try .init(parameters: [
           JWTClaimNames.algorithm: popJwtSpec.signingAlgorithm.rawValue,
           JWTClaimNames.type: popJwtSpec.typ
         ]),
-        payload: .init(JSON([
-          JWTClaimNames.issuer: attestationJWT.clientId,
-          JWTClaimNames.jwtId: String.randomBase64URLString(length: 20),
-          JWTClaimNames.expirationTime: exp,
-          JWTClaimNames.issuedAt: now,
-          JWTClaimNames.audience: authServerId.absoluteString,
-          JWTClaimNames.cnf: attestationJWT.cnf
-        ]).rawData()),
+        payload: .init(JSON(
+          payload.compactMapValues { $0 }
+        ).rawData()),
         signer: popJwtSpec.jwsSigner
       )
       return try .init(jws: jws)
