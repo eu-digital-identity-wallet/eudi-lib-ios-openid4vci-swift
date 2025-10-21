@@ -18,6 +18,47 @@ import JOSESwift
 
 @testable import OpenID4VCI
 
+internal func providerSignedClient(
+  client: WalletProviderClient,
+  clientId: String,
+  algorithm: SignatureAlgorithm = .ES256,
+  privateKey: SecKey
+) async throws -> Client {
+  
+  let publicKey = try KeyController.generateECDHPublicKey(from: privateKey)
+  let publicKeyJWK = try ECPublicKey(
+    publicKey: publicKey,
+    additionalParameters: [
+      "alg": "ES256",
+      "use": "sig",
+      "kid": UUID().uuidString
+    ])
+  
+  let attestation = try await client.issueWalletApplicationAttestation(
+    payload: [
+      "clientId": clientId,
+      "jwk": publicKeyJWK.toDictionary()
+    ]
+  )
+  
+  let signer = Signer(
+    signatureAlgorithm: algorithm,
+    key: privateKey
+  )!
+  
+  return try .attested(
+    attestationJWT: .init(
+      jws: .init(compactSerialization: attestation.walletApplicationAttestation)
+    ),
+    popJwtSpec: .init(
+      signingAlgorithm: algorithm,
+      duration: 300.0,
+      typ: "oauth-client-attestation-pop+jwt",
+      jwsSigner: signer
+    )
+  )
+}
+
 internal func selfSignedClient(
   clientId: String,
   algorithm: SignatureAlgorithm = .ES256,
