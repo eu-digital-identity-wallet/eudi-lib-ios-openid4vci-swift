@@ -124,9 +124,9 @@ public extension SingleCredential {
     ):
       if encryptionSpec != nil {
         dictionary[EncryptionKey.credentialResponseEncryption.rawValue] = [
-          EncryptionKey.jwk: try encryptionJwk.toDictionary(),
-          EncryptionKey.alg: responseEncryptionAlg.name,
-          EncryptionKey.enc: responseEncryptionMethod.name
+          EncryptionKey.jwk.rawValue: try encryptionJwk.toDictionary(),
+          EncryptionKey.alg.rawValue: responseEncryptionAlg.name,
+          EncryptionKey.enc.rawValue: responseEncryptionMethod.name
         ]
       }
       
