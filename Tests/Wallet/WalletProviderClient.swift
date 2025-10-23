@@ -82,8 +82,6 @@ public struct ChallengeResponse: Decodable {
   }
 }
 
-/// A flexible wrapper for the attestation issuance response.
-/// Many implementations return `{ "attestation": "<JWT>" }` or `{ "jwt": "<JWT>" }`.
 public struct WalletApplicationAttestation: Decodable {
   public let walletApplicationAttestation: String
   
