@@ -37,69 +37,56 @@ public enum CredentialResponseEncryption: Decodable, Sendable {
   
   var notSupported: Bool {
     switch self {
-    case .notSupported:
-      true
-    default:
-      false
+    case .notSupported: true
+    default: false
     }
   }
   
   var required: Bool {
     switch self {
-    case .required:
-      true
-    default:
-      false
+    case .required: true
+    default: false
     }
   }
   
   public init(from decoder: Decoder) throws {
     let container = try decoder.container(keyedBy: CodingKeys.self)
+    
     let encryptionRequired = try container.decode(Bool.self, forKey: .encryptionRequired)
+    let algorithmsSupported = try? container.decode([JWEAlgorithm].self, forKey: .algorithmsSupported)
+    let encryptionMethodsSupported = try? container.decode([JOSEEncryptionMethod].self, forKey: .encryptionMethodsSupported)
+    let compressionMethodsSupported = try? container.decode([CompressionAlgorithm].self, forKey: .compressionMethodsSupported)
     
-    let algorithmsSupported = try? container.decode(
-      [JWEAlgorithm].self,
-      forKey: .algorithmsSupported
-    )
-    let encryptionMethodsSupported = try? container.decode(
-      [JOSEEncryptionMethod].self,
-      forKey: .encryptionMethodsSupported
-    )
-    
-    let compressionMethodsSupported = try? container.decode(
-      [CompressionAlgorithm].self,
-      forKey: .compressionMethodsSupported
-    )
-    
-    if !encryptionRequired {
-      guard
-        let algorithmsSupported,
-        let encryptionMethodsSupported
-      else {
-        self = .notSupported
-        return
+    guard let algorithmsSupported,
+          let encryptionMethodsSupported,
+          !encryptionMethodsSupported.isEmpty else {
+
+      if encryptionRequired {
+        throw ValidationError.error(
+          reason: "No algorithms and encryption methods supported"
+        )
       }
-      
-      self = .notRequired(
-        algorithmsSupported: algorithmsSupported,
-        encryptionMethodsSupported: encryptionMethodsSupported,
-        compressionMethodsSupported: compressionMethodsSupported
-      )
-      
-    } else {
-      
-      guard
-        let algorithmsSupported,
-        let encryptionMethodsSupported
-      else {
-        throw ValidationError
-          .error(
-            reason: "No algorithms and encryption methods supported"
-          )
-      }
+
+      self = .notSupported
+      return
+    }
+    
+    // Validate and reorder methods for platform
+    let validatedMethods = try JOSEEncryptionMethod.validateForPlatform(
+      encryptionMethodsSupported,
+      unsupportedError: CredentialIssuerMetadataError.unsupportedResponseEncryptionMethods
+    )
+    
+    if encryptionRequired {
       self = .required(
         algorithmsSupported: algorithmsSupported,
-        encryptionMethodsSupported: encryptionMethodsSupported,
+        encryptionMethodsSupported: validatedMethods,
+        compressionMethodsSupported: compressionMethodsSupported
+      )
+    } else {
+      self = .notRequired(
+        algorithmsSupported: algorithmsSupported,
+        encryptionMethodsSupported: validatedMethods,
         compressionMethodsSupported: compressionMethodsSupported
       )
     }

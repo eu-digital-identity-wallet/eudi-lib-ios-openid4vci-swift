@@ -126,3 +126,43 @@ public extension ContentEncryptionAlgorithm {
     self.init(rawValue: encryptionMethod.name)
   }
 }
+
+extension JOSEEncryptionMethod {
+  static var supportedByPlatform: [JOSEEncryptionMethod.EncryptionMethodType] {
+    [
+      .A128GCM,
+      .A192GCM,
+      .A256GCM,
+      .A128CBC_HS256,
+      .A192CBC_HS384,
+      .A256CBC_HS512
+    ]
+  }
+}
+
+
+extension JOSEEncryptionMethod {
+  /// Validates and reorders encryption methods based on platform support.
+  ///
+  /// - Parameter methods: Encryption methods to validate
+  /// - Returns: Platform-supported methods, followed by unsupported methods
+  /// - Throws: Generic error if no supported methods are found
+  static func validateForPlatform<E: Error>(
+    _ methods: [JOSEEncryptionMethod]?,
+    unsupportedError: E
+  ) throws -> [JOSEEncryptionMethod] {
+    guard let methods, !methods.isEmpty else {
+      throw unsupportedError
+    }
+    
+    let supportedNames = Set(supportedByPlatform.map(\.name))
+    let supported = methods.filter { supportedNames.contains($0.name) }
+    let unsupported = methods.filter { !supportedNames.contains($0.name) }
+    
+    guard !supported.isEmpty else {
+      throw unsupportedError
+    }
+  
+    return supported + unsupported
+  }
+}
