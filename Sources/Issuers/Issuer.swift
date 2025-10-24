@@ -157,6 +157,7 @@ public actor Issuer: IssuerType {
   private let issuanceRequester: IssuanceRequesterType
   private let deferredIssuanceRequester: IssuanceRequesterType
   private let notifyIssuer: NotifyIssuerType
+  private let challenger: ChallengeEndpointClientType?
   
   func encryptionSpec() throws -> EncryptionSpec? {
     
@@ -212,9 +213,16 @@ public actor Issuer: IssuerType {
       dpopConstructor: config.useDpopIfSupported ? dpopConstructor : nil
     )
     
+    if let challengeEndpoint = authorizationServerMetadata.challengeEndpointURI {
+      challenger = ChallengeEndpointClient(challengeEndpoint: challengeEndpoint)
+    } else {
+      challenger = nil
+    }
+    
     authorizeIssuance = AuthorizeIssuance(
       config: config,
       authorizer: authorizer,
+      challenger: challenger,
       issuerMetadata: issuerMetadata
     )
     
@@ -254,6 +262,7 @@ public actor Issuer: IssuerType {
     requesterPoster: PostingType = Poster(),
     deferredRequesterPoster: PostingType = Poster(),
     notificationPoster: PostingType = Poster(),
+    challengePoster: PostingType = Poster(),
     noncePoster: PostingType = Poster(),
     dpopConstructor: DPoPConstructorType? = nil
   ) throws {
@@ -270,9 +279,19 @@ public actor Issuer: IssuerType {
       dpopConstructor: dpopConstructor
     )
     
+    if let challengeEndpoint = authorizationServerMetadata.challengeEndpointURI {
+      challenger = ChallengeEndpointClient(
+        poster: challengePoster,
+        challengeEndpoint: challengeEndpoint
+      )
+    } else {
+      challenger = nil
+    }
+    
     authorizeIssuance = AuthorizeIssuance(
       config: config,
       authorizer: authorizer,
+      challenger: challenger,
       issuerMetadata: issuerMetadata
     )
     

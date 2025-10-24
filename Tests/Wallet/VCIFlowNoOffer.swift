@@ -627,6 +627,68 @@ class VCIFlowNoOffer: XCTestCase {
     
     XCTAssert(true)
   }
+  
+  func testNoOfferWalletAttestedSdJWT() async throws {
+    
+    let client = WalletProviderClient(
+      baseURL: URL(
+        string: "https://dev.wallet-provider.eudiw.dev"
+      )!
+    )
+    
+    let privateKey = try KeyController.generateECDHPrivateKey()
+    let publicKey = try KeyController.generateECDHPublicKey(from: privateKey)
+    
+    let attestationConfig: OpenId4VCIConfig = await .init(
+      client: try! providerSignedClient(
+        client: client,
+        clientId: "wallet-dev",
+        algorithm: .ES256,
+        privateKey: privateKey
+      ),
+      authFlowRedirectionURI: URL(string: "urn:ietf:wg:oauth:2.0:oob")!,
+      authorizeIssuanceConfig: .favorScopes,
+      clientAttestationPoPBuilder: DefaultClientAttestationPoPBuilder()
+    )
+    
+    let publicKeyJWK = try ECPublicKey(
+      publicKey: publicKey,
+      additionalParameters: [
+        "alg": "ES256",
+        "use": "sig",
+        "kid": UUID().uuidString
+      ])
+    
+    let bindingKey: BindingKey = .jwk(
+      algorithm: JWSAlgorithm(.ES256),
+      jwk: publicKeyJWK,
+      privateKey: .secKey(privateKey)
+    )
+    
+    let user = ActingUser(
+      username: "tneal",
+      password: "password"
+    )
+    
+    let wallet = Wallet(
+      actingUser: user,
+      bindingKeys: [bindingKey]
+    )
+    
+    do {
+      try await walletInitiatedIssuanceNoOfferSdJwt(
+        wallet: wallet,
+        config: attestationConfig
+      )
+      
+    } catch {
+      
+      XCTExpectFailure()
+      XCTAssert(false, error.localizedDescription)
+    }
+    
+    XCTAssert(true)
+  }
 }
 
 private func walletInitiatedIssuanceNoOfferSdJwtClientAuthentication(

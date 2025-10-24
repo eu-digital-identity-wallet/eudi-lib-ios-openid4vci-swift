@@ -34,6 +34,16 @@ public enum Client: Sendable {
     }
   }
   
+  // Computed property for pop jwt spec private key
+  public var attestationSigner: Signer? {
+    switch self {
+    case .public:
+      return nil
+    case .attested(_, let spec):
+      return spec.jwsSigner
+    }
+  }
+  
   // MARK: - Validation
   public init(public id: ClientId) {
     self = .public(id: id)

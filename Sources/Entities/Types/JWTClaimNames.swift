@@ -52,4 +52,5 @@ public extension JWTClaimNames {
   static let cnf = "cnf"
   static let kid = "kid"
   static let keyAttestation = "key_attestation"
+  static let challenge = "challenge"
 }

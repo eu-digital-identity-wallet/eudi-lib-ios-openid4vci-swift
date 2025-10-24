@@ -78,4 +78,15 @@ public enum IdentityAndAccessManagementMetadata: Sendable {
       return metaData.dpopSigningAlgValuesSupported
     }
   }
+  
+  var challengeEndpointURI: URL? {
+    switch self {
+    case .oidc(let metaData):
+      guard let challengeEndpoint = metaData.challengeEndpoint else { return nil }
+      return URL(string: challengeEndpoint)
+    case .oauth(let metaData):
+      guard let challengeEndpoint = metaData.challengeEndpoint else { return nil }
+      return URL(string: challengeEndpoint)
+    }
+  }
 }

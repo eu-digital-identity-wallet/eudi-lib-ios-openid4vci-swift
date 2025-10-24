@@ -55,17 +55,17 @@ public actor AuthorizationServerMetadataResolver: AuthorizationServerMetadataRes
     url: URL
   ) async -> Result<IdentityAndAccessManagementMetadata, Error> {
     
-    if let oidc = await fetchOIDCProviderMetadata(
-      fetcher: oidcFetcher,
-      url: url
-    ) {
-      return .success(.oidc(oidc))
-      
-    } else if let oauth = await fetchAuthorizationServerMetadata(
+    if let oauth = await fetchAuthorizationServerMetadata(
       fetcher: oauthFetcher,
       url: url
     ) {
       return .success(.oauth(oauth))
+      
+    } else if let oidc = await fetchOIDCProviderMetadata(
+      fetcher: oidcFetcher,
+      url: url
+    ) {
+      return .success(.oidc(oidc))
     }
     
     return .failure(ValidationError.error(reason: "Unable to fetch metadata"))

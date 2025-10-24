@@ -37,6 +37,9 @@ public struct AuthorizationServerMetadata: Codable, Equatable, Sendable {
   public let pushedAuthorizationRequestEndpoint: String?
   public let mtlsEndpointAliases: MtlsEndpointAliases?
   public let authorizationResponseIssParameterSupported: Bool?
+  public let challengeEndpoint: String?
+  public let clientAttestationSigningAlgValuesSupported: [String]?
+  public let clientAttestationPopSigningAlgValuesSupported: [String]?
   
   enum CodingKeys: String, CodingKey {
     case issuer
@@ -76,6 +79,9 @@ public struct AuthorizationServerMetadata: Codable, Equatable, Sendable {
     case pushedAuthorizationRequestEndpoint = "pushed_authorization_request_endpoint"
     case mtlsEndpointAliases = "mtls_endpoint_aliases"
     case authorizationResponseIssParameterSupported = "authorization_response_iss_parameter_supported"
+    case challengeEndpoint = "challenge_endpoint"
+    case clientAttestationSigningAlgValuesSupported = "client_attestation_signing_alg_values_supported"
+    case clientAttestationPopSigningAlgValuesSupported = "client_attestation_pop_signing_alg_values_supported"
   }
   
   public init(
@@ -115,7 +121,10 @@ public struct AuthorizationServerMetadata: Codable, Equatable, Sendable {
     requirePushedAuthorizationRequests: Bool? = nil,
     pushedAuthorizationRequestEndpoint: String? = nil,
     mtlsEndpointAliases: MtlsEndpointAliases? = nil,
-    authorizationResponseIssParameterSupported: Bool? = nil
+    authorizationResponseIssParameterSupported: Bool? = nil,
+    challengeEndpoint: String? = nil,
+    clientAttestationSigningAlgValuesSupported: [String]? = nil,
+    clientAttestationPopSigningAlgValuesSupported: [String]? = nil
   ) {
     self.issuer = issuer
     self.authorizationEndpoint = authorizationEndpoint
@@ -154,7 +163,12 @@ public struct AuthorizationServerMetadata: Codable, Equatable, Sendable {
     self.pushedAuthorizationRequestEndpoint = pushedAuthorizationRequestEndpoint
     self.mtlsEndpointAliases = mtlsEndpointAliases
     self.authorizationResponseIssParameterSupported = authorizationResponseIssParameterSupported
+    
+    self.challengeEndpoint = challengeEndpoint
+    self.clientAttestationSigningAlgValuesSupported = clientAttestationSigningAlgValuesSupported
+    self.clientAttestationPopSigningAlgValuesSupported = clientAttestationPopSigningAlgValuesSupported
   }
+  
   public static func == (lhs: AuthorizationServerMetadata, rhs: AuthorizationServerMetadata) -> Bool {
     lhs.authorizationEndpoint == rhs.authorizationEndpoint
   }

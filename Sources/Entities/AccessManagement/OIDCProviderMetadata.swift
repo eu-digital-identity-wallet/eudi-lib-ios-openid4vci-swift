@@ -47,6 +47,9 @@ public struct OIDCProviderMetadata: Codable, Equatable, Sendable {
   public let pushedAuthorizationRequestEndpoint: String?
   public let mtlsEndpointAliases: MtlsEndpointAliases?
   public let authorizationResponseIssParameterSupported: Bool?
+  public let challengeEndpoint: String?
+  public let clientAttestationSigningAlgValuesSupported: [String]?
+  public let clientAttestationPopSigningAlgValuesSupported: [String]?
   
   enum CodingKeys: String, CodingKey {
     case issuer
@@ -104,6 +107,9 @@ public struct OIDCProviderMetadata: Codable, Equatable, Sendable {
     case pushedAuthorizationRequestEndpoint = "pushed_authorization_request_endpoint"
     case mtlsEndpointAliases = "mtls_endpoint_aliases"
     case authorizationResponseIssParameterSupported = "authorization_response_iss_parameter_supported"
+    case challengeEndpoint = "challenge_endpoint"
+    case clientAttestationSigningAlgValuesSupported = "client_attestation_signing_alg_values_supported"
+    case clientAttestationPopSigningAlgValuesSupported = "client_attestation_pop_signing_alg_values_supported"
   }
   
   public init(
@@ -160,7 +166,11 @@ public struct OIDCProviderMetadata: Codable, Equatable, Sendable {
     requirePushedAuthorizationRequests: Bool?,
     pushedAuthorizationRequestEndpoint: String?,
     mtlsEndpointAliases: MtlsEndpointAliases?,
-    authorizationResponseIssParameterSupported: Bool?) {
+    authorizationResponseIssParameterSupported: Bool?,
+    challengeEndpoint: String?,
+    clientAttestationSigningAlgValuesSupported: [String]?,
+    clientAttestationPopSigningAlgValuesSupported: [String]?
+  ) {
     self.issuer = issuer
     self.authorizationEndpoint = authorizationEndpoint
     self.tokenEndpoint = tokenEndpoint
@@ -216,6 +226,9 @@ public struct OIDCProviderMetadata: Codable, Equatable, Sendable {
     self.pushedAuthorizationRequestEndpoint = pushedAuthorizationRequestEndpoint
     self.mtlsEndpointAliases = mtlsEndpointAliases
     self.authorizationResponseIssParameterSupported = authorizationResponseIssParameterSupported
+    self.challengeEndpoint = challengeEndpoint
+    self.clientAttestationSigningAlgValuesSupported = clientAttestationSigningAlgValuesSupported
+    self.clientAttestationPopSigningAlgValuesSupported = clientAttestationPopSigningAlgValuesSupported
   }
   
   public static func == (lhs: OIDCProviderMetadata, rhs: OIDCProviderMetadata) -> Bool {
