@@ -60,7 +60,6 @@ platform :ios do
     xcov(
       scheme: "OpenID4VCI",
       output_directory: "xcov_output",
-      xccov_file_direct_path: "xcov_output/OpenID4VCI.xcresult",
       is_swift_package: true,
       minimum_coverage_percentage: 50.0
     )
