@@ -21,7 +21,7 @@ public struct ClientAttestationJWT: Sendable {
   public let jws: JWS
   private let payload: JSON
   
-  public init(jws: JWS) throws {
+  public init(jws: JWS, validateCnf: Bool = true) throws {
     self.jws = jws
     
     guard jws.header.algorithm != nil else {
@@ -37,14 +37,16 @@ public struct ClientAttestationJWT: Sendable {
     }
     self.payload = JSON(jsonObject)
     
-    guard let cnf = payload[JWTClaimNames.cnf].dictionary else {
-      throw ClientAttestationError.missingCnfClaim
+    if validateCnf {
+      guard let cnf = payload[JWTClaimNames.cnf].dictionary else {
+        throw ClientAttestationError.missingCnfClaim
+      }
+      
+      guard cnf[JWTClaimNames.JWK] != nil else {
+        throw ClientAttestationError.missingJwkClaim
+      }
     }
     
-    guard cnf[JWTClaimNames.JWK] != nil else {
-      throw ClientAttestationError.missingJwkClaim
-    }
-
     guard payload[JWTClaimNames.expirationTime].number != nil else {
       throw ClientAttestationError.missingExpirationClaim
     }
