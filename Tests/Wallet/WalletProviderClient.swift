@@ -90,6 +90,14 @@ public struct WalletApplicationAttestation: Decodable {
   }
 }
 
+public struct WalletUnitAttestation: Decodable {
+  public let walletUnitAttestation: String
+  
+  public init(walletUnitAttestation: String) {
+    self.walletUnitAttestation = walletUnitAttestation
+  }
+}
+
 /// Minimal Swift client for the Wallet Provider dev API.
 /// - Only implements `/challenge` and `/wallet-application-attestation/jwk`.
 ///
@@ -170,6 +178,30 @@ public final class WalletProviderClient {
       throw WalletProviderError.encoding(error)
     }
     return try await send(req, decode: WalletApplicationAttestation.self)
+  }
+  
+  /// POST /wallet-unit-attestation/jwk-set
+  ///
+  /// The body is a JWKS dictionary (`{ "keys": [ ... ] }`) built from your key set.
+  /// - Parameter jwkSetDictionary: a JSON-serializable JWKS (e.g., from your library)
+  /// - Returns: a decoded `WalletUnitAttestation` with the attestation JWT
+  @discardableResult
+  public func issueWalletUnitAttestation(jwkSetDictionary: [String: Any]) async throws -> WalletUnitAttestation {
+    let url = config.baseURL
+      .appendingPathComponent("wallet-unit-attestation")
+      .appendingPathComponent("jwk-set")
+    var req = URLRequest(url: url)
+    req.httpMethod = "POST"
+    req.allHTTPHeaderFields = [
+      "Content-Type": "application/json",
+      "Accept": "application/json"
+    ]
+    do {
+      req.httpBody = try JSONSerialization.data(withJSONObject: jwkSetDictionary, options: [])
+    } catch {
+      throw WalletProviderError.encoding(error)
+    }
+    return try await send(req, decode: WalletUnitAttestation.self)
   }
   
   // MARK: - Internals
