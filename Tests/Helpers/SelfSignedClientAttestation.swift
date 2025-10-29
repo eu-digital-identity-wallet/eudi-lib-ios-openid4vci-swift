@@ -93,7 +93,7 @@ internal func jwkSetProviderSignedClient(
   return try .attested(
     attestationJWT: .init(
       jws: .init(
-        compactSerialization: attestation.walletUnitAttestation,
+        compactSerialization: attestation.walletUnitAttestation
       ),
       validateCnf: false
     ),
