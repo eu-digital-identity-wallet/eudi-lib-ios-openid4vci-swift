@@ -446,6 +446,12 @@ extension Wallet {
           case .deferred(let transactionId, let interval):
             
             print("--> [DEFERRED] Retry after: \(interval)")
+            /*
+            let duration = min(interval, 75.0)
+            if #available(iOS 16.0, *) {
+              try await Task.sleep(for: .seconds(duration))
+            }
+             */
             
             return try await deferredCredentialUseCase(
               issuer: issuer,
