@@ -26,6 +26,11 @@ public enum BindingKey: Sendable, Equatable {
     issuer: String? = nil
   )
   
+  // Attestation
+  case attestation(
+    keyAttestationJWT: @Sendable (_ nonce: String?) async throws -> KeyAttestationJWT
+  )
+  
   // DID Binding Key
   case did(identity: String)
   
@@ -40,11 +45,6 @@ public enum BindingKey: Sendable, Equatable {
     privateKey: SigningKeyProxy,
     publicJWK: JWK,
     issuer: String? = nil
-  )
-  
-  // Attestation
-  case attestation(
-    keyAttestationJWT: KeyAttestationJWT
   )
 }
 
@@ -203,7 +203,7 @@ public extension BindingKey {
     case .attestation(
       let keyAttestationJWT
     ):
-      return .attestation(keyAttestationJWT)
+      return .attestation(try await keyAttestationJWT(cNonce))
       
     case .did(let identity):
       throw ValidationError.todo(

@@ -113,12 +113,14 @@ class KeyAttestationTests: XCTestCase {
     )
     let spec = data.spec
     
-    let keyBindingKey: BindingKey = try! .attestation(
-      keyAttestationJWT: .init(
-        jws: .init(
-          compactSerialization: TestsConstants.ketAttestationJWT
+    let keyBindingKey: BindingKey = .attestation(
+      keyAttestationJWT: { nonce in
+        try! .init(
+          jws: try! .init(
+            compactSerialization: TestsConstants.ketAttestationJWT
+          )
         )
-      )
+      }
     )
     
     // When
