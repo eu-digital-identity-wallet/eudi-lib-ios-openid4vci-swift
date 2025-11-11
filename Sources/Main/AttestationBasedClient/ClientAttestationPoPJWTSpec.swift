@@ -36,7 +36,7 @@ public struct ClientAttestationPoPJWTSpec: Sendable {
   public let signingAlgorithm: SignatureAlgorithm
   public let duration: TimeInterval
   public let typ: String
-  public let jwsSigner: Signer
+  public let signingKey: SigningKeyProxy
   
   // MARK: - Initializer
   
@@ -44,7 +44,7 @@ public struct ClientAttestationPoPJWTSpec: Sendable {
     signingAlgorithm: SignatureAlgorithm,
     duration: TimeInterval = 300, // Default to 5 minutes
     typ: String,
-    jwsSigner: Signer
+    signingKey: SigningKeyProxy
   ) throws {
     // Validate the signing algorithm (must not be MAC)
     try Self.requireIsNotMAC(signingAlgorithm)
@@ -57,7 +57,7 @@ public struct ClientAttestationPoPJWTSpec: Sendable {
     self.signingAlgorithm = signingAlgorithm
     self.duration = duration
     self.typ = typ
-    self.jwsSigner = jwsSigner
+    self.signingKey = signingKey
   }
   
   // MARK: - Helper Functions
