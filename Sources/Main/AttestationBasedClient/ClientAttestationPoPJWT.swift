@@ -14,10 +14,10 @@
  * limitations under the License.
  */
 import Foundation
-import JOSESwift
-import SwiftyJSON
+@preconcurrency import JOSESwift
+@preconcurrency import SwiftyJSON
 
-public struct ClientAttestationPoPJWT {
+public struct ClientAttestationPoPJWT: Sendable {
   public let jws: JWS
   private let payload: JSON
   
