@@ -41,11 +41,6 @@ internal func jwkProviderSignedClient(
     ]
   )
   
-  let signer = Signer(
-    signatureAlgorithm: algorithm,
-    key: privateKey
-  )!
-  
   return try .attested(
     attestationJWT: .init(
       jws: .init(compactSerialization: attestation.walletApplicationAttestation)
@@ -54,7 +49,7 @@ internal func jwkProviderSignedClient(
       signingAlgorithm: algorithm,
       duration: 300.0,
       typ: "oauth-client-attestation-pop+jwt",
-      jwsSigner: signer
+      signingKey: .secKey(privateKey)
     )
   )
 }
@@ -85,11 +80,6 @@ internal func jwkSetProviderSignedClient(
     ]
   )
   
-  let signer = Signer(
-    signatureAlgorithm: algorithm,
-    key: privateKey
-  )!
-  
   return try .attested(
     attestationJWT: .init(
       jws: .init(
@@ -101,7 +91,7 @@ internal func jwkSetProviderSignedClient(
       signingAlgorithm: algorithm,
       duration: 300.0,
       typ: "oauth-client-attestation-pop+jwt",
-      jwsSigner: signer
+      signingKey: .secKey(privateKey)
     )
   )
 }
@@ -162,7 +152,7 @@ internal func selfSignedClient(
       signingAlgorithm: algorithm,
       duration: duration,
       typ: "oauth-client-attestation-pop+jwt",
-      jwsSigner: signer
+      signingKey: .secKey(privateKey)
     )
   )
 }

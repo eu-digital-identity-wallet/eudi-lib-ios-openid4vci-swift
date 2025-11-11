@@ -17,7 +17,7 @@ import Foundation
 import JOSESwift
 import SwiftyJSON
 
-public protocol ClockType {
+public protocol ClockType: Sendable {
   func now() -> Date
 }
 
@@ -37,19 +37,21 @@ public protocol ClientAttestationPoPBuilder: Sendable {
   /// - Returns: A `ClientAttestationPoPJWT`.
   func buildAttestationPoPJWT(
     for client: Client,
+    algorithm: SignatureAlgorithm,
     clock: ClockType,
     authServerId: URL,
     challenge: String?
-  ) throws -> ClientAttestationPoPJWT
+  ) async throws -> ClientAttestationPoPJWT
 }
 
 public struct DefaultClientAttestationPoPBuilder: ClientAttestationPoPBuilder {
   public func buildAttestationPoPJWT(
     for client: Client,
+    algorithm: SignatureAlgorithm,
     clock: ClockType,
     authServerId: URL,
     challenge: String?
-  ) throws -> ClientAttestationPoPJWT {
+  ) async throws -> ClientAttestationPoPJWT {
     switch client {
     case .attested(let attestationJWT, let popJwtSpec):
       
@@ -65,15 +67,22 @@ public struct DefaultClientAttestationPoPBuilder: ClientAttestationPoPBuilder {
         JWTClaimNames.challenge: challenge
       ]
       
+      let header: JWSHeader = try .init(parameters: [
+        JWTClaimNames.algorithm: popJwtSpec.signingAlgorithm.rawValue,
+        JWTClaimNames.type: popJwtSpec.typ
+      ])
+      let jwsPayload: Payload = try .init(JSON(
+        payload.compactMapValues { $0 }
+      ).rawData())
       let jws: JWS = try .init(
-        header: try .init(parameters: [
-          JWTClaimNames.algorithm: popJwtSpec.signingAlgorithm.rawValue,
-          JWTClaimNames.type: popJwtSpec.typ
-        ]),
-        payload: .init(JSON(
-          payload.compactMapValues { $0 }
-        ).rawData()),
-        signer: popJwtSpec.jwsSigner
+        header: header,
+        payload: jwsPayload,
+        signer: await BindingKey.createSigner(
+          with: header,
+          and: jwsPayload,
+          for: popJwtSpec.signingKey,
+          and: algorithm
+        )
       )
       return try .init(jws: jws)
     default:
