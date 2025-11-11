@@ -745,7 +745,7 @@ private extension AuthorizationServerClient {
     switch client {
     case .public:
       return nil
-    case .attested(let attestationJWT, _):
+    case .attested(let attestationJWT, let spec):
       guard let clientAttestationPoPBuilder = config.clientAttestationPoPBuilder else {
         return nil
       }
@@ -754,8 +754,9 @@ private extension AuthorizationServerClient {
         return nil
       }
       
-      let popJWT = try clientAttestationPoPBuilder.buildAttestationPoPJWT(
+      let popJWT = try await clientAttestationPoPBuilder.buildAttestationPoPJWT(
         for: client,
+        algorithm: spec.signingAlgorithm,
         clock: clock,
         authServerId: authServerId,
         challenge: challenge?.value
