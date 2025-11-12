@@ -40,7 +40,7 @@ public enum BindingKey: Sendable, Equatable {
   // Key attestation Binding Key
   case keyAttestation(
     algorithm: JWSAlgorithm,
-    keyAttestationJWT: @Sendable (_ nonce: String?, _ proxy: SigningKeyProxy, _ publicJWK: JWK) async throws -> KeyAttestationJWT,
+    keyAttestationJWT: @Sendable (_ nonce: String?) async throws -> KeyAttestationJWT,
     keyIndex: UInt,
     privateKey: SigningKeyProxy,
     publicJWK: JWK,
@@ -160,9 +160,7 @@ public extension BindingKey {
           JWTClaimNames.kid: "\(keyIndex)",
           JWTClaimNames.type: Self.OpenID4VCIProofJWT,
           JWTClaimNames.keyAttestation: await keyAttestationJWT(
-            cNonce,
-            privateKey,
-            jwk
+            cNonce
           ).jws.compactSerializedString
         ]
       )

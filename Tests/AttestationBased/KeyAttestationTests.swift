@@ -60,7 +60,7 @@ class KeyAttestationTests: XCTestCase {
     
     let keyBindingKey: BindingKey = try! .keyAttestation(
       algorithm: .init(.ES256),
-      keyAttestationJWT: {_, _, _ in
+      keyAttestationJWT: { _ in
         try! .init(
           jws: .init(
             compactSerialization: TestsConstants.ketAttestationJWT

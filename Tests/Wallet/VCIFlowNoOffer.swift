@@ -15,7 +15,7 @@
  */
 import Foundation
 import XCTest
-import JOSESwift
+@preconcurrency import JOSESwift
 
 @testable import OpenID4VCI
 
@@ -533,11 +533,11 @@ class VCIFlowNoOffer: XCTestCase {
     let algorithm = JWSAlgorithm(.ES256)
     let bindingKey: BindingKey = try! .keyAttestation(
       algorithm: algorithm,
-      keyAttestationJWT: { nonce, proxy, jwk in
+      keyAttestationJWT: { @KeyAttester nonce in
         return try await TestsConstants.keyAttestationJWT(
           nonce,
-          proxy,
-          jwk,
+          .secKey(privateKey),
+          publicKeyJWK,
           cert
         )
       },
@@ -589,11 +589,11 @@ class VCIFlowNoOffer: XCTestCase {
     let algorithm = JWSAlgorithm(.ES256)
     let bindingKey: BindingKey = try! .keyAttestation(
       algorithm: algorithm,
-      keyAttestationJWT: { nonce, proxy, jwk in
+      keyAttestationJWT: { @KeyAttester nonce in
         return try await TestsConstants.keyAttestationJWT(
           nonce,
-          proxy,
-          jwk,
+          .secKey(privateKey),
+          publicKeyJWK,
           cert
         )
       },
