@@ -616,5 +616,5 @@ func testEncryptionSpec() -> EncryptionSpec? {
 
 @globalActor
 actor KeyAttester {
-    static let shared = KeyAttester()
+  static let shared = KeyAttester()
 }
