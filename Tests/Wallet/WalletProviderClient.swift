@@ -90,7 +90,7 @@ public struct WalletInstanceAttestation: Decodable {
   }
 }
 
-public struct WalletUnitAttestation: Decodable {
+public struct WalletUnitAttestation: Sendable, Decodable {
   public let walletUnitAttestation: String
   
   public init(walletUnitAttestation: String) {
