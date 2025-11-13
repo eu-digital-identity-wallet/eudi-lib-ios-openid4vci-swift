@@ -58,7 +58,7 @@ class KeyAttestationTests: XCTestCase {
     )
     let spec = data.spec
     
-    let keyBindingKey: BindingKey = try! .keyAttestation(
+    let keyBindingKey: BindingKey = try! .jwtKeyAttestation(
       algorithm: .init(.ES256),
       keyAttestationJWT: { _ in
         try! .init(
@@ -68,8 +68,7 @@ class KeyAttestationTests: XCTestCase {
         )
       },
       keyIndex: 1,
-      privateKey: .secKey(data.privateKey),
-      publicJWK: data.publicKey
+      privateKey: .secKey(data.privateKey)
     )
     
     // When
