@@ -44,7 +44,7 @@ class VCIFlowNoOffer: XCTestCase {
         "kid": UUID().uuidString
       ])
     
-    let bindingKey: BindingKey = .jwk(
+    let bindingKey: BindingKey = .jwt(
       algorithm: alg,
       jwk: publicKeyJWK,
       privateKey: .secKey(privateKey)
@@ -88,7 +88,7 @@ class VCIFlowNoOffer: XCTestCase {
         "kid": UUID().uuidString
       ])
     
-    let bindingKey: BindingKey = .jwk(
+    let bindingKey: BindingKey = .jwt(
       algorithm: alg,
       jwk: publicKeyJWK,
       privateKey: .secKey(privateKey)
@@ -133,7 +133,7 @@ class VCIFlowNoOffer: XCTestCase {
         "kid": UUID().uuidString
       ])
     
-    let bindingKey: BindingKey = .jwk(
+    let bindingKey: BindingKey = .jwt(
       algorithm: alg,
       jwk: publicKeyJWK,
       privateKey: .secKey(privateKey)
@@ -178,7 +178,7 @@ class VCIFlowNoOffer: XCTestCase {
         "kid": UUID().uuidString
       ])
     
-    let bindingKey: BindingKey = .jwk(
+    let bindingKey: BindingKey = .jwt(
       algorithm: alg,
       jwk: publicKeyJWK,
       privateKey: .secKey(privateKey)
@@ -223,7 +223,7 @@ class VCIFlowNoOffer: XCTestCase {
         "kid": UUID().uuidString
       ])
     
-    let bindingKey: BindingKey = .jwk(
+    let bindingKey: BindingKey = .jwt(
       algorithm: alg,
       jwk: publicKeyJWK,
       privateKey: .secKey(privateKey)
@@ -266,7 +266,7 @@ class VCIFlowNoOffer: XCTestCase {
         "kid": UUID().uuidString
       ])
     
-    let bindingKey: BindingKey = .jwk(
+    let bindingKey: BindingKey = .jwt(
       algorithm: alg,
       jwk: publicKeyJWK,
       privateKey: .secKey(privateKey)
@@ -309,7 +309,7 @@ class VCIFlowNoOffer: XCTestCase {
         "kid": UUID().uuidString
       ])
     
-    let bindingKey: BindingKey = .jwk(
+    let bindingKey: BindingKey = .jwt(
       algorithm: alg,
       jwk: publicKeyJWK,
       privateKey: .secKey(privateKey)
@@ -352,7 +352,7 @@ class VCIFlowNoOffer: XCTestCase {
         "kid": UUID().uuidString
       ])
     
-    let bindingKey: BindingKey = .jwk(
+    let bindingKey: BindingKey = .jwt(
       algorithm: alg,
       jwk: publicKeyJWK,
       privateKey: .secKey(privateKey)
@@ -396,7 +396,7 @@ class VCIFlowNoOffer: XCTestCase {
         "kid": UUID().uuidString
       ])
     
-    let bindingKey: BindingKey = .jwk(
+    let bindingKey: BindingKey = .jwt(
       algorithm: alg,
       jwk: publicKeyJWK,
       privateKey: .secKey(privateKey)
@@ -440,7 +440,7 @@ class VCIFlowNoOffer: XCTestCase {
         "kid": UUID().uuidString
       ])
     
-    let bindingKey: BindingKey = .jwk(
+    let bindingKey: BindingKey = .jwt(
       algorithm: alg,
       jwk: publicKeyJWK,
       privateKey: .secKey(privateKey)
@@ -485,7 +485,7 @@ class VCIFlowNoOffer: XCTestCase {
         "kid": UUID().uuidString
       ])
     
-    let bindingKey: BindingKey = .jwk(
+    let bindingKey: BindingKey = .jwt(
       algorithm: alg,
       jwk: publicKeyJWK,
       privateKey: .secKey(privateKey)
@@ -519,7 +519,6 @@ class VCIFlowNoOffer: XCTestCase {
   func testNoOfferEHICJWSJSONSdJWTKeyAttestation() async throws {
     
     let privateKey = TestsConstants.keyAttestationPrivateKey
-    let cert = TestsConstants.keyAttestationCertificate
     let publicKey = try KeyController.generateECDHPublicKey(from: privateKey)
     let alg = JWSAlgorithm(.ES256)
     let publicKeyJWK = try ECPublicKey(
@@ -531,19 +530,34 @@ class VCIFlowNoOffer: XCTestCase {
       ])
     
     let algorithm = JWSAlgorithm(.ES256)
-    let bindingKey: BindingKey = try! .keyAttestation(
+    let bindingKey: BindingKey = try! .jwtKeyAttestation(
       algorithm: algorithm,
-      keyAttestationJWT: { @KeyAttester nonce in
-        return try await TestsConstants.keyAttestationJWT(
-          nonce,
-          .secKey(privateKey),
-          publicKeyJWK,
-          cert
+      keyAttestationJWT: { nonce in
+        
+        let client = WalletProviderClient(
+          baseURL: URL(
+            string: "https://dev.wallet-provider.eudiw.dev"
+          )!
+        )
+        
+        let jwt = try await client.issueWalletUnitAttestation(
+          dictionary: [
+          "nonce": nonce!,
+          "jwkSet": [
+            "keys": [
+              publicKeyJWK.toDictionary()
+            ]
+          ]
+        ]).walletUnitAttestation
+        
+        return try .init(
+          jws: .init(
+            compactSerialization: jwt
+          )
         )
       },
       keyIndex: 0,
       privateKey: .secKey(privateKey),
-      publicJWK: publicKeyJWK,
       issuer: "wallet-dev"
     )
     
@@ -575,7 +589,6 @@ class VCIFlowNoOffer: XCTestCase {
   func testNoOfferEHICCompactSdJWTKeyAttestation() async throws {
     
     let privateKey = TestsConstants.keyAttestationPrivateKey
-    let cert = TestsConstants.keyAttestationCertificate
     let publicKey = try KeyController.generateECDHPublicKey(from: privateKey)
     let alg = JWSAlgorithm(.ES256)
     let publicKeyJWK = try ECPublicKey(
@@ -587,19 +600,33 @@ class VCIFlowNoOffer: XCTestCase {
       ])
     
     let algorithm = JWSAlgorithm(.ES256)
-    let bindingKey: BindingKey = try! .keyAttestation(
+    let bindingKey: BindingKey = try! .jwtKeyAttestation(
       algorithm: algorithm,
       keyAttestationJWT: { @KeyAttester nonce in
-        return try await TestsConstants.keyAttestationJWT(
-          nonce,
-          .secKey(privateKey),
-          publicKeyJWK,
-          cert
+        let client = WalletProviderClient(
+          baseURL: URL(
+            string: "https://dev.wallet-provider.eudiw.dev"
+          )!
+        )
+        
+        let jwt = try await client.issueWalletUnitAttestation(
+          dictionary: [
+          "nonce": nonce!,
+          "jwkSet": [
+            "keys": [
+              publicKeyJWK.toDictionary()
+            ]
+          ]
+        ]).walletUnitAttestation
+        
+        return try .init(
+          jws: .init(
+            compactSerialization: jwt
+          )
         )
       },
       keyIndex: 0,
       privateKey: .secKey(privateKey),
-      publicJWK: publicKeyJWK,
       issuer: "wallet-dev"
     )
     
@@ -628,7 +655,7 @@ class VCIFlowNoOffer: XCTestCase {
     XCTAssert(true)
   }
   
-  func testNoOfferWalletAttestedSdJWT() async throws {
+  func testNoOfferWalletInstanceAttestedSdJWT() async throws {
     
     let client = WalletProviderClient(
       baseURL: URL(
@@ -642,7 +669,7 @@ class VCIFlowNoOffer: XCTestCase {
     let attestationConfig: OpenId4VCIConfig = await .init(
       client: try! jwkProviderSignedClient(
         client: client,
-        clientId: "wallet-dev",
+        clientId: "eudiw-abca",
         algorithm: .ES256,
         privateKey: privateKey
       ),
@@ -659,69 +686,7 @@ class VCIFlowNoOffer: XCTestCase {
         "kid": UUID().uuidString
       ])
     
-    let bindingKey: BindingKey = .jwk(
-      algorithm: JWSAlgorithm(.ES256),
-      jwk: publicKeyJWK,
-      privateKey: .secKey(privateKey)
-    )
-    
-    let user = ActingUser(
-      username: "tneal",
-      password: "password"
-    )
-    
-    let wallet = Wallet(
-      actingUser: user,
-      bindingKeys: [bindingKey]
-    )
-    
-    do {
-      try await walletInitiatedIssuanceNoOfferSdJwt(
-        wallet: wallet,
-        config: attestationConfig
-      )
-      
-    } catch {
-      
-      XCTExpectFailure()
-      XCTAssert(false, error.localizedDescription)
-    }
-    
-    XCTAssert(true)
-  }
-  
-  func testNoOfferWalletAttestedSdJWTs() async throws {
-    
-    let client = WalletProviderClient(
-      baseURL: URL(
-        string: "https://dev.wallet-provider.eudiw.dev"
-      )!
-    )
-    
-    let privateKey = try KeyController.generateECDHPrivateKey()
-    let publicKey = try KeyController.generateECDHPublicKey(from: privateKey)
-    
-    let attestationConfig: OpenId4VCIConfig = await .init(
-      client: try! jwkSetProviderSignedClient(
-        client: client,
-        clientId: "wallet-dev",
-        algorithm: .ES256,
-        privateKey: privateKey
-      ),
-      authFlowRedirectionURI: URL(string: "urn:ietf:wg:oauth:2.0:oob")!,
-      authorizeIssuanceConfig: .favorScopes,
-      clientAttestationPoPBuilder: DefaultClientAttestationPoPBuilder()
-    )
-    
-    let publicKeyJWK = try ECPublicKey(
-      publicKey: publicKey,
-      additionalParameters: [
-        "alg": "ES256",
-        "use": "sig",
-        "kid": UUID().uuidString
-      ])
-    
-    let bindingKey: BindingKey = .jwk(
+    let bindingKey: BindingKey = .jwt(
       algorithm: JWSAlgorithm(.ES256),
       jwk: publicKeyJWK,
       privateKey: .secKey(privateKey)
