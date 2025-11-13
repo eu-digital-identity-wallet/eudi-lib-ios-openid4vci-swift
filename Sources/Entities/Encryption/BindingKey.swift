@@ -18,34 +18,28 @@
 
 public enum BindingKey: Sendable, Equatable {
   
-  // JWK Binding Key
-  case jwk(
+  case jwt(
     algorithm: JWSAlgorithm,
     jwk: JWK,
     privateKey: SigningKeyProxy,
     issuer: String? = nil
   )
   
-  // Attestation
   case attestation(
     keyAttestationJWT: @Sendable (_ nonce: String?) async throws -> KeyAttestationJWT
   )
   
-  // DID Binding Key
-  case did(identity: String)
-  
-  // X509 Binding Key
-  case x509(certificate: X509Certificate)
-  
-  // Key attestation Binding Key
-  case keyAttestation(
+  case jwtKeyAttestation(
     algorithm: JWSAlgorithm,
     keyAttestationJWT: @Sendable (_ nonce: String?) async throws -> KeyAttestationJWT,
     keyIndex: UInt,
     privateKey: SigningKeyProxy,
-    publicJWK: JWK,
     issuer: String? = nil
   )
+  
+  case did(identity: String)
+  
+  case x509(certificate: X509Certificate)
 }
 
 public extension BindingKey {
@@ -54,10 +48,10 @@ public extension BindingKey {
   
   static func == (lhs: BindingKey, rhs: BindingKey) -> Bool {
     switch (lhs, rhs) {
-    case (.jwk, .jwk),
+    case (.jwt, .jwt),
       (.did, .did),
       (.x509, .x509),
-      (.keyAttestation, .keyAttestation),
+      (.jwtKeyAttestation, .jwtKeyAttestation),
       (.attestation, .attestation):
       return true
     default:
@@ -71,7 +65,7 @@ public extension BindingKey {
     cNonce: String?
   ) async throws -> Proof {
     switch self {
-    case .jwk(
+    case .jwt(
       let algorithm,
       let jwk,
       let privateKey,
@@ -135,12 +129,11 @@ public extension BindingKey {
       )
       
       return .jwt(jws.compactSerializedString)
-    case .keyAttestation(
+    case .jwtKeyAttestation(
       let algorithm,
       let keyAttestationJWT,
       let keyIndex,
       let privateKey,
-      let jwk,
       let issuer
     ):
       let proofTypesSupported = credentialSpec.proofTypesSupported
