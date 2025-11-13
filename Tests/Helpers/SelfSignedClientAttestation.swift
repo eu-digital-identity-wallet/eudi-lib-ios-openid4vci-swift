@@ -34,16 +34,17 @@ internal func jwkProviderSignedClient(
       "kid": UUID().uuidString
     ])
   
-  let attestation = try await client.issueWalletApplicationAttestation(
+  let attestation = try await client.issueWalletInstanceAttestation(
     payload: [
-      "clientId": clientId,
       "jwk": publicKeyJWK.toDictionary()
     ]
   )
   
   return try .attested(
     attestationJWT: .init(
-      jws: .init(compactSerialization: attestation.walletApplicationAttestation)
+      jws: .init(
+        compactSerialization: attestation.walletInstanceAttestation
+      )
     ),
     popJwtSpec: .init(
       signingAlgorithm: algorithm,
@@ -70,8 +71,7 @@ internal func jwkSetProviderSignedClient(
       "kid": UUID().uuidString
     ])
   
-  let attestation = try await client.issueWalletUnitAttestation(jwkSetDictionary: [
-      "clientId": clientId,
+  let attestation = try await client.issueWalletUnitAttestation(dictionary: [
       "jwkSet": [
         "keys": [
           publicKeyJWK.toDictionary()
