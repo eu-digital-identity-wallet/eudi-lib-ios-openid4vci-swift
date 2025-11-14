@@ -516,7 +516,7 @@ class VCIFlowNoOffer: XCTestCase {
     XCTAssert(true)
   }
   
-  func testNoOfferEHICJWSJSONSdJWTKeyAttestation() async throws {
+  func testNoOfferJWSJSONSdJWTKeyAttestation() async throws {
     
     let privateKey = TestsConstants.keyAttestationPrivateKey
     let publicKey = try KeyController.generateECDHPublicKey(from: privateKey)
@@ -586,7 +586,7 @@ class VCIFlowNoOffer: XCTestCase {
     XCTAssert(true)
   }
   
-  func testNoOfferEHICCompactSdJWTKeyAttestation() async throws {
+  func testNoOfferCompactSdJWTKeyAttestation() async throws {
     
     let privateKey = TestsConstants.keyAttestationPrivateKey
     let publicKey = try KeyController.generateECDHPublicKey(from: privateKey)
