@@ -613,3 +613,8 @@ func testEncryptionSpec() -> EncryptionSpec? {
     encryptionMethod: .init(.A128GCM)
   )
 }
+
+@globalActor
+actor KeyAttester {
+  static let shared = KeyAttester()
+}

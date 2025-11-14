@@ -667,7 +667,7 @@ private extension Issuer {
     case .required, .requiredNoConstraints:
       if bindingKeys.filter({ key in
         switch key {
-        case .keyAttestation, .attestation:
+        case .jwtKeyAttestation, .attestation:
           true
         default: false
         }
@@ -686,7 +686,7 @@ private extension Issuer {
     await Task.detached { () -> [Proof] in
       let keys = bindingKeys.filter { key in
         switch key {
-        case .jwk, .keyAttestation, .attestation:
+        case .jwt, .jwtKeyAttestation, .attestation:
           true
         default:
           false

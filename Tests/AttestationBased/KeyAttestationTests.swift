@@ -58,9 +58,9 @@ class KeyAttestationTests: XCTestCase {
     )
     let spec = data.spec
     
-    let keyBindingKey: BindingKey = try! .keyAttestation(
+    let keyBindingKey: BindingKey = try! .jwtKeyAttestation(
       algorithm: .init(.ES256),
-      keyAttestationJWT: {_, _, _ in
+      keyAttestationJWT: { _ in
         try! .init(
           jws: .init(
             compactSerialization: TestsConstants.ketAttestationJWT
@@ -68,8 +68,7 @@ class KeyAttestationTests: XCTestCase {
         )
       },
       keyIndex: 1,
-      privateKey: .secKey(data.privateKey),
-      publicJWK: data.publicKey
+      privateKey: .secKey(data.privateKey)
     )
     
     // When
@@ -113,12 +112,14 @@ class KeyAttestationTests: XCTestCase {
     )
     let spec = data.spec
     
-    let keyBindingKey: BindingKey = try! .attestation(
-      keyAttestationJWT: .init(
-        jws: .init(
-          compactSerialization: TestsConstants.ketAttestationJWT
+    let keyBindingKey: BindingKey = .attestation(
+      keyAttestationJWT: { nonce in
+        try! .init(
+          jws: try! .init(
+            compactSerialization: TestsConstants.ketAttestationJWT
+          )
         )
-      )
+      }
     )
     
     // When

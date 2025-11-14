@@ -292,6 +292,8 @@ private extension AuthorizeIssuance {
         credentialOffer.credentialIssuerIdentifier.url.absoluteString
       }
 
+      let challenge = try await challenger?.getChallenge().get()
+      
       let result: (
         verifier: PKCEVerifier,
         code: AuthorizationCodeURL,
@@ -303,7 +305,7 @@ private extension AuthorizeIssuance {
         issuerState: issuerState,
         resource: resource,
         dpopNonce: nil,
-        challenge: nil,
+        challenge: challenge,
         retry: true
       ).get()
 

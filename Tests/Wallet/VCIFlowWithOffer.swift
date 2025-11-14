@@ -35,7 +35,7 @@ class VCIFlowWithOffer: XCTestCase {
         "kid": UUID().uuidString
       ])
     
-    let bindingKey: BindingKey = .jwk(
+    let bindingKey: BindingKey = .jwt(
       algorithm: alg,
       jwk: publicKeyJWK,
       privateKey: .secKey(privateKey)
@@ -79,7 +79,7 @@ class VCIFlowWithOffer: XCTestCase {
         "kid": UUID().uuidString
       ])
     
-    let bindingKey: BindingKey = .jwk(
+    let bindingKey: BindingKey = .jwt(
       algorithm: alg,
       jwk: publicKeyJWK,
       privateKey: .custom(
@@ -127,7 +127,7 @@ class VCIFlowWithOffer: XCTestCase {
         "kid": UUID().uuidString
       ])
     
-    let bindingKey: BindingKey = .jwk(
+    let bindingKey: BindingKey = .jwt(
       algorithm: alg,
       jwk: publicKeyJWK,
       privateKey: .secKey(privateKey)
@@ -170,7 +170,7 @@ class VCIFlowWithOffer: XCTestCase {
         "kid": UUID().uuidString
       ])
     
-    let bindingKey: BindingKey = .jwk(
+    let bindingKey: BindingKey = .jwt(
       algorithm: alg,
       jwk: publicKeyJWK,
       privateKey: .secKey(privateKey)
@@ -213,7 +213,7 @@ class VCIFlowWithOffer: XCTestCase {
         "kid": UUID().uuidString
       ])
     
-    let bindingKey: BindingKey = .jwk(
+    let bindingKey: BindingKey = .jwt(
       algorithm: alg,
       jwk: publicKeyJWK,
       privateKey: .secKey(privateKey)
@@ -257,7 +257,7 @@ class VCIFlowWithOffer: XCTestCase {
         "kid": UUID().uuidString
       ])
     
-    let bindingKey: BindingKey = .jwk(
+    let bindingKey: BindingKey = .jwt(
       algorithm: alg,
       jwk: publicKeyJWK,
       privateKey: .secKey(privateKey)
@@ -301,7 +301,7 @@ class VCIFlowWithOffer: XCTestCase {
         "kid": UUID().uuidString
       ])
     
-    let bindingKey: BindingKey = .jwk(
+    let bindingKey: BindingKey = .jwt(
       algorithm: alg,
       jwk: publicKeyJWK,
       privateKey: .secKey(privateKey)
@@ -346,7 +346,7 @@ class VCIFlowWithOffer: XCTestCase {
       ])
     
     let privateKeyProxy: SigningKeyProxy = .secKey(privateKey)
-    let bindingKey: BindingKey = .jwk(
+    let bindingKey: BindingKey = .jwt(
       algorithm: alg,
       jwk: publicKeyJWK,
       privateKey: privateKeyProxy
@@ -397,7 +397,7 @@ class VCIFlowWithOffer: XCTestCase {
       ])
     
     let privateKeyProxy: SigningKeyProxy = .secKey(privateKey)
-    let bindingKey: BindingKey = .jwk(
+    let bindingKey: BindingKey = .jwt(
       algorithm: alg,
       jwk: publicKeyJWK,
       privateKey: privateKeyProxy
@@ -448,7 +448,7 @@ class VCIFlowWithOffer: XCTestCase {
       ])
     
     let privateKeyProxy: SigningKeyProxy = .secKey(privateKey)
-    let bindingKey: BindingKey = .jwk(
+    let bindingKey: BindingKey = .jwt(
       algorithm: alg,
       jwk: publicKeyJWK,
       privateKey: privateKeyProxy
