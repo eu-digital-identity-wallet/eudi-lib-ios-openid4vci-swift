@@ -400,7 +400,7 @@ class IssuanceAuthorizationTest: XCTestCase {
         "kid": UUID().uuidString
       ])
     
-    let bindingKey: BindingKey = .jwk(
+    let bindingKey: BindingKey = .jwt(
       algorithm: alg,
       jwk: publicKeyJWK,
       privateKey: .secKey(privateKey),
@@ -472,7 +472,7 @@ class IssuanceAuthorizationTest: XCTestCase {
         "kid": UUID().uuidString
       ])
     
-    let bindingKey: BindingKey = .jwk(
+    let bindingKey: BindingKey = .jwt(
       algorithm: alg,
       jwk: publicKeyJWK,
       privateKey: privateKeyProxy,
@@ -632,7 +632,7 @@ class IssuanceAuthorizationTest: XCTestCase {
         "kid": UUID().uuidString
     ])
 
-    let bindingKey: BindingKey = .jwk(
+    let bindingKey: BindingKey = .jwt(
       algorithm: alg,
       jwk: publicKeyJWK,
       privateKey: .secKey(privateKey),
@@ -743,7 +743,7 @@ class IssuanceAuthorizationTest: XCTestCase {
       transactionCode: "12345"
     )
     
-    let bindingKey: BindingKey = .jwk(
+    let bindingKey: BindingKey = .jwt(
       algorithm: alg,
       jwk: jwk,
       privateKey: .secKey(privateKey),

@@ -18,34 +18,28 @@
 
 public enum BindingKey: Sendable, Equatable {
   
-  // JWK Binding Key
-  case jwk(
+  case jwt(
     algorithm: JWSAlgorithm,
     jwk: JWK,
     privateKey: SigningKeyProxy,
     issuer: String? = nil
   )
   
-  // DID Binding Key
-  case did(identity: String)
+  case attestation(
+    keyAttestationJWT: @Sendable (_ nonce: String?) async throws -> KeyAttestationJWT
+  )
   
-  // X509 Binding Key
-  case x509(certificate: X509Certificate)
-  
-  // Key attestation Binding Key
-  case keyAttestation(
+  case jwtKeyAttestation(
     algorithm: JWSAlgorithm,
-    keyAttestationJWT: @Sendable (_ nonce: String?, _ proxy: SigningKeyProxy, _ publicJWK: JWK) async throws -> KeyAttestationJWT,
+    keyAttestationJWT: @Sendable (_ nonce: String?) async throws -> KeyAttestationJWT,
     keyIndex: UInt,
     privateKey: SigningKeyProxy,
-    publicJWK: JWK,
     issuer: String? = nil
   )
   
-  // Attestation
-  case attestation(
-    keyAttestationJWT: KeyAttestationJWT
-  )
+  case did(identity: String)
+  
+  case x509(certificate: X509Certificate)
 }
 
 public extension BindingKey {
@@ -54,10 +48,10 @@ public extension BindingKey {
   
   static func == (lhs: BindingKey, rhs: BindingKey) -> Bool {
     switch (lhs, rhs) {
-    case (.jwk, .jwk),
+    case (.jwt, .jwt),
       (.did, .did),
       (.x509, .x509),
-      (.keyAttestation, .keyAttestation),
+      (.jwtKeyAttestation, .jwtKeyAttestation),
       (.attestation, .attestation):
       return true
     default:
@@ -71,7 +65,7 @@ public extension BindingKey {
     cNonce: String?
   ) async throws -> Proof {
     switch self {
-    case .jwk(
+    case .jwt(
       let algorithm,
       let jwk,
       let privateKey,
@@ -135,12 +129,11 @@ public extension BindingKey {
       )
       
       return .jwt(jws.compactSerializedString)
-    case .keyAttestation(
+    case .jwtKeyAttestation(
       let algorithm,
       let keyAttestationJWT,
       let keyIndex,
       let privateKey,
-      let jwk,
       let issuer
     ):
       let proofTypesSupported = credentialSpec.proofTypesSupported
@@ -160,9 +153,7 @@ public extension BindingKey {
           JWTClaimNames.kid: "\(keyIndex)",
           JWTClaimNames.type: Self.OpenID4VCIProofJWT,
           JWTClaimNames.keyAttestation: await keyAttestationJWT(
-            cNonce,
-            privateKey,
-            jwk
+            cNonce
           ).jws.compactSerializedString
         ]
       )
@@ -203,7 +194,7 @@ public extension BindingKey {
     case .attestation(
       let keyAttestationJWT
     ):
-      return .attestation(keyAttestationJWT)
+      return .attestation(try await keyAttestationJWT(cNonce))
       
     case .did(let identity):
       throw ValidationError.todo(
