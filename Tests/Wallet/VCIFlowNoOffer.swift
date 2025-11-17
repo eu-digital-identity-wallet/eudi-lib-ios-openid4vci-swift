@@ -445,7 +445,7 @@ class VCIFlowNoOffer: XCTestCase {
       keyAttestationJWT: { nonce in
         
         let client = WalletProviderClient(
-          baseURL: URL(
+          baseURL: .init(
             string: "https://dev.wallet-provider.eudiw.dev"
           )!
         )
@@ -514,7 +514,7 @@ class VCIFlowNoOffer: XCTestCase {
       algorithm: algorithm,
       keyAttestationJWT: { @KeyAttester nonce in
         let client = WalletProviderClient(
-          baseURL: URL(
+          baseURL: .init(
             string: "https://dev.wallet-provider.eudiw.dev"
           )!
         )
@@ -568,7 +568,7 @@ class VCIFlowNoOffer: XCTestCase {
   func testNoOfferWalletInstanceAttestedSdJWT() async throws {
     
     let client = WalletProviderClient(
-      baseURL: URL(
+      baseURL: .init(
         string: "https://dev.wallet-provider.eudiw.dev"
       )!
     )
