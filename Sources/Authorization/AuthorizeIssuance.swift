@@ -292,7 +292,7 @@ private extension AuthorizeIssuance {
         credentialOffer.credentialIssuerIdentifier.url.absoluteString
       }
 
-      let challenge = try await challenger?.getChallenge().get()
+      let challenge = try? await challenger?.getChallenge().get()
       
       let result: (
         verifier: PKCEVerifier,
