@@ -20,21 +20,15 @@ import SwiftSoup
 
 class WebpageHelper {
   
-  func resetURLSession() -> URLSession {
-    // Create a new URLSessionConfiguration with a different URLCache
-    let newCache = URLCache(memoryCapacity: 0, diskCapacity: 0, diskPath: nil)
-    let newConfiguration = URLSessionConfiguration.default
-    newConfiguration.urlCache = newCache
-    let delegate = SelfSignedSessionDelegate()
-    // Create a new URLSession with the modified configuration
-    let newSession = URLSession(configuration: newConfiguration, delegate: delegate, delegateQueue: nil)
-
-    return newSession
+  let session: Networking
+  
+  init(_ session: Networking) {
+    self.session = session
   }
   
   func downloadWebPage(url: URL) async -> Result<String?, Error> {
     do {
-      let (data, _) = try await resetURLSession().data(from: url)
+      let (data, _) = try await session.data(from: url)
       if let htmlString = String(data: data, encoding: .utf8) {
         return .success(htmlString)
       } else {
@@ -72,9 +66,6 @@ class WebpageHelper {
     body += "username=\(username)&password=\(password)"
     request.httpBody = body.data(using: .utf8)
     
-    let delegate = SelfSignedSessionDelegate()
-    let configuration = URLSessionConfiguration.default
-    let session = URLSession(configuration: configuration, delegate: delegate, delegateQueue: nil)
     let (_, response) = try await session.data(for: request)
     
     guard let httpResponse = response as? HTTPURLResponse else {

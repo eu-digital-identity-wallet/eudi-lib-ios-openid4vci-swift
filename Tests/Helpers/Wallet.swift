@@ -509,7 +509,7 @@ extension Wallet {
     getAuthorizationCodeUrl: URL,
     actingUser: ActingUser
   ) async throws -> String? {
-    let helper = WebpageHelper()
+    let helper = WebpageHelper(Self.walletSession)
     return try await helper.submit(
       formUrl: getAuthorizationCodeUrl,
       username: actingUser.username,

@@ -21,6 +21,12 @@ import JOSESwift
 
 class VCIFlowWithOffer: XCTestCase {
   
+  override func tearDown() async throws {
+    let cookieStorage = HTTPCookieStorage.shared
+    cookieStorage.cookies?.forEach { cookieStorage.deleteCookie($0) }
+    URLCache.shared.removeAllCachedResponses()
+  }
+  
   func testWithOfferSdJWT() async throws {
     
     let privateKey = try KeyController.generateECDHPrivateKey()

@@ -21,9 +21,15 @@ import XCTest
 
 class VCIFlowNoOffer: XCTestCase {
   
+  override func tearDown() async throws {
+    let cookieStorage = HTTPCookieStorage.shared
+    cookieStorage.cookies?.forEach { cookieStorage.deleteCookie($0) }
+    URLCache.shared.removeAllCachedResponses()
+  }
+  
   func testWebPageFormSubmission() async throws {
 
-    _ = try await WebpageHelper().submit(
+    _ = try await WebpageHelper(Wallet.walletSession).submit(
       formUrl: URL(string: "https://www.w3schools.com/html/html_forms.asp")!,
       username: "username",
       password: "password"
