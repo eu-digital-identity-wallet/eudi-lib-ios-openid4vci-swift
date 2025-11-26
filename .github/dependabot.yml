@@ -1,0 +1,7 @@
+version: 2
+updates:
+  # Keep SwiftPM dependencies up to date
+  - package-ecosystem: "swift"
+    directory: "/"
+    schedule:
+      interval: "weekly"
