@@ -400,4 +400,16 @@ class CredentialOfferResolverTests: XCTestCase {
           XCTFail("Unexpected error type: \(error)")
       }
   }
+
+  func testBuildWellKnownURL_withoutTrailingSlash() async throws {
+      let resolver = CredentialIssuerMetadataResolver()
+      let input = URL(string: "https://issuer.example.com/")!
+
+      let result = try await resolver.buildWellKnownCredentialIssuerURL(from: input)
+
+      XCTAssertEqual(
+        result.absoluteString,
+        "https://issuer.example.com/.well-known/openid-credential-issuer"
+      )
+    }
 }
