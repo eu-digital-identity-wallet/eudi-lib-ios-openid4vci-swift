@@ -45,6 +45,11 @@ public protocol ClientAttestationPoPBuilder: Sendable {
 }
 
 public struct DefaultClientAttestationPoPBuilder: ClientAttestationPoPBuilder {
+  
+  public init() {
+    
+  }
+  
   public func buildAttestationPoPJWT(
     for client: Client,
     algorithm: SignatureAlgorithm,

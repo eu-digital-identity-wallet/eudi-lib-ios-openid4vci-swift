@@ -143,13 +143,6 @@ private extension Array where Element == Proof {
     if self.isEmpty {
       return nil
       
-    } else if self.count == 1 {
-      if let first = self.first {
-        return .init(jwtProofs: [first.proof])
-      } else {
-        return nil
-      }
-      
     } else {
       let jwtProofs: [String] = self.compactMap { proof in
         switch proof {

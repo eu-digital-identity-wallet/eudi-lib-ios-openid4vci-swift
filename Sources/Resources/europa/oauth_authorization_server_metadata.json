@@ -1,9 +1,9 @@
 {
-  "issuer": "https://keycloak-eudi.netcompany-intrasoft.com/realms/pid-issuer-realm",
-  "authorization_endpoint": "https://keycloak-eudi.netcompany-intrasoft.com/realms/pid-issuer-realm/protocol/openid-connect/auth",
-  "token_endpoint": "https://keycloak-eudi.netcompany-intrasoft.com/realms/pid-issuer-realm/protocol/openid-connect/token",
-  "introspection_endpoint": "https://keycloak-eudi.netcompany-intrasoft.com/realms/pid-issuer-realm/protocol/openid-connect/token/introspect",
-  "jwks_uri": "https://keycloak-eudi.netcompany-intrasoft.com/realms/pid-issuer-realm/protocol/openid-connect/certs",
+  "issuer": "https://example.com/realms/pid-issuer-realm",
+  "authorization_endpoint": "https://example.com/realms/pid-issuer-realm/protocol/openid-connect/auth",
+  "token_endpoint": "https://example.com/realms/pid-issuer-realm/protocol/openid-connect/token",
+  "introspection_endpoint": "https://example.com/realms/pid-issuer-realm/protocol/openid-connect/token/introspect",
+  "jwks_uri": "https://example.com/realms/pid-issuer-realm/protocol/openid-connect/certs",
   "grant_types_supported": [
     "authorization_code",
     "implicit",
@@ -60,7 +60,7 @@
     "form_post.jwt",
     "jwt"
   ],
-  "registration_endpoint": "https://keycloak-eudi.netcompany-intrasoft.com/realms/pid-issuer-realm/clients-registrations/openid-connect",
+  "registration_endpoint": "https://example.com/realms/pid-issuer-realm/clients-registrations/openid-connect",
   "token_endpoint_auth_methods_supported": [
     "private_key_jwt",
     "client_secret_basic",
@@ -157,7 +157,7 @@
     "PS512",
     "RS512"
   ],
-  "revocation_endpoint": "https://keycloak-eudi.netcompany-intrasoft.com/realms/pid-issuer-realm/protocol/openid-connect/revoke",
+  "revocation_endpoint": "https://example.com/realms/pid-issuer-realm/protocol/openid-connect/revoke",
   "revocation_endpoint_auth_methods_supported": [
     "private_key_jwt",
     "client_secret_basic",
@@ -179,12 +179,12 @@
     "PS512",
     "RS512"
   ],
-  "device_authorization_endpoint": "https://keycloak-eudi.netcompany-intrasoft.com/realms/pid-issuer-realm/protocol/openid-connect/auth/device",
+  "device_authorization_endpoint": "https://example.com/realms/pid-issuer-realm/protocol/openid-connect/auth/device",
   "backchannel_token_delivery_modes_supported": [
     "poll",
     "ping"
   ],
-  "backchannel_authentication_endpoint": "https://keycloak-eudi.netcompany-intrasoft.com/realms/pid-issuer-realm/protocol/openid-connect/ext/ciba/auth",
+  "backchannel_authentication_endpoint": "https://example.com/realms/pid-issuer-realm/protocol/openid-connect/ext/ciba/auth",
   "backchannel_authentication_request_signing_alg_values_supported": [
     "PS384",
     "ES384",
@@ -197,16 +197,16 @@
     "RS512"
   ],
   "require_pushed_authorization_requests": false,
-  "pushed_authorization_request_endpoint": "https://keycloak-eudi.netcompany-intrasoft.com/realms/pid-issuer-realm/protocol/openid-connect/ext/par/request",
+  "pushed_authorization_request_endpoint": "https://example.com/realms/pid-issuer-realm/protocol/openid-connect/ext/par/request",
   "mtls_endpoint_aliases": {
-    "token_endpoint": "https://keycloak-eudi.netcompany-intrasoft.com/realms/pid-issuer-realm/protocol/openid-connect/token",
-    "revocation_endpoint": "https://keycloak-eudi.netcompany-intrasoft.com/realms/pid-issuer-realm/protocol/openid-connect/revoke",
-    "introspection_endpoint": "https://keycloak-eudi.netcompany-intrasoft.com/realms/pid-issuer-realm/protocol/openid-connect/token/introspect",
-    "device_authorization_endpoint": "https://keycloak-eudi.netcompany-intrasoft.com/realms/pid-issuer-realm/protocol/openid-connect/auth/device",
-    "registration_endpoint": "https://keycloak-eudi.netcompany-intrasoft.com/realms/pid-issuer-realm/clients-registrations/openid-connect",
-    "userinfo_endpoint": "https://keycloak-eudi.netcompany-intrasoft.com/realms/pid-issuer-realm/protocol/openid-connect/userinfo",
-    "pushed_authorization_request_endpoint": "https://keycloak-eudi.netcompany-intrasoft.com/realms/pid-issuer-realm/protocol/openid-connect/ext/par/request",
-    "backchannel_authentication_endpoint": "https://keycloak-eudi.netcompany-intrasoft.com/realms/pid-issuer-realm/protocol/openid-connect/ext/ciba/auth"
+    "token_endpoint": "https://example.com/realms/pid-issuer-realm/protocol/openid-connect/token",
+    "revocation_endpoint": "https://example.com/realms/pid-issuer-realm/protocol/openid-connect/revoke",
+    "introspection_endpoint": "https://example.com/realms/pid-issuer-realm/protocol/openid-connect/token/introspect",
+    "device_authorization_endpoint": "https://example.com/realms/pid-issuer-realm/protocol/openid-connect/auth/device",
+    "registration_endpoint": "https://example.com/realms/pid-issuer-realm/clients-registrations/openid-connect",
+    "userinfo_endpoint": "https://example.com/realms/pid-issuer-realm/protocol/openid-connect/userinfo",
+    "pushed_authorization_request_endpoint": "https://example.com/realms/pid-issuer-realm/protocol/openid-connect/ext/par/request",
+    "backchannel_authentication_endpoint": "https://example.com/realms/pid-issuer-realm/protocol/openid-connect/ext/ciba/auth"
   },
   "authorization_response_iss_parameter_supported": true
 }
