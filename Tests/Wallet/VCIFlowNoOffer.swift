@@ -515,9 +515,7 @@ class VCIFlowNoOffer: XCTestCase {
         "kid": UUID().uuidString
       ])
     
-    let algorithm = JWSAlgorithm(.ES256)
-    let bindingKey: BindingKey = try! .jwtKeyAttestation(
-      algorithm: algorithm,
+    let bindingKey: BindingKey = .attestation(
       keyAttestationJWT: { @KeyAttester nonce in
         let client = WalletProviderClient(
           baseURL: .init(
@@ -540,10 +538,7 @@ class VCIFlowNoOffer: XCTestCase {
             compactSerialization: jwt
           )
         )
-      },
-      keyIndex: 0,
-      privateKey: .secKey(privateKey),
-      issuer: "wallet-dev"
+      }
     )
     
     let user = ActingUser(
