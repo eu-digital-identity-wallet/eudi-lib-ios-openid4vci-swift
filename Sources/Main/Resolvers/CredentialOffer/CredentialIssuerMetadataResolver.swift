@@ -86,8 +86,12 @@ extension CredentialIssuerMetadataResolver {
       throw FetchError.invalidUrl
     }
     
-    let originalPath = components.percentEncodedPath
-    components.percentEncodedPath = "/.well-known/openid-credential-issuer" + originalPath
+    let wellKnownPath = "/.well-known/openid-credential-issuer"
+    if components.percentEncodedPath != "/" {
+        components.percentEncodedPath = wellKnownPath + components.percentEncodedPath
+    } else {
+        components.percentEncodedPath = wellKnownPath
+    }
     
     guard let wellKnownURL = components.url else {
       throw FetchError.invalidUrl
