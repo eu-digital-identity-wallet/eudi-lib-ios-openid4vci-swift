@@ -62,6 +62,7 @@ public extension BindingKey {
   func toSupportedProof(
     issuanceRequester: IssuanceRequesterType,
     credentialSpec: CredentialSupported,
+    keyAttestationJwt: KeyAttestationJWT? = nil,
     cNonce: String?
   ) async throws -> Proof {
     switch self {
@@ -131,11 +132,18 @@ public extension BindingKey {
       return .jwt(jws.compactSerializedString)
     case .jwtKeyAttestation(
       let algorithm,
-      let keyAttestationJWT,
+      _,
       let keyIndex,
       let privateKey,
       let issuer
     ):
+      
+      guard let keyAttestationJwt = keyAttestationJwt else {
+        throw ValidationError.todo(
+          reason: ".jwtKeyAttestation: Invalid key attestation JWT"
+        )
+      }
+      
       let proofTypesSupported = credentialSpec.proofTypesSupported
       let keyAttestationRequirement = proofTypesSupported?["jwt"]?.keyAttestationRequirement
       switch keyAttestationRequirement {
@@ -146,15 +154,13 @@ public extension BindingKey {
       case .none:
         break
       }
-
+      
       let header: JWSHeader = try .init(
         parameters: [
           JWTClaimNames.algorithm: algorithm.name,
           JWTClaimNames.kid: "\(keyIndex)",
           JWTClaimNames.type: Self.OpenID4VCIProofJWT,
-          JWTClaimNames.keyAttestation: await keyAttestationJWT(
-            cNonce
-          ).jws.compactSerializedString
+          JWTClaimNames.keyAttestation: keyAttestationJwt.jws.compactSerializedString
         ]
       )
       
@@ -191,10 +197,13 @@ public extension BindingKey {
       )
       
       return .jwt(jws.compactSerializedString)
-    case .attestation(
-      let keyAttestationJWT
-    ):
-      return .attestation(try await keyAttestationJWT(cNonce))
+    case .attestation:
+      guard let keyAttestationJwt = keyAttestationJwt else {
+        throw ValidationError.todo(
+          reason: ".jwtKeyAttestation: Invalid key attestation JWT"
+        )
+      }
+      return .attestation(keyAttestationJwt)
       
     case .did(let identity):
       throw ValidationError.todo(
@@ -240,5 +249,22 @@ extension BindingKey {
     } else {
       throw ValidationError.error(reason: "Unable to create JWS signer")
     }
+  }
+}
+
+extension BindingKey {
+  var attestationFunction: (@Sendable (_ nonce: String?) async throws -> KeyAttestationJWT)? {
+    switch self {
+    case .attestation(let function):
+      return function
+    case .jwtKeyAttestation(_, let function, _, _, _):
+      return function
+    default:
+      return nil
+    }
+  }
+  
+  var isAttestationCapable: Bool {
+    attestationFunction != nil
   }
 }
