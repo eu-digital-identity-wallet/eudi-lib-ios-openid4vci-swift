@@ -164,7 +164,7 @@ func dpopConstructor(algorithms: [JWSAlgorithm]?) throws -> DPoPConstructorType?
   )
 }
 
-public struct ActingUser {
+public struct ActingUser: Sendable {
   public let username: String
   public let password: String
   

@@ -683,21 +683,32 @@ private extension Issuer {
     supportedCredential: CredentialSupported,
     nonce: String?
   ) async -> [Proof] {
-    await Task.detached { () -> [Proof] in
-      let keys = bindingKeys.filter { key in
-        switch key {
-        case .jwt, .jwtKeyAttestation, .attestation:
-          true
-        default:
-          false
-        }
+    /// Filter for keys we care about
+    let eligibleKeys = bindingKeys.filter {
+      switch $0 {
+      case .jwt, .jwtKeyAttestation, .attestation: true
+      default: false
       }
-      return await (try? keys.asyncCompactMap { try await $0.toSupportedProof(
-        issuanceRequester: self.issuanceRequester,
+    }
+    
+    /// Grab the first attestation function, if any
+    let attestationFunction = bindingKeys
+      .first(where: { $0.isAttestationCapable })?
+      .attestationFunction
+    
+    /// Resolve the attestation JWT once; if we have a function
+    let attestationJwt = try? await attestationFunction?(nonce)
+    
+    /// Build proofs
+    let proofs = await eligibleKeys.asyncCompactMap { key in
+      try? await key.toSupportedProof(
+        issuanceRequester: issuanceRequester,
         credentialSpec: supportedCredential,
+        keyAttestationJwt: attestationJwt,
         cNonce: nonce
-      )}) ?? []
-    }.value
+      )
+    }
+    return proofs
   }
   
   private func proofsRequirement(

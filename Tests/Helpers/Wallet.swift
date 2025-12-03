@@ -17,7 +17,7 @@ import Foundation
 
 @testable import OpenID4VCI
 
-struct Wallet {
+struct Wallet: Sendable {
   let actingUser: ActingUser
   let bindingKeys: [BindingKey]
   let session: Networking
