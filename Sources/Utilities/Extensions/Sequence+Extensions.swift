@@ -29,7 +29,7 @@ public extension Sequence {
   }
   
   func asyncCompactMap<T>(
-    _ transform: (Element) async throws -> T?
+    _ transform: @Sendable (Element) async throws -> T?
   ) async rethrows -> [T] {
     var values = [T]()
     
