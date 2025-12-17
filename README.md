@@ -49,8 +49,8 @@ In particular, the library focuses on the wallet's role in the protocol to:
 | PKCE                             | ✅                                                                                                                  |
 | Wallet authentication                                                                           | ✅ public client, <br/>✅ [Attestation-Based Client Authentication](#oauth2-attestation-based-client-authentication) |
 | Use issuer's nonce endpoint to get c_nonce for proofs                                           | ✅                                                                                                                  |
-| `attestation` proof type                                                                        | ❌                                                                                                                  |
-| `key_attestation` to the JWT Proof (JOSE header)                                                | ❌                                                                                                                  |
+| `attestation` proof type                                                                        | ✅                                                                                                                  |
+| `key_attestation` to the JWT Proof (JOSE header)                                                | ✅                                                                                                                  |
 | Wallet attestation                                                                              | ❌                                                                                                                  |
 
 
