@@ -390,6 +390,7 @@ internal actor AuthorizationServerClient: AuthorizationServerClientType {
               state: state,
               issuerState: issuerState,
               dpopNonce: nonce,
+              challenge: challenge,
               retry: false
             )
           } else {
