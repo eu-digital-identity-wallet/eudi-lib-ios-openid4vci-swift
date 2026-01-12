@@ -393,6 +393,7 @@ internal actor AuthorizationServerClient: AuthorizationServerClientType {
               challenge: challenge,
               retry: false
             )
+              
           } else {
             return .failure(ValidationError.retryFailedAfterDpopNonce)
           }
