@@ -17,6 +17,20 @@
 import SwiftyJSON
 @preconcurrency import JOSESwift
 
+private enum CoseAlgorithm: Int {
+  case es256 = -7
+  case es384 = -35
+  case es512 = -36
+  
+  var name: String {
+    switch self {
+    case .es256: return "ES256"
+    case .es384: return "ES384"
+    case .es512: return "ES512"
+    }
+  }
+}
+
 public struct MsoMdocFormat: FormatProfile {
   static let FORMAT = "mso_mdoc"
   
@@ -252,9 +266,8 @@ public extension MsoMdocFormat {
       self.cryptographicBindingMethodsSupported = try json["cryptographic_binding_methods_supported"].arrayValue.map {
         try CryptographicBindingMethod(method: $0.stringValue)
       }
-      self.credentialSigningAlgValuesSupported = json["credential_signing_alg_values_supported"].arrayValue.map {
-        $0.stringValue
-      }
+      
+      self.credentialSigningAlgValuesSupported = Self.parseCredentialSigningAlgorithms(from: json)
       
       self.proofTypesSupported = json["proof_types_supported"].dictionaryObject?.compactMapValues { values in
         if let types = values as? [String: Any],
@@ -271,6 +284,14 @@ public extension MsoMdocFormat {
       self.credentialMetadata = try ConfigurationCredentialMetadata(json: json["credential_metadata"])
       self.docType = json["doctype"].stringValue
       self.policy = .init(json: json["policy"])
+    }
+    
+    internal static func parseCredentialSigningAlgorithms(from json: JSON) -> [String] {
+      json["credential_signing_alg_values_supported"]
+        .arrayValue
+        .compactMap { value in
+          value.string ?? value.int.flatMap { CoseAlgorithm(rawValue: $0)?.name }
+        }
     }
     
     func toIssuanceRequest(
