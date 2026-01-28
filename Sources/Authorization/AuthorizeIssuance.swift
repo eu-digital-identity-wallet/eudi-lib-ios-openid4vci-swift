@@ -48,6 +48,7 @@ protocol AuthorizeIssuanceType: Sendable {
   ///   - authorizationDetailsInTokenRequest: Additional authorization details for the token request.
   /// - Returns: A result containing either an `AuthorizedRequest` if successful or an `Error` otherwise.
   func authorizeWithAuthorizationCode(
+    grant: Grants,
     request: AuthorizationRequestPrepared,
     authorizationDetailsInTokenRequest: AuthorizationDetailsInTokenRequest
   ) async -> Result<AuthorizedRequest, Error>
@@ -160,7 +161,8 @@ internal actor AuthorizeIssuance: AuthorizeIssuanceType {
               ),
               credentialIdentifiers: identifiers,
               timeStamp: Date().timeIntervalSinceReferenceDate,
-              dPopNonce: dPopNonce
+              dPopNonce: dPopNonce,
+              grantType: .init(grant: credentialOffer.grants)
             )
           )
         case .failure(let error):
@@ -177,6 +179,7 @@ internal actor AuthorizeIssuance: AuthorizeIssuanceType {
   }
   
   func authorizeWithAuthorizationCode(
+    grant: Grants,
     request: AuthorizationRequestPrepared,
     authorizationDetailsInTokenRequest: AuthorizationDetailsInTokenRequest
   ) async -> Result<AuthorizedRequest, any Error> {
@@ -219,7 +222,8 @@ internal actor AuthorizeIssuance: AuthorizeIssuanceType {
               ),
               credentialIdentifiers: response.identifiers,
               timeStamp: Date().timeIntervalSinceReferenceDate,
-              dPopNonce: response.dPopNonce
+              dPopNonce: response.dPopNonce,
+              grantType: .init(grant: grant)
             )
           )
         } catch {

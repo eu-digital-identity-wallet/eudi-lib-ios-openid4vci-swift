@@ -63,7 +63,8 @@ public extension BindingKey {
     issuanceRequester: IssuanceRequesterType,
     credentialSpec: CredentialSupported,
     keyAttestationJwt: KeyAttestationJWT? = nil,
-    cNonce: String?
+    cNonce: String?,
+    omitIss: Bool,
   ) async throws -> Proof {
     switch self {
     case .jwt(
@@ -107,6 +108,11 @@ public extension BindingKey {
         if let string = value as? String, string.isEmpty {
           return false
         }
+        
+        if key == JWTClaimNames.issuer, omitIss {
+          return false
+        }
+        
         return true
       }
       
