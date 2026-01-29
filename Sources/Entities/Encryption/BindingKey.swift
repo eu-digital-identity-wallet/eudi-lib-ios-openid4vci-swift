@@ -64,7 +64,7 @@ public extension BindingKey {
     credentialSpec: CredentialSupported,
     keyAttestationJwt: KeyAttestationJWT? = nil,
     cNonce: String?,
-    omitIss: Bool,
+    omitIss: Bool
   ) async throws -> Proof {
     switch self {
     case .jwt(
