@@ -343,7 +343,7 @@ public actor Issuer: IssuerType {
     authorizationCode: IssuanceAuthorization,
     client: Client,
     transactionCode: String?,
-    authorizationDetailsInTokenRequest: AuthorizationDetailsInTokenRequest = .doNotInclude,
+    authorizationDetailsInTokenRequest: AuthorizationDetailsInTokenRequest = .doNotInclude
   ) async -> Result<AuthorizedRequest, Error> {
     await authorizeIssuance.authorizeWithPreAuthorizationCode(
       credentialOffer: credentialOffer,
