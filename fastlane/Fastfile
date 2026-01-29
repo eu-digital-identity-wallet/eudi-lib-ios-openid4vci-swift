@@ -46,7 +46,7 @@ platform :ios do
     params = {
       package_path: '.',
       scheme: 'OpenID4VCI',
-      devices: ['iPhone 14'], 
+      destination: "platform=iOS Simulator,name=iPhone 16,OS=18.5",
       output_directory: "xcov_output",
       result_bundle: true
     }
