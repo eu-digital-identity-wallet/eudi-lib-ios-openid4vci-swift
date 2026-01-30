@@ -54,14 +54,15 @@ platform :ios do
       params[:xcargs] = "-skipPackagePluginValidation"
     end
 
+    UI.important("===== DEBUG MARKER: OpenID4VCI lane is running =====")
+    UI.important("Fastfile path guess: #{__FILE__}")
+    UI.important("PWD: #{Dir.pwd}")
+
     run_tests(params)
 
-     # ---- DEBUG BLOCK: put it here ----
-     UI.message("PWD: #{Dir.pwd}")
-     sh("ls -la")
-     sh("ls -la xcov_output || true")
-     sh("find . -maxdepth 6 -name '*.xcresult' || true")
-     # ----------------------------------
+    UI.important("===== DEBUG MARKER: OpenID4VCI lane is running =====")
+    UI.important("Fastfile path guess: #{__FILE__}")
+    UI.important("PWD: #{Dir.pwd}")
 
     xcov(
       scheme: "OpenID4VCI",
