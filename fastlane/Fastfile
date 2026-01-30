@@ -47,12 +47,9 @@ platform :ios do
       output_directory: "xcov_output",
       result_bundle: true,
       parallel_testing: false,
-      xcodebuild_formatter: "xcbeautify"
+      xcodebuild_formatter: "xcbeautify",
+      xcargs: ENV['CI'] ? "-skipPackagePluginValidation" : nil
     }
-
-    if ENV['CI'] 
-      params[:xcargs] = "-skipPackagePluginValidation"
-    end
 
     run_tests(params)
 
