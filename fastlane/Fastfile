@@ -48,7 +48,9 @@ platform :ios do
       scheme: 'OpenID4VCI',
       destination: "platform=iOS Simulator,name=iPhone 16,OS=18.5",
       output_directory: "xcov_output",
-      result_bundle: true
+      result_bundle: true,
+      parallel_testing: false,
+      xcodebuild_formatter: "xcbeautify"
     }
 
     if ENV['CI'] 
@@ -61,8 +63,10 @@ platform :ios do
       scheme: "OpenID4VCI",
       output_directory: "xcov_output",
       is_swift_package: true,
-      minimum_coverage_percentage: 50.0
+      minimum_coverage_percentage: 50.0,
+      include_targets: "OpenID4VCI"
     )
+
     if ENV['CI'] != 'true'
       sh 'open ../xcov_output/index.html'
     end
