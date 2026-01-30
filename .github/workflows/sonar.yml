@@ -3,7 +3,7 @@ on:
   push:
     branches-ignore:
       - 'dependabot/**'
-  pull_request:
+  pull_request_target:
   workflow_dispatch:
 
 jobs:
