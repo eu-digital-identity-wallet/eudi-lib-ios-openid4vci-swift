@@ -1,96 +1,85 @@
-# # This file contains the fastlane.tools configuration
-# # You can find the documentation at https://docs.fastlane.tools
-# #
-# # For a list of all available actions, check out
-# #
-# #     https://docs.fastlane.tools/actions
-# #
-# # For a list of all available plugins, check out
-# #
-# #     https://docs.fastlane.tools/plugins/available-plugins
-# #
+# This file contains the fastlane.tools configuration
+# You can find the documentation at https://docs.fastlane.tools
+#
+# For a list of all available actions, check out
+#
+#     https://docs.fastlane.tools/actions
+#
+# For a list of all available plugins, check out
+#
+#     https://docs.fastlane.tools/plugins/available-plugins
+#
 
-# # Uncomment the line if you want fastlane to automatically update itself
-# # update_fastlane
+# Uncomment the line if you want fastlane to automatically update itself
+# update_fastlane
 
-# default_platform(:ios)
+default_platform(:ios)
 
-# platform :ios do
-#   desc "Run unit tests"
-#   lane :tests do
-#     # params = {
-#     #   package_path: '.',
-#     #   scheme: 'OpenID4VCI',
-#     #   destination: "platform=iOS Simulator,name=iPhone 16,OS=18.5",
-#     #   result_bundle: true
-#     # }
+platform :ios do
+  desc "Run unit tests"
+  lane :tests do
+    params = {
+      package_path: '.',
+      scheme: 'OpenID4VCI',
+      destination: "platform=iOS Simulator,name=iPhone 16,OS=18.5",
+      result_bundle: true
+    }
 
-#     # if ENV['CI'] 
-#     #   params[:xcargs] = "-skipPackagePluginValidation"
-#     # end
+    if ENV['CI'] 
+      params[:xcargs] = "-skipPackagePluginValidation"
+    end
 
-#     # run_tests(params)
-#   end
+    run_tests(params)
+  end
 
-#   desc "Fix lint issues"
-#   lane :run_lint do
-#     sh "swiftlint lint --fix --config ../.swiftlint.yml --quiet ../"
-#   end
+  desc "Fix lint issues"
+  lane :run_lint do
+    sh "swiftlint lint --fix --config ../.swiftlint.yml --quiet ../"
+  end
 
-#   desc "Code coverage"
-#   lane :code_coverage do
+  desc "Code coverage"
+  lane :code_coverage do
     
-#     # output_dir  = File.expand_path("xcov_output")
-#     # result_path = File.join(output_dir, "OpenID4VCI.xcresult")
+    params = {
+      package_path: '.',
+      scheme: 'OpenID4VCI',
+      destination: "platform=iOS Simulator,name=iPhone 16,OS=18.5",
+      output_directory: "xcov_output",
+      result_bundle: true,
+      parallel_testing: false,
+      xcodebuild_formatter: "xcbeautify"
+    }
 
-#     # params = {
-#     #   package_path: '.',
-#     #   scheme: 'OpenID4VCI',
-#     #   destination: "platform=iOS Simulator,name=iPhone 16,OS=18.5",
-#     #   output_directory: "xcov_output",
-#     #   result_bundle: true,
-#     #   parallel_testing: false,
-#     #   xcodebuild_formatter: "xcbeautify"
-#     # }
+    if ENV['CI'] 
+      params[:xcargs] = "-skipPackagePluginValidation"
+    end
 
-#     # if ENV['CI'] 
-#     #   params[:xcargs] = "-skipPackagePluginValidation"
-#     # end
+    run_tests(params)
 
-#     # UI.important("===== DEBUG MARKER: OpenID4VCI lane is running =====")
-#     # UI.important("Fastfile path guess: #{__FILE__}")
-#     # UI.important("PWD: #{Dir.pwd}")
+    xcov(
+      scheme: "OpenID4VCI",
+      output_directory: "xcov_output",
+      is_swift_package: true,
+      minimum_coverage_percentage: 50.0,
+      include_targets: "OpenID4VCI"
+    )
 
-#     # run_tests(params)
+    if ENV['CI'] != 'true'
+      sh 'open ../xcov_output/index.html'
+    end
+  end
 
-#     # UI.important("===== DEBUG MARKER: OpenID4VCI lane is running =====")
-#     # UI.important("Fastfile path guess: #{__FILE__}")
-#     # UI.important("PWD: #{Dir.pwd}")
+  desc "Builds the package"
+  lane :just_build do
+    xcodebuild(
+      scheme: "OpenID4VCI",
+      destination: "platform=iOS Simulator,name=iPhone 16,OS=18.5",
+      xcargs: "-skipPackagePluginValidation -disableAutomaticPackageResolution"
+    )
+  end
 
-#     # xcov(
-#     #   scheme: "OpenID4VCI",
-#     #   output_directory: "xcov_output",
-#     #   is_swift_package: true,
-#     #   minimum_coverage_percentage: 50.0,
-#     #   include_targets: "OpenID4VCI"
-#     # )
-
-#     # if ENV['CI'] != 'true'
-#     #   sh 'open ../xcov_output/index.html'
-#     # end
-#   end
-
-#   desc "Builds the package"
-#   lane :just_build do
-#     xcodebuild(
-#       scheme: "OpenID4VCI",
-#       destination: "platform=iOS Simulator,name=iPhone 16,OS=18.5",
-#       xcargs: "-skipPackagePluginValidation -disableAutomaticPackageResolution"
-#     )
-#   end
-
-#   before_all do
-#     FileUtils.remove_dir '../xcov_output', true
-#   end
+  before_all do
+    FileUtils.remove_dir '../xcov_output', true
+  end
   
-# end
+end
