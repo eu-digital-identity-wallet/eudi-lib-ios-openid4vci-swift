@@ -16,7 +16,7 @@
 default_platform(:ios)
 
 platform :ios do
-  desc "Runs unit tests"
+  desc "Run unit tests"
   lane :tests do
     params = {
       package_path: '.',
