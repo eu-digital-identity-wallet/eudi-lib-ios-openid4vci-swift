@@ -40,11 +40,6 @@ platform :ios do
   desc "Code coverage"
   lane :code_coverage do
     
-    UI.message("PWD: #{Dir.pwd}")
-    sh("ls -la")
-    sh("ls -la xcov_output || true")
-    sh("find . -name '*.xcresult' -maxdepth 4 || true")
-
     params = {
       package_path: '.',
       scheme: 'OpenID4VCI',
@@ -60,6 +55,13 @@ platform :ios do
     end
 
     run_tests(params)
+
+     # ---- DEBUG BLOCK: put it here ----
+     UI.message("PWD: #{Dir.pwd}")
+     sh("ls -la")
+     sh("ls -la xcov_output || true")
+     sh("find . -maxdepth 6 -name '*.xcresult' || true")
+     # ----------------------------------
 
     xcov(
       scheme: "OpenID4VCI",
