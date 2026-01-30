@@ -40,9 +40,6 @@ platform :ios do
   desc "Code coverage"
   lane :code_coverage do
     
-    # You can convert the generated report to JSON using the following command:
-    # xcrun xccov view xcov_output/xccovreport-0.xccovreport --json
-    
     params = {
       package_path: '.',
       scheme: 'OpenID4VCI',
