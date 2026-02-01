@@ -100,7 +100,10 @@ class IssuanceNotificationTest: XCTestCase {
     
     switch unAuthorized {
     case .success(let authorizationCode):
-      let authorizedRequest = await issuer.authorizeWithAuthorizationCode(request: authorizationCode)
+      let authorizedRequest = await issuer.authorizeWithAuthorizationCode(
+        request: authorizationCode,
+        grant: offer.grants!
+      )
       
       if case let .success(authorized) = authorizedRequest {
         XCTAssert(true, "Got access token: \(authorized.accessToken)")
@@ -246,7 +249,10 @@ class IssuanceNotificationTest: XCTestCase {
     
     switch unAuthorized {
     case .success(let authorizationCode):
-      let authorizedRequest = await issuer.authorizeWithAuthorizationCode(request: authorizationCode)
+      let authorizedRequest = await issuer.authorizeWithAuthorizationCode(
+        request: authorizationCode,
+        grant: offer.grants!
+      )
       
       if case let .success(authorized) = authorizedRequest {
         XCTAssert(true, "Got access token: \(authorized.accessToken)")

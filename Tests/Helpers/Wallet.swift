@@ -394,7 +394,8 @@ extension Wallet {
       case .success(let request):
         let authorizedRequest = await issuer.authorizeWithAuthorizationCode(
           request: request,
-          authorizationDetailsInTokenRequest: .doNotInclude
+          authorizationDetailsInTokenRequest: .doNotInclude,
+          grant: offer.grants!
         )
         if case let .success(authorized) = authorizedRequest {
           print("--> [AUTHORIZATION] Authorization code exchanged with access token : \(authorized.accessToken)")
