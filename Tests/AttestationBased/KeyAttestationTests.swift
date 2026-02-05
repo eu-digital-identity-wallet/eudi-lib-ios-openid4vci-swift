@@ -76,7 +76,8 @@ class KeyAttestationTests: XCTestCase {
       request: try await data.issuer.handleAuthorizationCode(
         request: TestsConstants.unAuthorizedRequest,
         authorizationCode: data.issuanceAuthorization
-      ).get()
+      ).get(),
+      grant: data.offer.grants!
     ).get()
 
     
@@ -127,7 +128,8 @@ class KeyAttestationTests: XCTestCase {
       request: try await data.issuer.handleAuthorizationCode(
         request: TestsConstants.unAuthorizedRequest,
         authorizationCode: data.issuanceAuthorization
-      ).get()
+      ).get(),
+      grant: data.offer.grants!
     ).get()
 
     

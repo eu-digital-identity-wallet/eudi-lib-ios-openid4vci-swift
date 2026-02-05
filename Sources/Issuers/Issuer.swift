@@ -44,6 +44,18 @@ public protocol IssuerType: Sendable {
     authorizationDetailsInTokenRequest: AuthorizationDetailsInTokenRequest
   ) async -> Result<AuthorizedRequest, Error>
   
+  /// Completes the authorization process using an authorization code.
+  ///
+  /// - Parameters:
+  ///   - authorizationCode: The unauthorized request containing the authorization code.
+  ///   - authorizationDetailsInTokenRequest: Additional authorization details for the token request.
+  /// - Returns: A result containing either an `AuthorizedRequest` if successful or an `Error` otherwise.
+  func authorizeWithAuthorizationCode(
+    request: AuthorizationRequestPrepared,
+    authorizationDetailsInTokenRequest: AuthorizationDetailsInTokenRequest,
+    grant: Grants
+  ) async -> Result<AuthorizedRequest, Error>
+  
   /// Handles the authorization code and updates the request status.
   ///
   /// - Parameters:
@@ -67,17 +79,6 @@ public protocol IssuerType: Sendable {
     request: AuthorizationRequestPrepared,
     code: inout String
   ) async -> Result<AuthorizationRequestPrepared, Error>
-  
-  /// Completes the authorization process using an authorization code.
-  ///
-  /// - Parameters:
-  ///   - authorizationCode: The unauthorized request containing the authorization code.
-  ///   - authorizationDetailsInTokenRequest: Additional authorization details for the token request.
-  /// - Returns: A result containing either an `AuthorizedRequest` if successful or an `Error` otherwise.
-  func authorizeWithAuthorizationCode(
-    request: AuthorizationRequestPrepared,
-    authorizationDetailsInTokenRequest: AuthorizationDetailsInTokenRequest
-  ) async -> Result<AuthorizedRequest, Error>
   
   /// Requests credential issuance after authorization.
   ///
@@ -355,9 +356,11 @@ public actor Issuer: IssuerType {
   
   public func authorizeWithAuthorizationCode(
     request: AuthorizationRequestPrepared,
-    authorizationDetailsInTokenRequest: AuthorizationDetailsInTokenRequest = .doNotInclude
+    authorizationDetailsInTokenRequest: AuthorizationDetailsInTokenRequest = .doNotInclude,
+    grant: Grants
   ) async -> Result<AuthorizedRequest, Error> {
     await authorizeIssuance.authorizeWithAuthorizationCode(
+      grant: grant,
       request: request,
       authorizationDetailsInTokenRequest: authorizationDetailsInTokenRequest
     )
@@ -633,6 +636,7 @@ private extension Issuer {
       let proofs = await calculateProofs(
         bindingKeys: bindingKeys,
         supportedCredential: supportedCredential,
+        omitIss: authorizedRequest.grantType == .preAuthorizationCode || authorizedRequest.grantType == .both,
         nonce: cNonce?.nonce.cNonce
       )
       switch proofs.count {
@@ -681,6 +685,7 @@ private extension Issuer {
   private func calculateProofs(
     bindingKeys: [BindingKey],
     supportedCredential: CredentialSupported,
+    omitIss: Bool,
     nonce: String?
   ) async -> [Proof] {
     /// Filter for keys we care about
@@ -705,7 +710,8 @@ private extension Issuer {
         issuanceRequester: issuanceRequester,
         credentialSpec: supportedCredential,
         keyAttestationJwt: attestationJwt,
-        cNonce: nonce
+        cNonce: nonce,
+        omitIss: omitIss
       )
     }
     return proofs

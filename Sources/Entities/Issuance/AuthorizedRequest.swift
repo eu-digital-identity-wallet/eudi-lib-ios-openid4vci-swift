@@ -35,25 +35,63 @@ public extension CanExpire {
   }
 }
 
+public enum GrantType: Sendable {
+  case authorizationCode
+  case preAuthorizationCode
+  case both
+  
+  init?(grant: Grants?) {
+    switch grant {
+    case .authorizationCode:
+      self = .authorizationCode
+    case .preAuthorizedCode:
+      self = .preAuthorizationCode
+    case .both:
+      self = .both
+    case .none:
+      return nil
+    }
+  }
+}
+
 public struct AuthorizedRequest: Sendable {
   public let accessToken: IssuanceAccessToken
   public let refreshToken: IssuanceRefreshToken?
   public let credentialIdentifiers: AuthorizationDetailsIdentifiers?
   public let timeStamp: TimeInterval
   public let dPopNonce: Nonce?
+  public let grantType: GrantType?
   
   public init(
     accessToken: IssuanceAccessToken,
     refreshToken: IssuanceRefreshToken?,
     credentialIdentifiers: AuthorizationDetailsIdentifiers?,
     timeStamp: TimeInterval,
-    dPopNonce: Nonce?
+    dPopNonce: Nonce?,
+    grant: Grants?
   ) {
     self.accessToken = accessToken
     self.refreshToken = refreshToken
     self.credentialIdentifiers = credentialIdentifiers
     self.timeStamp = timeStamp
     self.dPopNonce = dPopNonce
+    self.grantType = .init(grant: grant)
+  }
+  
+  public init(
+    accessToken: IssuanceAccessToken,
+    refreshToken: IssuanceRefreshToken?,
+    credentialIdentifiers: AuthorizationDetailsIdentifiers?,
+    timeStamp: TimeInterval,
+    dPopNonce: Nonce?,
+    grantType: GrantType?
+  ) {
+    self.accessToken = accessToken
+    self.refreshToken = refreshToken
+    self.credentialIdentifiers = credentialIdentifiers
+    self.timeStamp = timeStamp
+    self.dPopNonce = dPopNonce
+    self.grantType = grantType
   }
   
   public func isAccessTokenExpired(
@@ -82,7 +120,8 @@ extension AuthorizedRequest {
       refreshToken: refreshToken,
       credentialIdentifiers: credentialIdentifiers,
       timeStamp: newTimeStamp,
-      dPopNonce: dPopNonce
+      dPopNonce: dPopNonce,
+      grantType: grantType
     )
   }
 }
