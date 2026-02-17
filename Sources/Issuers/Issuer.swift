@@ -25,7 +25,7 @@ public protocol IssuerType: Sendable {
   /// - Returns: A result containing either an `UnauthorizedRequest` if the request is successful or an `Error` otherwise.
   func prepareAuthorizationRequest(
     credentialOffer: CredentialOffer
-  ) async throws -> Result<AuthorizationRequestPrepared, Error>
+  ) async throws -> Result<AuthorizationRequested, Error>
   
   /// Authorizes a request using a pre-authorization code.
   ///
@@ -51,7 +51,7 @@ public protocol IssuerType: Sendable {
   ///   - authorizationDetailsInTokenRequest: Additional authorization details for the token request.
   /// - Returns: A result containing either an `AuthorizedRequest` if successful or an `Error` otherwise.
   func authorizeWithAuthorizationCode(
-    request: AuthorizationRequestPrepared,
+    request: AuthorizationCodeRetrieved,
     authorizationDetailsInTokenRequest: AuthorizationDetailsInTokenRequest,
     grant: Grants
   ) async -> Result<AuthorizedRequest, Error>
@@ -63,22 +63,22 @@ public protocol IssuerType: Sendable {
   ///   - authorizationCode: The authorization code issued by the issuer.
   /// - Returns: A result containing either an updated `UnauthorizedRequest` or an `Error`.
   func handleAuthorizationCode(
-    request: AuthorizationRequestPrepared,
+    request: AuthorizationRequested,
     authorizationCode: IssuanceAuthorization
-  ) async -> Result<AuthorizationRequestPrepared, Error>
+  ) async -> Result<AuthorizationCodeRetrieved, Error>
   
   /// Handles the provided authorization code and updates the authorization request state.
   ///
   /// - Parameters:
-  ///   - request: The `AuthorizationRequestPrepared` object representing the state of the authorization request.
+  ///   - request: The `AuthorizationRequested` object representing the state of the authorization request.
   ///   - code: The authorization code received from the authorization server. This parameter is passed as `inout`
   ///           in case it needs to be modified or consumed during processing.
-  /// - Returns: A `Result` containing the potentially updated `AuthorizationRequestPrepared` on success,
+  /// - Returns: A `Result` containing the potentially updated `AuthorizationCodeRetrieved` on success,
   ///            or an `Error` if the code is invalid or the processing fails.
   func handleAuthorizationCode(
-    request: AuthorizationRequestPrepared,
+    request: AuthorizationRequested,
     code: inout String
-  ) async -> Result<AuthorizationRequestPrepared, Error>
+  ) async -> Result<AuthorizationCodeRetrieved, Error>
   
   /// Requests credential issuance after authorization.
   ///
@@ -332,7 +332,7 @@ public actor Issuer: IssuerType {
   
   public func prepareAuthorizationRequest(
     credentialOffer: CredentialOffer
-  ) async throws -> Result<AuthorizationRequestPrepared, Error> {
+  ) async throws -> Result<AuthorizationRequested, Error> {
     try await authorizeIssuance.prepareAuthorizationRequest(
       credentialOffer: credentialOffer
     )
@@ -355,7 +355,7 @@ public actor Issuer: IssuerType {
   }
   
   public func authorizeWithAuthorizationCode(
-    request: AuthorizationRequestPrepared,
+    request: AuthorizationCodeRetrieved,
     authorizationDetailsInTokenRequest: AuthorizationDetailsInTokenRequest = .doNotInclude,
     grant: Grants
   ) async -> Result<AuthorizedRequest, Error> {
@@ -367,56 +367,41 @@ public actor Issuer: IssuerType {
   }
   
   public func handleAuthorizationCode(
-    request: AuthorizationRequestPrepared,
+    request: AuthorizationRequested,
     code: inout String
-  ) async -> Result<AuthorizationRequestPrepared, Error> {
-    switch request {
-    case .prepared(let request):
+  ) async -> Result<AuthorizationCodeRetrieved, Error> {
       do {
         return .success(
-          .authorizationCode(
-            try .init(
+            try AuthorizationCodeRetrieved(
               credentials: request.credentials,
               authorizationCode: try .init(authorizationCode: code),
               pkceVerifier: request.pkceVerifier,
               configurationIds: request.configurationIds,
               dpopNonce: request.dpopNonce
             )
-          )
         )
       } catch {
         return .failure(
           ValidationError.error(reason: error.localizedDescription)
         )
       }
-    case .authorizationCode:
-      return .failure(
-        ValidationError.error(
-          reason: ".prepared is required"
-        )
-      )
-    }
   }
   
   public func handleAuthorizationCode(
-    request: AuthorizationRequestPrepared,
+    request: AuthorizationRequested,
     authorizationCode: IssuanceAuthorization
-  ) async -> Result<AuthorizationRequestPrepared, Error> {
-    switch request {
-    case .prepared(let request):
+  ) async -> Result<AuthorizationCodeRetrieved, Error> {
       switch authorizationCode {
       case .authorizationCode(let authorizationCode):
         do {
           return .success(
-            .authorizationCode(
-              try .init(
+              try AuthorizationCodeRetrieved(
                 credentials: request.credentials,
                 authorizationCode: try IssuanceAuthorization(authorizationCode: authorizationCode),
                 pkceVerifier: request.pkceVerifier,
                 configurationIds: request.configurationIds,
                 dpopNonce: request.dpopNonce
               )
-            )
           )
         } catch {
           return .failure(
@@ -432,13 +417,6 @@ public actor Issuer: IssuerType {
           )
         )
       }
-    case .authorizationCode:
-      return .failure(
-        ValidationError.error(
-          reason: ".prepared is required"
-        )
-      )
-    }
   }
   
   public func requestCredential(

@@ -72,7 +72,7 @@ public struct AuthorizationCodeRetrieved: Sendable {
   }
 }
 
-public enum AuthorizationRequestPrepared: Sendable {
-  case prepared(AuthorizationRequested)
-  case authorizationCode(AuthorizationCodeRetrieved)
-}
+//public enum AuthorizationRequestPrepared: Sendable {
+//  case prepared(AuthorizationRequested)
+//  case authorizationCode(AuthorizationCodeRetrieved)
+//}
