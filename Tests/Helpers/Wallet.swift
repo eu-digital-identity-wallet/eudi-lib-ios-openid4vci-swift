@@ -364,11 +364,10 @@ extension Wallet {
       credentialOffer: offer
     )
     
-    if case let .success(request) = parPlaced,
-       case let .prepared(parRequested) = request {
+    if case let .success(parRequested) = parPlaced {
       print("--> [AUTHORIZATION] Placed PAR. Get authorization code URL is: \(parRequested.authorizationCodeURL)")
       
-      var unAuthorized: Result<AuthorizationRequestPrepared, Error>
+      var unAuthorized: Result<AuthorizationCodeRetrieved, Error>
       var authorizationCode: String
       
       authorizationCode = try await loginUserAndGetAuthCode(
@@ -377,7 +376,7 @@ extension Wallet {
       ) ?? { throw  ValidationError.error(reason: "Could not retrieve authorization code") }()
       let issuanceAuthorization: IssuanceAuthorization = .authorizationCode(authorizationCode: authorizationCode)
       unAuthorized = await issuer.handleAuthorizationCode(
-        request: request,
+        request: parRequested,
         authorizationCode: issuanceAuthorization
       )
       /*

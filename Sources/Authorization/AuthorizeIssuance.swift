@@ -22,7 +22,7 @@ protocol AuthorizeIssuanceType: Sendable {
   /// - Returns: A result containing either an `UnauthorizedRequest` if the request is successful or an `Error` otherwise.
   func prepareAuthorizationRequest(
     credentialOffer: CredentialOffer
-  ) async throws -> Result<AuthorizationRequestPrepared, Error>
+  ) async throws -> Result<AuthorizationRequested, Error>
   
   /// Authorizes a request using a pre-authorization code.
   ///
@@ -49,7 +49,7 @@ protocol AuthorizeIssuanceType: Sendable {
   /// - Returns: A result containing either an `AuthorizedRequest` if successful or an `Error` otherwise.
   func authorizeWithAuthorizationCode(
     grant: Grants,
-    request: AuthorizationRequestPrepared,
+    request: AuthorizationCodeRetrieved,
     authorizationDetailsInTokenRequest: AuthorizationDetailsInTokenRequest
   ) async -> Result<AuthorizedRequest, Error>
   
@@ -76,7 +76,7 @@ internal actor AuthorizeIssuance: AuthorizeIssuanceType {
   
   func prepareAuthorizationRequest(
     credentialOffer: CredentialOffer
-  ) async throws -> Result<AuthorizationRequestPrepared, any Error> {
+  ) async throws -> Result<AuthorizationRequested, any Error> {
     
     let issuerState: String? = getIssuerState(from: credentialOffer)
     let (scopes, identifiers) = try scopesAndCredentialConfigurationIds(
@@ -180,11 +180,9 @@ internal actor AuthorizeIssuance: AuthorizeIssuanceType {
   
   func authorizeWithAuthorizationCode(
     grant: Grants,
-    request: AuthorizationRequestPrepared,
+    request: AuthorizationCodeRetrieved,
     authorizationDetailsInTokenRequest: AuthorizationDetailsInTokenRequest
   ) async -> Result<AuthorizedRequest, any Error> {
-    switch request {
-    case .authorizationCode(let request):
       switch request.authorizationCode {
       case .authorizationCode(let authorizationCode):
         do {
@@ -234,13 +232,6 @@ internal actor AuthorizeIssuance: AuthorizeIssuanceType {
           reason: ".authorizationCode case is required"
         ))
       }
-    case .prepared:
-      return .failure(
-        ValidationError.error(
-          reason: ".authorizationCode case is required"
-        )
-      )
-    }
   }
 }
 
@@ -290,7 +281,7 @@ private extension AuthorizeIssuance {
     credentialConfigurationIdentifiers: [CredentialConfigurationIdentifier],
     issuerState: String?,
     state: String
-  ) async -> Result<AuthorizationRequestPrepared, any Error> {
+  ) async -> Result<AuthorizationRequested, any Error> {
     do {
       let resource: String? = issuerMetadata.authorizationServers.map { _ in
         credentialOffer.credentialIssuerIdentifier.url.absoluteString
@@ -314,8 +305,7 @@ private extension AuthorizeIssuance {
       ).get()
 
       return .success(
-        .prepared(
-          .init(
+        AuthorizationRequested(
             credentials: try credentialConfigurationIdentifiers.map {
               try CredentialIdentifier(value: $0.value)
             },
@@ -324,7 +314,6 @@ private extension AuthorizeIssuance {
             state: state,
             configurationIds: credentialConfigurationIdentifiers,
             dpopNonce: result.dPopNonce
-          )
         )
       )
     } catch {
@@ -341,7 +330,7 @@ private extension AuthorizeIssuance {
     credentialConfigurationIdentifiers: [CredentialConfigurationIdentifier],
     issuerState: String?,
     state: String
-  ) async -> Result<AuthorizationRequestPrepared, any Error> {
+  ) async -> Result<AuthorizationRequested, any Error> {
     do {
       let result: (
         verifier: PKCEVerifier,
@@ -354,16 +343,14 @@ private extension AuthorizeIssuance {
       ).get()
 
       return .success(
-        .prepared(
-          .init(
+        AuthorizationRequested(
             credentials: try credentialConfigurationIdentifiers.map {
-              try CredentialIdentifier(value: $0.value)
+                try CredentialIdentifier(value: $0.value)
             },
             authorizationCodeURL: result.code,
             pkceVerifier: result.verifier,
             state: state,
             configurationIds: credentialConfigurationIdentifiers
-          )
         )
       )
     } catch {
