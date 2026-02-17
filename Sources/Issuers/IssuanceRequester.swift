@@ -43,7 +43,7 @@ public protocol IssuanceRequesterType: Sendable {
     dPopNonce: Nonce?,
     retry: Bool,
     encryptionSpec: EncryptionSpec?
-  ) async throws -> Result<CredentialIssuanceResponse, Error>
+  ) async throws -> CredentialIssuanceResponse
   
   /// Places a request for a deferred credential issuance.
   ///
@@ -61,7 +61,7 @@ public protocol IssuanceRequesterType: Sendable {
     dPopNonce: Nonce?,
     retry: Bool,
     issuanceResponseEncryptionSpec: IssuanceResponseEncryptionSpec?
-  ) async throws -> Result<DeferredCredentialIssuanceResponse, Error>
+  ) async throws -> DeferredCredentialIssuanceResponse
   
   /// Sends a notification to the credential issuer.
   ///
@@ -105,7 +105,7 @@ public actor IssuanceRequester: IssuanceRequesterType {
     dPopNonce: Nonce?,
     retry: Bool,
     encryptionSpec: EncryptionSpec?
-  ) async throws -> Result<CredentialIssuanceResponse, Error> {
+  ) async throws -> CredentialIssuanceResponse {
     let endpoint = issuerMetadata.credentialEndpoint.url
     
     do {
@@ -131,7 +131,7 @@ public actor IssuanceRequester: IssuanceRequesterType {
         encryptionSpec: encryptionSpec
       )
       
-      return .success(try response.body.toSingleIssuanceResponse())
+      return try response.body.toSingleIssuanceResponse()
       
     } catch PostError.useDpopNonce(let nonce) {
       if retry {
@@ -143,11 +143,11 @@ public actor IssuanceRequester: IssuanceRequesterType {
           encryptionSpec: encryptionSpec
         )
       } else {
-        return .failure(ValidationError.retryFailedAfterDpopNonce)
+        throw ValidationError.retryFailedAfterDpopNonce
       }
       
     } catch PostError.response(let response) {
-      return .failure(response.toIssuanceError())
+      throw response.toIssuanceError()
       
     } catch PostError.cannotParse(let string) {
       switch request {
@@ -155,17 +155,16 @@ public actor IssuanceRequester: IssuanceRequesterType {
         switch issuerMetadata.credentialResponseEncryption {
         case .notSupported:
           guard let response = SingleIssuanceSuccessResponse.fromJSONString(string) else {
-            return .failure(
+            throw
               ValidationError.todo(
                 reason: "Cannot decode .notRequired response"
               )
-            )
           }
-          return .success(try response.toDomain())
+          return try response.toDomain()
         case .required, .notRequired:
           do {
             guard let key = credential.credentialEncryptionKey else {
-              return .failure(ValidationError.error(reason: "Invalid private key"))
+              throw ValidationError.error(reason: "Invalid private key")
             }
             
             switch credential.requestedCredentialResponseEncryption {
@@ -182,11 +181,10 @@ public actor IssuanceRequester: IssuanceRequesterType {
                 let keyManagementAlgorithm = KeyManagementAlgorithm(algorithm: responseEncryptionAlg),
                 let contentEncryptionAlgorithm = ContentEncryptionAlgorithm(encryptionMethod: responseEncryptionMethod)
               else {
-                return .failure(
+                throw
                   ValidationError.error(
                     reason: "Unsupported encryption algorithms: \(responseEncryptionAlg.name), \(responseEncryptionMethod.name)"
                   )
-                )
               }
               
               let payload = try decrypt(
@@ -200,23 +198,23 @@ public actor IssuanceRequester: IssuanceRequesterType {
                 SingleIssuanceSuccessResponse.self,
                 from: payload.data()
               )
-              return .success(try response.toDomain())
+              return try response.toDomain()
             }
             
           } catch {
-            return .failure(error)
+            throw error
           }
         }
       case .sdJwtVc(let credential):
         switch issuerMetadata.credentialResponseEncryption {
         case .notSupported:
           guard let response = SingleIssuanceSuccessResponse.fromJSONString(string) else {
-            return .failure(ValidationError.todo(reason: "Cannot decode .notRequired response"))
+            throw ValidationError.todo(reason: "Cannot decode .notRequired response")
           }
-          return .success(try response.toDomain())
+          return try response.toDomain()
         case .required, .notRequired:
           guard let key = credential.credentialEncryptionKey else {
-            return .failure(ValidationError.error(reason: "Invalid private key"))
+            throw ValidationError.error(reason: "Invalid private key")
           }
           
           switch credential.requestedCredentialResponseEncryption {
@@ -233,7 +231,7 @@ public actor IssuanceRequester: IssuanceRequesterType {
               let keyManagementAlgorithm = KeyManagementAlgorithm(algorithm: responseEncryptionAlg),
               let contentEncryptionAlgorithm = ContentEncryptionAlgorithm(encryptionMethod: responseEncryptionMethod)
             else {
-              return .failure(ValidationError.error(reason: "Unsupported encryption algorithms"))
+              throw ValidationError.error(reason: "Unsupported encryption algorithms")
             }
             
             let payload = try decrypt(
@@ -243,13 +241,10 @@ public actor IssuanceRequester: IssuanceRequesterType {
               privateKey: key
             )
             let response = try JSONDecoder().decode(SingleIssuanceSuccessResponse.self, from: payload.data())
-            return .success(try response.toDomain())
+            return try response.toDomain()
           }
         }
       }
-      
-    } catch {
-      return .failure(ValidationError.error(reason: error.localizedDescription))
     }
   }
   
@@ -259,7 +254,7 @@ public actor IssuanceRequester: IssuanceRequesterType {
     dPopNonce: Nonce?,
     retry: Bool,
     issuanceResponseEncryptionSpec: IssuanceResponseEncryptionSpec?
-  ) async throws -> Result<DeferredCredentialIssuanceResponse, Error> {
+  ) async throws -> DeferredCredentialIssuanceResponse {
     guard let deferredCredentialEndpoint = issuerMetadata.deferredCredentialEndpoint else {
       throw CredentialError.issuerDoesNotSupportDeferredIssuance
     }
@@ -282,14 +277,13 @@ public actor IssuanceRequester: IssuanceRequesterType {
       )
       
       if let interval = response.body.interval {
-        return .success(
-          .issuancePending(
+        return .issuancePending(
             transactionId: transactionId,
             interval: interval
           )
-        )
       }
-      return .success(response.body)
+      
+      return response.body
       
     } catch PostError.useDpopNonce(let nonce) {
       if retry {
@@ -301,36 +295,30 @@ public actor IssuanceRequester: IssuanceRequesterType {
           issuanceResponseEncryptionSpec: issuanceResponseEncryptionSpec
         )
       } else {
-        return .failure(ValidationError.retryFailedAfterDpopNonce)
+        throw ValidationError.retryFailedAfterDpopNonce
       }
-      
+        
     } catch PostError.response(let response) {
-      
-      let issuanceError = response.toIssuanceError()
-      
-      if case .deferredCredentialIssuancePending(let interval) = issuanceError {
-        return .success(
-          .issuancePending(
+        do {
+            throw response.toIssuanceError()
+        } catch CredentialIssuanceError.deferredCredentialIssuancePending(let interval) {
+          return .issuancePending(
             transactionId: transactionId,
             interval: interval ?? .zero
           )
-        )
-      }
-      
-      return .failure(issuanceError)
-      
+        }
+        
     } catch PostError.cannotParse(let string) {
-      
       if let responseEncryptionSpec = issuanceResponseEncryptionSpec {
         guard
           let keyManagementAlgorithm = KeyManagementAlgorithm(algorithm: responseEncryptionSpec.algorithm),
           let contentEncryptionAlgorithm = ContentEncryptionAlgorithm(encryptionMethod: responseEncryptionSpec.encryptionMethod)
         else {
-          return .failure(ValidationError.error(reason: "Unsupported encryption algorithms: \(responseEncryptionSpec.algorithm.name), \(responseEncryptionSpec.encryptionMethod.name)"))
+          throw ValidationError.error(reason: "Unsupported encryption algorithms: \(responseEncryptionSpec.algorithm.name), \(responseEncryptionSpec.encryptionMethod.name)")
         }
         
         guard let key = responseEncryptionSpec.privateKey else {
-          return .failure(ValidationError.error(reason: "Invalid private key"))
+          throw ValidationError.error(reason: "Invalid private key")
         }
         
         let payload = try decrypt(
@@ -340,15 +328,10 @@ public actor IssuanceRequester: IssuanceRequesterType {
           privateKey: key
         )
         
-        let response = try JSONDecoder().decode(DeferredCredentialIssuanceResponse.self, from: payload.data())
-        return .success(response)
+        return try JSONDecoder().decode(DeferredCredentialIssuanceResponse.self, from: payload.data())
       }
       
-      return .failure(ValidationError.error(reason: "responseEncryptionSpec not found \(#line)"))
-      
-    } catch {
-      
-      return .failure(error)
+      throw ValidationError.error(reason: "responseEncryptionSpec not found \(#line)")
     }
   }
   

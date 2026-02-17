@@ -30,13 +30,7 @@ final class ChallengeEndpointClientTests: XCTestCase {
     let endpoint = URL(string: "https://example.com/challenge")!
     let sut = ChallengeEndpointClient(poster: poster, challengeEndpoint: endpoint)
     
-    let result = try await sut.getChallenge()
-    
-    switch result {
-    case .success(let nonce):
+    let nonce = try await sut.getChallenge()
       XCTAssertEqual(nonce.value, "my.attestation.challenge")
-    case .failure(let error):
-      XCTFail("Expected success, got error: \(error)")
-    }
   }
 }

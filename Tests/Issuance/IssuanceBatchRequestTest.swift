@@ -87,39 +87,33 @@ class IssuanceBatchRequestTest: XCTestCase {
     let authorizationCode = "MZqG9bsQ8UALhsGNlY39Yw=="
     let request = TestsConstants.unAuthorizedRequest
     
+    do {
     let issuanceAuthorization: IssuanceAuthorization = .authorizationCode(authorizationCode: authorizationCode)
-    let unAuthorized = await issuer.handleAuthorizationCode(
+    let unAuthorized = try await issuer.handleAuthorizationCode(
       request: request,
       authorizationCode: issuanceAuthorization
     )
-    
-    switch unAuthorized {
-    case .success(let authorizationCode):
-      let authorizedRequest = await issuer.authorizeWithAuthorizationCode(
-        request: authorizationCode,
+      
+      let authorizedRequest = try await issuer.authorizeWithAuthorizationCode(
+        request: unAuthorized,
         grant: offer.grants!
       )
       
-      if case let .success(authorized) = authorizedRequest {
-        XCTAssert(true, "Got access token: \(authorized.accessToken)")
+        XCTAssert(true, "Got access token: \(authorizedRequest.accessToken)")
         XCTAssert(true, "Is no proof required")
-        
-        do {
-                    
+      
           let msoMdocPayload: IssuanceRequestPayload = .configurationBased(
             credentialConfigurationIdentifier: try .init(value: PID_MsoMdoc_config_id)
           )
           
-          let result = try await issuer.requestCredential(
-            request: authorized,
+          let request = try await issuer.requestCredential(
+            request: authorizedRequest,
             bindingKeys: [],
             requestPayload: msoMdocPayload,
             responseEncryptionSpecProvider: { _ in
               spec
             })
-          
-          switch result {
-          case .success(let request):
+      
             switch request {
             case .success(let response):
               if let result = response.credentialResponses.first {
@@ -140,20 +134,8 @@ class IssuanceBatchRequestTest: XCTestCase {
               XCTAssert(false, errorDescription!)
             }
             XCTAssert(false, "Unexpected")
-          case .failure(let error):
-            XCTAssert(false, error.localizedDescription)
-          }
-        } catch {
-          XCTAssert(false, error.localizedDescription)
-        }
-        
-        return
-      }
-      
-    case .failure(let error):
+    } catch {
       XCTAssert(false, error.localizedDescription)
     }
-    
-    XCTAssert(false, "Unable to get access token")
   }
 }

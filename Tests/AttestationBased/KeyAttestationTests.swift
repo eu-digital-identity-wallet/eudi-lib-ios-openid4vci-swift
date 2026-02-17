@@ -76,9 +76,9 @@ class KeyAttestationTests: XCTestCase {
       request: try await data.issuer.handleAuthorizationCode(
         request: TestsConstants.unAuthorizedRequest,
         authorizationCode: data.issuanceAuthorization
-      ).get(),
+      ),
       grant: data.offer.grants!
-    ).get()
+    )
 
     
     do {
@@ -94,12 +94,7 @@ class KeyAttestationTests: XCTestCase {
           spec
         })
       
-      switch result {
-      case .success:
         XCTAssert(true, "Success")
-      case .failure(let error):
-        XCTAssert(false, error.localizedDescription)
-      }
     } catch {
       XCTAssert(false, error.localizedDescription)
     }
@@ -128,10 +123,9 @@ class KeyAttestationTests: XCTestCase {
       request: try await data.issuer.handleAuthorizationCode(
         request: TestsConstants.unAuthorizedRequest,
         authorizationCode: data.issuanceAuthorization
-      ).get(),
+      ),
       grant: data.offer.grants!
-    ).get()
-
+    )
     
     do {
       
@@ -146,12 +140,7 @@ class KeyAttestationTests: XCTestCase {
           spec
         })
       
-      switch result {
-      case .success:
         XCTAssert(true, "Success")
-      case .failure(let error):
-        XCTAssert(false, error.localizedDescription)
-      }
     } catch {
       XCTAssert(false, error.localizedDescription)
     }

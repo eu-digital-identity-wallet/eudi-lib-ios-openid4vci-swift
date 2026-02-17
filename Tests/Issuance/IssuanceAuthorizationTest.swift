@@ -27,7 +27,7 @@ class IssuanceAuthorizationTest: XCTestCase {
     authorizeIssuanceConfig: .favorScopes
   )
   
-  func testPushAuthorizationCodeRequestPlacementSuccesful() async throws {
+  func testPushAuthorizationCodeRequestPlacementSuccessful() async throws {
     
     // Given
     guard let offer = await TestsConstants.createMockCredentialOffer() else {
@@ -52,14 +52,13 @@ class IssuanceAuthorizationTest: XCTestCase {
     )
     
     // Then
-    let parPlaced = try await issuer.prepareAuthorizationRequest(
+    do {
+    let parRequested: AuthorizationRequested = try await issuer.prepareAuthorizationRequest(
       credentialOffer: offer
     )
-
-    if case let .success(parRequested) = parPlaced {
       let requestUrl = parRequested.authorizationCodeURL.url.queryParameters["request_uri"]
       XCTAssertNotNil(requestUrl)
-    } else {
+    } catch {
       XCTAssert(false, "parRequested failed")
     }
   }
@@ -89,19 +88,18 @@ class IssuanceAuthorizationTest: XCTestCase {
     )
     
     // Then
-    let parPlaced = try await issuer.prepareAuthorizationRequest(
+    do {
+    let parPlaced: AuthorizationRequested = try await issuer.prepareAuthorizationRequest(
       credentialOffer: offer
     )
-
-    switch parPlaced {
-    case .success:
+    
       XCTAssert(false, "Expected failure")
-    case .failure(let error):
+    } catch {
       XCTAssertTrue(true, error.localizedDescription)
     }
   }
   
-  func testAccessTokenAquisitionNoProofRequiredSuccess() async throws {
+  func testAccessTokenAcquisitionNoProofRequiredSuccess() async throws {
     
     // Given
     guard let offer = await TestsConstants.createMockCredentialOffer() else {
@@ -134,32 +132,26 @@ class IssuanceAuthorizationTest: XCTestCase {
     let authorizationCode = "MZqG9bsQ8UALhsGNlY39Yw=="
     let request = TestsConstants.unAuthorizedRequest
     
+    do {
     let issuanceAuthorization: IssuanceAuthorization = .authorizationCode(authorizationCode: authorizationCode)
-    let unAuthorized = await issuer.handleAuthorizationCode(
+    let unAuthorized = try await issuer.handleAuthorizationCode(
       request: request,
       authorizationCode: issuanceAuthorization
     )
     
-    switch unAuthorized {
-    case .success(let authorizationCode):
-      let authorizedRequest = await issuer.authorizeWithAuthorizationCode(
-        request: authorizationCode,
+      let authorizedRequest = try await issuer.authorizeWithAuthorizationCode(
+        request: unAuthorized,
         grant: offer.grants!
       )
       
-      if case let .success(authorized) = authorizedRequest {
-        XCTAssert(true, "Got access token: \(authorized.accessToken)")
-        return
-      }
+        XCTAssert(true, "Got access token: \(authorizedRequest.accessToken)")
       
-    case .failure(let error):
+    } catch {
       XCTAssert(false, error.localizedDescription)
     }
-    
-    XCTAssert(false, "Unable to get access token")
   }
   
-  func testAccessTokenAquisitionProofRequiredSuccess() async throws {
+  func testAccessTokenAcquisitionProofRequiredSuccess() async throws {
     
     // Given
     guard let offer = await TestsConstants.createMockCredentialOffer() else {
@@ -191,32 +183,26 @@ class IssuanceAuthorizationTest: XCTestCase {
     
     let request = TestsConstants.unAuthorizedRequest
     
+    do {
     let authorizationCode = "MZqG9bsQ8UALhsGNlY39Yw=="
     let issuanceAuthorization: IssuanceAuthorization = .authorizationCode(authorizationCode: authorizationCode)
-    let unAuthorized = await issuer.handleAuthorizationCode(
+    let unAuthorized = try await issuer.handleAuthorizationCode(
       request: request,
       authorizationCode: issuanceAuthorization
     )
     
-    switch unAuthorized {
-    case .success(let authorizationCode):
-      let authorizedRequest = await issuer.authorizeWithAuthorizationCode(
-        request: authorizationCode,
+      let authorizedRequest = try await issuer.authorizeWithAuthorizationCode(
+        request: unAuthorized,
         grant: offer.grants!
       )
-      if case let .success(authorized) = authorizedRequest {
-        XCTAssert(true, "Got access token: \(authorized.accessToken)")
-        return
-      }
       
-    case .failure(let error):
+        XCTAssert(true, "Got access token: \(authorizedRequest.accessToken)")
+    } catch {
       XCTAssert(false, error.localizedDescription)
     }
-    
-    XCTAssert(false, "Unable to get access token")
   }
   
-  func testAccessTokenAquisitionProofRequiredFailure() async throws {
+  func testAccessTokenAcquisitionProofRequiredFailure() async throws {
     
     // Given
     guard let offer = await TestsConstants.createMockCredentialOffer() else {
@@ -250,31 +236,20 @@ class IssuanceAuthorizationTest: XCTestCase {
     
     let authorizationCode = "MZqG9bsQ8UALhsGNlY39Yw=="
     let issuanceAuthorization: IssuanceAuthorization = .authorizationCode(authorizationCode: authorizationCode)
-    let unAuthorized = await issuer.handleAuthorizationCode(
+    let unAuthorized = try await issuer.handleAuthorizationCode(
       request: request,
       authorizationCode: issuanceAuthorization
     )
     
-    switch unAuthorized {
-    case .success(let authorizationCode):
-      let authorizedRequest = await issuer.authorizeWithAuthorizationCode(
-        request: authorizationCode,
+    do {
+      let authorizedRequest = try await issuer.authorizeWithAuthorizationCode(
+        request: unAuthorized,
         grant: offer.grants!
       )
-      
-      switch authorizedRequest {
-      case .success:
         XCTAssert(false, "Did not expect success")
-      case .failure(let error):
-        XCTAssert(true, "Got expected failure: \(error.localizedDescription)")
-      }
-      return
-      
-    case .failure(let error):
-      XCTAssert(false, error.localizedDescription)
+    } catch {
+      XCTAssert(true, "Got expected failure: \(error.localizedDescription)")
     }
-    
-    XCTAssert(false, "Unable to get access token")
   }
   
   func testSuccessfulAuthorizationWithPreAuthorizationCodeFlow() async throws {
@@ -315,7 +290,8 @@ class IssuanceAuthorizationTest: XCTestCase {
       XCTAssert(false, "Unexpected grant type")
     }
     
-    let result = await issuer.authorizeWithPreAuthorizationCode(
+    do {
+    let request = try await issuer.authorizeWithPreAuthorizationCode(
       credentialOffer: offer,
       authorizationCode: try .init(
         preAuthorizationCode: code.preAuthorizedCode,
@@ -325,10 +301,8 @@ class IssuanceAuthorizationTest: XCTestCase {
       transactionCode: "123456"
     )
     
-    switch result {
-    case .success(let request):
       XCTAssert(true, "Got access token: \(request.accessToken)")
-    case .failure(let error):
+    } catch {
       XCTAssert(false, error.localizedDescription)
     }
   }
@@ -386,16 +360,6 @@ class IssuanceAuthorizationTest: XCTestCase {
       XCTAssert(false, "Unexpected grant type")
     }
     
-    let result = await issuer.authorizeWithPreAuthorizationCode(
-      credentialOffer: offer,
-      authorizationCode: try .init(
-        preAuthorizationCode: code.preAuthorizedCode,
-        txCode: code.txCode
-      ),
-      client: .public(id: "218232426"),
-      transactionCode: "12345"
-    )
-    
     let privateKey = try KeyController.generateRSAPrivateKey()
     let publicKey = try KeyController.generateRSAPublicKey(from: privateKey)
     
@@ -415,11 +379,21 @@ class IssuanceAuthorizationTest: XCTestCase {
       issuer: "218232426"
     )
     
-    let request = try result.get()
     let payload: IssuanceRequestPayload = .configurationBased(
       credentialConfigurationIdentifier: try CredentialConfigurationIdentifier(
         value: "org.iso.18013.5.1.mDL"
       )
+    )
+    
+    do {
+    let request = try await issuer.authorizeWithPreAuthorizationCode(
+      credentialOffer: offer,
+      authorizationCode: try .init(
+        preAuthorizationCode: code.preAuthorizedCode,
+        txCode: code.txCode
+      ),
+      client: .public(id: "218232426"),
+      transactionCode: "12345"
     )
     
     let requestSingleResult = try await issuer.requestCredential(
@@ -431,16 +405,14 @@ class IssuanceAuthorizationTest: XCTestCase {
       }
     )
 
-    switch requestSingleResult {
-    case .success(let request):
-      switch request {
+      switch requestSingleResult {
       case .success(let response):
         print(response.credentialResponses.map { try! $0.toDictionary() })
         XCTAssertTrue(true)
       default:
         XCTAssert(false, "Unexpected request type")
       }
-    case .failure(let error):
+    } catch {
       XCTAssert(false, error.localizedDescription)
     }
   }
@@ -528,7 +500,8 @@ class IssuanceAuthorizationTest: XCTestCase {
       XCTAssert(false, "Unexpected grant type")
     }
     
-    let result = await issuer.authorizeWithPreAuthorizationCode(
+    do {
+    let request = try await issuer.authorizeWithPreAuthorizationCode(
       credentialOffer: offer,
       authorizationCode: try .init(
         preAuthorizationCode: code.preAuthorizedCode,
@@ -539,9 +512,6 @@ class IssuanceAuthorizationTest: XCTestCase {
       authorizationDetailsInTokenRequest: .include(filter: { _ in true })
     )
     
-    switch result {
-    case .success:
-      let request = try result.get()
       let payload: IssuanceRequestPayload = .configurationBased(
         credentialConfigurationIdentifier: try CredentialConfigurationIdentifier(
           value: "org.iso.18013.5.1.mDL"
@@ -557,20 +527,15 @@ class IssuanceAuthorizationTest: XCTestCase {
         }
       )
 
-      switch requestSingleResult {
-      case .success(let request):
-        switch request {
+        switch requestSingleResult {
         case .success(let response):
           print(response.credentialResponses.map { try! $0.toDictionary() })
           XCTAssertTrue(true)
         default:
           XCTAssert(false, "Unexpected request type")
         }
-      case .failure(let error):
-        XCTAssert(false, error.localizedDescription)
-      }
-    case .failure:
-      XCTAssert(false)
+    } catch {
+      XCTAssert(false, error.localizedDescription)
     }
   }
   
@@ -617,17 +582,6 @@ class IssuanceAuthorizationTest: XCTestCase {
       XCTAssert(false, "Unexpected grant type")
     }
 
-    /// Change the transaction code with the one obtained https://dev.tester.issuer.eudiw.dev/
-    let result = await issuer.authorizeWithPreAuthorizationCode(
-      credentialOffer: offer,
-      authorizationCode: try .init(
-        preAuthorizationCode: code.preAuthorizedCode,
-        txCode: code.txCode
-      ),
-      client: .public(id: WALLET_DEV_CLIENT_ID),
-      transactionCode: "12345"
-    )
-
     let privateKey = try KeyController.generateECDHPrivateKey()
     let publicKey = try KeyController.generateECDHPublicKey(from: privateKey)
 
@@ -646,12 +600,23 @@ class IssuanceAuthorizationTest: XCTestCase {
       privateKey: .secKey(privateKey),
       issuer: "218232426"
     )
-
-    let request = try result.get()
+    
     let payload: IssuanceRequestPayload = .configurationBased(
       credentialConfigurationIdentifier: try CredentialConfigurationIdentifier(
         value: offer.credentialConfigurationIdentifiers.first!.value
       )
+    )
+    
+    do {
+    /// Change the transaction code with the one obtained https://dev.tester.issuer.eudiw.dev/
+    let request = try await issuer.authorizeWithPreAuthorizationCode(
+      credentialOffer: offer,
+      authorizationCode: try .init(
+        preAuthorizationCode: code.preAuthorizedCode,
+        txCode: code.txCode
+      ),
+      client: .public(id: WALLET_DEV_CLIENT_ID),
+      transactionCode: "12345"
     )
 
     let requestSingleResult = try await issuer.requestCredential(
@@ -662,16 +627,14 @@ class IssuanceAuthorizationTest: XCTestCase {
         Issuer.createResponseEncryptionSpec($0)
     })
 
-    switch requestSingleResult {
-    case .success(let request):
-      switch request {
+      switch requestSingleResult {
       case .success(let response):
         print(response.credentialResponses.map { try! $0.toDictionary() })
         XCTAssertTrue(true)
       default:
         XCTAssert(false, "Unexpected request type")
       }
-    case .failure(let error):
+    } catch {
       XCTAssert(false, error.localizedDescription)
     }
   }
@@ -741,16 +704,6 @@ class IssuanceAuthorizationTest: XCTestCase {
       XCTAssert(false, "Unexpected grant type")
     }
     
-    let result = await issuer.authorizeWithPreAuthorizationCode(
-      credentialOffer: offer,
-      authorizationCode: try .init(
-        preAuthorizationCode: code.preAuthorizedCode,
-        txCode: code.txCode
-      ),
-      client: .public(id: "218232426"),
-      transactionCode: "12345"
-    )
-    
     let bindingKey: BindingKey = .jwt(
       algorithm: alg,
       jwk: jwk,
@@ -758,11 +711,21 @@ class IssuanceAuthorizationTest: XCTestCase {
       issuer: "218232426"
     )
     
-    let request = try result.get()
     let payload: IssuanceRequestPayload = .configurationBased(
       credentialConfigurationIdentifier: try CredentialConfigurationIdentifier(
         value: "IdentityCredential"
       )
+    )
+    
+    do {
+    let request = try await issuer.authorizeWithPreAuthorizationCode(
+      credentialOffer: offer,
+      authorizationCode: try .init(
+        preAuthorizationCode: code.preAuthorizedCode,
+        txCode: code.txCode
+      ),
+      client: .public(id: "218232426"),
+      transactionCode: "12345"
     )
     
     let requestSingleResult = try await issuer.requestCredential(
@@ -773,16 +736,14 @@ class IssuanceAuthorizationTest: XCTestCase {
         Issuer.createResponseEncryptionSpec($0)
       })
     
-    switch requestSingleResult {
-    case .success(let request):
-      switch request {
+      switch requestSingleResult {
       case .success(let response):
         print(response.credentialResponses.map { try! $0.toDictionary() })
         XCTAssertTrue(true)
       default:
         XCTAssert(false, "Unexpected request type")
       }
-    case .failure(let error):
+    } catch {
       XCTAssert(false, error.localizedDescription)
     }
   }
