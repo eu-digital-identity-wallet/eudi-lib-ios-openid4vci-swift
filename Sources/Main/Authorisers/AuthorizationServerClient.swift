@@ -237,7 +237,7 @@ internal actor AuthorizationServerClient: AuthorizationServerClientType {
     state: String,
     issuerState: String?
   ) async throws -> Result<(PKCEVerifier, AuthorizationCodeURL), Error> {
-    let hasScopes = !(scopes?.isEmpty ?? true)
+    let hasScopes = scopes?.isEmpty == false
     let hasIdentifiers = !credentialConfigurationIdentifiers.isEmpty
 
     guard hasScopes || hasIdentifiers else {
@@ -252,13 +252,10 @@ internal actor AuthorizationServerClient: AuthorizationServerClientType {
       codeVerifierMethod: CodeChallenge.sha256.rawValue
     )
     
-    let scopeValue: String? = {
-      guard let scopes, !scopes.isEmpty else { return nil }
-      return scopes
-        .map { $0.value }
-        .joined(separator: " ")
-        + " \(Constants.OPENID_SCOPE)"
-    }()
+    let scopeValue =
+        scopes?.isEmpty == false
+        ? scopes!.map(\.value).joined(separator: " ") + " \(Constants.OPENID_SCOPE)"
+        : nil
     
     let authzRequest = AuthorizationRequest(
       responseType: Self.responseType,

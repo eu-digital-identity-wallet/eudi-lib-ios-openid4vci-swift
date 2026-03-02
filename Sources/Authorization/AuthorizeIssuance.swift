@@ -271,7 +271,7 @@ private extension AuthorizeIssuance {
         configurationIdentifiers.append(id)
       }
     }
-    return (scopes.isEmpty ? nil : scopes, configurationIdentifiers)
+    return (scopes, configurationIdentifiers)
   }
   
   private func getIssuerState(from offer: CredentialOffer) -> String? {
