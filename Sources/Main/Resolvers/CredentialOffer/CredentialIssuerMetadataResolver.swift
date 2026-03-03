@@ -66,15 +66,31 @@ public actor CredentialIssuerMetadataResolver: CredentialIssuerMetadataType {
     case .credentialIssuer(let issuerId):
       let wellKnownURL = try buildWellKnownCredentialIssuerURL(from: issuerId.url)
       
-      return await fetcher.fetchMetadata(
+      let result = await fetcher.fetchMetadata(
         url: wellKnownURL,
         policy: policy,
         issuerId: issuerId
       )
+      
+      // Validate on success
+      if case .success(let metadata) = result {
+        
+        guard
+          let requestHost = wellKnownURL.host,
+          let issuerHost = metadata.credentialIssuerIdentifier.url.host,
+          requestHost.caseInsensitiveCompare(issuerHost) == .orderedSame
+        else {
+          throw ValidationError.error(
+            reason: "Issuer domain does not match metadata issuer"
+          )
+        }
+      }
+      
+      return result
     }
   }
 }
-      
+
 extension CredentialIssuerMetadataResolver {
   func buildWellKnownCredentialIssuerURL(
     from issuerURL: URL
