@@ -17,11 +17,25 @@ import Foundation
 import CryptoKit
 
 public struct PKCEGenerator {
-  
+
+  // RFC 7636: code_verifier length MUST be between 43 and 128 characters
+  private static let minCodeVerifierLength = 43
+  private static let maxCodeVerifierLength = 128
+
+  /// Default RFC7636-minimum-length code verifier (43 chars).
   public static func codeVerifier() -> String? {
-    Self.generateRandomString(length: 43)
+    Self.codeVerifier(length: Self.minCodeVerifierLength)
   }
-  
+
+  /// RFC7636-conformant code verifier generator.
+  /// - Parameter length: Must be in 43...128 (RFC7636).
+  public static func codeVerifier(length: Int) -> String? {
+    guard (minCodeVerifierLength...maxCodeVerifierLength).contains(length) else {
+      return nil
+    }
+    return Self.generateRandomString(length: length)
+  }
+
   public static func generateRandomData(length: Int = 48) -> Data? {
     var data = Data(count: length)
     let result = data.withUnsafeMutableBytes { mutableBytes in
