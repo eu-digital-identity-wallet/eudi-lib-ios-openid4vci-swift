@@ -169,7 +169,7 @@ class CredentialOfferResolverTests: XCTestCase {
       source:
           .credentialIssuer(
             CredentialIssuerId(
-              "https://dev.issuer-backend.eudiw.dev"
+              "https://credential-issuer.example.com"
             )
           ),
       policy: .ignoreSigned
