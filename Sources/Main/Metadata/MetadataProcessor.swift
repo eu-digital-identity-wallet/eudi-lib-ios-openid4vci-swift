@@ -16,6 +16,12 @@
 import Foundation
 @preconcurrency import JOSESwift
 
+private enum SignedMetadataValidation {
+  /// Default clock skew (seconds) used for validating `iat` and `exp`.
+  /// Override by changing this value (library integrators can fork/configure).
+  static let clockSkew: TimeInterval = 300
+}
+
 public protocol MetadataProcessing: Sendable {
   func processMetadata(
     rawResponse: RawFetchResponse,
@@ -171,12 +177,23 @@ private extension MetadataProcessor {
     }
     
     let currentTime = Date().timeIntervalSince1970
-    if iat > currentTime + 300 { // 5 min clock skew
+    let skew = SignedMetadataValidation.clockSkew
+
+    // iat must not be in the future beyond skew
+    if iat > currentTime + skew {
       throw CredentialIssuerMetadataError.invalidSignedMetadata("JWT issued in the future")
     }
-    
-    if let exp = claims[JWTClaimNames.expirationTime] as? TimeInterval, exp <= currentTime {
-      throw CredentialIssuerMetadataError.invalidSignedMetadata("JWT has expired")
+
+    // exp must not be expired beyond skew (consistent with iat skew handling)
+    if let exp = claims[JWTClaimNames.expirationTime] as? TimeInterval {
+      if exp < currentTime - skew {
+        throw CredentialIssuerMetadataError.invalidSignedMetadata("JWT has expired")
+      }
+
+      // prevent strange case where iat is after exp
+      if iat > exp + skew {
+        throw CredentialIssuerMetadataError.invalidSignedMetadata("JWT 'iat' is after 'exp'")
+      }
     }
   }
 }
