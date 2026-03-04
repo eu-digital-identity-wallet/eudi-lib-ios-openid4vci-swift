@@ -119,7 +119,7 @@ public protocol IssuerType: DeprecatedIssuing, Sendable {
     authorizedRequest: AuthorizedRequest,
     notificationId: NotificationObject,
     dPopNonce: Nonce?
-  ) async throws -> Result<Void, Error>
+  ) async throws
   
   /// Refreshes an authorized request.
   ///
@@ -831,9 +831,8 @@ public extension Issuer {
     authorizedRequest: AuthorizedRequest,
     notificationId: NotificationObject,
     dPopNonce: Nonce?
-  ) async throws -> Result<Void, Error> {
-    
-    return try await notifyIssuer.notify(
+  ) async throws {
+    try await notifyIssuer.notify(
       authorizedRequest: authorizedRequest,
       notification: notificationId,
       dPopNonce: dPopNonce

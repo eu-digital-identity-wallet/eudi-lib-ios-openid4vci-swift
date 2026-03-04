@@ -106,7 +106,7 @@ class IssuanceDeferredRequestTest: XCTestCase {
             )
           )
           
-          let request = try await issuer.requestCredential(
+          let request: SubmittedRequest = try await issuer.requestCredential(
             request: authorizedRequest,
             bindingKeys: [],
             requestPayload: payload,

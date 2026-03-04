@@ -77,7 +77,7 @@ public protocol IssuanceRequesterType: Sendable {
     notification: NotificationObject,
     dPopNonce: Nonce?,
     retry: Bool
-  ) async throws -> Result<Void, Error>
+  ) async throws
 }
 
 public actor IssuanceRequester: IssuanceRequesterType {
@@ -340,9 +340,7 @@ public actor IssuanceRequester: IssuanceRequesterType {
     notification: NotificationObject,
     dPopNonce: Nonce?,
     retry: Bool
-  ) async throws -> Result<Void, Error> {
-    do {
-      
+  ) async throws {
       guard let accessToken else {
         throw ValidationError.error(reason: "Missing access token")
       }
@@ -373,7 +371,6 @@ public actor IssuanceRequester: IssuanceRequesterType {
           body: encodedRequest,
           encryptionSpec: nil
         )
-        return .success(())
         
       } catch PostError.useDpopNonce(let nonce) {
         if retry {
@@ -384,20 +381,13 @@ public actor IssuanceRequester: IssuanceRequesterType {
             retry: false
           )
         } else {
-          return .failure(ValidationError.retryFailedAfterDpopNonce)
+          throw ValidationError.retryFailedAfterDpopNonce
         }
         
       } catch PostError.response(let response) {
-        return .failure(response.toIssuanceError())
+        throw response.toIssuanceError()
         
-      } catch {
-        
-        return .failure(error)
       }
-      
-    } catch {
-      return .failure(error)
-    }
   }
 }
 

@@ -113,7 +113,7 @@ class IssuanceNotificationTest: XCTestCase {
             )
           )
           
-          let request = try await issuer.requestCredential(
+          let request: SubmittedRequest = try await issuer.requestCredential(
             request: authorizedRequest,
             bindingKeys: [],
             requestPayload: payload,
@@ -130,22 +130,14 @@ class IssuanceNotificationTest: XCTestCase {
                 case .issued(_, let credential, _, _):
                   XCTAssert(true, "credential: \(credential)")
                   
-                  let result = try await issuer.notify(
+                  try await issuer.notify(
                     authorizedRequest: authorizedRequest,
                     notificationId: .stub(),
                     dPopNonce: nil
-                  )
-                  
-                  switch result {
-                  case .success:
-                    print("Success")
-                  case .failure:
-                    print("Failure")
-                  }
-                  return
+                  ) as Void
                 }
               } else {
-                break
+                XCTAssert(false, "Not expected request")
               }
             case .failed(let error):
               XCTAssert(false, error.localizedDescription)
@@ -153,8 +145,6 @@ class IssuanceNotificationTest: XCTestCase {
             case .invalidProof(let errorDescription):
               XCTAssert(false, errorDescription!)
             }
-            XCTAssert(false, "Not expected request")
-      
     } catch {
       XCTAssert(false, error.localizedDescription)
     }
@@ -246,7 +236,7 @@ class IssuanceNotificationTest: XCTestCase {
               value: "eu.europa.ec.eudi.pid_mso_mdoc"
             )
           )
-          let request = try await issuer.requestCredential(
+          let request: SubmittedRequest = try await issuer.requestCredential(
             request: authorizedRequest,
             bindingKeys: [],
             requestPayload: payload,
@@ -263,22 +253,15 @@ class IssuanceNotificationTest: XCTestCase {
                 case .issued(_, let credential, _, _):
                   XCTAssert(true, "credential: \(credential)")
                   
-                  let result = try await issuer.notify(
+                  try await issuer.notify(
                     authorizedRequest: authorizedRequest,
                     notificationId: .stub(),
                     dPopNonce: nil
-                  )
-                  
-                  switch result {
-                  case .success:
-                    print("Success")
-                  case .failure(let error):
-                    print("Failure: \(error)")
-                  }
-                  return
+                  ) as Void
+                  XCTAssert(false, "Success not expected")
                 }
               } else {
-                break
+                XCTAssert(false, "Not expected")
               }
             case .failed(let error):
               XCTAssert(false, error.localizedDescription)
@@ -286,10 +269,10 @@ class IssuanceNotificationTest: XCTestCase {
             case .invalidProof(let errorDescription):
               XCTAssert(false, errorDescription!)
             }
-            XCTAssert(false, "Not expected")
-      
+    } catch CredentialIssuanceError.invalidProof(let errorDescription) {
+      XCTAssert(true, "Expected error: \(String(describing: errorDescription))")
     } catch {
-      XCTAssert(false, error.localizedDescription)
+      XCTAssert(false, "\(error)")
     }
   }
 }

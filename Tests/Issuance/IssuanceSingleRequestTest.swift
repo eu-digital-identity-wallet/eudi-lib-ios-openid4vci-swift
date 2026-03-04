@@ -106,7 +106,7 @@ class IssuanceSingleRequestTest: XCTestCase {
               value: "eu.europa.ec.eudi.pid_mso_mdoc"
             )
           )
-          let request = try await issuer.requestCredential(
+          let request: SubmittedRequest = try await issuer.requestCredential(
             request: authorizedRequest,
             bindingKeys: [],
             requestPayload: payload,
@@ -203,7 +203,7 @@ class IssuanceSingleRequestTest: XCTestCase {
     )
     
     do {
-    let unAuthorized = try await issuer.authorizeWithPreAuthorizationCode(
+    let unAuthorized: AuthorizedRequest = try await issuer.authorizeWithPreAuthorizationCode(
       credentialOffer: offer,
       authorizationCode: issuanceAuthorization,
       client: .public(id: "218232426"),
@@ -218,7 +218,7 @@ class IssuanceSingleRequestTest: XCTestCase {
             value: "eu.europa.ec.eudi.pid_mso_mdoc"
           )
         )
-        let request = try await issuer.requestCredential(
+        let request: SubmittedRequest = try await issuer.requestCredential(
           request: unAuthorized,
           bindingKeys: [],
           requestPayload: payload,
@@ -342,7 +342,7 @@ class IssuanceSingleRequestTest: XCTestCase {
             credentialIdentifier: credentialIdentifier
           )
           
-          let request = try await issuer.requestCredential(
+          let request: SubmittedRequest = try await issuer.requestCredential(
             request: authorizedRequest,
             bindingKeys: [],
             requestPayload: payload,

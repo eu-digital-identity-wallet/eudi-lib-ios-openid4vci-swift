@@ -89,9 +89,9 @@ class IssuanceAuthorizationTest: XCTestCase {
     
     // Then
     do {
-    let parPlaced: AuthorizationRequested = try await issuer.prepareAuthorizationRequest(
+    _ = try await issuer.prepareAuthorizationRequest(
       credentialOffer: offer
-    )
+    ) as AuthorizationRequested
     
       XCTAssert(false, "Expected failure")
     } catch {
@@ -242,7 +242,7 @@ class IssuanceAuthorizationTest: XCTestCase {
     )
     
     do {
-      let authorizedRequest = try await issuer.authorizeWithAuthorizationCode(
+      _ = try await issuer.authorizeWithAuthorizationCode(
         request: unAuthorized,
         grant: offer.grants!
       )
@@ -291,7 +291,7 @@ class IssuanceAuthorizationTest: XCTestCase {
     }
     
     do {
-    let request = try await issuer.authorizeWithPreAuthorizationCode(
+    let request: AuthorizedRequest = try await issuer.authorizeWithPreAuthorizationCode(
       credentialOffer: offer,
       authorizationCode: try .init(
         preAuthorizationCode: code.preAuthorizedCode,
@@ -386,7 +386,7 @@ class IssuanceAuthorizationTest: XCTestCase {
     )
     
     do {
-    let request = try await issuer.authorizeWithPreAuthorizationCode(
+    let request: AuthorizedRequest = try await issuer.authorizeWithPreAuthorizationCode(
       credentialOffer: offer,
       authorizationCode: try .init(
         preAuthorizationCode: code.preAuthorizedCode,
@@ -396,7 +396,7 @@ class IssuanceAuthorizationTest: XCTestCase {
       transactionCode: "12345"
     )
     
-    let requestSingleResult = try await issuer.requestCredential(
+    let requestSingleResult: SubmittedRequest = try await issuer.requestCredential(
       request: request,
       bindingKeys: [bindingKey],
       requestPayload: payload,
@@ -501,7 +501,7 @@ class IssuanceAuthorizationTest: XCTestCase {
     }
     
     do {
-    let request = try await issuer.authorizeWithPreAuthorizationCode(
+    let request: AuthorizedRequest = try await issuer.authorizeWithPreAuthorizationCode(
       credentialOffer: offer,
       authorizationCode: try .init(
         preAuthorizationCode: code.preAuthorizedCode,
@@ -518,7 +518,7 @@ class IssuanceAuthorizationTest: XCTestCase {
         )
       )
       
-      let requestSingleResult = try await issuer.requestCredential(
+      let requestSingleResult: SubmittedRequest = try await issuer.requestCredential(
         request: request,
         bindingKeys: [bindingKey],
         requestPayload: payload,
@@ -609,7 +609,7 @@ class IssuanceAuthorizationTest: XCTestCase {
     
     do {
     /// Change the transaction code with the one obtained https://dev.tester.issuer.eudiw.dev/
-    let request = try await issuer.authorizeWithPreAuthorizationCode(
+    let request: AuthorizedRequest = try await issuer.authorizeWithPreAuthorizationCode(
       credentialOffer: offer,
       authorizationCode: try .init(
         preAuthorizationCode: code.preAuthorizedCode,
@@ -619,7 +619,7 @@ class IssuanceAuthorizationTest: XCTestCase {
       transactionCode: "12345"
     )
 
-    let requestSingleResult = try await issuer.requestCredential(
+    let requestSingleResult: SubmittedRequest = try await issuer.requestCredential(
       request: request,
       bindingKeys: [bindingKey],
       requestPayload: payload,
@@ -718,7 +718,7 @@ class IssuanceAuthorizationTest: XCTestCase {
     )
     
     do {
-    let request = try await issuer.authorizeWithPreAuthorizationCode(
+    let request: AuthorizedRequest = try await issuer.authorizeWithPreAuthorizationCode(
       credentialOffer: offer,
       authorizationCode: try .init(
         preAuthorizationCode: code.preAuthorizedCode,
@@ -728,7 +728,7 @@ class IssuanceAuthorizationTest: XCTestCase {
       transactionCode: "12345"
     )
     
-    let requestSingleResult = try await issuer.requestCredential(
+    let requestSingleResult: SubmittedRequest = try await issuer.requestCredential(
       request: request,
       bindingKeys: [bindingKey],
       requestPayload: payload,

@@ -413,7 +413,7 @@ extension Wallet {
       credentialConfigurationIdentifier: credentialConfigurationIdentifier
     )
     
-    let requestOutcome = try await issuer.requestCredential(
+    let requestOutcome: SubmittedRequest = try await issuer.requestCredential(
       request: authorized,
       bindingKeys: bindingKeys,
       requestPayload: payload
@@ -460,7 +460,7 @@ extension Wallet {
   ) async throws -> Credential {
     print("--> [ISSUANCE] Got a deferred issuance response from server with transaction_id: \(transactionId.value). Retrying issuance...")
     
-    let deferredRequestResponse = try await issuer.requestDeferredCredential(
+    let deferredRequestResponse: DeferredCredentialIssuanceResponse = try await issuer.requestDeferredCredential(
       request: authorized,
       transactionId: transactionId,
       dPopNonce: nil

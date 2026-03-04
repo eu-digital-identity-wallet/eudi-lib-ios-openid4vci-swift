@@ -20,7 +20,7 @@ public protocol NotifyIssuerType: Sendable {
     authorizedRequest: AuthorizedRequest,
     notification: NotificationObject,
     dPopNonce: Nonce?
-  ) async throws -> Result<Void, Error>
+  ) async throws
 }
 
 public final class NotifyIssuer: NotifyIssuerType {
@@ -40,17 +40,12 @@ public final class NotifyIssuer: NotifyIssuerType {
     authorizedRequest: AuthorizedRequest,
     notification: NotificationObject,
     dPopNonce: Nonce?
-  ) async throws -> Result<Void, Error> {
-    
-    do {
-      return try await issuanceRequester.notifyIssuer(
+  ) async throws {
+    try await issuanceRequester.notifyIssuer(
         accessToken: authorizedRequest.accessToken,
         notification: notification,
         dPopNonce: dPopNonce,
         retry: true
       )
-    } catch {
-      throw error
-    }
   }
 }

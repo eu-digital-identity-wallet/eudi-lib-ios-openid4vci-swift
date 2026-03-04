@@ -84,7 +84,7 @@ class KeyAttestationTests: XCTestCase {
     do {
       
       // Then
-      let result = try await data.issuer.requestCredential(
+      _ = try await data.issuer.requestCredential(
         request: authorized,
         bindingKeys: [
           keyBindingKey
@@ -92,7 +92,7 @@ class KeyAttestationTests: XCTestCase {
         requestPayload: sdJwtVCpayload,
         responseEncryptionSpecProvider: { _ in
           spec
-        })
+        }) as SubmittedRequest
       
         XCTAssert(true, "Success")
     } catch {
@@ -130,7 +130,7 @@ class KeyAttestationTests: XCTestCase {
     do {
       
       // Then
-      let result = try await data.issuer.requestCredential(
+      _ = try await data.issuer.requestCredential(
         request: authorized,
         bindingKeys: [
           keyBindingKey
@@ -138,7 +138,7 @@ class KeyAttestationTests: XCTestCase {
         requestPayload: sdJwtVCpayload,
         responseEncryptionSpecProvider: { _ in
           spec
-        })
+        }) as SubmittedRequest
       
         XCTAssert(true, "Success")
     } catch {
