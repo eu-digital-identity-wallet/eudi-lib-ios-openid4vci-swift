@@ -15,6 +15,7 @@
  */
 import Foundation
 
+// Only RFC 8414 / OIDC-compliant discovery is supported.
 public enum URLModificationType {
   case insertPathComponents(String, String)
 }
