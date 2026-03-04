@@ -13,7 +13,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 import Foundation
 @preconcurrency import JOSESwift
 
@@ -189,18 +188,9 @@ private extension IssuerTrust {
     jws: JWS
   ) async throws -> JWS {
     switch self {
+    // NOTE: Only RS256 (RSA) and ES256 (EC P-256) are supported for signed metadata verification.
     case .byPublicKey(let jwk):
-      let algorithm: SignatureAlgorithm
-      switch jwk.keyType {
-      case .RSA:
-        algorithm = .RS256
-      case .EC:
-        algorithm = .ES256
-      default:
-        throw CredentialIssuerMetadataError.invalidSignedMetadata(
-          "Unsupported key type: \(jwk.keyType)"
-        )
-      }
+      let algorithm = try supportedSignatureAlgorithm(for: jwk)
       
       guard
         let key = try JWKSecKeyConverter(jwk: jwk).secKey(),
@@ -283,3 +273,28 @@ private extension JWS {
   }
 }
 
+private extension IssuerTrust {
+  func supportedSignatureAlgorithm(for jwk: JWK) throws -> SignatureAlgorithm {
+    // If the JWK declares an alg, enforce it.
+    if let alg = jwk.parameters["alg"]?.uppercased() {
+      switch alg {
+      case "RS256": return .RS256
+      case "ES256": return .ES256
+      default:
+        throw CredentialIssuerMetadataError.invalidSignedMetadata(
+          "Unsupported JWK alg '\(alg)'. Only RS256 and ES256 are supported."
+        )
+      }
+    }
+
+    // If no alg is declared, fall back to key type, but still only allow RS256/ES256.
+    switch jwk.keyType {
+    case .RSA: return .RS256
+    case .EC:  return .ES256
+    default:
+      throw CredentialIssuerMetadataError.invalidSignedMetadata(
+        "Unsupported key type: \(jwk.keyType). Only RSA (RS256) and EC P-256 (ES256) are supported."
+      )
+    }
+  }
+}
