@@ -15,8 +15,8 @@
  */
 import Foundation
 
+// Only RFC 8414 / OIDC-compliant discovery is supported.
 public enum URLModificationType {
-  case appendPathComponents(String, String)
   case insertPathComponents(String, String)
 }
 
@@ -75,82 +75,43 @@ public actor AuthorizationServerMetadataResolver: AuthorizationServerMetadataRes
     fetcher: Fetcher<OIDCProviderMetadata>,
     url: URL
   ) async -> OIDCProviderMetadata? {
-    
-    // According to the spec https://www.rfc-editor.org/rfc/rfc8414.html#section-3
-    // “.well-known/oauth-authorization-server” need to be inserted after removing the path components first. e.g :
-    // https://example.com/.well-known/oauth-authorization-server/path1/path2
-    // We provide a fallback that simply appends the components
-    // Note: this fallback mechanism will be removed at a future date
+
+    // Spec-compliant discovery only: insert ".well-known/openid-configuration"
     let wellKnown = ".well-known"
     let configuration = "openid-configuration"
-    do {
-      guard let insertedUrl = modifyURL(
-        url: url,
-        modificationType: .insertPathComponents(wellKnown, configuration)
-      ) else {
-        return nil
-      }
-      
-      return try await fetcher.fetch(
-        url: insertedUrl
-      ).get()
-      
-    } catch {
-      
-      guard let appendedUrl = modifyURL(
-        url: url,
-        modificationType: .appendPathComponents(wellKnown, configuration)
-      ) else {
-        return nil
-      }
-      
-      return try? await fetcher.fetch(
-        url: appendedUrl
-      ).get()
+
+    guard let insertedUrl = modifyURL(
+      url: url,
+      modificationType: .insertPathComponents(wellKnown, configuration)
+    ) else {
+      return nil
     }
+
+    return try? await fetcher.fetch(url: insertedUrl).get()
   }
-  
+
   private func fetchAuthorizationServerMetadata(
     fetcher: Fetcher<AuthorizationServerMetadata>,
     url: URL
   ) async -> AuthorizationServerMetadata? {
-    
-    // According to the spec https://www.rfc-editor.org/rfc/rfc8414.html#section-3
-    // “.well-known/oauth-authorization-server” need to be inserted after removing the path components first. e.g :
-    // https://example.com/.well-known/oauth-authorization-server/path1/path2
-    // We provide a fallback that simply appends the components
+
+    // Spec-compliant discovery only: insert ".well-known/oauth-authorization-server"
     let wellKnown = ".well-known"
     let server = "oauth-authorization-server"
-    do {
-      guard let insertedUrl = modifyURL(
-        url: url,
-        modificationType: .appendPathComponents(wellKnown, server)
-      ) else {
-        return nil
-      }
-      
-      return try await fetcher.fetch(
-        url: insertedUrl
-      ).get()
-      
-    } catch {
-      
-      guard let appendedUrl = modifyURL(
-        url: url,
-        modificationType: .insertPathComponents(wellKnown, server)
-      ) else {
-        return nil
-      }
-      
-      return try? await fetcher.fetch(
-        url: appendedUrl
-      ).get()
+
+    guard let insertedUrl = modifyURL(
+      url: url,
+      modificationType: .insertPathComponents(wellKnown, server)
+    ) else {
+      return nil
     }
+
+    return try? await fetcher.fetch(url: insertedUrl).get()
   }
 }
 
 extension AuthorizationServerMetadataResolver {
-  
+
   func modifyURL(
     url: URL,
     modificationType: URLModificationType
@@ -158,9 +119,6 @@ extension AuthorizationServerMetadataResolver {
     var urlComponents = URLComponents(url: url, resolvingAgainstBaseURL: false)
     
     switch modificationType {
-    case .appendPathComponents(let component1, let component2):
-      urlComponents?.path.append(contentsOf: "/\(component1)/\(component2)")
-      
     case .insertPathComponents(let component1, let component2):
       var pathComponents = urlComponents?.path.split(separator: "/").map(String.init) ?? []
       
