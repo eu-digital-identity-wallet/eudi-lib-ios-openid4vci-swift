@@ -85,31 +85,15 @@ public actor AuthorisationService: AuthorisationServiceType {
     request: T,
     headers: [String: String]
   ) async throws -> ResponseWithHeaders<U> {
-    do {
-      let post = try FormPost(
-        url: url,
-        contentType: .form,
-        additionalHeaders: headers,
-        formData: try request.toDictionary()
-      )
-      let result: Result<ResponseWithHeaders<U>, PostError> = await poster.post(request: post.urlRequest)
-      return try result.get()
-    }
+    let post = try FormPost(
+      url: url,
+      contentType: .json,
+      additionalHeaders: headers,
+      formData: try request.toDictionary()
+    )
     
-    // TODO: - To be removed when either niscy decides to support authorization_details (RAR)
-    // https://github.com/eu-digital-identity-wallet/eudi-lib-ios-openid4vci-swift/blob/main/README.md#authorization-endpoint
-    // or mirko's verifier starts supporting scope based calls.
-    
-    catch {
-      let post = try FormPost(
-        url: url,
-        contentType: .json,
-        additionalHeaders: headers,
-        formData: try request.toDictionary()
-      )
-      let result: Result<ResponseWithHeaders<U>, PostError> = await poster.post(request: post.urlRequest)
-      return try result.get()
-    }
+    let result: Result<ResponseWithHeaders<U>, PostError> = await poster.post(request: post.urlRequest)
+    return try result.get()
   }
   
   public func formPost<U: Codable>(
