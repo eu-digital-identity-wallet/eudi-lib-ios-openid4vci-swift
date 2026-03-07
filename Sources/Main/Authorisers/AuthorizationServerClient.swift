@@ -40,7 +40,7 @@ protocol AuthorizationServerClientType: Sendable {
   ///   - issuerState: Optional issuer-specific state parameter.
   /// - Returns: A result containing a `PKCEVerifier` and an authorization URL, or an error if the operation fails.
   func authorizationRequestUrl(
-    scopes: [Scope]?,
+    scopes: [Scope],
     credentialConfigurationIdentifiers: [CredentialConfigurationIdentifier],
     state: String,
     issuerState: String?
@@ -60,7 +60,7 @@ protocol AuthorizationServerClientType: Sendable {
   /// See [RFC7636](https://www.rfc-editor.org/rfc/rfc7636.html) for more information
   /// See [RFC9126](https://www.rfc-editor.org/rfc/rfc9126) for more information
   func submitPushedAuthorizationRequest(
-    scopes: [Scope]?,
+    scopes: [Scope],
     credentialConfigurationIdentifiers: [CredentialConfigurationIdentifier],
     state: String,
     issuerState: String?,
@@ -232,15 +232,13 @@ internal actor AuthorizationServerClient: AuthorizationServerClientType {
   }
   
   public func authorizationRequestUrl(
-    scopes: [Scope]?,
+    scopes: [Scope],
     credentialConfigurationIdentifiers: [CredentialConfigurationIdentifier],
     state: String,
     issuerState: String?
   ) async throws -> Result<(PKCEVerifier, AuthorizationCodeURL), Error> {
-    let hasScopes = scopes?.isEmpty == false
-    let hasIdentifiers = !credentialConfigurationIdentifiers.isEmpty
 
-    guard hasScopes || hasIdentifiers else {
+    guard !scopes.isEmpty || !credentialConfigurationIdentifiers.isEmpty else {
       throw ValidationError.error(
         reason: "Both scopes and credential configuration identifiers are missing or empty. Cannot submit par"
       )
@@ -252,10 +250,7 @@ internal actor AuthorizationServerClient: AuthorizationServerClientType {
       codeVerifierMethod: CodeChallenge.sha256.rawValue
     )
     
-    let scopeValue =
-        scopes?.isEmpty == false
-        ? scopes!.map(\.value).joined(separator: " ") + " \(Constants.OPENID_SCOPE)"
-        : nil
+    let scopeValue = scopes.isEmpty ? nil : scopes.map { $0.value }.joined(separator: " ").appending(" ").appending(Constants.OPENID_SCOPE)
     
     let authzRequest = AuthorizationRequest(
       responseType: Self.responseType,
@@ -287,7 +282,7 @@ internal actor AuthorizationServerClient: AuthorizationServerClientType {
   }
   
   public func submitPushedAuthorizationRequest(
-    scopes: [Scope]?,
+    scopes: [Scope],
     credentialConfigurationIdentifiers: [CredentialConfigurationIdentifier],
     state: String,
     issuerState: String?,
@@ -297,18 +292,13 @@ internal actor AuthorizationServerClient: AuthorizationServerClientType {
     retry: Bool = true
   ) async throws -> Result<(PKCEVerifier, AuthorizationCodeURL, Nonce?), Error> {
     
-    let scopesAreValid = !(scopes?.isEmpty ?? true)
-    let identifiersAreValid = credentialConfigurationIdentifiers.isEmpty == false
-
-    guard scopesAreValid || identifiersAreValid else {
+    guard !scopes.isEmpty || !credentialConfigurationIdentifiers.isEmpty else {
       throw ValidationError.error(
         reason: "Both scopes and credential configuration identifiers are missing or empty. Cannot submit par"
       )
     }
     
-    let scopeValue: String? = scopesAreValid
-      ? scopes!.map { $0.value }.joined(separator: " ")
-      : nil
+    let scopeValue: String? = scopes.isEmpty ? nil : scopes.map { $0.value }.joined(separator: " ")
     
     let codeVerifier = PKCEGenerator.codeVerifier() ?? ""
     let authRequest: AuthorizationRequest = .init(

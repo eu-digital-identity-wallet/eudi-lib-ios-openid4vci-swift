@@ -87,7 +87,7 @@ public actor AuthorisationService: AuthorisationServiceType {
   ) async throws -> ResponseWithHeaders<U> {
     let post = try FormPost(
       url: url,
-      contentType: .json,
+      contentType: .form,
       additionalHeaders: headers,
       formData: try request.toDictionary()
     )

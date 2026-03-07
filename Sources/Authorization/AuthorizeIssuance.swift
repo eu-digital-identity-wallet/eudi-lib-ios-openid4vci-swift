@@ -245,7 +245,7 @@ internal actor AuthorizeIssuance: AuthorizeIssuanceType {
 }
 
 private extension AuthorizeIssuance {
-  func scopesAndCredentialConfigurationIds(credentialOffer: CredentialOffer) throws -> ([Scope]?, [CredentialConfigurationIdentifier]) {
+  func scopesAndCredentialConfigurationIds(credentialOffer: CredentialOffer) throws -> ([Scope], [CredentialConfigurationIdentifier]) {
     var scopes = [Scope]()
     var configurationIdentifiers = [CredentialConfigurationIdentifier]()
     
@@ -286,7 +286,7 @@ private extension AuthorizeIssuance {
   
   private func handlePARAuthorization(
     credentialOffer: CredentialOffer,
-    scopes: [Scope]?,
+    scopes: [Scope],
     credentialConfigurationIdentifiers: [CredentialConfigurationIdentifier],
     issuerState: String?,
     state: String
@@ -337,7 +337,7 @@ private extension AuthorizeIssuance {
   }
   
   private func handleStandardAuthorization(
-    scopes: [Scope]?,
+    scopes: [Scope],
     credentialConfigurationIdentifiers: [CredentialConfigurationIdentifier],
     issuerState: String?,
     state: String
