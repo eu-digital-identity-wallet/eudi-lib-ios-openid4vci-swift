@@ -210,8 +210,7 @@ struct TestsConstants {
   }
   """
   
-  static let unAuthorizedRequest: AuthorizationRequestPrepared = .prepared(
-    .init(
+  static let unAuthorizedRequest = AuthorizationRequested(
       credentials: (try? [.init(value: "UniversityDegree_JWT")]) ?? [],
       authorizationCodeURL: (try? .init(urlString: "https://example.com?client_id=\(WALLET_DEV_CLIENT_ID)&request_uri=https://request_uri.example.com&state=5A201471-D088-4544-B1E9-5476E5935A95"))!,
       pkceVerifier: (try? .init(
@@ -220,7 +219,6 @@ struct TestsConstants {
       state: "5A201471-D088-4544-B1E9-5476E5935A95",
       configurationIds: [try! .init(value: "my_credential_configuration_id")]
     )
-  )
   
   static func createMockCredentialOffer() async -> CredentialOffer? {
     let credentialIssuerMetadataResolver = CredentialIssuerMetadataResolver(

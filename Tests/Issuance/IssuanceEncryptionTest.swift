@@ -217,7 +217,6 @@ extension IssuanceEncryptionTest {
       return nil
     }
     
-    if case .authorizationCode = unAuthorized {
       guard let authorizedRequest = try? await issuer.authorizeWithAuthorizationCode(
         request: unAuthorized,
         grant: offer.grants!
@@ -226,12 +225,6 @@ extension IssuanceEncryptionTest {
         return nil
       }
       return (authorizedRequest, issuer)
-      
-    } else {
-      
-      XCTAssert(false, "Did not expect .prepared")
-      return nil
-    }
   }
   
   private func initIssuerWithOfferAndAuthorizeRequesterGenericError(
@@ -283,7 +276,6 @@ extension IssuanceEncryptionTest {
       return nil
     }
     
-    if case .authorizationCode = unAuthorized {
       guard let authorizedRequest = try? await issuer.authorizeWithAuthorizationCode(
         request: unAuthorized,
         grant: offer.grants!
@@ -292,11 +284,5 @@ extension IssuanceEncryptionTest {
         return nil
       }
       return (authorizedRequest, issuer)
-      
-    } else {
-      
-      XCTAssert(false, "Did not expect .prepared")
-      return nil
-    }
   }
 }

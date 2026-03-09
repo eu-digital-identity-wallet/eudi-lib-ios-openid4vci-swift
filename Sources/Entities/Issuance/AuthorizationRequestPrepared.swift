@@ -71,8 +71,3 @@ public struct AuthorizationCodeRetrieved: Sendable {
     self.dpopNonce = dpopNonce
   }
 }
-
-public enum AuthorizationRequestPrepared: Sendable {
-  case prepared(AuthorizationRequested)
-  case authorizationCode(AuthorizationCodeRetrieved)
-}

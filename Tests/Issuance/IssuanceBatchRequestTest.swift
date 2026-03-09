@@ -85,7 +85,7 @@ class IssuanceBatchRequestTest: XCTestCase {
     )
     
     let authorizationCode = "MZqG9bsQ8UALhsGNlY39Yw=="
-    let request: AuthorizationRequestPrepared = TestsConstants.unAuthorizedRequest
+    let request = TestsConstants.unAuthorizedRequest
     
     let issuanceAuthorization: IssuanceAuthorization = .authorizationCode(authorizationCode: authorizationCode)
     let unAuthorized = await issuer.handleAuthorizationCode(

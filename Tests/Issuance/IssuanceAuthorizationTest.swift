@@ -56,8 +56,7 @@ class IssuanceAuthorizationTest: XCTestCase {
       credentialOffer: offer
     )
 
-    if case let .success(request) = parPlaced,
-       case let .prepared(parRequested) = request {
+    if case let .success(parRequested) = parPlaced {
       let requestUrl = parRequested.authorizationCodeURL.url.queryParameters["request_uri"]
       XCTAssertNotNil(requestUrl)
     } else {
@@ -133,7 +132,7 @@ class IssuanceAuthorizationTest: XCTestCase {
     )
     
     let authorizationCode = "MZqG9bsQ8UALhsGNlY39Yw=="
-    let request: AuthorizationRequestPrepared = TestsConstants.unAuthorizedRequest
+    let request = TestsConstants.unAuthorizedRequest
     
     let issuanceAuthorization: IssuanceAuthorization = .authorizationCode(authorizationCode: authorizationCode)
     let unAuthorized = await issuer.handleAuthorizationCode(
@@ -190,7 +189,7 @@ class IssuanceAuthorizationTest: XCTestCase {
       )
     )
     
-    let request: AuthorizationRequestPrepared = TestsConstants.unAuthorizedRequest
+    let request = TestsConstants.unAuthorizedRequest
     
     let authorizationCode = "MZqG9bsQ8UALhsGNlY39Yw=="
     let issuanceAuthorization: IssuanceAuthorization = .authorizationCode(authorizationCode: authorizationCode)
@@ -247,7 +246,7 @@ class IssuanceAuthorizationTest: XCTestCase {
       )
     )
     
-    let request: AuthorizationRequestPrepared = TestsConstants.unAuthorizedRequest
+    let request = TestsConstants.unAuthorizedRequest
     
     let authorizationCode = "MZqG9bsQ8UALhsGNlY39Yw=="
     let issuanceAuthorization: IssuanceAuthorization = .authorizationCode(authorizationCode: authorizationCode)
