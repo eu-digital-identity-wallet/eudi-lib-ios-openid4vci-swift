@@ -478,6 +478,15 @@ internal actor AuthorizationServerClient: AuthorizationServerClientType {
           } else {
             throw ValidationError.retryFailedAfterDpopNonce
           }
+    } catch PostError.networkError {
+        return try await requestAccessTokenAuthFlow(
+            authorizationCode: authorizationCode,
+            codeVerifier: codeVerifier,
+            identifiers: identifiers,
+            dpopNonce: dpopNonce,
+            challenge: challenge,
+            retry: false
+        )
     }
   }
   
