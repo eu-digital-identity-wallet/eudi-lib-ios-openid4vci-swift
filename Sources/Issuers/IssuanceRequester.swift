@@ -162,7 +162,6 @@ public actor IssuanceRequester: IssuanceRequesterType {
           }
           return try response.toDomain()
         case .required, .notRequired:
-          do {
             guard let key = credential.credentialEncryptionKey else {
               throw ValidationError.error(reason: "Invalid private key")
             }
@@ -200,10 +199,6 @@ public actor IssuanceRequester: IssuanceRequesterType {
               )
               return try response.toDomain()
             }
-            
-          } catch {
-            throw error
-          }
         }
       case .sdJwtVc(let credential):
         switch issuerMetadata.credentialResponseEncryption {
