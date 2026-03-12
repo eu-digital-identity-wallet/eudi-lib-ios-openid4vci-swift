@@ -237,10 +237,8 @@ internal actor AuthorizationServerClient: AuthorizationServerClientType {
     state: String,
     issuerState: String?
   ) async throws -> Result<(PKCEVerifier, AuthorizationCodeURL), Error> {
-    let scopesAreValid = scopes.isEmpty == false
-    let identifiersAreValid = credentialConfigurationIdentifiers.isEmpty == false
 
-    guard scopesAreValid || identifiersAreValid else {
+    guard !scopes.isEmpty || !credentialConfigurationIdentifiers.isEmpty else {
       throw ValidationError.error(
         reason: "Both scopes and credential configuration identifiers are missing or empty. Cannot submit par"
       )
@@ -252,11 +250,13 @@ internal actor AuthorizationServerClient: AuthorizationServerClientType {
       codeVerifierMethod: CodeChallenge.sha256.rawValue
     )
     
+    let scopeValue = scopes.isEmpty ? nil : scopes.map { $0.value }.joined(separator: " ").appending(" ").appending(Constants.OPENID_SCOPE)
+    
     let authzRequest = AuthorizationRequest(
       responseType: Self.responseType,
       clientId: config.client.id,
       redirectUri: config.authFlowRedirectionURI.absoluteString,
-      scope: scopes.map { $0.value }.joined(separator: " ").appending(" ").appending(Constants.OPENID_SCOPE),
+      scope: scopeValue,
       credentialConfigurationIds: toAuthorizationDetail(credentialConfigurationIds: credentialConfigurationIdentifiers),
       state: state,
       codeChallenge: PKCEGenerator.generateCodeChallenge(codeVerifier: codeVerifier),
@@ -292,21 +292,20 @@ internal actor AuthorizationServerClient: AuthorizationServerClientType {
     retry: Bool = true
   ) async throws -> Result<(PKCEVerifier, AuthorizationCodeURL, Nonce?), Error> {
     
-    let scopesAreValid = scopes.isEmpty == false
-    let identifiersAreValid = credentialConfigurationIdentifiers.isEmpty == false
-
-    guard scopesAreValid || identifiersAreValid else {
+    guard !scopes.isEmpty || !credentialConfigurationIdentifiers.isEmpty else {
       throw ValidationError.error(
         reason: "Both scopes and credential configuration identifiers are missing or empty. Cannot submit par"
       )
     }
+    
+    let scopeValue: String? = scopes.isEmpty ? nil : scopes.map { $0.value }.joined(separator: " ")
     
     let codeVerifier = PKCEGenerator.codeVerifier() ?? ""
     let authRequest: AuthorizationRequest = .init(
       responseType: Self.responseType,
       clientId: config.client.id,
       redirectUri: config.authFlowRedirectionURI.absoluteString,
-      scope: scopes.map { $0.value }.joined(separator: " "),
+      scope: scopeValue,
       credentialConfigurationIds: toAuthorizationDetail(
         credentialConfigurationIds: credentialConfigurationIdentifiers
       ),
