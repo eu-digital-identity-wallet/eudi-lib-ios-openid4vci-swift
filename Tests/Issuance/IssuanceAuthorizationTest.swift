@@ -91,7 +91,7 @@ class IssuanceAuthorizationTest: XCTestCase {
     do {
     _ = try await issuer.prepareAuthorizationRequest(
       credentialOffer: offer
-    ) as AuthorizationRequested
+    )
     
       XCTAssert(false, "Expected failure")
     } catch {

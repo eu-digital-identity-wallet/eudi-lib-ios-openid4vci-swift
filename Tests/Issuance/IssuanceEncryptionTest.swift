@@ -69,7 +69,7 @@ class IssuanceEncryptionTest: XCTestCase {
         responseEncryptionSpecProvider: { _ in
           return spec
         }
-      ) as SubmittedRequest
+      )
       
       XCTAssert(false)
     } catch CredentialIssuanceError.responseEncryptionAlgorithmNotSupportedByIssuer {
@@ -122,7 +122,7 @@ class IssuanceEncryptionTest: XCTestCase {
         responseEncryptionSpecProvider: { _ in
           return spec
         }
-      ) as SubmittedRequest
+      )
       
       XCTAssert(false)
     } catch CredentialIssuanceError.responseEncryptionAlgorithmNotSupportedByIssuer {
@@ -161,7 +161,7 @@ class IssuanceEncryptionTest: XCTestCase {
         responseEncryptionSpecProvider: { _ in
           return spec
         }
-      ) as SubmittedRequest
+      )
       
     } catch CredentialIssuanceError.responseEncryptionMethodNotSupportedByIssuer {
       XCTAssert(true)

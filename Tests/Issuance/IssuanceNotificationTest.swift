@@ -134,7 +134,7 @@ class IssuanceNotificationTest: XCTestCase {
                     authorizedRequest: authorizedRequest,
                     notificationId: .stub(),
                     dPopNonce: nil
-                  ) as Void
+                  )
                 }
               } else {
                 XCTAssert(false, "Not expected request")
@@ -257,7 +257,7 @@ class IssuanceNotificationTest: XCTestCase {
                     authorizedRequest: authorizedRequest,
                     notificationId: .stub(),
                     dPopNonce: nil
-                  ) as Void
+                  )
                   XCTAssert(false, "Success not expected")
                 }
               } else {

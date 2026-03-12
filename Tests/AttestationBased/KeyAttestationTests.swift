@@ -92,7 +92,7 @@ class KeyAttestationTests: XCTestCase {
         requestPayload: sdJwtVCpayload,
         responseEncryptionSpecProvider: { _ in
           spec
-        }) as SubmittedRequest
+        })
       
         XCTAssert(true, "Success")
     } catch {
@@ -138,7 +138,7 @@ class KeyAttestationTests: XCTestCase {
         requestPayload: sdJwtVCpayload,
         responseEncryptionSpecProvider: { _ in
           spec
-        }) as SubmittedRequest
+        })
       
         XCTAssert(true, "Success")
     } catch {
