@@ -92,39 +92,35 @@ class IssuanceNotificationTest: XCTestCase {
     let authorizationCode = "MZqG9bsQ8UALhsGNlY39Yw=="
     let request = TestsConstants.unAuthorizedRequest
     
+    do {
     let issuanceAuthorization: IssuanceAuthorization = .authorizationCode(authorizationCode: authorizationCode)
-    let unAuthorized = await issuer.handleAuthorizationCode(
+    let unAuthorized = try await issuer.handleAuthorizationCode(
       request: request,
       authorizationCode: issuanceAuthorization
     )
     
-    switch unAuthorized {
-    case .success(let authorizationCode):
-      let authorizedRequest = await issuer.authorizeWithAuthorizationCode(
-        request: authorizationCode,
+      let authorizedRequest = try await issuer.authorizeWithAuthorizationCode(
+        request: unAuthorized,
         grant: offer.grants!
       )
       
-      if case let .success(authorized) = authorizedRequest {
-        XCTAssert(true, "Got access token: \(authorized.accessToken)")
+        XCTAssert(true, "Got access token: \(authorizedRequest.accessToken)")
         XCTAssert(true, "Is no proof required")
         
-        do {
           let payload: IssuanceRequestPayload = .configurationBased(
             credentialConfigurationIdentifier: try .init(
               value: "eu.europa.ec.eudi.pid_mso_mdoc"
             )
           )
-          let result = try await issuer.requestCredential(
-            request: authorized,
+          
+          let request: SubmittedRequest = try await issuer.requestCredential(
+            request: authorizedRequest,
             bindingKeys: [],
             requestPayload: payload,
             responseEncryptionSpecProvider: { _ in
               spec
             })
           
-          switch result {
-          case .success(let request):
             switch request {
             case .success(let response):
               if let result = response.credentialResponses.first {
@@ -134,22 +130,14 @@ class IssuanceNotificationTest: XCTestCase {
                 case .issued(_, let credential, _, _):
                   XCTAssert(true, "credential: \(credential)")
                   
-                  let result = try await issuer.notify(
-                    authorizedRequest: authorized,
+                  try await issuer.notify(
+                    authorizedRequest: authorizedRequest,
                     notificationId: .stub(),
                     dPopNonce: nil
                   )
-                  
-                  switch result {
-                  case .success:
-                    print("Success")
-                  case .failure:
-                    print("Failure")
-                  }
-                  return
                 }
               } else {
-                break
+                XCTAssert(false, "Not expected request")
               }
             case .failed(let error):
               XCTAssert(false, error.localizedDescription)
@@ -157,22 +145,9 @@ class IssuanceNotificationTest: XCTestCase {
             case .invalidProof(let errorDescription):
               XCTAssert(false, errorDescription!)
             }
-            XCTAssert(false, "Not expected request")
-          case .failure(let error):
-            XCTAssert(false, error.localizedDescription)
-          }
-        } catch {
-          XCTAssert(false, error.localizedDescription)
-        }
-        
-        return
-      }
-      
-    case .failure(let error):
+    } catch {
       XCTAssert(false, error.localizedDescription)
     }
-    
-    XCTAssert(false, "Unable to get access token")
   }
   
   func testWhenNotificationRequestFailedAResultFailureIsReturned() async throws {
@@ -241,39 +216,34 @@ class IssuanceNotificationTest: XCTestCase {
     let authorizationCode = "MZqG9bsQ8UALhsGNlY39Yw=="
     let request = TestsConstants.unAuthorizedRequest
     
+    do {
     let issuanceAuthorization: IssuanceAuthorization = .authorizationCode(authorizationCode: authorizationCode)
-    let unAuthorized = await issuer.handleAuthorizationCode(
+    let unAuthorized = try await issuer.handleAuthorizationCode(
       request: request,
       authorizationCode: issuanceAuthorization
     )
     
-    switch unAuthorized {
-    case .success(let authorizationCode):
-      let authorizedRequest = await issuer.authorizeWithAuthorizationCode(
-        request: authorizationCode,
+      let authorizedRequest = try await issuer.authorizeWithAuthorizationCode(
+        request: unAuthorized,
         grant: offer.grants!
       )
       
-      if case let .success(authorized) = authorizedRequest {
-        XCTAssert(true, "Got access token: \(authorized.accessToken)")
+        XCTAssert(true, "Got access token: \(authorizedRequest.accessToken)")
         XCTAssert(true, "Is no proof required")
         
-        do {
           let payload: IssuanceRequestPayload = .configurationBased(
             credentialConfigurationIdentifier: try .init(
               value: "eu.europa.ec.eudi.pid_mso_mdoc"
             )
           )
-          let result = try await issuer.requestCredential(
-            request: authorized,
+          let request: SubmittedRequest = try await issuer.requestCredential(
+            request: authorizedRequest,
             bindingKeys: [],
             requestPayload: payload,
             responseEncryptionSpecProvider: { _ in
               spec
             })
           
-          switch result {
-          case .success(let request):
             switch request {
             case .success(let response):
               if let result = response.credentialResponses.first {
@@ -283,22 +253,15 @@ class IssuanceNotificationTest: XCTestCase {
                 case .issued(_, let credential, _, _):
                   XCTAssert(true, "credential: \(credential)")
                   
-                  let result = try await issuer.notify(
-                    authorizedRequest: authorized,
+                  try await issuer.notify(
+                    authorizedRequest: authorizedRequest,
                     notificationId: .stub(),
                     dPopNonce: nil
                   )
-                  
-                  switch result {
-                  case .success:
-                    print("Success")
-                  case .failure(let error):
-                    print("Failure: \(error)")
-                  }
-                  return
+                  XCTAssert(false, "Success not expected")
                 }
               } else {
-                break
+                XCTAssert(false, "Not expected")
               }
             case .failed(let error):
               XCTAssert(false, error.localizedDescription)
@@ -306,21 +269,10 @@ class IssuanceNotificationTest: XCTestCase {
             case .invalidProof(let errorDescription):
               XCTAssert(false, errorDescription!)
             }
-            XCTAssert(false, "Not expected")
-          case .failure(let error):
-            XCTAssert(false, error.localizedDescription)
-          }
-        } catch {
-          XCTAssert(false, error.localizedDescription)
-        }
-        
-        return
-      }
-      
-    case .failure(let error):
-      XCTAssert(false, error.localizedDescription)
+    } catch CredentialIssuanceError.invalidProof(let errorDescription) {
+      XCTAssert(true, "Expected error: \(String(describing: errorDescription))")
+    } catch {
+      XCTAssert(false, "\(error)")
     }
-    
-    XCTAssert(false, "Unable to get access token")
   }
 }

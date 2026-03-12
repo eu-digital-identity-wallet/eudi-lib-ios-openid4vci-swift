@@ -27,7 +27,7 @@ class IssuanceDeferredRequestTest: XCTestCase {
     authorizeIssuanceConfig: .favorScopes
   )
   
-  func testWhenIssuerRespondsDefferredThenTransactionIdExists() async throws {
+  func testWhenIssuerRespondsDeferredThenTransactionIdExists() async throws {
     
     // Given
     guard let offer = await TestsConstants.createMockCredentialOfferValidEncryption() else {
@@ -86,38 +86,34 @@ class IssuanceDeferredRequestTest: XCTestCase {
     let request = TestsConstants.unAuthorizedRequest
     
     let issuanceAuthorization: IssuanceAuthorization = .authorizationCode(authorizationCode: authorizationCode)
-    let unAuthorized = await issuer.handleAuthorizationCode(
+    
+    do {
+    let unAuthorized = try await issuer.handleAuthorizationCode(
       request: request,
       authorizationCode: issuanceAuthorization
     )
-    
-    switch unAuthorized {
-    case .success(let authorizationCode):
-      let authorizedRequest = await issuer.authorizeWithAuthorizationCode(
-        request: authorizationCode,
+      
+      let authorizedRequest = try await issuer.authorizeWithAuthorizationCode(
+        request: unAuthorized,
         grant: offer.grants!
       )
-      
-      if case let .success(authorized) = authorizedRequest {
-        XCTAssert(true, "Got access token: \(authorized.accessToken)")
+        XCTAssert(true, "Got access token: \(authorizedRequest.accessToken)")
         XCTAssert(true, "Is no proof required")
         
-        do {
           let payload: IssuanceRequestPayload = .configurationBased(
             credentialConfigurationIdentifier: try .init(
               value: "eu.europa.ec.eudi.pid_mso_mdoc"
             )
           )
-          let result = try await issuer.requestCredential(
-            request: authorized,
+          
+          let request: SubmittedRequest = try await issuer.requestCredential(
+            request: authorizedRequest,
             bindingKeys: [],
             requestPayload: payload,
             responseEncryptionSpecProvider: { _ in
-              spec
+                spec
             })
           
-          switch result {
-          case .success(let request):
             switch request {
             case .success(let response):
               if let result = response.credentialResponses.first {
@@ -138,14 +134,7 @@ class IssuanceDeferredRequestTest: XCTestCase {
               XCTAssert(false, ".invalidProof")
             }
             XCTAssert(false, "An unexpected request")
-          case .failure(let error):
-            XCTAssert(false, error.localizedDescription)
-          }
-        } catch {
-          XCTAssert(false, error.localizedDescription)
-        }
-      }
-    case .failure(let error):
+    } catch {
       XCTAssert(false, error.localizedDescription)
     }
   }

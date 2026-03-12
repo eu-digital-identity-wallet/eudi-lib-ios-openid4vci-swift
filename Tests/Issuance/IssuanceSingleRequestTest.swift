@@ -86,40 +86,34 @@ class IssuanceSingleRequestTest: XCTestCase {
     let authorizationCode = "MZqG9bsQ8UALhsGNlY39Yw=="
     let request = TestsConstants.unAuthorizedRequest
     
+    do {
     let issuanceAuthorization: IssuanceAuthorization = .authorizationCode(authorizationCode: authorizationCode)
-    let unAuthorized = await issuer.handleAuthorizationCode(
+    let unAuthorized = try await issuer.handleAuthorizationCode(
       request: request,
       authorizationCode: issuanceAuthorization
     )
     
-    switch unAuthorized {
-    case .success(let authorizationCode):
-      let authorizedRequest = await issuer.authorizeWithAuthorizationCode(
-        request: authorizationCode,
+      let authorizedRequest = try await issuer.authorizeWithAuthorizationCode(
+        request: unAuthorized,
         grant: offer.grants!
       )
       
-      if case let .success(authorized) = authorizedRequest {
-        XCTAssert(true, "Got access token: \(authorized.accessToken)")
+        XCTAssert(true, "Got access token: \(authorizedRequest.accessToken)")
         XCTAssert(true, "Is no proof required")
-        
-        do {
-          
+      
           let payload: IssuanceRequestPayload = .configurationBased(
             credentialConfigurationIdentifier: try .init(
               value: "eu.europa.ec.eudi.pid_mso_mdoc"
             )
           )
-          let result = try await issuer.requestCredential(
-            request: authorized,
+          let request: SubmittedRequest = try await issuer.requestCredential(
+            request: authorizedRequest,
             bindingKeys: [],
             requestPayload: payload,
             responseEncryptionSpecProvider: { _ in
               spec
             })
           
-          switch result {
-          case .success(let request):
             switch request {
             case .success(let response):
               if let result = response.credentialResponses.first {
@@ -139,22 +133,11 @@ class IssuanceSingleRequestTest: XCTestCase {
             case .invalidProof(let errorDescription):
               XCTAssert(false, errorDescription!)
             }
+            
             XCTAssert(false)
-          case .failure(let error):
-            XCTAssert(false, error.localizedDescription)
-          }
-        } catch {
-          XCTAssert(false, error.localizedDescription)
-        }
-        
-        return
-      }
-      
-    case .failure(let error):
+    } catch {
       XCTAssert(false, error.localizedDescription)
     }
-    
-    XCTAssert(false, "Unable to get access token")
   }
   
   func testPreAuthWhenIssuerRespondsSingleCredentialThenCredentialExists() async throws {
@@ -219,34 +202,30 @@ class IssuanceSingleRequestTest: XCTestCase {
       )
     )
     
-    let unAuthorized = await issuer.authorizeWithPreAuthorizationCode(
+    do {
+    let unAuthorized: AuthorizedRequest = try await issuer.authorizeWithPreAuthorizationCode(
       credentialOffer: offer,
       authorizationCode: issuanceAuthorization,
       client: .public(id: "218232426"),
       transactionCode: "12345"
     )
     
-    if case let .success(authorized) = unAuthorized {
-      XCTAssert(true, "Got access token: \(authorized.accessToken)")
+      XCTAssert(true, "Got access token: \(unAuthorized.accessToken)")
       XCTAssert(true, "Is no proof required")
       
-      do {
-        
         let payload: IssuanceRequestPayload = .configurationBased(
           credentialConfigurationIdentifier: try .init(
             value: "eu.europa.ec.eudi.pid_mso_mdoc"
           )
         )
-        let result = try await issuer.requestCredential(
-          request: authorized,
+        let request: SubmittedRequest = try await issuer.requestCredential(
+          request: unAuthorized,
           bindingKeys: [],
           requestPayload: payload,
           responseEncryptionSpecProvider: { _ in
             spec
           })
-        
-        switch result {
-        case .success(let request):
+      
           switch request {
           case .success(let response):
             if let result = response.credentialResponses.first {
@@ -267,16 +246,9 @@ class IssuanceSingleRequestTest: XCTestCase {
             XCTAssert(false, errorDescription!)
           }
           XCTAssert(false)
-        case .failure(let error):
-          XCTAssert(false, error.localizedDescription)
-        }
-      } catch {
-        XCTAssert(false, error.localizedDescription)
-      }
-      return
+    } catch {
+      XCTAssert(false, error.localizedDescription)
     }
-    
-    XCTAssert(false, "Unable to issue credential")
   }
   
   func testIdentifierBasedWhenIssuerRespondsSingleCredentialThenCredentialExists() async throws {
@@ -338,51 +310,45 @@ class IssuanceSingleRequestTest: XCTestCase {
     let authorizationCode = "MZqG9bsQ8UALhsGNlY39Yw=="
     let request = TestsConstants.unAuthorizedRequest
     
+    do {
     let issuanceAuthorization: IssuanceAuthorization = .authorizationCode(authorizationCode: authorizationCode)
-    let unAuthorized = await issuer.handleAuthorizationCode(
+    let unAuthorized = try await issuer.handleAuthorizationCode(
       request: request,
       authorizationCode: issuanceAuthorization
     )
-    
-    switch unAuthorized {
-    case .success(let authorizationCode):
-      let authorizedRequest = await issuer.authorizeWithAuthorizationCode(
-        request: authorizationCode,
+      
+      let authorizedRequest = try await issuer.authorizeWithAuthorizationCode(
+        request: unAuthorized,
         grant: offer.grants!
       )
       
-      if case let .success(authorized) = authorizedRequest {
-        XCTAssert(true, "Got access token: \(authorized.accessToken)")
+        XCTAssert(true, "Got access token: \(authorizedRequest.accessToken)")
         XCTAssert(true, "Is no proof required")
         
         guard
-          let identifiers = authorized.credentialIdentifiers,
+          let identifiers = authorizedRequest.credentialIdentifiers,
           let value = identifiers.keys.first?.value,
           let credentialConfigurationIdentifier: CredentialConfigurationIdentifier = try? .init(
-          value: value
+            value: value
           ),
           let credentialIdentifier = identifiers.values.first?.first
         else {
           XCTAssert(false, "Expected credential identifiers")
           return
         }
-        
-        do {
-          
+      
           let payload: IssuanceRequestPayload = .identifierBased(
             credentialConfigurationIdentifier: credentialConfigurationIdentifier,
             credentialIdentifier: credentialIdentifier
           )
           
-          let result = try await issuer.requestCredential(
-            request: authorized,
+          let request: SubmittedRequest = try await issuer.requestCredential(
+            request: authorizedRequest,
             bindingKeys: [],
             requestPayload: payload,
             responseEncryptionSpecProvider: { _ in spec }
           )
-          
-          switch result {
-          case .success(let request):
+      
             switch request {
             case .success(let response):
               if let result = response.credentialResponses.first {
@@ -403,20 +369,8 @@ class IssuanceSingleRequestTest: XCTestCase {
               XCTAssert(false, errorDescription!)
             }
             XCTAssert(false)
-          case .failure(let error):
-            XCTAssert(false, error.localizedDescription)
-          }
-        } catch {
-          XCTAssert(false, error.localizedDescription)
-        }
-        
-        return
-      }
-      
-    case .failure(let error):
+    } catch {
       XCTAssert(false, error.localizedDescription)
     }
-    
-    XCTAssert(false, "Unable to get access token")
   }
 }

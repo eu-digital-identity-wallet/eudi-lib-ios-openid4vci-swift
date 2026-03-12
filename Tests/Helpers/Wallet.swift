@@ -360,22 +360,17 @@ extension Wallet {
     
     print("--> [AUTHORIZATION] Placing PAR to AS server's endpoint \(pushedAuthorizationRequestEndpoint ?? "N/A")")
     
-    let parPlaced = try await issuer.prepareAuthorizationRequest(
+    let parRequested = try await issuer.prepareAuthorizationRequest(
       credentialOffer: offer
     )
-    
-    if case let .success(parRequested) = parPlaced {
       print("--> [AUTHORIZATION] Placed PAR. Get authorization code URL is: \(parRequested.authorizationCodeURL)")
       
-      var unAuthorized: Result<AuthorizationCodeRetrieved, Error>
-      var authorizationCode: String
-      
-      authorizationCode = try await loginUserAndGetAuthCode(
+      let authorizationCode = try await loginUserAndGetAuthCode(
         getAuthorizationCodeUrl: parRequested.authorizationCodeURL.url,
         actingUser: actingUser
       ) ?? { throw  ValidationError.error(reason: "Could not retrieve authorization code") }()
       let issuanceAuthorization: IssuanceAuthorization = .authorizationCode(authorizationCode: authorizationCode)
-      unAuthorized = await issuer.handleAuthorizationCode(
+      let unAuthorized = try await issuer.handleAuthorizationCode(
         request: parRequested,
         authorizationCode: issuanceAuthorization
       )
@@ -389,30 +384,19 @@ extension Wallet {
        */
       print("--> [AUTHORIZATION] Authorization code retrieved: \(authorizationCode)")
       
-      switch unAuthorized {
-      case .success(let request):
-        let authorizedRequest = await issuer.authorizeWithAuthorizationCode(
-          request: request,
+        let authorizedRequest = try await issuer.authorizeWithAuthorizationCode(
+          request: unAuthorized,
           authorizationDetailsInTokenRequest: .doNotInclude,
           grant: offer.grants!
         )
-        if case let .success(authorized) = authorizedRequest {
-          print("--> [AUTHORIZATION] Authorization code exchanged with access token : \(authorized.accessToken)")
+          print("--> [AUTHORIZATION] Authorization code exchanged with access token : \(authorizedRequest.accessToken)")
           
-          _ = authorized.accessToken.isExpired(
-            issued: authorized.timeStamp,
+          _ = authorizedRequest.accessToken.isExpired(
+            issued: authorizedRequest.timeStamp,
             at: Date().timeIntervalSinceReferenceDate
           )
           
-          return authorized
-        }
-        
-      case .failure(let error):
-        throw  ValidationError.error(reason: error.localizedDescription)
-      }
-    }
-    
-    throw  ValidationError.error(reason: "Failed to get push authorization code request")
+          return authorizedRequest
   }
   
   private func submissionUseCase(
@@ -429,7 +413,7 @@ extension Wallet {
       credentialConfigurationIdentifier: credentialConfigurationIdentifier
     )
     
-    let requestOutcome = try await issuer.requestCredential(
+    let requestOutcome: SubmittedRequest = try await issuer.requestCredential(
       request: authorized,
       bindingKeys: bindingKeys,
       requestPayload: payload
@@ -437,9 +421,7 @@ extension Wallet {
       Issuer.createResponseEncryptionSpec($0)
     }
     
-    switch requestOutcome {
-    case .success(let request):
-      switch request {
+      switch requestOutcome {
       case .success(let response):
         if let result = response.credentialResponses.first {
           switch result {
@@ -469,8 +451,6 @@ extension Wallet {
       case .failed(let error):
         throw ValidationError.error(reason: error.localizedDescription)
       }
-    case .failure(let error): throw ValidationError.error(reason: error.localizedDescription)
-    }
   }
   
   private func deferredCredentialUseCase(
@@ -480,15 +460,13 @@ extension Wallet {
   ) async throws -> Credential {
     print("--> [ISSUANCE] Got a deferred issuance response from server with transaction_id: \(transactionId.value). Retrying issuance...")
     
-    let deferredRequestResponse = try await issuer.requestDeferredCredential(
+    let deferredRequestResponse: DeferredCredentialIssuanceResponse = try await issuer.requestDeferredCredential(
       request: authorized,
       transactionId: transactionId,
       dPopNonce: nil
     )
     
-    switch deferredRequestResponse {
-    case .success(let response):
-      switch response {
+      switch deferredRequestResponse {
       case .issued(let credential):
         return credential
       case .issuancePending(_, let interval):
@@ -498,9 +476,6 @@ extension Wallet {
       case .issuanceStillPending(let interval):
         throw ValidationError.error(reason: "Credential still not ready yet. Try after \(interval)")
       }
-    case .failure(let error):
-      throw ValidationError.error(reason: error.localizedDescription)
-    }
   }
 }
 

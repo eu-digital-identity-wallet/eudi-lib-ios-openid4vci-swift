@@ -25,7 +25,7 @@ public protocol IssuerType: Sendable {
   /// - Returns: A result containing either an `UnauthorizedRequest` if the request is successful or an `Error` otherwise.
   func prepareAuthorizationRequest(
     credentialOffer: CredentialOffer
-  ) async throws -> Result<AuthorizationRequested, Error>
+  ) async throws -> AuthorizationRequested
   
   /// Authorizes a request using a pre-authorization code.
   ///
@@ -42,7 +42,7 @@ public protocol IssuerType: Sendable {
     client: Client,
     transactionCode: String?,
     authorizationDetailsInTokenRequest: AuthorizationDetailsInTokenRequest
-  ) async -> Result<AuthorizedRequest, Error>
+  ) async throws -> AuthorizedRequest
   
   /// Completes the authorization process using an authorization code.
   ///
@@ -54,7 +54,7 @@ public protocol IssuerType: Sendable {
     request: AuthorizationCodeRetrieved,
     authorizationDetailsInTokenRequest: AuthorizationDetailsInTokenRequest,
     grant: Grants
-  ) async -> Result<AuthorizedRequest, Error>
+  ) async throws -> AuthorizedRequest
   
   /// Handles the authorization code and updates the request status.
   ///
@@ -65,7 +65,7 @@ public protocol IssuerType: Sendable {
   func handleAuthorizationCode(
     request: AuthorizationRequested,
     authorizationCode: IssuanceAuthorization
-  ) async -> Result<AuthorizationCodeRetrieved, Error>
+  ) async throws -> AuthorizationCodeRetrieved
   
   /// Handles the provided authorization code and updates the authorization request state.
   ///
@@ -78,7 +78,7 @@ public protocol IssuerType: Sendable {
   func handleAuthorizationCode(
     request: AuthorizationRequested,
     code: inout String
-  ) async -> Result<AuthorizationCodeRetrieved, Error>
+  ) async throws -> AuthorizationCodeRetrieved
   
   /// Requests credential issuance after authorization.
   ///
@@ -93,7 +93,7 @@ public protocol IssuerType: Sendable {
     bindingKeys: [BindingKey],
     requestPayload: IssuanceRequestPayload,
     responseEncryptionSpecProvider: @Sendable (_ issuerResponseEncryptionMetadata: CredentialResponseEncryption) -> IssuanceResponseEncryptionSpec?
-  ) async throws -> Result<SubmittedRequest, Error>
+  ) async throws -> SubmittedRequest
   
   /// Requests a deferred credential issuance.
   ///
@@ -106,7 +106,7 @@ public protocol IssuerType: Sendable {
     request: AuthorizedRequest,
     transactionId: TransactionId,
     dPopNonce: Nonce?
-  ) async throws -> Result<DeferredCredentialIssuanceResponse, Error>
+  ) async throws -> DeferredCredentialIssuanceResponse
   
   /// Sends a notification related to the credential issuance process.
   ///
@@ -119,7 +119,7 @@ public protocol IssuerType: Sendable {
     authorizedRequest: AuthorizedRequest,
     notificationId: NotificationObject,
     dPopNonce: Nonce?
-  ) async throws -> Result<Void, Error>
+  ) async throws
   
   /// Refreshes an authorized request.
   ///
@@ -132,7 +132,7 @@ public protocol IssuerType: Sendable {
     clientId: String,
     authorizedRequest: AuthorizedRequest,
     dPopNonce: Nonce?
-  ) async -> Result<AuthorizedRequest, Error>
+  ) async throws -> AuthorizedRequest
   
   /// Sets the deferred response encryption specification to be used for issuance responses.
   ///
@@ -332,7 +332,7 @@ public actor Issuer: IssuerType {
   
   public func prepareAuthorizationRequest(
     credentialOffer: CredentialOffer
-  ) async throws -> Result<AuthorizationRequested, Error> {
+  ) async throws -> AuthorizationRequested {
     try await authorizeIssuance.prepareAuthorizationRequest(
       credentialOffer: credentialOffer
     )
@@ -344,8 +344,8 @@ public actor Issuer: IssuerType {
     client: Client,
     transactionCode: String?,
     authorizationDetailsInTokenRequest: AuthorizationDetailsInTokenRequest = .doNotInclude
-  ) async -> Result<AuthorizedRequest, Error> {
-    await authorizeIssuance.authorizeWithPreAuthorizationCode(
+  ) async throws -> AuthorizedRequest {
+    try await authorizeIssuance.authorizeWithPreAuthorizationCode(
       credentialOffer: credentialOffer,
       authorizationCode: authorizationCode,
       client: client,
@@ -358,8 +358,8 @@ public actor Issuer: IssuerType {
     request: AuthorizationCodeRetrieved,
     authorizationDetailsInTokenRequest: AuthorizationDetailsInTokenRequest = .doNotInclude,
     grant: Grants
-  ) async -> Result<AuthorizedRequest, Error> {
-    await authorizeIssuance.authorizeWithAuthorizationCode(
+  ) async throws -> AuthorizedRequest {
+    try await authorizeIssuance.authorizeWithAuthorizationCode(
       grant: grant,
       request: request,
       authorizationDetailsInTokenRequest: authorizationDetailsInTokenRequest
@@ -369,9 +369,7 @@ public actor Issuer: IssuerType {
   public func handleAuthorizationCode(
     request: AuthorizationRequested,
     code: inout String
-  ) async -> Result<AuthorizationCodeRetrieved, Error> {
-      do {
-        return .success(
+  ) async throws -> AuthorizationCodeRetrieved {
             try AuthorizationCodeRetrieved(
               credentials: request.credentials,
               authorizationCode: try .init(authorizationCode: code),
@@ -379,22 +377,14 @@ public actor Issuer: IssuerType {
               configurationIds: request.configurationIds,
               dpopNonce: request.dpopNonce
             )
-        )
-      } catch {
-        return .failure(
-          ValidationError.error(reason: error.localizedDescription)
-        )
-      }
   }
   
   public func handleAuthorizationCode(
     request: AuthorizationRequested,
     authorizationCode: IssuanceAuthorization
-  ) async -> Result<AuthorizationCodeRetrieved, Error> {
+  ) async throws -> AuthorizationCodeRetrieved {
       switch authorizationCode {
       case .authorizationCode(let authorizationCode):
-        do {
-          return .success(
               try AuthorizationCodeRetrieved(
                 credentials: request.credentials,
                 authorizationCode: try IssuanceAuthorization(authorizationCode: authorizationCode),
@@ -402,20 +392,11 @@ public actor Issuer: IssuerType {
                 configurationIds: request.configurationIds,
                 dpopNonce: request.dpopNonce
               )
-          )
-        } catch {
-          return .failure(
-            ValidationError.error(
-              reason: error.localizedDescription
-            )
-          )
-        }
       default:
-        return .failure(
+        throw
           ValidationError.error(
             reason: ".prepared & .authorizationCode is required"
           )
-        )
       }
   }
   
@@ -424,7 +405,7 @@ public actor Issuer: IssuerType {
     bindingKeys: [BindingKey],
     requestPayload: IssuanceRequestPayload,
     responseEncryptionSpecProvider: @Sendable (_ issuerResponseEncryptionMetadata: CredentialResponseEncryption) -> IssuanceResponseEncryptionSpec?
-  ) async throws -> Result<SubmittedRequest, Error> {
+  ) async throws -> SubmittedRequest {
     
     let encryptionSpec = try encryptionSpec()
     
@@ -467,28 +448,22 @@ private extension Issuer {
     dPopNonce: Nonce?,
     requestEncryptionSpec: EncryptionSpec?,
     issuanceRequestSupplier: () async throws -> CredentialIssuanceRequest
-  ) async throws -> Result<SubmittedRequest, Error> {
+  ) async throws -> SubmittedRequest {
     let credentialRequest = try await issuanceRequestSupplier()
     switch credentialRequest {
     case .single(let single, let encryptionSpec):
       self.deferredResponseEncryptionSpec = encryptionSpec
-      let result = try await issuanceRequester.placeIssuanceRequest(
+      let credentialIssuanceResponse = try await issuanceRequester.placeIssuanceRequest(
         accessToken: token,
         request: single,
         dPopNonce: dPopNonce,
         retry: true,
         encryptionSpec: requestEncryptionSpec
       )
-      switch result {
-      case .success(let response):
+        
         return .success(
-          .success(
-            response: response
+            response: credentialIssuanceResponse
           )
-        )
-      case .failure(let error):
-        return handleIssuanceError(error)
-      }
     }
   }
   
@@ -528,7 +503,7 @@ private extension Issuer {
     issuancePayload: IssuanceRequestPayload,
     encryptionSpec: EncryptionSpec?,
     responseEncryptionSpecProvider: (_ issuerResponseEncryptionMetadata: CredentialResponseEncryption) -> IssuanceResponseEncryptionSpec?
-  ) async throws -> Result<SubmittedRequest, Error> {
+  ) async throws -> SubmittedRequest {
     
     guard let supportedCredential = issuerMetadata
       .credentialsSupported[credentialConfigurationIdentifier] else {
@@ -565,7 +540,7 @@ private extension Issuer {
     credentialConfigurationIdentifier: CredentialConfigurationIdentifier,
     encryptionSpec: EncryptionSpec?,
     responseEncryptionSpecProvider: (_ issuerResponseEncryptionMetadata: CredentialResponseEncryption) -> IssuanceResponseEncryptionSpec?
-  ) async throws -> Result<SubmittedRequest, Error> {
+  ) async throws -> SubmittedRequest {
     
     guard let supportedCredential = issuerMetadata
       .credentialsSupported[credentialConfigurationIdentifier] else {
@@ -841,7 +816,7 @@ public extension Issuer {
     request: AuthorizedRequest,
     transactionId: TransactionId,
     dPopNonce: Nonce?
-  ) async throws -> Result<DeferredCredentialIssuanceResponse, Error> {
+  ) async throws -> DeferredCredentialIssuanceResponse {
     
     return try await deferredIssuanceRequester.placeDeferredCredentialRequest(
       accessToken: request.accessToken,
@@ -856,9 +831,8 @@ public extension Issuer {
     authorizedRequest: AuthorizedRequest,
     notificationId: NotificationObject,
     dPopNonce: Nonce?
-  ) async throws -> Result<Void, Error> {
-    
-    return try await notifyIssuer.notify(
+  ) async throws {
+    try await notifyIssuer.notify(
       authorizedRequest: authorizedRequest,
       notification: notificationId,
       dPopNonce: dPopNonce
@@ -869,33 +843,21 @@ public extension Issuer {
     clientId: String,
     authorizedRequest: AuthorizedRequest,
     dPopNonce: Nonce? = nil
-  ) async -> Result<AuthorizedRequest, Error> {
-    
+  ) async throws -> AuthorizedRequest {
     if  let refreshToken = authorizedRequest.refreshToken {
-      do {
-        let token = try await authorizer.refreshAccessToken(
+        let (accessToken, _, _, timeStamp, _) = try await authorizer.refreshAccessToken(
           clientId: clientId,
           refreshToken: refreshToken,
           dpopNonce: dPopNonce,
           retry: true
         )
-        switch token {
-        case .success(
-          (let accessToken, _, _, let timeStamp, _)
-        ):
-          return .success(authorizedRequest.replacing(
+        return authorizedRequest.replacing(
             accessToken: accessToken,
             timeStamp: timeStamp?.asTimeInterval ?? .zero
           )
-          )
-        case .failure(let error):
-          return .failure(error)
-        }
-      } catch {
-        return .failure(error)
-      }
     }
-    return .success(authorizedRequest)
+    
+    return authorizedRequest
   }
 }
 

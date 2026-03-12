@@ -22,7 +22,7 @@ protocol AuthorizeIssuanceType: Sendable {
   /// - Returns: A result containing either an `UnauthorizedRequest` if the request is successful or an `Error` otherwise.
   func prepareAuthorizationRequest(
     credentialOffer: CredentialOffer
-  ) async throws -> Result<AuthorizationRequested, Error>
+  ) async throws -> AuthorizationRequested
   
   /// Authorizes a request using a pre-authorization code.
   ///
@@ -39,7 +39,7 @@ protocol AuthorizeIssuanceType: Sendable {
     client: Client,
     transactionCode: String?,
     authorizationDetailsInTokenRequest: AuthorizationDetailsInTokenRequest
-  ) async -> Result<AuthorizedRequest, Error>
+  ) async throws -> AuthorizedRequest
   
   /// Completes the authorization process using an authorization code.
   ///
@@ -51,7 +51,7 @@ protocol AuthorizeIssuanceType: Sendable {
     grant: Grants,
     request: AuthorizationCodeRetrieved,
     authorizationDetailsInTokenRequest: AuthorizationDetailsInTokenRequest
-  ) async -> Result<AuthorizedRequest, Error>
+  ) async throws -> AuthorizedRequest
   
 }
 
@@ -76,7 +76,7 @@ internal actor AuthorizeIssuance: AuthorizeIssuanceType {
   
   func prepareAuthorizationRequest(
     credentialOffer: CredentialOffer
-  ) async throws -> Result<AuthorizationRequested, any Error> {
+  ) async throws -> AuthorizationRequested {
     
     let issuerState: String? = getIssuerState(from: credentialOffer)
     let (scopes, identifiers) = try scopesAndCredentialConfigurationIds(
@@ -86,7 +86,7 @@ internal actor AuthorizeIssuance: AuthorizeIssuanceType {
     let state = StateValue().value
     
     if authorizationServerSupportsPar {
-      return await handlePARAuthorization(
+      return try await handlePARAuthorization(
         credentialOffer: credentialOffer,
         scopes: scopes,
         credentialConfigurationIdentifiers: identifiers,
@@ -95,7 +95,7 @@ internal actor AuthorizeIssuance: AuthorizeIssuanceType {
       )
       
     } else {
-      return await handleStandardAuthorization(
+      return try await handleStandardAuthorization(
         scopes: scopes,
         credentialConfigurationIdentifiers: credentialOffer.credentialConfigurationIdentifiers,
         issuerState: issuerState,
@@ -110,10 +110,9 @@ internal actor AuthorizeIssuance: AuthorizeIssuanceType {
     client: Client,
     transactionCode: String?,
     authorizationDetailsInTokenRequest: AuthorizationDetailsInTokenRequest
-  ) async -> Result<AuthorizedRequest, any Error> {
+  ) async throws -> AuthorizedRequest {
     switch authorizationCode {
     case .preAuthorizationCode(let authorisation, let txCode):
-      do {
         if let transactionCode, let txCode {
           if txCode.length != transactionCode.count {
             throw ValidationError.error(
@@ -127,8 +126,14 @@ internal actor AuthorizeIssuance: AuthorizeIssuanceType {
         case .include(let filter): credentialOffer.credentialConfigurationIdentifiers.filter(filter)
         }
         
-        let challenge = try? await challenger?.getChallenge().get()
-        let response = try await authorizer.requestAccessTokenPreAuthFlow(
+        let challenge = try? await challenger?.getChallenge()
+        let (
+            accessToken,
+            refreshToken,
+            identifiers,
+            expiresIn,
+            dPopNonce
+          ) = try await authorizer.requestAccessTokenPreAuthFlow(
           preAuthorizedCode: authorisation,
           txCode: txCode,
           client: client,
@@ -139,18 +144,7 @@ internal actor AuthorizeIssuance: AuthorizeIssuanceType {
           retry: true
         )
         
-        switch response {
-        case .success(
-          (
-            let accessToken,
-            let refreshToken,
-            let identifiers,
-            let expiresIn,
-            let dPopNonce
-          )
-        ):
-          return .success(
-            .init(
+          return AuthorizedRequest(
               accessToken: try .init(
                 accessToken: accessToken.accessToken,
                 tokenType: accessToken.tokenType,
@@ -164,17 +158,10 @@ internal actor AuthorizeIssuance: AuthorizeIssuanceType {
               dPopNonce: dPopNonce,
               grantType: .init(grant: credentialOffer.grants)
             )
-          )
-        case .failure(let error):
-          return .failure(ValidationError.error(reason: error.localizedDescription))
-        }
-      } catch {
-        return .failure(ValidationError.error(reason: error.localizedDescription))
-      }
     default:
-      return .failure(ValidationError.error(
+      throw ValidationError.error(
         reason: "Invalid issuance authorisation, pre authorisation supported only"
-      ))
+      )
     }
   }
   
@@ -182,16 +169,15 @@ internal actor AuthorizeIssuance: AuthorizeIssuanceType {
     grant: Grants,
     request: AuthorizationCodeRetrieved,
     authorizationDetailsInTokenRequest: AuthorizationDetailsInTokenRequest
-  ) async -> Result<AuthorizedRequest, any Error> {
+  ) async throws -> AuthorizedRequest {
       switch request.authorizationCode {
       case .authorizationCode(let authorizationCode):
-        do {
           let credConfigIdsAsAuthDetails: [CredentialConfigurationIdentifier] = switch authorizationDetailsInTokenRequest {
           case .doNotInclude: []
           case .include(let filter): request.configurationIds.filter(filter)
           }
           
-          let challenge = try? await challenger?.getChallenge().get()
+          let challenge = try? await challenger?.getChallenge()
           let response: (
             accessToken: IssuanceAccessToken,
             refreshToken: IssuanceRefreshToken,
@@ -206,10 +192,9 @@ internal actor AuthorizeIssuance: AuthorizeIssuanceType {
             dpopNonce: request.dpopNonce,
             challenge: challenge,
             retry: true
-          ).get()
+          )
           
-          return .success(
-            .init(
+          return AuthorizedRequest(
               accessToken: try .init(
                 accessToken: response.accessToken.accessToken,
                 tokenType: response.tokenType,
@@ -223,14 +208,10 @@ internal actor AuthorizeIssuance: AuthorizeIssuanceType {
               dPopNonce: response.dPopNonce,
               grantType: .init(grant: grant)
             )
-          )
-        } catch {
-          return .failure(ValidationError.error(reason: error.localizedDescription))
-        }
-      default: return .failure(
-        ValidationError.error(
+      default:
+        throw ValidationError.error(
           reason: ".authorizationCode case is required"
-        ))
+        )
       }
   }
 }
@@ -281,13 +262,12 @@ private extension AuthorizeIssuance {
     credentialConfigurationIdentifiers: [CredentialConfigurationIdentifier],
     issuerState: String?,
     state: String
-  ) async -> Result<AuthorizationRequested, any Error> {
-    do {
+  ) async throws -> AuthorizationRequested {
       let resource: String? = issuerMetadata.authorizationServers.map { _ in
         credentialOffer.credentialIssuerIdentifier.url.absoluteString
       }
 
-      let challenge = try? await challenger?.getChallenge().get()
+      let challenge = try? await challenger?.getChallenge()
       
       let result: (
         verifier: PKCEVerifier,
@@ -302,10 +282,9 @@ private extension AuthorizeIssuance {
         dpopNonce: nil,
         challenge: challenge,
         retry: true
-      ).get()
+      )
 
-      return .success(
-        AuthorizationRequested(
+      return AuthorizationRequested(
             credentials: try credentialConfigurationIdentifiers.map {
               try CredentialIdentifier(value: $0.value)
             },
@@ -315,14 +294,6 @@ private extension AuthorizeIssuance {
             configurationIds: credentialConfigurationIdentifiers,
             dpopNonce: result.dPopNonce
         )
-      )
-    } catch {
-      return .failure(
-        ValidationError.error(
-          reason: error.localizedDescription
-        )
-      )
-    }
   }
   
   private func handleStandardAuthorization(
@@ -330,8 +301,7 @@ private extension AuthorizeIssuance {
     credentialConfigurationIdentifiers: [CredentialConfigurationIdentifier],
     issuerState: String?,
     state: String
-  ) async -> Result<AuthorizationRequested, any Error> {
-    do {
+  ) async throws -> AuthorizationRequested {
       let result: (
         verifier: PKCEVerifier,
         code: AuthorizationCodeURL
@@ -340,10 +310,9 @@ private extension AuthorizeIssuance {
         credentialConfigurationIdentifiers: credentialConfigurationIdentifiers,
         state: state,
         issuerState: issuerState
-      ).get()
+      )
 
-      return .success(
-        AuthorizationRequested(
+      return AuthorizationRequested(
             credentials: try credentialConfigurationIdentifiers.map {
                 try CredentialIdentifier(value: $0.value)
             },
@@ -352,13 +321,5 @@ private extension AuthorizeIssuance {
             state: state,
             configurationIds: credentialConfigurationIdentifiers
         )
-      )
-    } catch {
-      return .failure(
-        ValidationError.error(
-          reason: error.localizedDescription
-        )
-      )
-    }
   }
 }

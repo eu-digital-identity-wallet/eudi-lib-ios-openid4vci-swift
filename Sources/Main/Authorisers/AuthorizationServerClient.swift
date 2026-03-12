@@ -44,7 +44,7 @@ protocol AuthorizationServerClientType: Sendable {
     credentialConfigurationIdentifiers: [CredentialConfigurationIdentifier],
     state: String,
     issuerState: String?
-  ) async throws -> Result<(PKCEVerifier, AuthorizationCodeURL), Error>
+  ) async throws -> (PKCEVerifier, AuthorizationCodeURL)
   
   /// Submits a pushed authorization request (PAR).
   ///
@@ -68,7 +68,7 @@ protocol AuthorizationServerClientType: Sendable {
     dpopNonce: Nonce?,
     challenge: Nonce?,
     retry: Bool
-  ) async throws -> Result<(PKCEVerifier, AuthorizationCodeURL, Nonce?), Error>
+  ) async throws -> (PKCEVerifier, AuthorizationCodeURL, Nonce?)
   
   /// Requests an access token using an authorization code.
   ///
@@ -87,14 +87,14 @@ protocol AuthorizationServerClientType: Sendable {
     dpopNonce: Nonce?,
     challenge: Nonce?,
     retry: Bool
-  ) async throws -> Result<(
+  ) async throws -> (
     IssuanceAccessToken,
     IssuanceRefreshToken,
     AuthorizationDetailsIdentifiers?,
     TokenType?,
     Int?,
     Nonce?
-  ), Error>
+  )
   
   /// Requests an access token using a pre-authorized code.
   ///
@@ -117,13 +117,13 @@ protocol AuthorizationServerClientType: Sendable {
     dpopNonce: Nonce?,
     challenge: Nonce?,
     retry: Bool
-  ) async throws -> Result<(
+  ) async throws -> (
     IssuanceAccessToken,
     IssuanceRefreshToken,
     AuthorizationDetailsIdentifiers?,
     Int?,
     Nonce?
-  ), Error>
+  )
   
   /// Refreshes an access token using a refresh token.
   ///
@@ -138,13 +138,13 @@ protocol AuthorizationServerClientType: Sendable {
     refreshToken: IssuanceRefreshToken,
     dpopNonce: Nonce?,
     retry: Bool
-  ) async throws -> Result<(
+  ) async throws -> (
     IssuanceAccessToken,
     AuthorizationDetailsIdentifiers?,
     TokenType?,
     Int?,
     Nonce?
-  ), Error>
+  )
 }
 
 internal actor AuthorizationServerClient: AuthorizationServerClientType {
@@ -236,7 +236,7 @@ internal actor AuthorizationServerClient: AuthorizationServerClientType {
     credentialConfigurationIdentifiers: [CredentialConfigurationIdentifier],
     state: String,
     issuerState: String?
-  ) async throws -> Result<(PKCEVerifier, AuthorizationCodeURL), Error> {
+  ) async throws -> (PKCEVerifier, AuthorizationCodeURL) {
 
     guard !scopes.isEmpty || !credentialConfigurationIdentifiers.isEmpty else {
       throw ValidationError.error(
@@ -278,7 +278,7 @@ internal actor AuthorizationServerClient: AuthorizationServerClientType {
       urlString: urlWithParams.absoluteString
     )
     
-    return .success((verifier, authorizationCodeURL))
+    return (verifier, authorizationCodeURL)
   }
   
   public func submitPushedAuthorizationRequest(
@@ -290,7 +290,7 @@ internal actor AuthorizationServerClient: AuthorizationServerClientType {
     dpopNonce: Nonce? = nil,
     challenge: Nonce? = nil,
     retry: Bool = true
-  ) async throws -> Result<(PKCEVerifier, AuthorizationCodeURL, Nonce?), Error> {
+  ) async throws -> (PKCEVerifier, AuthorizationCodeURL, Nonce?) {
     
     guard !scopes.isEmpty || !credentialConfigurationIdentifiers.isEmpty else {
       throw ValidationError.error(
@@ -368,9 +368,7 @@ internal actor AuthorizationServerClient: AuthorizationServerClientType {
           urlString: urlWithParams.absoluteString
         )
         
-        return .success(
-          (verifier, authorizationCodeURL, response.dpopNonce())
-        )
+        return (verifier, authorizationCodeURL, response.dpopNonce())
         
       case .failure(let error, let errorDescription):
         throw CredentialIssuanceError.pushedAuthorizationRequestFailed(
@@ -378,10 +376,7 @@ internal actor AuthorizationServerClient: AuthorizationServerClientType {
           errorDescription: errorDescription
         )
       }
-    } catch {
-      if let postError = error as? PostError {
-        switch postError {
-        case .useDpopNonce(let nonce):
+    } catch PostError.useDpopNonce(let nonce) {
           if retry {
             return try await submitPushedAuthorizationRequest(
               scopes: scopes,
@@ -392,16 +387,9 @@ internal actor AuthorizationServerClient: AuthorizationServerClientType {
               challenge: challenge,
               retry: false
             )
-              
           } else {
-            return .failure(ValidationError.retryFailedAfterDpopNonce)
+            throw ValidationError.retryFailedAfterDpopNonce
           }
-        default:
-          return .failure(error)
-        }
-      } else {
-        return .failure(error)
-      }
     }
   }
   
@@ -412,15 +400,14 @@ internal actor AuthorizationServerClient: AuthorizationServerClientType {
     dpopNonce: Nonce?,
     challenge: Nonce?,
     retry: Bool
-  ) async throws -> Result<(
+  ) async throws -> (
     IssuanceAccessToken,
     IssuanceRefreshToken,
     AuthorizationDetailsIdentifiers?,
     TokenType?,
     Int?,
     Nonce?
-  ), Error> {
-    
+  ) {
     let parameters: JSON = authCodeFlow(
       authorizationCode: authorizationCode,
       redirectionURI: redirectionURI,
@@ -454,8 +441,7 @@ internal actor AuthorizationServerClient: AuthorizationServerClientType {
       
       switch response.body {
       case .success(let tokenType, let accessToken, let refreshToken, let expiresIn, _, let identifiers):
-        return .success(
-          (
+        return (
             try .init(
               accessToken: accessToken,
               tokenType: .init(
@@ -472,17 +458,13 @@ internal actor AuthorizationServerClient: AuthorizationServerClientType {
             expiresIn,
             response.dpopNonce()
           )
-        )
       case .failure(let error, let errorDescription):
         throw CredentialIssuanceError.pushedAuthorizationRequestFailed(
           error: error,
           errorDescription: errorDescription
         )
       }
-    } catch {
-      if let postError = error as? PostError {
-        switch postError {
-        case .useDpopNonce(let nonce):
+    } catch PostError.useDpopNonce(let nonce) {
           if retry {
             return try await requestAccessTokenAuthFlow(
               authorizationCode: authorizationCode,
@@ -493,23 +475,17 @@ internal actor AuthorizationServerClient: AuthorizationServerClientType {
               retry: false
             )
           } else {
-            return .failure(ValidationError.retryFailedAfterDpopNonce)
+            throw ValidationError.retryFailedAfterDpopNonce
           }
-        case .networkError:
-            return try await requestAccessTokenAuthFlow(
-                authorizationCode: authorizationCode,
-                codeVerifier: codeVerifier,
-                identifiers: identifiers,
-                dpopNonce: dpopNonce,
-                challenge: challenge,
-                retry: false
-            )
-        default:
-          return .failure(error)
-        }
-      } else {
-        return .failure(error)
-      }
+    } catch PostError.networkError {
+        return try await requestAccessTokenAuthFlow(
+            authorizationCode: authorizationCode,
+            codeVerifier: codeVerifier,
+            identifiers: identifiers,
+            dpopNonce: dpopNonce,
+            challenge: challenge,
+            retry: false
+        )
     }
   }
   
@@ -518,13 +494,13 @@ internal actor AuthorizationServerClient: AuthorizationServerClientType {
     refreshToken: IssuanceRefreshToken,
     dpopNonce: Nonce?,
     retry: Bool
-  ) async throws -> Result<(
+  ) async throws -> (
     IssuanceAccessToken,
     AuthorizationDetailsIdentifiers?,
     TokenType?,
     Int?,
     Nonce?
-  ), Error> {
+  ) {
     
     let parameters: JSON = JSON([
       Constants.CLIENT_ID_PARAM: clientId,
@@ -552,8 +528,7 @@ internal actor AuthorizationServerClient: AuthorizationServerClientType {
         _,
         let identifiers
       ):
-        return .success(
-          (
+        return (
             try .init(
               accessToken: accessToken,
               tokenType: .init(
@@ -568,17 +543,13 @@ internal actor AuthorizationServerClient: AuthorizationServerClientType {
             expiresIn,
             response.dpopNonce()
           )
-        )
       case .failure(let error, let errorDescription):
         throw CredentialIssuanceError.pushedAuthorizationRequestFailed(
           error: error,
           errorDescription: errorDescription
         )
       }
-    } catch {
-      if let postError = error as? PostError {
-        switch postError {
-        case .useDpopNonce(let nonce):
+    } catch PostError.useDpopNonce(let nonce) {
           if retry {
             return try await refreshAccessToken(
               clientId: clientId,
@@ -587,14 +558,8 @@ internal actor AuthorizationServerClient: AuthorizationServerClientType {
               retry: false
             )
           } else {
-            return .failure(ValidationError.retryFailedAfterDpopNonce)
+            throw ValidationError.retryFailedAfterDpopNonce
           }
-        default:
-          return .failure(error)
-        }
-      } else {
-        return .failure(error)
-      }
     }
   }
   
@@ -607,13 +572,13 @@ internal actor AuthorizationServerClient: AuthorizationServerClientType {
     dpopNonce: Nonce?,
     challenge: Nonce?,
     retry: Bool
-  ) async throws -> Result<(
+  ) async throws -> (
     IssuanceAccessToken,
     IssuanceRefreshToken,
     AuthorizationDetailsIdentifiers?,
     Int?,
     Nonce?
-  ), Error> {
+  ) {
       let parameters: JSON = try await preAuthCodeFlow(
         preAuthorizedCode: preAuthorizedCode,
         txCode: txCode,
@@ -654,8 +619,7 @@ internal actor AuthorizationServerClient: AuthorizationServerClientType {
           _,
           let identifiers
         ):
-          return .success(
-            (
+          return (
               try .init(
                 accessToken: accessToken,
                 tokenType: .init(
@@ -669,17 +633,13 @@ internal actor AuthorizationServerClient: AuthorizationServerClientType {
               expiresIn,
               dpopNonce
             )
-          )
         case .failure(let error, let errorDescription):
           throw CredentialIssuanceError.pushedAuthorizationRequestFailed(
             error: error,
             errorDescription: errorDescription
           )
         }
-      } catch {
-        if let postError = error as? PostError {
-          switch postError {
-          case .useDpopNonce(let nonce):
+      } catch PostError.useDpopNonce(let nonce) {
             if retry {
               return try await requestAccessTokenPreAuthFlow(
                 preAuthorizedCode: preAuthorizedCode,
@@ -692,14 +652,8 @@ internal actor AuthorizationServerClient: AuthorizationServerClientType {
                 retry: false
               )
             } else {
-              return .failure(ValidationError.retryFailedAfterDpopNonce)
+              throw ValidationError.retryFailedAfterDpopNonce
             }
-          default:
-            return .failure(error)
-          }
-        } else {
-          return .failure(error)
-        }
       }
     }
   
