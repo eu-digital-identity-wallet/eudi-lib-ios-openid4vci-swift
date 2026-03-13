@@ -54,6 +54,15 @@ public enum Client: Sendable {
     
     self = .attested(attestationJWT: attestationJWT, popJwtSpec: popJwtSpec)
   }
+  
+  internal var attested: (attestationJWT: ClientAttestationJWT, popJwtSpec: ClientAttestationPoPJWTSpec)? {
+    return switch self {
+    case .public:
+      nil
+    case .attested(let attestationJWT, let popJwtSpec):
+      (attestationJWT, popJwtSpec)
+    }
+  }
 }
 
 extension JWK {
