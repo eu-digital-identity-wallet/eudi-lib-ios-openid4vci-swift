@@ -145,6 +145,27 @@ protocol AuthorizationServerClientType: Sendable {
     Int?,
     Nonce?
   ), Error>
+  
+  /// Refreshes an access token using a refresh token.
+  ///
+  /// - Parameters:
+  ///   - client: The client used for authentication.
+  ///   - refreshToken: The refresh token issued previously.
+  ///   - dpopNonce: An optional nonce for DPoP.
+  ///   - retry: A flag indicating whether to retry on failure.
+  /// - Returns: A result containing the new access token, authorization details, token type, expiration time, and an optional nonce, or an error if the operation fails.
+  func refreshAccessToken(
+    client: Client,
+    refreshToken: IssuanceRefreshToken,
+    dpopNonce: Nonce?,
+    retry: Bool
+  ) async throws -> Result<(
+    IssuanceAccessToken,
+    AuthorizationDetailsIdentifiers?,
+    TokenType?,
+    Int?,
+    Nonce?
+  ), Error>
 }
 
 internal actor AuthorizationServerClient: AuthorizationServerClientType {
@@ -161,6 +182,7 @@ internal actor AuthorizationServerClient: AuthorizationServerClientType {
   public let authorizationServerMetadata: IdentityAndAccessManagementMetadata
   public let credentialIssuerIdentifier: CredentialIssuerId
   public let dpopConstructor: DPoPConstructorType?
+  public let challenger: ChallengeEndpointClientType?
   
   static let responseType = "code"
   static let grantAuthorizationCode = "authorization_code"
@@ -168,6 +190,7 @@ internal actor AuthorizationServerClient: AuthorizationServerClientType {
   
   public init(
     service: AuthorisationServiceType = AuthorisationService(),
+    challenger: ChallengeEndpointClientType?,
     parPoster: PostingType = Poster(),
     tokenPoster: PostingType = Poster(),
     config: OpenId4VCIConfig,
@@ -176,6 +199,8 @@ internal actor AuthorizationServerClient: AuthorizationServerClientType {
     dpopConstructor: DPoPConstructorType? = nil
   ) throws {
     self.service = service
+    self.challenger = challenger
+    
     self.parPoster = parPoster
     self.tokenPoster = tokenPoster
     self.config = config
@@ -598,6 +623,93 @@ internal actor AuthorizationServerClient: AuthorizationServerClientType {
     }
   }
   
+  public func refreshAccessToken(
+    client: Client,
+    refreshToken: IssuanceRefreshToken,
+    dpopNonce: Nonce?,
+    retry: Bool
+  ) async throws -> Result<(
+    IssuanceAccessToken,
+    AuthorizationDetailsIdentifiers?,
+    TokenType?,
+    Int?,
+    Nonce?
+  ), Error> {
+    let parameters: JSON = JSON([
+      Constants.CLIENT_ID_PARAM: client.id,
+      Constants.GRANT_TYPE_PARAM: Constants.REFRESH_TOKEN,
+      Constants.REFRESH_TOKEN_PARAM: refreshToken.refreshToken
+    ].compactMapValues { $0 })
+    
+    let attestationHeaders = try await makeAttestationHeadersIfNeeded(
+      for: client,
+      clock: Clock()
+    )
+    
+    do {
+      let headers = try await tokenEndPointHeaders(url: tokenEndpoint, dpopNonce: dpopNonce) + attestationHeaders
+      let response: ResponseWithHeaders<AccessTokenRequestResponse> = try await service.formPost(
+        poster: tokenPoster,
+        url: tokenEndpoint,
+        headers: headers,
+        parameters: parameters.toDictionary().convertToDictionaryOfStrings()
+      )
+      
+      switch response.body {
+      case .success(
+        let tokenType,
+        let accessToken,
+        _,
+        let expiresIn,
+        _,
+        let identifiers
+      ):
+        return .success(
+          (
+            try .init(
+              accessToken: accessToken,
+              tokenType: .init(
+                value: tokenType
+              ),
+              expiresIn: TimeInterval(expiresIn)
+            ),
+            identifiers,
+            TokenType(
+              value: tokenType
+            ),
+            expiresIn,
+            response.dpopNonce()
+          )
+        )
+      case .failure(let error, let errorDescription):
+        throw CredentialIssuanceError.pushedAuthorizationRequestFailed(
+          error: error,
+          errorDescription: errorDescription
+        )
+      }
+    } catch {
+      if let postError = error as? PostError {
+        switch postError {
+        case .useDpopNonce(let nonce):
+          if retry {
+            return try await refreshAccessToken(
+              client: client,
+              refreshToken: refreshToken,
+              dpopNonce: nonce,
+              retry: false
+            )
+          } else {
+            return .failure(ValidationError.retryFailedAfterDpopNonce)
+          }
+        default:
+          return .failure(error)
+        }
+      } else {
+        return .failure(error)
+      }
+    }
+  }
+  
   public func requestAccessTokenPreAuthFlow(
     preAuthorizedCode: String,
     txCode: TxCode?,
@@ -765,6 +877,42 @@ private extension AuthorizationServerClient {
       
       return (attestationJWT, popJWT)
     }
+  }
+  
+  private func makeAttestationHeadersIfNeeded(for client: Client, clock: ClockType) async throws -> [String: String] {
+    guard let attested = client.attested else {
+      return [:]
+    }
+
+    guard let clientAttestationPoPBuilder = config.clientAttestationPoPBuilder else {
+      throw ValidationError.error(reason: "No clientAttestationPoPBuilder configured")
+    }
+
+    guard
+      let issuer = authorizationServerMetadata.issuer,
+      let authServerId = URL(string: issuer)
+    else {
+      throw ValidationError.error(reason: "No authorization server metadata issuer")
+    }
+
+    guard let challengeEndpointURI = authorizationServerMetadata.challengeEndpointURI else {
+      throw ValidationError.error(reason: "No challenge endpoint")
+    }
+
+    let challenge = try await challenger?.getChallenge().get()
+
+    let popJWT = try await clientAttestationPoPBuilder.buildAttestationPoPJWT(
+      for: client,
+      algorithm: attested.1.signingAlgorithm,
+      clock: clock,
+      authServerId: authServerId,
+      challenge: challenge?.value
+    )
+
+    return [
+      Constants.OAUTH_CLIENT_ATTESTATION: attested.attestationJWT.jws.compactSerializedString,
+      Constants.OAUTH_CLIENT_ATTESTATION_POP: popJWT.jws.compactSerializedString
+    ]
   }
   
   func tokenEndPointHeaders(
