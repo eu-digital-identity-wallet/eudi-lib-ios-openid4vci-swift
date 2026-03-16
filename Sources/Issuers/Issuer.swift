@@ -134,6 +134,19 @@ public protocol IssuerType: Sendable {
     dPopNonce: Nonce?
   ) async throws -> AuthorizedRequest
   
+  /// Refreshes an authorized request.
+  ///
+  /// - Parameters:
+  ///   - clientId: The Client requesting a refresh.
+  ///   - authorizedRequest: The existing authorized request to be refreshed.
+  ///   - dPopNonce: An optional nonce for DPoP security.
+  /// - Returns: A result containing either a new `AuthorizedRequest` if successful or an `Error` otherwise.
+  func refresh(
+    client: Client,
+    authorizedRequest: AuthorizedRequest,
+    dPopNonce: Nonce?
+  ) async throws -> AuthorizedRequest
+  
   /// Sets the deferred response encryption specification to be used for issuance responses.
   ///
   /// - Parameter deferredResponseEncryptionSpec:
@@ -205,7 +218,14 @@ public actor Issuer: IssuerType {
     self.issuerMetadata = issuerMetadata
     self.config = config
     
+    if let challengeEndpoint = authorizationServerMetadata.challengeEndpointURI {
+      challenger = ChallengeEndpointClient(challengeEndpoint: challengeEndpoint)
+    } else {
+      challenger = nil
+    }
+    
     authorizer = try AuthorizationServerClient(
+      challenger: challenger,
       parPoster: Poster(session: session),
       tokenPoster: Poster(session: session),
       config: config,
@@ -213,12 +233,6 @@ public actor Issuer: IssuerType {
       credentialIssuerIdentifier: issuerMetadata.credentialIssuerIdentifier,
       dpopConstructor: config.useDpopIfSupported ? dpopConstructor : nil
     )
-    
-    if let challengeEndpoint = authorizationServerMetadata.challengeEndpointURI {
-      challenger = ChallengeEndpointClient(challengeEndpoint: challengeEndpoint)
-    } else {
-      challenger = nil
-    }
     
     authorizeIssuance = AuthorizeIssuance(
       config: config,
@@ -271,15 +285,6 @@ public actor Issuer: IssuerType {
     self.issuerMetadata = issuerMetadata
     self.config = config
     
-    authorizer = try AuthorizationServerClient(
-      parPoster: parPoster,
-      tokenPoster: tokenPoster,
-      config: config,
-      authorizationServerMetadata: authorizationServerMetadata,
-      credentialIssuerIdentifier: issuerMetadata.credentialIssuerIdentifier,
-      dpopConstructor: dpopConstructor
-    )
-    
     if let challengeEndpoint = authorizationServerMetadata.challengeEndpointURI {
       challenger = ChallengeEndpointClient(
         poster: challengePoster,
@@ -288,6 +293,16 @@ public actor Issuer: IssuerType {
     } else {
       challenger = nil
     }
+    
+    authorizer = try AuthorizationServerClient(
+      challenger: challenger,
+      parPoster: parPoster,
+      tokenPoster: tokenPoster,
+      config: config,
+      authorizationServerMetadata: authorizationServerMetadata,
+      credentialIssuerIdentifier: issuerMetadata.credentialIssuerIdentifier,
+      dpopConstructor: dpopConstructor
+    )
     
     authorizeIssuance = AuthorizeIssuance(
       config: config,
@@ -844,7 +859,7 @@ public extension Issuer {
     authorizedRequest: AuthorizedRequest,
     dPopNonce: Nonce? = nil
   ) async throws -> AuthorizedRequest {
-    if  let refreshToken = authorizedRequest.refreshToken {
+    if let refreshToken = authorizedRequest.refreshToken {
         let (accessToken, _, _, timeStamp, _) = try await authorizer.refreshAccessToken(
           clientId: clientId,
           refreshToken: refreshToken,
@@ -857,6 +872,26 @@ public extension Issuer {
           )
     }
     
+    return authorizedRequest
+  }
+  
+  func refresh(
+    client: Client,
+    authorizedRequest: AuthorizedRequest,
+    dPopNonce: Nonce?
+  ) async throws -> AuthorizedRequest {
+    if let refreshToken = authorizedRequest.refreshToken {
+        let (accessToken, _, _, timeStamp, _) = try await authorizer.refreshAccessToken(
+          client: client,
+          refreshToken: refreshToken,
+          dpopNonce: dPopNonce,
+          retry: true
+        )
+          return authorizedRequest.replacing(
+            accessToken: accessToken,
+            timeStamp: timeStamp?.asTimeInterval ?? .zero
+          )
+    }
     return authorizedRequest
   }
 }
