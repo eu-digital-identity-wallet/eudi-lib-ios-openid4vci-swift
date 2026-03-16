@@ -45,7 +45,7 @@ public actor NonceEndpointClient: NonceEndpointClientType {
     var request = URLRequest(url: nonceEndpoint.url)
     request.httpMethod = HTTPMethod.POST.rawValue
     
-    let result: Result<ResponseWithHeaders<CNonceResponse>, PostError> = await poster.post(
+    let result: Result<ResponseWithHeaders<CNonceResponse>, Error> = await poster.post(
       request: request
     )
     

@@ -35,7 +35,6 @@ public extension ResponseWithHeaders {
 public enum PostError: LocalizedError {
   case invalidUrl
   case networkError(Error)
-  case response(GenericErrorResponse)
   case cannotParse(String)
   case serverError
   case useDpopNonce(Nonce)
@@ -51,8 +50,6 @@ public enum PostError: LocalizedError {
       return "Invalid URL"
     case .networkError(let error):
       return "Network Error: \(error.localizedDescription)"
-    case .response:
-      return "Generic error response"
     case .cannotParse(let string):
       return "Could not parse: \(string)"
     case .serverError:
@@ -75,7 +72,7 @@ public protocol PostingType: Sendable {
    
    - Returns: A Result type with the response data or an error.
    */
-  func post<Response: Codable>(request: URLRequest) async -> Result<ResponseWithHeaders<Response>, PostError>
+  func post<Response: Codable>(request: URLRequest) async -> Result<ResponseWithHeaders<Response>, Error>
   
   /**
    Performs a POST request with the provided URLRequest.
@@ -109,7 +106,7 @@ public struct Poster: PostingType {
    
    - Returns: A Result type with the response data or an error.
    */
-  public func post<Response: Codable>(request: URLRequest) async -> Result<ResponseWithHeaders<Response>, PostError> {
+  public func post<Response: Codable>(request: URLRequest) async -> Result<ResponseWithHeaders<Response>, Error> {
     do {
       let (data, response) = try await self.session.data(for: request)
       let httpResponse = (response as? HTTPURLResponse)
@@ -121,7 +118,7 @@ public struct Poster: PostingType {
            httpResponse.containsDpopError(),
            let dPopNonce = headers.value(forCaseInsensitiveKey: Constants.DPOP_NONCE_HEADER) as? String {
           return .failure(
-            .useDpopNonce(
+            PostError.useDpopNonce(
               .init(
                 value: dPopNonce
               )
@@ -132,20 +129,18 @@ public struct Poster: PostingType {
           if object.error == Constants.USE_DPOP_NONCE,
              let dPopNonce = headers.value(forCaseInsensitiveKey: Constants.DPOP_NONCE_HEADER) as? String {
             return .failure(
-              .useDpopNonce(
+                PostError.useDpopNonce(
                 .init(
                   value: dPopNonce
                 )
               )
             )
           }
-          return .failure(
-            .response(object)
-          )
+          return .failure(object.toIssuanceError())
         }
         
       } else if statusCode >= HTTPStatusCode.internalServerError {
-        return .failure(.serverError)
+        return .failure(PostError.serverError)
       }
       
       do {
@@ -158,16 +153,16 @@ public struct Poster: PostingType {
         )
       } catch {
         if statusCode == HTTPStatusCode.ok || statusCode == HTTPStatusCode.accepted, let string = String(data: data, encoding: .utf8) {
-          return .failure(.cannotParse(string))
+          return .failure(PostError.cannotParse(string))
         } else {
-          return .failure(.networkError(error))
+          return .failure(PostError.networkError(error))
         }
       }
       
     } catch let error as NSError {
-      return .failure(.networkError(error))
+      return .failure(PostError.networkError(error))
     } catch {
-      return .failure(.networkError(error))
+      return .failure(PostError.networkError(error))
     }
   }
   

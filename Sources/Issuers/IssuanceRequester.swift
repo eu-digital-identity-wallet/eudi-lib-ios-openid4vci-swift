@@ -146,9 +146,6 @@ public actor IssuanceRequester: IssuanceRequesterType {
         throw ValidationError.retryFailedAfterDpopNonce
       }
       
-    } catch PostError.response(let response) {
-      throw response.toIssuanceError()
-      
     } catch PostError.cannotParse(let string) {
       switch request {
       case .msoMdoc(let credential):
@@ -293,15 +290,11 @@ public actor IssuanceRequester: IssuanceRequesterType {
         throw ValidationError.retryFailedAfterDpopNonce
       }
         
-    } catch PostError.response(let response) {
-        do {
-            throw response.toIssuanceError()
-        } catch CredentialIssuanceError.deferredCredentialIssuancePending(let interval) {
+    } catch CredentialIssuanceError.deferredCredentialIssuancePending(let interval) {
           return .issuancePending(
             transactionId: transactionId,
             interval: interval ?? .zero
           )
-        }
         
     } catch PostError.cannotParse(let string) {
       if let responseEncryptionSpec = issuanceResponseEncryptionSpec {
@@ -378,10 +371,6 @@ public actor IssuanceRequester: IssuanceRequesterType {
         } else {
           throw ValidationError.retryFailedAfterDpopNonce
         }
-        
-      } catch PostError.response(let response) {
-        throw response.toIssuanceError()
-        
       }
   }
 }

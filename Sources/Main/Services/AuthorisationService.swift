@@ -75,7 +75,7 @@ public actor AuthorisationService: AuthorisationServiceType {
       formData: try request.toDictionary()
     )
     
-    let result: Result<ResponseWithHeaders<U>, PostError> = await poster.post(request: post.urlRequest)
+    let result: Result<ResponseWithHeaders<U>, Error> = await poster.post(request: post.urlRequest)
     return try result.get()
   }
   
@@ -92,7 +92,7 @@ public actor AuthorisationService: AuthorisationServiceType {
       formData: try request.toDictionary()
     )
     
-    let result: Result<ResponseWithHeaders<U>, PostError> = await poster.post(request: post.urlRequest)
+    let result: Result<ResponseWithHeaders<U>, Error> = await poster.post(request: post.urlRequest)
     return try result.get()
   }
   
@@ -109,7 +109,7 @@ public actor AuthorisationService: AuthorisationServiceType {
       formData: parameters
     )
     
-    let result: Result<ResponseWithHeaders<U>, PostError> = await poster.post(request: post.urlRequest)
+    let result: Result<ResponseWithHeaders<U>, Error> = await poster.post(request: post.urlRequest)
     return try result.get()
   }
   
@@ -140,7 +140,7 @@ public actor AuthorisationService: AuthorisationServiceType {
       )
     }
     
-    let result: Result<ResponseWithHeaders<U>, PostError> = await poster.post(request: post.urlRequest)
+    let result: Result<ResponseWithHeaders<U>, Error> = await poster.post(request: post.urlRequest)
     return try result.get()
   }
 }

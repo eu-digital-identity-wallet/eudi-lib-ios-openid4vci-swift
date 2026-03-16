@@ -37,7 +37,7 @@ public actor ChallengeEndpointClient: ChallengeEndpointClientType {
     var request = URLRequest(url: challengeEndpoint)
     request.httpMethod = HTTPMethod.POST.rawValue
     
-    let result: Result<ResponseWithHeaders<ChallengeResponse>, PostError> = await poster.post(
+    let result: Result<ResponseWithHeaders<ChallengeResponse>, Error> = await poster.post(
       request: request
     )
     
