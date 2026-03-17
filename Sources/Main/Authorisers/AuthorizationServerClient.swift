@@ -895,11 +895,8 @@ private extension AuthorizationServerClient {
       throw ValidationError.error(reason: "No authorization server metadata issuer")
     }
 
-    guard let challengeEndpointURI = authorizationServerMetadata.challengeEndpointURI else {
-      throw ValidationError.error(reason: "No challenge endpoint")
-    }
-
-    let challenge = try await challenger?.getChallenge().get()
+    let challengeEndpointURI = authorizationServerMetadata.challengeEndpointURI
+    let challenge = try? await challenger?.getChallenge().get()
 
     let popJWT = try await clientAttestationPoPBuilder.buildAttestationPoPJWT(
       for: client,
