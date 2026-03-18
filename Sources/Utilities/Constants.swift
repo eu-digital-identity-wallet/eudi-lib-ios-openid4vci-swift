@@ -44,7 +44,7 @@ public struct Constants {
   
   public static let OAUTH_CLIENT_ATTESTATION = "OAuth-Client-Attestation"
   public static let OAUTH_CLIENT_ATTESTATION_POP = "OAuth-Client-Attestation-PoP"
-  
+  public static let OAUTH_CLIENT_ATTESTATION_CHALLENGE = "OAuth-Client-Attestation-Challenge"
   public static let CONTENT_TYPE_APPLICATION_JWT = "application/jwt"
   public static let CONTENT_TYPE_APPLICATION_JSON = "application/json"
   public static let SIGNED_METADATA_JWT_TYPE = "openidvci-issuer-metadata+jwt"

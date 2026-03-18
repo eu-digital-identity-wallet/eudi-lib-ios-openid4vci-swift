@@ -142,7 +142,7 @@ public struct Poster: PostingType {
               )
             )
           } else if object.error == Constants.USE_ATTESTATION_CHALLENGE,
-            let attestationNonce = headers.value(forCaseInsensitiveKey: Constants.USE_ATTESTATION_CHALLENGE) as? String {
+            let attestationNonce = headers.value(forCaseInsensitiveKey: Constants.OAUTH_CLIENT_ATTESTATION_CHALLENGE) as? String {
             return .failure(
               .useAttestationNonce(
                 .init(
