@@ -34,6 +34,7 @@ public struct Constants {
   
   public static let DPOP_NONCE_HEADER = "dpop-nonce"
   public static let USE_DPOP_NONCE = "use_dpop_nonce"
+  public static let USE_ATTESTATION_CHALLENGE = "use_attestation_challenge"
   
   public static let REFRESH_TOKEN = "refresh_token"
   public static let REFRESH_TOKEN_PARAM = "refresh_token"
