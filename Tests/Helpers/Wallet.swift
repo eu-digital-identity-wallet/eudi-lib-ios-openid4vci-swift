@@ -378,7 +378,7 @@ extension Wallet {
       authorizationCode = ""
       let _: IssuanceAuthorization = .authorizationCode(authorizationCode: authorizationCode)
       unAuthorized = await issuer.handleAuthorizationCode(
-        request: request,
+        request: parRequested,
         code: &authorizationCode
       )
        */

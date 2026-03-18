@@ -38,6 +38,7 @@ public enum PostError: LocalizedError {
   case cannotParse(String)
   case serverError
   case useDpopNonce(Nonce)
+  case useAttestationNonce(Nonce)
   
   /**
    Provides a localized description of the post error.
@@ -55,7 +56,9 @@ public enum PostError: LocalizedError {
     case .serverError:
       return "Server error"
     case .useDpopNonce(let nonce):
-      return "Use dPopp Nonce error: \(nonce)"
+      return "Use dPop Nonce error: \(nonce)"
+    case .useAttestationNonce(let nonce):
+      return "Use attestation Nonce error: \(nonce)"
     }
   }
 }
@@ -127,7 +130,7 @@ public struct Poster: PostingType {
         } else {
           let object = try JSONDecoder().decode(GenericErrorResponse.self, from: data)
           if object.error == Constants.USE_DPOP_NONCE,
-             let dPopNonce = headers.value(forCaseInsensitiveKey: Constants.DPOP_NONCE_HEADER) as? String {
+            let dPopNonce = headers.value(forCaseInsensitiveKey: Constants.DPOP_NONCE_HEADER) as? String {
             return .failure(
                 PostError.useDpopNonce(
                 .init(
@@ -135,7 +138,17 @@ public struct Poster: PostingType {
                 )
               )
             )
+          } else if object.error == Constants.USE_ATTESTATION_CHALLENGE,
+            let attestationNonce = headers.value(forCaseInsensitiveKey: Constants.OAUTH_CLIENT_ATTESTATION_CHALLENGE) as? String {
+            return .failure(
+              PostError.useAttestationNonce(
+                .init(
+                  value: attestationNonce
+                )
+              )
+            )
           }
+          
           return .failure(object.toIssuanceError())
         }
         

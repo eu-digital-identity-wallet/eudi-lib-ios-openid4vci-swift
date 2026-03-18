@@ -403,18 +403,32 @@ internal actor AuthorizationServerClient: AuthorizationServerClientType {
         )
       }
     } catch PostError.useDpopNonce(let nonce) {
+        if retry {
+            return try await submitPushedAuthorizationRequest(
+                scopes: scopes,
+                credentialConfigurationIdentifiers: credentialConfigurationIdentifiers,
+                state: state,
+                issuerState: issuerState,
+                dpopNonce: nonce,
+                challenge: challenge,
+                retry: false
+            )
+        } else {
+            throw ValidationError.retryFailedAfterDpopNonce
+        }
+    } catch PostError.useAttestationNonce(let challenge) {
           if retry {
             return try await submitPushedAuthorizationRequest(
               scopes: scopes,
               credentialConfigurationIdentifiers: credentialConfigurationIdentifiers,
               state: state,
               issuerState: issuerState,
-              dpopNonce: nonce,
+              dpopNonce: dpopNonce,
               challenge: challenge,
               retry: false
             )
           } else {
-            throw ValidationError.retryFailedAfterDpopNonce
+              throw ValidationError.retryFailedAfterDpopNonce
           }
     }
   }
@@ -503,6 +517,19 @@ internal actor AuthorizationServerClient: AuthorizationServerClientType {
           } else {
             throw ValidationError.retryFailedAfterDpopNonce
           }
+    } catch PostError.useAttestationNonce(let challenge) {
+        if retry {
+            return try await requestAccessTokenAuthFlow(
+                authorizationCode: authorizationCode,
+                codeVerifier: codeVerifier,
+                identifiers: identifiers,
+                dpopNonce: dpopNonce,
+                challenge: challenge,
+                retry: false
+            )
+        } else {
+            throw ValidationError.retryFailedAfterDpopNonce
+        }
     } catch PostError.networkError {
         return try await requestAccessTokenAuthFlow(
             authorizationCode: authorizationCode,
@@ -756,6 +783,21 @@ internal actor AuthorizationServerClient: AuthorizationServerClientType {
             } else {
               throw ValidationError.retryFailedAfterDpopNonce
             }
+      } catch PostError.useAttestationNonce(let challenge) {
+            if retry {
+              return try await requestAccessTokenPreAuthFlow(
+                preAuthorizedCode: preAuthorizedCode,
+                txCode: txCode,
+                client: client,
+                transactionCode: transactionCode,
+                identifiers: identifiers,
+                dpopNonce: dpopNonce,
+                challenge: challenge,
+                retry: false
+              )
+            } else {
+              throw ValidationError.retryFailedAfterDpopNonce
+            }
       }
     }
   
@@ -839,11 +881,7 @@ private extension AuthorizationServerClient {
       throw ValidationError.error(reason: "No authorization server metadata issuer")
     }
 
-    guard let challengeEndpointURI = authorizationServerMetadata.challengeEndpointURI else {
-      throw ValidationError.error(reason: "No challenge endpoint")
-    }
-
-    let challenge = try await challenger?.getChallenge()
+    let challenge = try? await challenger?.getChallenge()
 
     let popJWT = try await clientAttestationPoPBuilder.buildAttestationPoPJWT(
       for: client,

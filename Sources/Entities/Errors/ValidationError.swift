@@ -24,6 +24,7 @@ public enum ValidationError: Error, LocalizedError {
   case invalidBatchSize(Int)
   case issuerBatchSizeLimitExceeded(Int)
   case retryFailedAfterDpopNonce
+  case retryFailedAfterUseAttestationNonce
   
   public var errorDescription: String? {
     switch self {
@@ -43,6 +44,8 @@ public enum ValidationError: Error, LocalizedError {
       return "ValidationError:issuerBatchSizeLimitExceeded: \(size)"
     case .retryFailedAfterDpopNonce:
       return "retryFailedAfterDpopNonce"
+    case .retryFailedAfterUseAttestationNonce:
+      return "retryFailedAfterUseAttestationNonce"
     }
   }
 }

@@ -34,6 +34,7 @@ public struct Constants {
   
   public static let DPOP_NONCE_HEADER = "dpop-nonce"
   public static let USE_DPOP_NONCE = "use_dpop_nonce"
+  public static let USE_ATTESTATION_CHALLENGE = "use_attestation_challenge"
   
   public static let REFRESH_TOKEN = "refresh_token"
   public static let REFRESH_TOKEN_PARAM = "refresh_token"
@@ -43,7 +44,7 @@ public struct Constants {
   
   public static let OAUTH_CLIENT_ATTESTATION = "OAuth-Client-Attestation"
   public static let OAUTH_CLIENT_ATTESTATION_POP = "OAuth-Client-Attestation-PoP"
-  
+  public static let OAUTH_CLIENT_ATTESTATION_CHALLENGE = "OAuth-Client-Attestation-Challenge"
   public static let CONTENT_TYPE_APPLICATION_JWT = "application/jwt"
   public static let CONTENT_TYPE_APPLICATION_JSON = "application/json"
   public static let SIGNED_METADATA_JWT_TYPE = "openidvci-issuer-metadata+jwt"
