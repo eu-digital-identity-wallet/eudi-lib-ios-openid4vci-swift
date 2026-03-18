@@ -288,7 +288,6 @@ private extension AuthorizeIssuance {
       }
 
       let challenge = try? await challenger?.getChallenge().get()
-      
       let result: (
         verifier: PKCEVerifier,
         code: AuthorizationCodeURL,
