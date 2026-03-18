@@ -370,23 +370,23 @@ extension Wallet {
       var unAuthorized: Result<AuthorizationCodeRetrieved, Error>
       var authorizationCode: String
       
-//      authorizationCode = try await loginUserAndGetAuthCode(
-//        getAuthorizationCodeUrl: parRequested.authorizationCodeURL.url,
-//        actingUser: actingUser
-//      ) ?? { throw  ValidationError.error(reason: "Could not retrieve authorization code") }()
-//      let issuanceAuthorization: IssuanceAuthorization = .authorizationCode(authorizationCode: authorizationCode)
-//      unAuthorized = await issuer.handleAuthorizationCode(
-//        request: parRequested,
-//        authorizationCode: issuanceAuthorization
-//      )
-//      /*
+      authorizationCode = try await loginUserAndGetAuthCode(
+        getAuthorizationCodeUrl: parRequested.authorizationCodeURL.url,
+        actingUser: actingUser
+      ) ?? { throw  ValidationError.error(reason: "Could not retrieve authorization code") }()
+      let issuanceAuthorization: IssuanceAuthorization = .authorizationCode(authorizationCode: authorizationCode)
+      unAuthorized = await issuer.handleAuthorizationCode(
+        request: parRequested,
+        authorizationCode: issuanceAuthorization
+      )
+      /*
       authorizationCode = ""
       let _: IssuanceAuthorization = .authorizationCode(authorizationCode: authorizationCode)
       unAuthorized = await issuer.handleAuthorizationCode(
         request: parRequested,
         code: &authorizationCode
       )
-//       */
+       */
       print("--> [AUTHORIZATION] Authorization code retrieved: \(authorizationCode)")
       
       switch unAuthorized {
