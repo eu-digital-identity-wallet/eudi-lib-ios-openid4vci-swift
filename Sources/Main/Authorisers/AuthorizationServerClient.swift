@@ -421,6 +421,21 @@ internal actor AuthorizationServerClient: AuthorizationServerClientType {
           } else {
             return .failure(ValidationError.retryFailedAfterDpopNonce)
           }
+        case .useAttestationNonce(let challenge):
+          if retry {
+            return try await submitPushedAuthorizationRequest(
+              scopes: scopes,
+              credentialConfigurationIdentifiers: credentialConfigurationIdentifiers,
+              state: state,
+              issuerState: issuerState,
+              dpopNonce: dpopNonce,
+              challenge: challenge,
+              retry: false
+            )
+              
+          } else {
+            return .failure(ValidationError.retryFailedAfterDpopNonce)
+          }
         default:
           return .failure(error)
         }
@@ -520,15 +535,28 @@ internal actor AuthorizationServerClient: AuthorizationServerClientType {
           } else {
             return .failure(ValidationError.retryFailedAfterDpopNonce)
           }
-        case .networkError:
+        case .useAttestationNonce(let challenge):
+          if retry {
             return try await requestAccessTokenAuthFlow(
-                authorizationCode: authorizationCode,
-                codeVerifier: codeVerifier,
-                identifiers: identifiers,
-                dpopNonce: dpopNonce,
-                challenge: challenge,
-                retry: false
+              authorizationCode: authorizationCode,
+              codeVerifier: codeVerifier,
+              identifiers: identifiers,
+              dpopNonce: dpopNonce,
+              challenge: challenge,
+              retry: false
             )
+          } else {
+            return .failure(ValidationError.retryFailedAfterDpopNonce)
+          }
+        case .networkError:
+          return try await requestAccessTokenAuthFlow(
+              authorizationCode: authorizationCode,
+              codeVerifier: codeVerifier,
+              identifiers: identifiers,
+              dpopNonce: dpopNonce,
+              challenge: challenge,
+              retry: false
+          )
         default:
           return .failure(error)
         }
@@ -800,6 +828,21 @@ internal actor AuthorizationServerClient: AuthorizationServerClientType {
                 transactionCode: transactionCode,
                 identifiers: identifiers,
                 dpopNonce: nonce,
+                challenge: challenge,
+                retry: false
+              )
+            } else {
+              return .failure(ValidationError.retryFailedAfterDpopNonce)
+            }
+          case .useAttestationNonce(let challenge):
+            if retry {
+              return try await requestAccessTokenPreAuthFlow(
+                preAuthorizedCode: preAuthorizedCode,
+                txCode: txCode,
+                client: client,
+                transactionCode: transactionCode,
+                identifiers: identifiers,
+                dpopNonce: dpopNonce,
                 challenge: challenge,
                 retry: false
               )
