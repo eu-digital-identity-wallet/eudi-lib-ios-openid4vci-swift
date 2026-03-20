@@ -81,7 +81,7 @@ protocol AuthorizationServerClientType: Sendable {
   ///   - retry: A flag indicating whether to retry on failure.
   /// - Returns: A result containing the access token, refresh token, authorization details, token type, expiration time, and an optional nonce, or an error if the operation fails.
   func requestAccessTokenAuthFlow(
-    authorizationCode: String,
+    authorizationCode: AuthorizationCode,
     codeVerifier: String,
     identifiers: [CredentialConfigurationIdentifier],
     dpopNonce: Nonce?,
@@ -434,7 +434,7 @@ internal actor AuthorizationServerClient: AuthorizationServerClientType {
   }
   
   public func requestAccessTokenAuthFlow(
-    authorizationCode: String,
+    authorizationCode: AuthorizationCode,
     codeVerifier: String,
     identifiers: [CredentialConfigurationIdentifier],
     dpopNonce: Nonce?,
@@ -915,7 +915,7 @@ private extension AuthorizationServerClient {
   }
   
   func authCodeFlow(
-    authorizationCode: String,
+    authorizationCode: AuthorizationCode,
     redirectionURI: URL,
     clientId: String,
     codeVerifier: String,
@@ -924,7 +924,7 @@ private extension AuthorizationServerClient {
     
     var params: [String: String?] = [
       Constants.GRANT_TYPE_PARAM: Self.grantAuthorizationCode,
-      Constants.AUTHORIZATION_CODE_PARAM: authorizationCode,
+      Constants.AUTHORIZATION_CODE_PARAM: authorizationCode.value,
       Constants.REDIRECT_URI_PARAM: redirectionURI.absoluteString,
       Constants.CLIENT_ID_PARAM: clientId,
       Constants.CODE_VERIFIER_PARAM: codeVerifier

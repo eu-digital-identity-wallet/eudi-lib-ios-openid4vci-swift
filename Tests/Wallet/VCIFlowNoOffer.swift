@@ -27,15 +27,6 @@ class VCIFlowNoOffer: XCTestCase {
     URLCache.shared.removeAllCachedResponses()
   }
   
-  func testWebPageFormSubmission() async throws {
-
-    _ = try await WebpageHelper(Wallet.walletSession).submit(
-      formUrl: URL(string: "https://www.w3schools.com/html/html_forms.asp")!,
-      username: "username",
-      password: "password"
-    )
-  }
-  
   func testNoOfferSdJWT() async throws {
     
     let privateKey = try KeyController.generateECDHPrivateKey()

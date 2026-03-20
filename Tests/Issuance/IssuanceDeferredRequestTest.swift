@@ -82,19 +82,10 @@ class IssuanceDeferredRequestTest: XCTestCase {
       )
     )
     
-    let authorizationCode = "MZqG9bsQ8UALhsGNlY39Yw=="
-    let request = TestsConstants.unAuthorizedRequest
-    
-    let issuanceAuthorization: IssuanceAuthorization = .authorizationCode(authorizationCode: authorizationCode)
-    
     do {
-    let unAuthorized = try await issuer.handleAuthorizationCode(
-      request: request,
-      authorizationCode: issuanceAuthorization
-    )
-      
       let authorizedRequest = try await issuer.authorizeWithAuthorizationCode(
-        request: unAuthorized,
+        request: TestsConstants.unAuthorizedRequest,
+        authorizationCode: try AuthorizationCode(value: "MZqG9bsQ8UALhsGNlY39Yw=="),
         grant: offer.grants!
       )
         XCTAssert(true, "Got access token: \(authorizedRequest.accessToken)")

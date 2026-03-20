@@ -37,7 +37,7 @@ public enum IdentityAndAccessManagementMetadata: Sendable {
     }
   }
   
-  var pushedAuthorizationRequestEndpointURI: URL? {
+  public var pushedAuthorizationRequestEndpointURI: URL? {
     switch self {
     case .oidc(let metaData):
       if let pushedAuthorizationRequestEndpoint = metaData.pushedAuthorizationRequestEndpoint {
@@ -89,4 +89,14 @@ public enum IdentityAndAccessManagementMetadata: Sendable {
       return URL(string: challengeEndpoint)
     }
   }
+  
+  public var clientAttestationPopSigningAlgValuesSupported: [JWSAlgorithm] {
+    switch self {
+    case .oidc(let metaData):
+      return metaData.clientAttestationPopSigningAlgValuesSupported?.map { JWSAlgorithm(name: $0) } ?? []
+    case .oauth(let metaData):
+      return metaData.clientAttestationPopSigningAlgValuesSupported?.map { JWSAlgorithm(name: $0) } ?? []
+    }
+  }
+
 }

@@ -27,7 +27,7 @@ class KeyAttestationTests: XCTestCase {
     publicKey: ECPublicKey,
     spec: IssuanceResponseEncryptionSpec,
     issuer: Issuer,
-    issuanceAuthorization: IssuanceAuthorization,
+    authorizationCode: AuthorizationCode,
     offer: CredentialOffer
   )!
   
@@ -73,10 +73,8 @@ class KeyAttestationTests: XCTestCase {
     
     // When
     let authorized = try! await data.issuer.authorizeWithAuthorizationCode(
-      request: try await data.issuer.handleAuthorizationCode(
-        request: TestsConstants.unAuthorizedRequest,
-        authorizationCode: data.issuanceAuthorization
-      ),
+      request: TestsConstants.unAuthorizedRequest,
+      authorizationCode: data.authorizationCode,
       grant: data.offer.grants!
     )
 
@@ -120,10 +118,8 @@ class KeyAttestationTests: XCTestCase {
     
     // When
     let authorized = try! await data.issuer.authorizeWithAuthorizationCode(
-      request: try await data.issuer.handleAuthorizationCode(
-        request: TestsConstants.unAuthorizedRequest,
-        authorizationCode: data.issuanceAuthorization
-      ),
+      request: TestsConstants.unAuthorizedRequest,
+      authorizationCode: data.authorizationCode,
       grant: data.offer.grants!
     )
     
@@ -259,7 +255,7 @@ extension KeyAttestationTests {
     publicKey: ECPublicKey,
     spec: IssuanceResponseEncryptionSpec,
     issuer: Issuer,
-    issuanceAuthorization: IssuanceAuthorization,
+    authorizationCode: AuthorizationCode,
     offer: CredentialOffer
   ) {
     let privateKey = try KeyController.generateECDHPrivateKey()
@@ -315,14 +311,14 @@ extension KeyAttestationTests {
       )
     )
     
-    let issuanceAuthorization: IssuanceAuthorization = .authorizationCode(authorizationCode: "MZqG9bsQ8UALhsGNlY39Yw==")
+    let authorizationCode = try AuthorizationCode(value: "MZqG9bsQ8UALhsGNlY39Yw==")
     
     return (
       privateKey: privateKey,
       publicKey: publicKeyJWK,
       spec: spec,
       issuer: issuer,
-      issuanceAuthorization: issuanceAuthorization,
+      authorizationCode: authorizationCode,
       offer: offer
     )
   }

@@ -209,16 +209,9 @@ extension IssuanceEncryptionTest {
       return nil
     }
     
-    guard let unAuthorized = try? await issuer.handleAuthorizationCode(
-      request: parRequested,
-      authorizationCode: .init(authorizationCode: UUID().uuidString)
-    ) else {
-      XCTAssert(false, "Unable to create request")
-      return nil
-    }
-    
       guard let authorizedRequest = try? await issuer.authorizeWithAuthorizationCode(
-        request: unAuthorized,
+        request: parRequested,
+        authorizationCode: AuthorizationCode(value: UUID().uuidString),
         grant: offer.grants!
       ) else {
         XCTAssert(false, "Could not get authorized request")
@@ -268,16 +261,9 @@ extension IssuanceEncryptionTest {
       return nil
     }
     
-    guard let unAuthorized = try? await issuer.handleAuthorizationCode(
-      request: parRequested,
-      authorizationCode: .init(authorizationCode: UUID().uuidString)
-    ) else {
-      XCTAssert(false, "Unable to create request")
-      return nil
-    }
-    
       guard let authorizedRequest = try? await issuer.authorizeWithAuthorizationCode(
-        request: unAuthorized,
+        request: parRequested,
+        authorizationCode: AuthorizationCode(value: UUID().uuidString),
         grant: offer.grants!
       ) else {
         XCTAssert(false, "Could not get authorized request")

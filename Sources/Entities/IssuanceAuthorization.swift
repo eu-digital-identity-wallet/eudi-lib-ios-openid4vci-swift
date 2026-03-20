@@ -16,26 +16,29 @@
 import Foundation
 
 public enum IssuanceAuthorization: Sendable {
-  case authorizationCode(authorizationCode: String)
+  case authorizationCode(authorizationCode: AuthorizationCode)
   case preAuthorizationCode(
     preAuthorizedCode: String,
     txCode: TxCode?
   )
 }
 
+public struct AuthorizationCode: Sendable {
+    public let value: String
+    
+    public init(value: String) throws {
+        guard !value.isEmpty else { throw ValidationError.error(reason: "AuthorizationCode must not be empty") }
+        self.value = value
+    }
+}
+
 public extension IssuanceAuthorization {
   
   init(authorizationCode: String) throws {
-    
-    guard !authorizationCode.isEmpty else {
-      throw CredentialError.genericError
-    }
-    
-    self = .authorizationCode(authorizationCode: authorizationCode)
+    self = try .authorizationCode(authorizationCode: AuthorizationCode(value: authorizationCode))
   }
   
   init(preAuthorizationCode: String?, txCode: TxCode?) throws {
-    
     guard let preAuthorizationCode else {
       throw ValidationError.error(reason: "Missing preAuthorizationCode")
     }
@@ -49,4 +52,5 @@ public extension IssuanceAuthorization {
       txCode: txCode
     )
   }
+  
 }

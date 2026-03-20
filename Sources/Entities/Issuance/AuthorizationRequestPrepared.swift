@@ -45,25 +45,18 @@ public struct AuthorizationRequested: Sendable {
 /// from the authorization server and processed successfully.
 public struct AuthorizationCodeRetrieved: Sendable {
   public let credentials: [CredentialIdentifier]
-  public let authorizationCode: IssuanceAuthorization
+  public let authorizationCode: AuthorizationCode
   public let pkceVerifier: PKCEVerifier
   public let configurationIds: [CredentialConfigurationIdentifier]
   public let dpopNonce: Nonce?
   
   public init(
     credentials: [CredentialIdentifier],
-    authorizationCode: IssuanceAuthorization,
+    authorizationCode: AuthorizationCode,
     pkceVerifier: PKCEVerifier,
     configurationIds: [CredentialConfigurationIdentifier],
     dpopNonce: Nonce?
-  ) throws {
-    
-    guard case .authorizationCode = authorizationCode else {
-      throw ValidationError.error(
-        reason: "IssuanceAuthorization must be authorization code"
-      )
-    }
-
+  ) {
     self.credentials = credentials
     self.authorizationCode = authorizationCode
     self.pkceVerifier = pkceVerifier

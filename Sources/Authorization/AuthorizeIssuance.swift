@@ -49,7 +49,8 @@ protocol AuthorizeIssuanceType: Sendable {
   /// - Returns: A result containing either an `AuthorizedRequest` if successful or an `Error` otherwise.
   func authorizeWithAuthorizationCode(
     grant: Grants,
-    request: AuthorizationCodeRetrieved,
+    request: AuthorizationRequested,
+    authorizationCode: AuthorizationCode,
     authorizationDetailsInTokenRequest: AuthorizationDetailsInTokenRequest
   ) async throws -> AuthorizedRequest
   
@@ -167,11 +168,10 @@ internal actor AuthorizeIssuance: AuthorizeIssuanceType {
   
   func authorizeWithAuthorizationCode(
     grant: Grants,
-    request: AuthorizationCodeRetrieved,
+    request: AuthorizationRequested,
+    authorizationCode: AuthorizationCode,
     authorizationDetailsInTokenRequest: AuthorizationDetailsInTokenRequest
   ) async throws -> AuthorizedRequest {
-      switch request.authorizationCode {
-      case .authorizationCode(let authorizationCode):
           let credConfigIdsAsAuthDetails: [CredentialConfigurationIdentifier] = switch authorizationDetailsInTokenRequest {
           case .doNotInclude: []
           case .include(let filter): request.configurationIds.filter(filter)
@@ -208,11 +208,6 @@ internal actor AuthorizeIssuance: AuthorizeIssuanceType {
               dPopNonce: response.dPopNonce,
               grantType: .init(grant: grant)
             )
-      default:
-        throw ValidationError.error(
-          reason: ".authorizationCode case is required"
-        )
-      }
   }
 }
 

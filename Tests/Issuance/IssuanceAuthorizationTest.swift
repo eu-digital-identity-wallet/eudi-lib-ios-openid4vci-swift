@@ -129,18 +129,10 @@ class IssuanceAuthorizationTest: XCTestCase {
       )
     )
     
-    let authorizationCode = "MZqG9bsQ8UALhsGNlY39Yw=="
-    let request = TestsConstants.unAuthorizedRequest
-    
     do {
-    let issuanceAuthorization: IssuanceAuthorization = .authorizationCode(authorizationCode: authorizationCode)
-    let unAuthorized = try await issuer.handleAuthorizationCode(
-      request: request,
-      authorizationCode: issuanceAuthorization
-    )
-    
       let authorizedRequest = try await issuer.authorizeWithAuthorizationCode(
-        request: unAuthorized,
+        request: TestsConstants.unAuthorizedRequest,
+        authorizationCode: try AuthorizationCode(value: "MZqG9bsQ8UALhsGNlY39Yw=="),
         grant: offer.grants!
       )
       
@@ -181,18 +173,11 @@ class IssuanceAuthorizationTest: XCTestCase {
       )
     )
     
-    let request = TestsConstants.unAuthorizedRequest
-    
     do {
-    let authorizationCode = "MZqG9bsQ8UALhsGNlY39Yw=="
-    let issuanceAuthorization: IssuanceAuthorization = .authorizationCode(authorizationCode: authorizationCode)
-    let unAuthorized = try await issuer.handleAuthorizationCode(
-      request: request,
-      authorizationCode: issuanceAuthorization
-    )
-    
+      let authorizationCode = try AuthorizationCode(value: "MZqG9bsQ8UALhsGNlY39Yw==")
       let authorizedRequest = try await issuer.authorizeWithAuthorizationCode(
-        request: unAuthorized,
+        request: TestsConstants.unAuthorizedRequest,
+        authorizationCode: authorizationCode,
         grant: offer.grants!
       )
       
@@ -232,18 +217,10 @@ class IssuanceAuthorizationTest: XCTestCase {
       )
     )
     
-    let request = TestsConstants.unAuthorizedRequest
-    
-    let authorizationCode = "MZqG9bsQ8UALhsGNlY39Yw=="
-    let issuanceAuthorization: IssuanceAuthorization = .authorizationCode(authorizationCode: authorizationCode)
-    let unAuthorized = try await issuer.handleAuthorizationCode(
-      request: request,
-      authorizationCode: issuanceAuthorization
-    )
-    
     do {
       _ = try await issuer.authorizeWithAuthorizationCode(
-        request: unAuthorized,
+        request: TestsConstants.unAuthorizedRequest,
+        authorizationCode: try AuthorizationCode(value: "MZqG9bsQ8UALhsGNlY39Yw=="),
         grant: offer.grants!
       )
         XCTAssert(false, "Did not expect success")

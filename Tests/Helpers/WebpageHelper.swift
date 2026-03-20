@@ -26,39 +26,46 @@ class WebpageHelper {
     self.session = session
   }
   
-  func downloadWebPage(url: URL) async -> Result<String?, Error> {
-    do {
-      let (data, _) = try await session.data(from: url)
-      if let htmlString = String(data: data, encoding: .utf8) {
-        return .success(htmlString)
-      } else {
-        return .success(nil)
-      }
-    } catch {
-      return .success(nil)
-    }
+  func submit(
+    formUrl: URL,
+    username: String,
+    password: String
+  ) async throws -> AuthorizationCode {
+    let htmlString = try await downloadWebPage(url: formUrl)
+    let actionUrl = try extractAction(from: htmlString)
+       
+    return try await submitFormUsingBody(
+      username: username,
+      password: password,
+      actionURL: actionUrl
+    )
   }
   
-  func extractAction(from htmlString: String) -> URL? {
-    do {
+  private func downloadWebPage(url: URL) async throws -> String {
+    let (data, _) = try await session.data(from: url)
+    guard let htmlString = String(data: data, encoding: .utf8) else {
+      throw ValidationError.error(reason: "Failed to parse response data as UTF-8")
+    }
+    
+    return htmlString
+  }
+  
+  private func extractAction(from htmlString: String) throws -> URL {
       let doc = try SwiftSoup.parse(htmlString)
       let form = try doc.getElementById("kc-form-login")
-      guard let action = try? form?.attr("action") else {
-        return nil
+      guard let action = try? form?.attr("action"),
+            let url = URL(string: action) else {
+        throw ValidationError.error(reason: "Failed to extract form action URL from htmlString: \(htmlString)")
       }
-      return URL(string: action)
       
-    } catch {
-      print("Error parsing HTML: \(error)")
-      return nil
-    }
+      return url
   }
   
-  func submitFormUsingBody(
+  private func submitFormUsingBody(
     username: String,
     password: String,
     actionURL: URL
-  ) async throws -> String {
+  ) async throws -> AuthorizationCode {
     var request = URLRequest(url: actionURL)
     request.httpMethod = "POST"
     
@@ -74,45 +81,25 @@ class WebpageHelper {
     
     let redirectUrl = httpResponse.url
     
-    return try extractValue(
+    let authorizationCodeString = try extractValue(
       url: redirectUrl,
       forKey: "code"
-    ) ?? {
-      throw ValidationError.error(reason: "Invalid authorisation code")
-    }()
-  }
-  
-  func submit(
-    formUrl: URL,
-    username: String,
-    password: String
-  ) async throws -> String? {
+    )
     
-    if let htmlString = try await downloadWebPage(url: formUrl).get(),
-       let actionUrl = extractAction(from: htmlString) {
-      return try await submitFormUsingBody(
-        username: username,
-        password: password,
-        actionURL: actionUrl
-      )
-    }
-    
-    return nil
+    return try AuthorizationCode(value: authorizationCodeString)
   }
   
   private func extractValue(
     url: URL?,
     forKey key: String
-  ) -> String? {
-    if let url = url,
-       let queryItems = URLComponents(url: url, resolvingAgainstBaseURL: true)?.queryItems {
-      
-      // Find the query item with the specified key
-      if let queryItem = queryItems.first(where: { $0.name == key }),
-         let value = queryItem.value {
-        return value
-      }
+  ) throws -> String {
+    guard let url = url,
+          let queryItems = URLComponents(url: url, resolvingAgainstBaseURL: true)?.queryItems,
+          let queryItem = queryItems.first(where: { $0.name == key }),
+          let value = queryItem.value else {
+      throw ValidationError.error(reason: "Key \(key) not found in URL query: \(url?.absoluteString ?? "")")
     }
-    return nil
+    
+    return value
   }
 }
