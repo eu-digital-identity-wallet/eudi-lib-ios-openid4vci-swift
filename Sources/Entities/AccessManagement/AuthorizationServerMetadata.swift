@@ -169,7 +169,4 @@ public struct AuthorizationServerMetadata: Codable, Equatable, Sendable {
     self.clientAttestationPopSigningAlgValuesSupported = clientAttestationPopSigningAlgValuesSupported
   }
   
-  public static func == (lhs: AuthorizationServerMetadata, rhs: AuthorizationServerMetadata) -> Bool {
-    lhs.authorizationEndpoint == rhs.authorizationEndpoint
-  }
 }

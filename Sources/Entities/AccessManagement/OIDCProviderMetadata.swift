@@ -238,7 +238,7 @@ public struct OIDCProviderMetadata: Codable, Equatable, Sendable {
 
 // MARK: - MtlsEndpointAliases
 
-public struct MtlsEndpointAliases: Codable, Sendable {
+public struct MtlsEndpointAliases: Codable, Sendable, Equatable {
   public let tokenEndpoint, revocationEndpoint, introspectionEndpoint, deviceAuthorizationEndpoint: String
   public let registrationEndpoint, userinfoEndpoint, pushedAuthorizationRequestEndpoint, backchannelAuthenticationEndpoint: String
   

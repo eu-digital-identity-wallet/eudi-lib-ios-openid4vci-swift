@@ -174,10 +174,9 @@ class IssuanceAuthorizationTest: XCTestCase {
     )
     
     do {
-      let authorizationCode = try AuthorizationCode(value: "MZqG9bsQ8UALhsGNlY39Yw==")
       let authorizedRequest = try await issuer.authorizeWithAuthorizationCode(
         request: TestsConstants.unAuthorizedRequest,
-        authorizationCode: authorizationCode,
+        authorizationCode: try AuthorizationCode(value: "MZqG9bsQ8UALhsGNlY39Yw=="),
         grant: offer.grants!
       )
       
