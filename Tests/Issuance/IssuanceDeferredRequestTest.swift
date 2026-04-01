@@ -95,6 +95,7 @@ class IssuanceDeferredRequestTest: XCTestCase {
       
       let authorizedRequest = try await issuer.authorizeWithAuthorizationCode(
         request: unAuthorized,
+        preparedRequest: request,
         grant: offer.grants!
       )
         XCTAssert(true, "Got access token: \(authorizedRequest.accessToken)")

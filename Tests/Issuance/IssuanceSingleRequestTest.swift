@@ -95,6 +95,7 @@ class IssuanceSingleRequestTest: XCTestCase {
     
       let authorizedRequest = try await issuer.authorizeWithAuthorizationCode(
         request: unAuthorized,
+        preparedRequest: request,
         grant: offer.grants!
       )
       
@@ -319,6 +320,7 @@ class IssuanceSingleRequestTest: XCTestCase {
       
       let authorizedRequest = try await issuer.authorizeWithAuthorizationCode(
         request: unAuthorized,
+        preparedRequest: request,
         grant: offer.grants!
       )
       

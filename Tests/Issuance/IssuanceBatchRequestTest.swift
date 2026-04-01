@@ -96,6 +96,7 @@ class IssuanceBatchRequestTest: XCTestCase {
       
       let authorizedRequest = try await issuer.authorizeWithAuthorizationCode(
         request: unAuthorized,
+        preparedRequest: request,
         grant: offer.grants!
       )
       

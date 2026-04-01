@@ -141,6 +141,7 @@ class IssuanceAuthorizationTest: XCTestCase {
     
       let authorizedRequest = try await issuer.authorizeWithAuthorizationCode(
         request: unAuthorized,
+        preparedRequest: request,
         grant: offer.grants!
       )
       
@@ -193,6 +194,7 @@ class IssuanceAuthorizationTest: XCTestCase {
     
       let authorizedRequest = try await issuer.authorizeWithAuthorizationCode(
         request: unAuthorized,
+        preparedRequest: request,
         grant: offer.grants!
       )
       
@@ -244,6 +246,7 @@ class IssuanceAuthorizationTest: XCTestCase {
     do {
       _ = try await issuer.authorizeWithAuthorizationCode(
         request: unAuthorized,
+        preparedRequest: request,
         grant: offer.grants!
       )
         XCTAssert(false, "Did not expect success")

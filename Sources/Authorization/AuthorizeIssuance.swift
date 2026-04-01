@@ -46,13 +46,28 @@ protocol AuthorizeIssuanceType: Sendable {
   /// - Parameters:
   ///   - authorizationCode: The unauthorized request containing the authorization code.
   ///   - authorizationDetailsInTokenRequest: Additional authorization details for the token request.
+  ///   - preparedRequest: So we can access the state
   /// - Returns: A result containing either an `AuthorizedRequest` if successful or an `Error` otherwise.
   func authorizeWithAuthorizationCode(
     grant: Grants,
     request: AuthorizationCodeRetrieved,
+    preparedRequest: AuthorizationRequested,
     authorizationDetailsInTokenRequest: AuthorizationDetailsInTokenRequest
   ) async throws -> AuthorizedRequest
   
+  /// Completes the authorization process using an authorization code.
+  ///
+  /// - Parameters:
+  ///   - authorizationCode: The unauthorized request containing the authorization code.
+  ///   - authorizationDetailsInTokenRequest: Additional authorization details for the token request.
+  ///   - state: The AS state
+  /// - Returns: A result containing either an `AuthorizedRequest` if successful or an `Error` otherwise.
+  func authorizeWithAuthorizationCode(
+    grant: Grants,
+    request: AuthorizationCodeRetrieved,
+    state: String,
+    authorizationDetailsInTokenRequest: AuthorizationDetailsInTokenRequest
+  ) async throws -> AuthorizedRequest
 }
 
 internal actor AuthorizeIssuance: AuthorizeIssuanceType {
@@ -168,8 +183,71 @@ internal actor AuthorizeIssuance: AuthorizeIssuanceType {
   func authorizeWithAuthorizationCode(
     grant: Grants,
     request: AuthorizationCodeRetrieved,
+    preparedRequest: AuthorizationRequested,
     authorizationDetailsInTokenRequest: AuthorizationDetailsInTokenRequest
   ) async throws -> AuthorizedRequest {
+    
+    try validateState(
+      preparedRequest: preparedRequest,
+      request: request
+    )
+    
+      switch request.authorizationCode {
+      case .authorizationCode(let authorizationCode):
+          let credConfigIdsAsAuthDetails: [CredentialConfigurationIdentifier] = switch authorizationDetailsInTokenRequest {
+          case .doNotInclude: []
+          case .include(let filter): request.configurationIds.filter(filter)
+          }
+          
+          let challenge = try? await challenger?.getChallenge()
+          let response: (
+            accessToken: IssuanceAccessToken,
+            refreshToken: IssuanceRefreshToken,
+            identifiers: AuthorizationDetailsIdentifiers?,
+            tokenType: TokenType?,
+            expiresIn: Int?,
+            dPopNonce: Nonce?
+          ) = try await authorizer.requestAccessTokenAuthFlow(
+            authorizationCode: authorizationCode,
+            codeVerifier: request.pkceVerifier.codeVerifier,
+            identifiers: credConfigIdsAsAuthDetails,
+            dpopNonce: request.dpopNonce,
+            challenge: challenge,
+            retry: true
+          )
+          
+          return AuthorizedRequest(
+              accessToken: try .init(
+                accessToken: response.accessToken.accessToken,
+                tokenType: response.tokenType,
+                expiresIn: TimeInterval(response.expiresIn ?? .zero)
+              ),
+              refreshToken: try .init(
+                refreshToken: response.refreshToken.refreshToken
+              ),
+              credentialIdentifiers: response.identifiers,
+              timeStamp: Date().timeIntervalSinceReferenceDate,
+              dPopNonce: response.dPopNonce,
+              grantType: .init(grant: grant)
+            )
+      default:
+        throw ValidationError.error(
+          reason: ".authorizationCode case is required"
+        )
+      }
+  }
+  
+  func authorizeWithAuthorizationCode(
+    grant: Grants,
+    request: AuthorizationCodeRetrieved,
+    state: String,
+    authorizationDetailsInTokenRequest: AuthorizationDetailsInTokenRequest
+  ) async throws -> AuthorizedRequest {
+    try validateState(
+      state: state,
+      request: request
+    )
+    
       switch request.authorizationCode {
       case .authorizationCode(let authorizationCode):
           let credConfigIdsAsAuthDetails: [CredentialConfigurationIdentifier] = switch authorizationDetailsInTokenRequest {
@@ -217,6 +295,29 @@ internal actor AuthorizeIssuance: AuthorizeIssuanceType {
 }
 
 private extension AuthorizeIssuance {
+  
+  private func validateState(
+    preparedRequest: AuthorizationRequested,
+    request: AuthorizationCodeRetrieved
+  ) throws {
+    guard request.state == preparedRequest.state else {
+      throw ValidationError.error(
+        reason: "Invalid state returned by authorization server"
+      )
+    }
+  }
+  
+  private func validateState(
+    state: String,
+    request: AuthorizationCodeRetrieved
+  ) throws {
+    guard request.state == state else {
+      throw ValidationError.error(
+        reason: "Invalid state returned by authorization server"
+      )
+    }
+  }
+  
   func scopesAndCredentialConfigurationIds(credentialOffer: CredentialOffer) throws -> ([Scope], [CredentialConfigurationIdentifier]) {
     var scopes = [Scope]()
     var configurationIdentifiers = [CredentialConfigurationIdentifier]()

@@ -101,6 +101,7 @@ class IssuanceNotificationTest: XCTestCase {
     
       let authorizedRequest = try await issuer.authorizeWithAuthorizationCode(
         request: unAuthorized,
+        preparedRequest: request,
         grant: offer.grants!
       )
       
@@ -225,6 +226,7 @@ class IssuanceNotificationTest: XCTestCase {
     
       let authorizedRequest = try await issuer.authorizeWithAuthorizationCode(
         request: unAuthorized,
+        preparedRequest: request,
         grant: offer.grants!
       )
       

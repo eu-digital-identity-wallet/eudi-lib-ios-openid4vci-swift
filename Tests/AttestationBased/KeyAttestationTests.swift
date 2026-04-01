@@ -71,12 +71,14 @@ class KeyAttestationTests: XCTestCase {
       privateKey: .secKey(data.privateKey)
     )
     
+    let request = TestsConstants.unAuthorizedRequest
+    
     // When
     let authorized = try! await data.issuer.authorizeWithAuthorizationCode(
       request: try await data.issuer.handleAuthorizationCode(
         request: TestsConstants.unAuthorizedRequest,
         authorizationCode: data.issuanceAuthorization
-      ),
+      ), preparedRequest: request,
       grant: data.offer.grants!
     )
 
@@ -118,12 +120,15 @@ class KeyAttestationTests: XCTestCase {
       }
     )
     
+    let request = TestsConstants.unAuthorizedRequest
+    
     // When
     let authorized = try! await data.issuer.authorizeWithAuthorizationCode(
       request: try await data.issuer.handleAuthorizationCode(
         request: TestsConstants.unAuthorizedRequest,
         authorizationCode: data.issuanceAuthorization
       ),
+      preparedRequest: request,
       grant: data.offer.grants!
     )
     

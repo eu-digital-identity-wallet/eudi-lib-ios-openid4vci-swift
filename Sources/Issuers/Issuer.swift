@@ -52,6 +52,7 @@ public protocol IssuerType: Sendable {
   /// - Returns: A result containing either an `AuthorizedRequest` if successful or an `Error` otherwise.
   func authorizeWithAuthorizationCode(
     request: AuthorizationCodeRetrieved,
+    preparedRequest: AuthorizationRequested,
     authorizationDetailsInTokenRequest: AuthorizationDetailsInTokenRequest,
     grant: Grants
   ) async throws -> AuthorizedRequest
@@ -371,12 +372,14 @@ public actor Issuer: IssuerType {
   
   public func authorizeWithAuthorizationCode(
     request: AuthorizationCodeRetrieved,
+    preparedRequest: AuthorizationRequested,
     authorizationDetailsInTokenRequest: AuthorizationDetailsInTokenRequest = .doNotInclude,
     grant: Grants
   ) async throws -> AuthorizedRequest {
     try await authorizeIssuance.authorizeWithAuthorizationCode(
       grant: grant,
       request: request,
+      preparedRequest: preparedRequest,
       authorizationDetailsInTokenRequest: authorizationDetailsInTokenRequest
     )
   }
@@ -390,7 +393,8 @@ public actor Issuer: IssuerType {
               authorizationCode: try .init(authorizationCode: code),
               pkceVerifier: request.pkceVerifier,
               configurationIds: request.configurationIds,
-              dpopNonce: request.dpopNonce
+              dpopNonce: request.dpopNonce,
+              state: request.state
             )
   }
   
@@ -405,7 +409,8 @@ public actor Issuer: IssuerType {
                 authorizationCode: try IssuanceAuthorization(authorizationCode: authorizationCode),
                 pkceVerifier: request.pkceVerifier,
                 configurationIds: request.configurationIds,
-                dpopNonce: request.dpopNonce
+                dpopNonce: request.dpopNonce,
+                state: request.state
               )
       default:
         throw

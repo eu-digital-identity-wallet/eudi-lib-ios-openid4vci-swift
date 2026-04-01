@@ -219,6 +219,7 @@ extension IssuanceEncryptionTest {
     
       guard let authorizedRequest = try? await issuer.authorizeWithAuthorizationCode(
         request: unAuthorized,
+        preparedRequest: parRequested,
         grant: offer.grants!
       ) else {
         XCTAssert(false, "Could not get authorized request")
@@ -278,6 +279,7 @@ extension IssuanceEncryptionTest {
     
       guard let authorizedRequest = try? await issuer.authorizeWithAuthorizationCode(
         request: unAuthorized,
+        preparedRequest: parRequested,
         grant: offer.grants!
       ) else {
         XCTAssert(false, "Could not get authorized request")

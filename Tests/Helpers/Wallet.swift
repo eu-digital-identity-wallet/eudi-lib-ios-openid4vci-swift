@@ -386,6 +386,7 @@ extension Wallet {
       
         let authorizedRequest = try await issuer.authorizeWithAuthorizationCode(
           request: unAuthorized,
+          preparedRequest: parRequested,
           authorizationDetailsInTokenRequest: .doNotInclude,
           grant: offer.grants!
         )

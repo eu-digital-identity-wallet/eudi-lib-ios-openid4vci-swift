@@ -49,13 +49,15 @@ public struct AuthorizationCodeRetrieved: Sendable {
   public let pkceVerifier: PKCEVerifier
   public let configurationIds: [CredentialConfigurationIdentifier]
   public let dpopNonce: Nonce?
+  public let state: String
   
   public init(
     credentials: [CredentialIdentifier],
     authorizationCode: IssuanceAuthorization,
     pkceVerifier: PKCEVerifier,
     configurationIds: [CredentialConfigurationIdentifier],
-    dpopNonce: Nonce?
+    dpopNonce: Nonce?,
+    state: String
   ) throws {
     
     guard case .authorizationCode = authorizationCode else {
@@ -69,5 +71,6 @@ public struct AuthorizationCodeRetrieved: Sendable {
     self.pkceVerifier = pkceVerifier
     self.configurationIds = configurationIds
     self.dpopNonce = dpopNonce
+    self.state = state
   }
 }
