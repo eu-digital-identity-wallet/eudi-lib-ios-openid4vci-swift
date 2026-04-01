@@ -82,7 +82,15 @@ internal actor AuthorizeIssuance: AuthorizeIssuanceType {
     let (scopes, identifiers) = try scopesAndCredentialConfigurationIds(
       credentialOffer: credentialOffer
     )
-    let authorizationServerSupportsPar = credentialOffer.authorizationServerMetadata.authorizationServerSupportsPar && config.usePAR
+    
+    let authorizationServerSupportsPar = credentialOffer.authorizationServerMetadata.authorizationServerSupportsPar && config.requirePAR
+    
+    if config.requirePAR {
+      guard let _ = credentialOffer.authorizationServerMetadata.pushedAuthorizationRequestEndpointURI else {
+        throw ValidationError.parRequired
+      }
+    }
+    
     let state = StateValue().value
     
     if authorizationServerSupportsPar {

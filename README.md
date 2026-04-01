@@ -263,7 +263,7 @@ public struct OpenId4VCIConfig: Sendable {
   public let client: Client
   public let authFlowRedirectionURI: URL
   public let authorizeIssuanceConfig: AuthorizeIssuanceConfig
-  public let usePAR: Bool
+  public let requirePAR: Bool
   public let dPoPConstructor: DPoPConstructorType?
   public let clientAttestationPoPBuilder: ClientAttestationPoPBuilder?
   public let issuerMetadataPolicy: IssuerMetadataPolicy
@@ -276,7 +276,7 @@ public struct OpenId4VCIConfig: Sendable {
 
 - `authFlowRedirectionURI`: It is the `redirect_uri` parameter that will be included in a PAR or simple authorization request.
 - `authorizeIssuanceConfig`: An enum that allows you to favour scopes or authorization details, favour scopes is the default.
-- `usePAR`: Force the usage of PAR if the authorization server supports it.
+- `requirePAR`: Force the usage of PAR if the authorization server supports it. Fail if true and not supported by server
 - `dPoPConstructor`: If dpop is supported this option constructs what is required.
 - `clientAttestationPoPBuilder`: If the authorization supports client attestations, this object constructs what is required.
 - `issuerMetadataPolicy`: Trust between the Wallet and the Signer of the signed metadata advertised by the Credential Issuer is established using this configuration option.

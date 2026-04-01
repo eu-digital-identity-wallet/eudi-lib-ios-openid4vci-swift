@@ -224,6 +224,13 @@ public actor Issuer: IssuerType {
       challenger = nil
     }
     
+    if config.requireDpop {
+      guard let dpopAlgs = authorizationServerMetadata.dpopSigningAlgValuesSupported,
+            !dpopAlgs.isEmpty else {
+        throw ValidationError.dpopRequired
+      }
+    }
+    
     authorizer = try AuthorizationServerClient(
       challenger: challenger,
       parPoster: Poster(session: session),
@@ -231,7 +238,7 @@ public actor Issuer: IssuerType {
       config: config,
       authorizationServerMetadata: authorizationServerMetadata,
       credentialIssuerIdentifier: issuerMetadata.credentialIssuerIdentifier,
-      dpopConstructor: config.useDpopIfSupported ? dpopConstructor : nil
+      dpopConstructor: config.requireDpop ? dpopConstructor : nil
     )
     
     authorizeIssuance = AuthorizeIssuance(
