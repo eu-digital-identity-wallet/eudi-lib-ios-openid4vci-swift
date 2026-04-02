@@ -164,7 +164,7 @@ internal actor AuthorizeIssuance: AuthorizeIssuanceType {
           identifiers: credConfigIdsAsAuthDetails,
           dpopNonce: nil,
           challenge: challenge,
-          retry: true
+          maxRetries: 3
         )
         
           return AuthorizedRequest(
@@ -221,9 +221,9 @@ internal actor AuthorizeIssuance: AuthorizeIssuanceType {
             identifiers: credConfigIdsAsAuthDetails,
             dpopNonce: request.dpopNonce,
             challenge: challenge,
-            retry: true
+            maxRetries: 3
           )
-          
+
           return AuthorizedRequest(
               accessToken: try .init(
                 accessToken: response.accessToken.accessToken,
@@ -277,7 +277,7 @@ internal actor AuthorizeIssuance: AuthorizeIssuanceType {
             identifiers: credConfigIdsAsAuthDetails,
             dpopNonce: request.dpopNonce,
             challenge: challenge,
-            retry: true
+            maxRetries: 3
           )
           
           return AuthorizedRequest(
@@ -390,7 +390,7 @@ private extension AuthorizeIssuance {
         resource: resource,
         dpopNonce: nil,
         challenge: challenge,
-        retry: true
+        maxRetries: 3
       )
 
       return AuthorizationRequested(

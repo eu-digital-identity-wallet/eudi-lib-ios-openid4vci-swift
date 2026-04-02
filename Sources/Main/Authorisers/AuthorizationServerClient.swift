@@ -55,7 +55,7 @@ protocol AuthorizationServerClientType: Sendable {
   ///   - issuerState: Optional issuer-specific state parameter.
   ///   - resource: An optional resource identifier.
   ///   - dpopNonce: An optional nonce for DPoP (Demonstrating Proof-of-Possession).
-  ///   - retry: A flag indicating whether to retry on failure.
+  ///   - maxRetries: Maximum number of retry attempts after nonce-related errors.
   /// - Returns: A result containing a `PKCEVerifier`, an authorization URL, and an optional nonce, or an error if the operation fails.
   /// See [RFC7636](https://www.rfc-editor.org/rfc/rfc7636.html) for more information
   /// See [RFC9126](https://www.rfc-editor.org/rfc/rfc9126) for more information
@@ -67,7 +67,7 @@ protocol AuthorizationServerClientType: Sendable {
     resource: String?,
     dpopNonce: Nonce?,
     challenge: Nonce?,
-    retry: Bool
+    maxRetries: Int
   ) async throws -> (PKCEVerifier, AuthorizationCodeURL, Nonce?)
   
   /// Requests an access token using an authorization code.
@@ -78,7 +78,7 @@ protocol AuthorizationServerClientType: Sendable {
   ///   - identifiers: Identifiers for the credential configurations.
   ///   - dpopNonce: An optional nonce for DPoP.
   ///   - challenge: An optional challenge
-  ///   - retry: A flag indicating whether to retry on failure.
+  ///   - maxRetries: Maximum number of retry attempts after recoverable errors.
   /// - Returns: A result containing the access token, refresh token, authorization details, token type, expiration time, and an optional nonce, or an error if the operation fails.
   func requestAccessTokenAuthFlow(
     authorizationCode: String,
@@ -86,7 +86,7 @@ protocol AuthorizationServerClientType: Sendable {
     identifiers: [CredentialConfigurationIdentifier],
     dpopNonce: Nonce?,
     challenge: Nonce?,
-    retry: Bool
+    maxRetries: Int
   ) async throws -> (
     IssuanceAccessToken,
     IssuanceRefreshToken,
@@ -106,7 +106,7 @@ protocol AuthorizationServerClientType: Sendable {
   ///   - identifiers: Identifiers for the credential configurations.
   ///   - dpopNonce: An optional nonce for DPoP.
   ///   - challenge: An optional challenge
-  ///   - retry: A flag indicating whether to retry on failure.
+  ///   - maxRetries: Maximum number of retry attempts after nonce-related errors.
   /// - Returns: A result containing the access token, refresh token, authorization details, expiration time, and an optional nonce, or an error if the operation fails.
   func requestAccessTokenPreAuthFlow(
     preAuthorizedCode: String,
@@ -116,7 +116,7 @@ protocol AuthorizationServerClientType: Sendable {
     identifiers: [CredentialConfigurationIdentifier],
     dpopNonce: Nonce?,
     challenge: Nonce?,
-    retry: Bool
+    maxRetries: Int
   ) async throws -> (
     IssuanceAccessToken,
     IssuanceRefreshToken,
@@ -131,13 +131,13 @@ protocol AuthorizationServerClientType: Sendable {
   ///   - clientId: The client ID used for authentication.
   ///   - refreshToken: The refresh token issued previously.
   ///   - dpopNonce: An optional nonce for DPoP.
-  ///   - retry: A flag indicating whether to retry on failure.
+  ///   - maxRetries: Maximum number of retry attempts after nonce-related errors.
   /// - Returns: A result containing the new access token, authorization details, token type, expiration time, and an optional nonce, or an error if the operation fails.
   func refreshAccessToken(
     clientId: String,
     refreshToken: IssuanceRefreshToken,
     dpopNonce: Nonce?,
-    retry: Bool
+    maxRetries: Int
   ) async throws -> (
     IssuanceAccessToken,
     AuthorizationDetailsIdentifiers?,
@@ -152,13 +152,13 @@ protocol AuthorizationServerClientType: Sendable {
   ///   - client: The client used for authentication.
   ///   - refreshToken: The refresh token issued previously.
   ///   - dpopNonce: An optional nonce for DPoP.
-  ///   - retry: A flag indicating whether to retry on failure.
+  ///   - maxRetries: Maximum number of retry attempts after nonce-related errors.
   /// - Returns: A result containing the new access token, authorization details, token type, expiration time, and an optional nonce, or an error if the operation fails.
   func refreshAccessToken(
     client: Client,
     refreshToken: IssuanceRefreshToken,
     dpopNonce: Nonce?,
-    retry: Bool
+    maxRetries: Int
   ) async throws -> (
     IssuanceAccessToken,
     AuthorizationDetailsIdentifiers?,
@@ -315,7 +315,7 @@ internal actor AuthorizationServerClient: AuthorizationServerClientType {
     resource: String? = nil,
     dpopNonce: Nonce? = nil,
     challenge: Nonce? = nil,
-    retry: Bool = true
+    maxRetries: Int = 3
   ) async throws -> (PKCEVerifier, AuthorizationCodeURL, Nonce?) {
     
     guard !scopes.isEmpty || !credentialConfigurationIdentifiers.isEmpty else {
@@ -403,33 +403,35 @@ internal actor AuthorizationServerClient: AuthorizationServerClientType {
         )
       }
     } catch PostError.useDpopNonce(let nonce) {
-        if retry {
-            return try await submitPushedAuthorizationRequest(
-                scopes: scopes,
-                credentialConfigurationIdentifiers: credentialConfigurationIdentifiers,
-                state: state,
-                issuerState: issuerState,
-                dpopNonce: nonce,
-                challenge: challenge,
-                retry: false
-            )
-        } else {
-            throw ValidationError.retryFailedAfterDpopNonce
-        }
+      guard maxRetries > 0 else {
+        throw ValidationError.retryFailedAfterDpopNonce
+      }
+
+      return try await submitPushedAuthorizationRequest(
+        scopes: scopes,
+        credentialConfigurationIdentifiers: credentialConfigurationIdentifiers,
+        state: state,
+        issuerState: issuerState,
+        resource: resource,
+        dpopNonce: nonce,
+        challenge: challenge,
+        maxRetries: maxRetries - 1
+      )
     } catch PostError.useAttestationNonce(let challenge) {
-          if retry {
-            return try await submitPushedAuthorizationRequest(
-              scopes: scopes,
-              credentialConfigurationIdentifiers: credentialConfigurationIdentifiers,
-              state: state,
-              issuerState: issuerState,
-              dpopNonce: dpopNonce,
-              challenge: challenge,
-              retry: false
-            )
-          } else {
-              throw ValidationError.retryFailedAfterDpopNonce
-          }
+      guard maxRetries > 0 else {
+        throw ValidationError.retryFailedAfterDpopNonce
+      }
+
+      return try await submitPushedAuthorizationRequest(
+        scopes: scopes,
+        credentialConfigurationIdentifiers: credentialConfigurationIdentifiers,
+        state: state,
+        issuerState: issuerState,
+        resource: resource,
+        dpopNonce: dpopNonce,
+        challenge: challenge,
+        maxRetries: maxRetries - 1
+      )
     }
   }
   
@@ -439,7 +441,7 @@ internal actor AuthorizationServerClient: AuthorizationServerClientType {
     identifiers: [CredentialConfigurationIdentifier],
     dpopNonce: Nonce?,
     challenge: Nonce?,
-    retry: Bool
+    maxRetries: Int = 3
   ) async throws -> (
     IssuanceAccessToken,
     IssuanceRefreshToken,
@@ -505,40 +507,44 @@ internal actor AuthorizationServerClient: AuthorizationServerClientType {
         )
       }
     } catch PostError.useDpopNonce(let nonce) {
-          if retry {
-            return try await requestAccessTokenAuthFlow(
-              authorizationCode: authorizationCode,
-              codeVerifier: codeVerifier,
-              identifiers: identifiers,
-              dpopNonce: nonce,
-              challenge: challenge,
-              retry: false
-            )
-          } else {
-            throw ValidationError.retryFailedAfterDpopNonce
-          }
+      guard maxRetries > 0 else {
+        throw ValidationError.retryFailedAfterDpopNonce
+      }
+
+      return try await requestAccessTokenAuthFlow(
+        authorizationCode: authorizationCode,
+        codeVerifier: codeVerifier,
+        identifiers: identifiers,
+        dpopNonce: nonce,
+        challenge: challenge,
+        maxRetries: maxRetries - 1
+      )
     } catch PostError.useAttestationNonce(let challenge) {
-        if retry {
-            return try await requestAccessTokenAuthFlow(
-                authorizationCode: authorizationCode,
-                codeVerifier: codeVerifier,
-                identifiers: identifiers,
-                dpopNonce: dpopNonce,
-                challenge: challenge,
-                retry: false
-            )
-        } else {
-            throw ValidationError.retryFailedAfterDpopNonce
-        }
-    } catch PostError.networkError {
-        return try await requestAccessTokenAuthFlow(
-            authorizationCode: authorizationCode,
-            codeVerifier: codeVerifier,
-            identifiers: identifiers,
-            dpopNonce: dpopNonce,
-            challenge: challenge,
-            retry: false
-        )
+      guard maxRetries > 0 else {
+        throw ValidationError.retryFailedAfterDpopNonce
+      }
+
+      return try await requestAccessTokenAuthFlow(
+        authorizationCode: authorizationCode,
+        codeVerifier: codeVerifier,
+        identifiers: identifiers,
+        dpopNonce: dpopNonce,
+        challenge: challenge,
+        maxRetries: maxRetries - 1
+      )
+    } catch PostError.networkError(let error) {
+      guard maxRetries > 0 else {
+        throw PostError.networkError(error)
+      }
+
+      return try await requestAccessTokenAuthFlow(
+        authorizationCode: authorizationCode,
+        codeVerifier: codeVerifier,
+        identifiers: identifiers,
+        dpopNonce: dpopNonce,
+        challenge: challenge,
+        maxRetries: maxRetries - 1
+      )
     }
   }
   
@@ -546,7 +552,7 @@ internal actor AuthorizationServerClient: AuthorizationServerClientType {
     clientId: String,
     refreshToken: IssuanceRefreshToken,
     dpopNonce: Nonce?,
-    retry: Bool
+    maxRetries: Int = 3
   ) async throws -> (
     IssuanceAccessToken,
     AuthorizationDetailsIdentifiers?,
@@ -603,16 +609,16 @@ internal actor AuthorizationServerClient: AuthorizationServerClientType {
         )
       }
     } catch PostError.useDpopNonce(let nonce) {
-          if retry {
-            return try await refreshAccessToken(
-              clientId: clientId,
-              refreshToken: refreshToken,
-              dpopNonce: nonce,
-              retry: false
-            )
-          } else {
-            throw ValidationError.retryFailedAfterDpopNonce
-          }
+      guard maxRetries > 0 else {
+        throw ValidationError.retryFailedAfterDpopNonce
+      }
+
+      return try await refreshAccessToken(
+        clientId: clientId,
+        refreshToken: refreshToken,
+        dpopNonce: nonce,
+        maxRetries: maxRetries - 1
+      )
     }
   }
   
@@ -620,7 +626,7 @@ internal actor AuthorizationServerClient: AuthorizationServerClientType {
     client: Client,
     refreshToken: IssuanceRefreshToken,
     dpopNonce: Nonce?,
-    retry: Bool
+    maxRetries: Int = 3
   ) async throws -> (
     IssuanceAccessToken,
     AuthorizationDetailsIdentifiers?,
@@ -679,16 +685,16 @@ internal actor AuthorizationServerClient: AuthorizationServerClientType {
         )
       }
     } catch PostError.useDpopNonce(let nonce) {
-          if retry {
-            return try await refreshAccessToken(
-              client: client,
-              refreshToken: refreshToken,
-              dpopNonce: nonce,
-              retry: false
-            )
-          } else {
-            throw ValidationError.retryFailedAfterDpopNonce
-          }
+      guard maxRetries > 0 else {
+        throw ValidationError.retryFailedAfterDpopNonce
+      }
+
+      return try await refreshAccessToken(
+        client: client,
+        refreshToken: refreshToken,
+        dpopNonce: nonce,
+        maxRetries: maxRetries - 1
+      )
     }
   }
   
@@ -700,7 +706,7 @@ internal actor AuthorizationServerClient: AuthorizationServerClientType {
     identifiers: [CredentialConfigurationIdentifier],
     dpopNonce: Nonce?,
     challenge: Nonce?,
-    retry: Bool
+    maxRetries: Int = 3
   ) async throws -> (
     IssuanceAccessToken,
     IssuanceRefreshToken,
@@ -769,35 +775,35 @@ internal actor AuthorizationServerClient: AuthorizationServerClientType {
           )
         }
       } catch PostError.useDpopNonce(let nonce) {
-            if retry {
-              return try await requestAccessTokenPreAuthFlow(
-                preAuthorizedCode: preAuthorizedCode,
-                txCode: txCode,
-                client: client,
-                transactionCode: transactionCode,
-                identifiers: identifiers,
-                dpopNonce: nonce,
-                challenge: challenge,
-                retry: false
-              )
-            } else {
+            guard maxRetries > 0 else {
               throw ValidationError.retryFailedAfterDpopNonce
             }
+
+            return try await requestAccessTokenPreAuthFlow(
+              preAuthorizedCode: preAuthorizedCode,
+              txCode: txCode,
+              client: client,
+              transactionCode: transactionCode,
+              identifiers: identifiers,
+              dpopNonce: nonce,
+              challenge: challenge,
+              maxRetries: maxRetries - 1
+            )
       } catch PostError.useAttestationNonce(let challenge) {
-            if retry {
-              return try await requestAccessTokenPreAuthFlow(
-                preAuthorizedCode: preAuthorizedCode,
-                txCode: txCode,
-                client: client,
-                transactionCode: transactionCode,
-                identifiers: identifiers,
-                dpopNonce: dpopNonce,
-                challenge: challenge,
-                retry: false
-              )
-            } else {
+            guard maxRetries > 0 else {
               throw ValidationError.retryFailedAfterDpopNonce
             }
+
+            return try await requestAccessTokenPreAuthFlow(
+              preAuthorizedCode: preAuthorizedCode,
+              txCode: txCode,
+              client: client,
+              transactionCode: transactionCode,
+              identifiers: identifiers,
+              dpopNonce: dpopNonce,
+              challenge: challenge,
+              maxRetries: maxRetries - 1
+            )
       }
     }
   
