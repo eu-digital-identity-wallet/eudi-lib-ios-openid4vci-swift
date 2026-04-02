@@ -41,8 +41,8 @@ public struct OpenId4VCIConfig: Sendable {
   /// Configuration specifying how issuance authorization should be handled.
   public let authorizeIssuanceConfig: AuthorizeIssuanceConfig
   
-  /// Whether to use PAR.
-  public let usePAR: Bool
+  /// Whether to require PAR or not.
+  public let requirePAR: Bool
   
   /// An optional builder for client attestation proof-of-possession tokens.
   public let clientAttestationPoPBuilder: ClientAttestationPoPBuilder?
@@ -53,35 +53,35 @@ public struct OpenId4VCIConfig: Sendable {
   /// Client supported compression algorithms
   public let supportedCompressionAlgorithms: [CompressionAlgorithm]?
   
-  /// If dpop is supported then use it, otherwise always don't
-  public let useDpopIfSupported: Bool
+  /// Dpop requirement, if required by wallet and not supported by issuer, halt the issuance process
+  public let requireDpop: Bool
   
   /// Initializes an `OpenId4VCIConfig` instance with the given parameters.
   /// - Parameters:
   ///   - client: The client used for OpenID4VCI operations.
   ///   - authFlowRedirectionURI: The URI to which the authentication flow should redirect.
   ///   - authorizeIssuanceConfig: Specifies how issuance authorization should be handled (default: `.favorScopes`).
-  ///   - usePAR: Whether to use Pushed Authorization Requests (default: `true`).
+  ///   - requirePAR: Whether to require Pushed Authorization Requests (default: `true`).
   ///   - clientAttestationPoPBuilder: An optional client attestation PoP builder (default: `nil`).
   ///   - issuerMetadataPolicy: Policy defining how issuer metadata should be handled (default: `.ignoreSigned`).
-  ///   - useDpopIfSupported: If dpop is supported then use it, otherwise always don't
+  ///   - requireDpop: If dpop is supported then use it, otherwise always don't
   public init(
     client: Client,
     authFlowRedirectionURI: URL,
     authorizeIssuanceConfig: AuthorizeIssuanceConfig = .favorScopes,
-    usePAR: Bool = true,
+    requirePAR: Bool = true,
     clientAttestationPoPBuilder: ClientAttestationPoPBuilder? = nil,
     issuerMetadataPolicy: IssuerMetadataPolicy = .ignoreSigned,
     supportedCompressionAlgorithms: [CompressionAlgorithm]? = nil,
-    useDpopIfSupported: Bool = true
+    requireDpop: Bool = true
   ) {
     self.client = client
     self.authFlowRedirectionURI = authFlowRedirectionURI
     self.authorizeIssuanceConfig = authorizeIssuanceConfig
-    self.usePAR = usePAR
+    self.requirePAR = requirePAR
     self.clientAttestationPoPBuilder = clientAttestationPoPBuilder
     self.issuerMetadataPolicy = issuerMetadataPolicy
     self.supportedCompressionAlgorithms = supportedCompressionAlgorithms
-    self.useDpopIfSupported = useDpopIfSupported
+    self.requireDpop = requireDpop
   }
 }
