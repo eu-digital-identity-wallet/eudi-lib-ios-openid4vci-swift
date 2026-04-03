@@ -48,4 +48,6 @@ public struct Constants {
   public static let CONTENT_TYPE_APPLICATION_JWT = "application/jwt"
   public static let CONTENT_TYPE_APPLICATION_JSON = "application/json"
   public static let SIGNED_METADATA_JWT_TYPE = "openidvci-issuer-metadata+jwt"
+
+  public static let MAX_RETRIES = 3
 }

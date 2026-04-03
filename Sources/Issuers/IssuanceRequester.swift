@@ -103,7 +103,7 @@ public actor IssuanceRequester: IssuanceRequesterType {
     accessToken: IssuanceAccessToken,
     request: SingleCredential,
     dPopNonce: Nonce?,
-    maxRetries: Int = 3,
+    maxRetries: Int = Constants.MAX_RETRIES,
     encryptionSpec: EncryptionSpec?
   ) async throws -> CredentialIssuanceResponse {
     let endpoint = issuerMetadata.credentialEndpoint.url
@@ -244,7 +244,7 @@ public actor IssuanceRequester: IssuanceRequesterType {
     accessToken: IssuanceAccessToken,
     transactionId: TransactionId,
     dPopNonce: Nonce?,
-    maxRetries: Int = 3,
+    maxRetries: Int = Constants.MAX_RETRIES,
     issuanceResponseEncryptionSpec: IssuanceResponseEncryptionSpec?
   ) async throws -> DeferredCredentialIssuanceResponse {
     guard let deferredCredentialEndpoint = issuerMetadata.deferredCredentialEndpoint else {
@@ -327,7 +327,7 @@ public actor IssuanceRequester: IssuanceRequesterType {
     accessToken: IssuanceAccessToken?,
     notification: NotificationObject,
     dPopNonce: Nonce?,
-    maxRetries: Int = 3
+    maxRetries: Int = Constants.MAX_RETRIES
   ) async throws {
       guard let accessToken else {
         throw ValidationError.error(reason: "Missing access token")

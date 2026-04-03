@@ -315,7 +315,7 @@ internal actor AuthorizationServerClient: AuthorizationServerClientType {
     resource: String? = nil,
     dpopNonce: Nonce? = nil,
     challenge: Nonce? = nil,
-    maxRetries: Int = 3
+    maxRetries: Int = Constants.MAX_RETRIES
   ) async throws -> (PKCEVerifier, AuthorizationCodeURL, Nonce?) {
     
     guard !scopes.isEmpty || !credentialConfigurationIdentifiers.isEmpty else {
@@ -441,7 +441,7 @@ internal actor AuthorizationServerClient: AuthorizationServerClientType {
     identifiers: [CredentialConfigurationIdentifier],
     dpopNonce: Nonce?,
     challenge: Nonce?,
-    maxRetries: Int = 3
+    maxRetries: Int = Constants.MAX_RETRIES
   ) async throws -> (
     IssuanceAccessToken,
     IssuanceRefreshToken,
@@ -552,7 +552,7 @@ internal actor AuthorizationServerClient: AuthorizationServerClientType {
     clientId: String,
     refreshToken: IssuanceRefreshToken,
     dpopNonce: Nonce?,
-    maxRetries: Int = 3
+    maxRetries: Int = Constants.MAX_RETRIES
   ) async throws -> (
     IssuanceAccessToken,
     AuthorizationDetailsIdentifiers?,
@@ -626,7 +626,7 @@ internal actor AuthorizationServerClient: AuthorizationServerClientType {
     client: Client,
     refreshToken: IssuanceRefreshToken,
     dpopNonce: Nonce?,
-    maxRetries: Int = 3
+    maxRetries: Int = Constants.MAX_RETRIES
   ) async throws -> (
     IssuanceAccessToken,
     AuthorizationDetailsIdentifiers?,
@@ -706,7 +706,7 @@ internal actor AuthorizationServerClient: AuthorizationServerClientType {
     identifiers: [CredentialConfigurationIdentifier],
     dpopNonce: Nonce?,
     challenge: Nonce?,
-    maxRetries: Int = 3
+    maxRetries: Int = Constants.MAX_RETRIES
   ) async throws -> (
     IssuanceAccessToken,
     IssuanceRefreshToken,
