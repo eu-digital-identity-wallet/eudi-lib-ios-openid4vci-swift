@@ -484,7 +484,7 @@ private extension Issuer {
         accessToken: token,
         request: single,
         dPopNonce: dPopNonce,
-        maxRetries: 3,
+        maxRetries: Constants.MAX_RETRIES,
         encryptionSpec: requestEncryptionSpec
       )
         
@@ -849,7 +849,7 @@ public extension Issuer {
       accessToken: request.accessToken,
       transactionId: transactionId,
       dPopNonce: dPopNonce,
-      maxRetries: 3,
+      maxRetries: Constants.MAX_RETRIES,
       issuanceResponseEncryptionSpec: deferredResponseEncryptionSpec
     )
   }
@@ -876,7 +876,7 @@ public extension Issuer {
           clientId: clientId,
           refreshToken: refreshToken,
           dpopNonce: dPopNonce,
-          maxRetries: 3
+          maxRetries: Constants.MAX_RETRIES
         )
         return authorizedRequest.replacing(
             accessToken: accessToken,
@@ -897,7 +897,7 @@ public extension Issuer {
           client: client,
           refreshToken: refreshToken,
           dpopNonce: dPopNonce,
-          maxRetries: 3
+          maxRetries: Constants.MAX_RETRIES
         )
           return authorizedRequest.replacing(
             accessToken: accessToken,
