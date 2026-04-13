@@ -28,7 +28,7 @@ let PID_SdJwtVC_config_id_deferred = "eu.europa.ec.eudi.pid_vc_sd_jwt_deferred"
 let EHIC_SdJwtVC_config_id_deferred = "urn:eudi:ehic:1:dc+sd-jwt-compact"
 let EHIC_JwsJson_config_id = "urn:eudi:ehic:1:dc+sd-jwt-jws-json"
 
-//let CREDENTIAL_ISSUER_PUBLIC_URL = "https://dev.issuer.eudiw.dev"
+//let CREDENTIAL_ISSUER_PUBLIC_URL = "https://ec.dev.issuer.eudiw.dev"
 //let PID_SdJwtVC_config_id = "eu.europa.ec.eudi.pid_vc_sd_jwt"
 //let PID_MsoMdoc_config_id = "eu.europa.ec.eudi.pid_mdoc"
 //let MDL_config_id = "eu.europa.ec.eudi.mdl_mdoc"

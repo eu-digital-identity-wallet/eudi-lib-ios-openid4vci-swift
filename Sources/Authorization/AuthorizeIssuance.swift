@@ -44,6 +44,8 @@ protocol AuthorizeIssuanceType: Sendable {
   /// Completes the authorization process using an authorization code.
   ///
   /// - Parameters:
+  ///   - grant: Grants used to authorize the request.
+  ///   - request: The request that needs authorization.
   ///   - authorizationCode: The unauthorized request containing the authorization code.
   ///   - authorizationDetailsInTokenRequest: Additional authorization details for the token request.
   /// - Returns: A result containing either an `AuthorizedRequest` if successful or an `Error` otherwise.
@@ -53,7 +55,6 @@ protocol AuthorizeIssuanceType: Sendable {
     authorizationCode: AuthorizationCode,
     authorizationDetailsInTokenRequest: AuthorizationDetailsInTokenRequest
   ) async throws -> AuthorizedRequest
-  
 }
 
 internal actor AuthorizeIssuance: AuthorizeIssuanceType {
@@ -83,7 +84,15 @@ internal actor AuthorizeIssuance: AuthorizeIssuanceType {
     let (scopes, identifiers) = try scopesAndCredentialConfigurationIds(
       credentialOffer: credentialOffer
     )
-    let authorizationServerSupportsPar = credentialOffer.authorizationServerMetadata.authorizationServerSupportsPar && config.usePAR
+    
+    let authorizationServerSupportsPar = credentialOffer.authorizationServerMetadata.authorizationServerSupportsPar && config.requirePAR
+    
+    if config.requirePAR {
+      guard let _ = credentialOffer.authorizationServerMetadata.pushedAuthorizationRequestEndpointURI else {
+        throw ValidationError.parRequired
+      }
+    }
+    
     let state = StateValue().value
     
     if authorizationServerSupportsPar {
