@@ -45,7 +45,7 @@ public final class NotifyIssuer: NotifyIssuerType {
         accessToken: authorizedRequest.accessToken,
         notification: notification,
         dPopNonce: dPopNonce,
-        retry: true
+        maxRetries: Constants.MAX_RETRIES
       )
   }
 }

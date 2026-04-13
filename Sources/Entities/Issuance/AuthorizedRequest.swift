@@ -124,4 +124,21 @@ extension AuthorizedRequest {
       grantType: grantType
     )
   }
+	
+	/// Returns a copy of the current `AuthorizedRequest`, replacing the `accessToken`,  `refreshToken` and `timeStamp`
+	/// - Parameters:
+	///   - newAccessToken: The new `IssuanceAccessToken` to use.
+	///   - newRefreshToken: The new `IssuanceRefreshToken` to use.
+	///   - newTimeStamp: The new `TimeInterval` to use.
+	/// - Returns: A new `AuthorizedRequest` instance with the updated values.
+	func replacing(accessToken newAccessToken: IssuanceAccessToken, refreshToken newRefreshToken: IssuanceRefreshToken?, timeStamp newTimeStamp: TimeInterval) -> AuthorizedRequest {
+	  return .init(
+		accessToken: newAccessToken,
+		refreshToken: newRefreshToken,
+		credentialIdentifiers: credentialIdentifiers,
+		timeStamp: newTimeStamp,
+		dPopNonce: dPopNonce,
+		grantType: grantType
+	  )
+	}
 }

@@ -424,7 +424,7 @@ private extension Issuer {
         accessToken: token,
         request: single,
         dPopNonce: dPopNonce,
-        retry: true,
+        maxRetries: Constants.MAX_RETRIES,
         encryptionSpec: requestEncryptionSpec
       )
         
@@ -789,7 +789,7 @@ public extension Issuer {
       accessToken: request.accessToken,
       transactionId: transactionId,
       dPopNonce: dPopNonce,
-      retry: true,
+      maxRetries: Constants.MAX_RETRIES,
       issuanceResponseEncryptionSpec: deferredResponseEncryptionSpec
     )
   }
@@ -812,11 +812,11 @@ public extension Issuer {
     dPopNonce: Nonce? = nil
   ) async throws -> AuthorizedRequest {
     if let refreshToken = authorizedRequest.refreshToken {
-        let (accessToken, _, _, timeStamp, _) = try await authorizer.refreshAccessToken(
+        let (accessToken, refreshToken, _, _, timeStamp, _) = try await authorizer.refreshAccessToken(
           clientId: clientId,
           refreshToken: refreshToken,
           dpopNonce: dPopNonce,
-          retry: true
+          maxRetries: Constants.MAX_RETRIES
         )
         return authorizedRequest.replacing(
             accessToken: accessToken,
@@ -833,14 +833,15 @@ public extension Issuer {
     dPopNonce: Nonce?
   ) async throws -> AuthorizedRequest {
     if let refreshToken = authorizedRequest.refreshToken {
-        let (accessToken, _, _, timeStamp, _) = try await authorizer.refreshAccessToken(
+        let (accessToken, refreshToken, _, _, timeStamp, _) = try await authorizer.refreshAccessToken(
           client: client,
           refreshToken: refreshToken,
           dpopNonce: dPopNonce,
-          retry: true
+          maxRetries: Constants.MAX_RETRIES
         )
           return authorizedRequest.replacing(
             accessToken: accessToken,
+			refreshToken: refreshToken,
             timeStamp: timeStamp?.asTimeInterval ?? .zero
           )
     }

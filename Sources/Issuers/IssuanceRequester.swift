@@ -34,14 +34,14 @@ public protocol IssuanceRequesterType: Sendable {
   ///   - accessToken: The access token used to authorize the request.
   ///   - request: The credential request object containing issuance details.
   ///   - dPopNonce: An optional nonce for DPoP (Demonstrating Proof-of-Possession).
-  ///   - retry: A flag indicating whether the request should be retried on failure.
+  ///   - maxRetries: Maximum number of retry attempts after nonce-related errors.
   /// - Returns: A `Result` containing either a `CredentialIssuanceResponse` or an `Error`.
   /// - Throws: An error if the issuance request fails.
   func placeIssuanceRequest(
     accessToken: IssuanceAccessToken,
     request: SingleCredential,
     dPopNonce: Nonce?,
-    retry: Bool,
+    maxRetries: Int,
     encryptionSpec: EncryptionSpec?
   ) async throws -> CredentialIssuanceResponse
   
@@ -51,7 +51,7 @@ public protocol IssuanceRequesterType: Sendable {
   ///   - accessToken: The access token used to authorize the request.
   ///   - transactionId: The identifier for the issuance transaction.
   ///   - dPopNonce: An optional nonce for DPoP (Demonstrating Proof-of-Possession).
-  ///   - retry: A flag indicating whether the request should be retried on failure.
+  ///   - maxRetries: Maximum number of retry attempts after nonce-related errors.
   ///   - issuanceResponseEncryptionSpec: Optional encryption specifications for securing the response.
   /// - Returns: A `Result` containing either a `DeferredCredentialIssuanceResponse` or an `Error`.
   /// - Throws: An error if the deferred issuance request fails.
@@ -59,7 +59,7 @@ public protocol IssuanceRequesterType: Sendable {
     accessToken: IssuanceAccessToken,
     transactionId: TransactionId,
     dPopNonce: Nonce?,
-    retry: Bool,
+    maxRetries: Int,
     issuanceResponseEncryptionSpec: IssuanceResponseEncryptionSpec?
   ) async throws -> DeferredCredentialIssuanceResponse
   
@@ -69,14 +69,14 @@ public protocol IssuanceRequesterType: Sendable {
   ///   - accessToken: An optional access token for authorization.
   ///   - notification: The notification object containing relevant details.
   ///   - dPopNonce: An optional nonce for DPoP (Demonstrating Proof-of-Possession).
-  ///   - retry: A flag indicating whether the notification should be retried on failure.
+  ///   - maxRetries: Maximum number of retry attempts after nonce-related errors.
   /// - Returns: A `Result` indicating success (`Void`) or an `Error`.
   /// - Throws: An error if the notification request fails.
   func notifyIssuer(
     accessToken: IssuanceAccessToken?,
     notification: NotificationObject,
     dPopNonce: Nonce?,
-    retry: Bool
+    maxRetries: Int
   ) async throws
 }
 
@@ -103,7 +103,7 @@ public actor IssuanceRequester: IssuanceRequesterType {
     accessToken: IssuanceAccessToken,
     request: SingleCredential,
     dPopNonce: Nonce?,
-    retry: Bool,
+    maxRetries: Int = Constants.MAX_RETRIES,
     encryptionSpec: EncryptionSpec?
   ) async throws -> CredentialIssuanceResponse {
     let endpoint = issuerMetadata.credentialEndpoint.url
@@ -134,17 +134,17 @@ public actor IssuanceRequester: IssuanceRequesterType {
       return try response.body.toSingleIssuanceResponse()
       
     } catch PostError.useDpopNonce(let nonce) {
-      if retry {
-        return try await placeIssuanceRequest(
-          accessToken: accessToken,
-          request: request,
-          dPopNonce: nonce,
-          retry: false,
-          encryptionSpec: encryptionSpec
-        )
-      } else {
+      guard maxRetries > 0 else {
         throw ValidationError.retryFailedAfterDpopNonce
       }
+
+      return try await placeIssuanceRequest(
+        accessToken: accessToken,
+        request: request,
+        dPopNonce: nonce,
+        maxRetries: maxRetries - 1,
+        encryptionSpec: encryptionSpec
+      )
       
     } catch PostError.cannotParse(let string) {
       switch request {
@@ -244,7 +244,7 @@ public actor IssuanceRequester: IssuanceRequesterType {
     accessToken: IssuanceAccessToken,
     transactionId: TransactionId,
     dPopNonce: Nonce?,
-    retry: Bool,
+    maxRetries: Int = Constants.MAX_RETRIES,
     issuanceResponseEncryptionSpec: IssuanceResponseEncryptionSpec?
   ) async throws -> DeferredCredentialIssuanceResponse {
     guard let deferredCredentialEndpoint = issuerMetadata.deferredCredentialEndpoint else {
@@ -278,17 +278,17 @@ public actor IssuanceRequester: IssuanceRequesterType {
       return response.body
       
     } catch PostError.useDpopNonce(let nonce) {
-      if retry {
-        return try await placeDeferredCredentialRequest(
-          accessToken: accessToken,
-          transactionId: transactionId,
-          dPopNonce: nonce,
-          retry: false,
-          issuanceResponseEncryptionSpec: issuanceResponseEncryptionSpec
-        )
-      } else {
+      guard maxRetries > 0 else {
         throw ValidationError.retryFailedAfterDpopNonce
       }
+
+      return try await placeDeferredCredentialRequest(
+        accessToken: accessToken,
+        transactionId: transactionId,
+        dPopNonce: nonce,
+        maxRetries: maxRetries - 1,
+        issuanceResponseEncryptionSpec: issuanceResponseEncryptionSpec
+      )
         
     } catch CredentialIssuanceError.deferredCredentialIssuancePending(let interval) {
           return .issuancePending(
@@ -327,7 +327,7 @@ public actor IssuanceRequester: IssuanceRequesterType {
     accessToken: IssuanceAccessToken?,
     notification: NotificationObject,
     dPopNonce: Nonce?,
-    retry: Bool
+    maxRetries: Int = Constants.MAX_RETRIES
   ) async throws {
       guard let accessToken else {
         throw ValidationError.error(reason: "Missing access token")
@@ -361,16 +361,16 @@ public actor IssuanceRequester: IssuanceRequesterType {
         )
         
       } catch PostError.useDpopNonce(let nonce) {
-        if retry {
-          return try await notifyIssuer(
-            accessToken: accessToken,
-            notification: notification,
-            dPopNonce: nonce,
-            retry: false
-          )
-        } else {
+        guard maxRetries > 0 else {
           throw ValidationError.retryFailedAfterDpopNonce
         }
+
+        return try await notifyIssuer(
+          accessToken: accessToken,
+          notification: notification,
+          dPopNonce: nonce,
+          maxRetries: maxRetries - 1
+        )
       }
   }
 }
