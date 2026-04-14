@@ -23,6 +23,7 @@ public enum AccessTokenRequestResponse: Codable, Sendable {
     tokenType: String?,
     accessToken: String,
     refreshToken: String?,
+    refreshTokenExpiresIn: Int?,
     expiresIn: Int,
     scope: String?,
     authorizationDetails: AuthorizationDetailsIdentifiers?
@@ -36,6 +37,7 @@ public enum AccessTokenRequestResponse: Codable, Sendable {
     case tokenType = "token_type"
     case accessToken = "access_token"
     case refreshToken = "refresh_token"
+    case refreshTokenExpiresIn = "refresh_expires_in"
     case expiresIn = "expires_in"
     case scope
     case error
@@ -51,6 +53,7 @@ public enum AccessTokenRequestResponse: Codable, Sendable {
       
       let tokenType = try? container.decode(String.self, forKey: .tokenType)
       let refeshToken = try? container.decode(String.self, forKey: .refreshToken)
+      let refreshTokenExpiresIn = try? container.decode(Int.self, forKey: .refreshTokenExpiresIn)
       var authorizationDetails: AuthorizationDetailsIdentifiers = [:]
       
       let json = try? container.decode(JSON.self, forKey: .authorizationDetails)
@@ -76,6 +79,7 @@ public enum AccessTokenRequestResponse: Codable, Sendable {
         tokenType: tokenType,
         accessToken: accessToken,
         refreshToken: refeshToken,
+        refreshTokenExpiresIn: refreshTokenExpiresIn,
         expiresIn: expiresIn,
         scope: try? container.decode(String.self, forKey: .scope),
         authorizationDetails: (authorizationDetails.isEmpty ? nil : authorizationDetails)
@@ -101,6 +105,7 @@ public enum AccessTokenRequestResponse: Codable, Sendable {
       tokenType,
       accessToken,
       refreshToken,
+      refreshTokenExpiresIn,
       expiresIn,
       scope,
       _
@@ -108,6 +113,7 @@ public enum AccessTokenRequestResponse: Codable, Sendable {
       try container.encode(tokenType, forKey: .tokenType)
       try container.encode(accessToken, forKey: .accessToken)
       try container.encode(refreshToken, forKey: .refreshToken)
+      try container.encode(refreshTokenExpiresIn, forKey: .refreshTokenExpiresIn)
       try container.encode(expiresIn, forKey: .expiresIn)
       try container.encode(scope, forKey: .scope)
     case let .failure(error, errorDescription):

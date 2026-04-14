@@ -484,7 +484,7 @@ internal actor AuthorizationServerClient: AuthorizationServerClientType {
       )
       
       switch response.body {
-      case .success(let tokenType, let accessToken, let refreshToken, let expiresIn, _, let identifiers):
+      case .success(let tokenType, let accessToken, let refreshToken, let refreshTokenExpiresIn, let expiresIn, _, let identifiers):
         return (
             try .init(
               accessToken: accessToken,
@@ -493,7 +493,8 @@ internal actor AuthorizationServerClient: AuthorizationServerClientType {
               )
             ),
             try .init(
-              refreshToken: refreshToken
+              refreshToken: refreshToken,
+              expiresIn: .init(seconds: refreshTokenExpiresIn)
             ),
             identifiers,
             TokenType(
@@ -586,6 +587,7 @@ internal actor AuthorizationServerClient: AuthorizationServerClientType {
         let tokenType,
         let accessToken,
         let refreshToken,
+        let refreshTokenExpiresIn,
         let expiresIn,
         _,
         let identifiers
@@ -600,7 +602,7 @@ internal actor AuthorizationServerClient: AuthorizationServerClientType {
             ),
 			try .init(
 			  refreshToken: refreshToken,
-			  expiresIn: nil
+        expiresIn: TimeInterval(refreshTokenExpiresIn ?? .zero)
 			),
             identifiers,
             TokenType(
@@ -667,6 +669,7 @@ internal actor AuthorizationServerClient: AuthorizationServerClientType {
         let tokenType,
         let accessToken,
         let refreshToken,
+        let refreshTokenExpiresIn,
         let expiresIn,
         _,
         let identifiers
@@ -681,7 +684,7 @@ internal actor AuthorizationServerClient: AuthorizationServerClientType {
             ),
 			try IssuanceRefreshToken(
 				refreshToken: refreshToken,
-			  expiresIn: nil
+        expiresIn: .init(seconds: refreshTokenExpiresIn)
 			),
             identifiers,
             TokenType(
@@ -762,6 +765,7 @@ internal actor AuthorizationServerClient: AuthorizationServerClientType {
           let tokenType,
           let accessToken,
           let refreshToken,
+          let refreshTokenExpiresIn,
           let expiresIn,
           _,
           let identifiers
@@ -774,7 +778,8 @@ internal actor AuthorizationServerClient: AuthorizationServerClientType {
                 )
               ),
               try .init(
-                refreshToken: refreshToken
+                refreshToken: refreshToken,
+                expiresIn: .init(seconds: refreshTokenExpiresIn)
               ),
               identifiers,
               expiresIn,
