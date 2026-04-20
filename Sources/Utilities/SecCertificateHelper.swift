@@ -62,7 +62,7 @@ public struct SecCertificateHelper: Sendable {
   }
   
   /// Extracts the public key (`SecKey`) from a `SecCertificate`
-  public func extractPublicKey(certificate: SecCertificate) -> SecKey? {
+  internal func extractPublicKey(certificate: SecCertificate) -> SecKey? {
     var trust: SecTrust?
     let policy = SecPolicyCreateBasicX509()
     
@@ -84,87 +84,5 @@ public struct SecCertificateHelper: Sendable {
     }
     
     return publicKey
-  }
-  
-  public func extractPublicKeyAlgorithm(certificate: SecCertificate) -> String? {
-    guard let publicKey = extractPublicKey(certificate: certificate) else {
-      return nil
-    }
-    
-    // Get key attributes
-    guard let attributes = SecKeyCopyAttributes(publicKey) as? [String: Any] else {
-      return nil
-    }
-    
-    // Ensure we get a valid key type
-    guard let keyType = attributes[kSecAttrKeyType as String] as? String else {
-      return nil
-    }
-    
-    // Match against known key types
-    switch keyType {
-    case kSecAttrKeyTypeRSA as CFString:
-      return "RSA"
-    case kSecAttrKeyTypeECSECPrimeRandom as CFString, kSecAttrKeyTypeEC as CFString:
-      return "Elliptic Curve (EC)"
-    default:
-      return "Unknown Algorithm (\(keyType))"
-    }
-  }
-  
-  /// Creates a `SecCertificate` from a PEM-encoded string
-  public static func createCertificate(fromPEM pemString: String) -> SecCertificateContainer? {
-    guard let data = Data(base64Encoded: pemString
-      .replacingOccurrences(of: "-----BEGIN CERTIFICATE-----", with: "")
-      .replacingOccurrences(of: "-----END CERTIFICATE-----", with: "")
-      .replacingOccurrences(of: "\n", with: "")) else {
-      return nil
-    }
-    return .init(
-      certificate: SecCertificateCreateWithData(nil, data as CFData)
-    )
-  }
-  
-  /// Validates a certificate chain using a given set of certificates
-  public static func validateCertificateChain(certificates: [SecCertificateContainer]) -> Bool {
-    var trust: SecTrust?
-    let policy = SecPolicyCreateBasicX509()
-    let result = SecTrustCreateWithCertificates(
-      certificates.map { $0.certificate } as CFArray,
-      policy,
-      &trust
-    )
-    
-    guard
-      result == errSecSuccess,
-      let trust = trust,
-      let root = certificates.first
-    else {
-      return false
-    }
-    
-    // Perform the certificate validation
-    var trustResult: SecTrustResultType = .invalid
-    let rootArray = [root] as CFArray
-    SecTrustSetAnchorCertificates(trust, rootArray)
-    _ = SecTrustEvaluate(trust, &trustResult)
-    
-    var error: CFError?
-    SecTrustEvaluateWithError(trust, &error)
-    
-    // Check the result of the trust evaluation
-    switch trustResult {
-    case .unspecified, .proceed:
-      return true
-    case .recoverableTrustFailure:
-      if let trustProperties = SecTrustCopyProperties(trust) as? [[String: Any]] {
-        for property in trustProperties {
-          print("Property: \(property)")
-        }
-      }
-      return true
-    default:
-      return false
-    }
   }
 }
