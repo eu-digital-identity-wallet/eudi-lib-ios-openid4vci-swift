@@ -51,6 +51,7 @@ public protocol IssuerType: Sendable {
   ///   - authorizationDetailsInTokenRequest: Additional authorization details for the token request.
   /// - Returns: A result containing either an `AuthorizedRequest` if successful or an `Error` otherwise.
   func authorizeWithAuthorizationCode(
+    serverState: String,
     request: AuthorizationRequested,
     authorizationCode: AuthorizationCode,
     authorizationDetailsInTokenRequest: AuthorizationDetailsInTokenRequest,
@@ -354,12 +355,18 @@ public actor Issuer: IssuerType {
   }
   
   public func authorizeWithAuthorizationCode(
+    serverState: String,
     request: AuthorizationRequested,
     authorizationCode: AuthorizationCode,
     authorizationDetailsInTokenRequest: AuthorizationDetailsInTokenRequest = .doNotInclude,
     grant: Grants
   ) async throws -> AuthorizedRequest {
-    try await authorizeIssuance.authorizeWithAuthorizationCode(
+    
+    if serverState != request.state {
+      throw ValidationError.stateMismatch(serverState, request.state)
+    }
+    
+    return try await authorizeIssuance.authorizeWithAuthorizationCode(
       grant: grant,
       request: request,
       authorizationCode: authorizationCode,

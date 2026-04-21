@@ -27,6 +27,7 @@ public enum ValidationError: Error, LocalizedError {
   case retryFailedAfterUseAttestationNonce
   case dpopRequired
   case parRequired
+  case stateMismatch(String, String)
   
   public var errorDescription: String? {
     switch self {
@@ -52,6 +53,8 @@ public enum ValidationError: Error, LocalizedError {
       return "dpopRequired"
     case .parRequired:
       return "parRequired"
+    case .stateMismatch(let l, let r):
+      return "stateMismatch: \(l) != \(r)"
     }
   }
 }

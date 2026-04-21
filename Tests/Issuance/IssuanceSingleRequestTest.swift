@@ -85,6 +85,7 @@ class IssuanceSingleRequestTest: XCTestCase {
     
     do {
       let authorizedRequest = try await issuer.authorizeWithAuthorizationCode(
+        serverState: TestsConstants.unAuthorizedRequest.state,
         request: TestsConstants.unAuthorizedRequest,
         authorizationCode: try AuthorizationCode(value: "MZqG9bsQ8UALhsGNlY39Yw=="),
         grant: offer.grants!
@@ -301,6 +302,7 @@ class IssuanceSingleRequestTest: XCTestCase {
     
     do {
       let authorizedRequest = try await issuer.authorizeWithAuthorizationCode(
+        serverState: TestsConstants.unAuthorizedRequest.state,
         request: TestsConstants.unAuthorizedRequest,
         authorizationCode: try AuthorizationCode(value: "MZqG9bsQ8UALhsGNlY39Yw=="),
         grant: offer.grants!

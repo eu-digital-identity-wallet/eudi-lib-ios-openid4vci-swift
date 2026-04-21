@@ -365,7 +365,7 @@ extension Wallet {
     )
       print("--> [AUTHORIZATION] Placed PAR. Get authorization code URL is: \(parRequested.authorizationCodeURL)")
       
-      let authorizationCodeString = try await loginUserAndGetAuthCode(
+      let (authorizationCodeString, server) = try await loginUserAndGetAuthCode(
         getAuthorizationCodeUrl: parRequested.authorizationCodeURL.url,
         actingUser: actingUser
       )
@@ -378,6 +378,7 @@ extension Wallet {
       print("--> [AUTHORIZATION] Authorization code used: \(authorizationCode.value)")
       
         let authorizedRequest = try await issuer.authorizeWithAuthorizationCode(
+          serverState: parRequested.state,
           request: parRequested,
           authorizationCode: authorizationCode,
           authorizationDetailsInTokenRequest: .doNotInclude,
@@ -483,7 +484,7 @@ extension Wallet {
   private func loginUserAndGetAuthCode(
     getAuthorizationCodeUrl: URL,
     actingUser: ActingUser
-  ) async throws -> String {
+  ) async throws -> (String, String) {
     let helper = WebpageHelper(Self.walletSession)
     return try await helper.submit(
       formUrl: getAuthorizationCodeUrl,

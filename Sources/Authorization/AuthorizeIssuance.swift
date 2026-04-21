@@ -181,42 +181,42 @@ internal actor AuthorizeIssuance: AuthorizeIssuanceType {
     authorizationCode: AuthorizationCode,
     authorizationDetailsInTokenRequest: AuthorizationDetailsInTokenRequest
   ) async throws -> AuthorizedRequest {
-          let credConfigIdsAsAuthDetails: [CredentialConfigurationIdentifier] = switch authorizationDetailsInTokenRequest {
-          case .doNotInclude: []
-          case .include(let filter): request.configurationIds.filter(filter)
-          }
-          
-          let challenge = try? await challenger?.getChallenge()
-          let response: (
-            accessToken: IssuanceAccessToken,
-            refreshToken: IssuanceRefreshToken,
-            identifiers: AuthorizationDetailsIdentifiers?,
-            tokenType: TokenType?,
-            expiresIn: Int?,
-            dPopNonce: Nonce?
-          ) = try await authorizer.requestAccessTokenAuthFlow(
-            authorizationCode: authorizationCode,
-            codeVerifier: request.pkceVerifier.codeVerifier,
-            identifiers: credConfigIdsAsAuthDetails,
-            dpopNonce: request.dpopNonce,
-            challenge: challenge,
-            maxRetries: Constants.MAX_RETRIES
-          )
-          
-          return AuthorizedRequest(
-              accessToken: try .init(
-                accessToken: response.accessToken.accessToken,
-                tokenType: response.tokenType,
-                expiresIn: TimeInterval(response.expiresIn ?? .zero)
-              ),
-              refreshToken: try .init(
-                refreshToken: response.refreshToken.refreshToken
-              ),
-              credentialIdentifiers: response.identifiers,
-              timeStamp: Date().timeIntervalSinceReferenceDate,
-              dPopNonce: response.dPopNonce,
-              grantType: .init(grant: grant)
-            )
+    let credConfigIdsAsAuthDetails: [CredentialConfigurationIdentifier] = switch authorizationDetailsInTokenRequest {
+    case .doNotInclude: []
+    case .include(let filter): request.configurationIds.filter(filter)
+    }
+    
+    let challenge = try? await challenger?.getChallenge()
+    let response: (
+      accessToken: IssuanceAccessToken,
+      refreshToken: IssuanceRefreshToken,
+      identifiers: AuthorizationDetailsIdentifiers?,
+      tokenType: TokenType?,
+      expiresIn: Int?,
+      dPopNonce: Nonce?
+    ) = try await authorizer.requestAccessTokenAuthFlow(
+      authorizationCode: authorizationCode,
+      codeVerifier: request.pkceVerifier.codeVerifier,
+      identifiers: credConfigIdsAsAuthDetails,
+      dpopNonce: request.dpopNonce,
+      challenge: challenge,
+      maxRetries: Constants.MAX_RETRIES
+    )
+    
+    return AuthorizedRequest(
+      accessToken: try .init(
+        accessToken: response.accessToken.accessToken,
+        tokenType: response.tokenType,
+        expiresIn: TimeInterval(response.expiresIn ?? .zero)
+      ),
+      refreshToken: try .init(
+        refreshToken: response.refreshToken.refreshToken
+      ),
+      credentialIdentifiers: response.identifiers,
+      timeStamp: Date().timeIntervalSinceReferenceDate,
+      dPopNonce: response.dPopNonce,
+      grantType: .init(grant: grant)
+    )
   }
 }
 

@@ -210,6 +210,7 @@ extension IssuanceEncryptionTest {
     }
     
       guard let authorizedRequest = try? await issuer.authorizeWithAuthorizationCode(
+        serverState: parRequested.state,
         request: parRequested,
         authorizationCode: AuthorizationCode(value: UUID().uuidString),
         grant: offer.grants!
@@ -262,6 +263,7 @@ extension IssuanceEncryptionTest {
     }
     
       guard let authorizedRequest = try? await issuer.authorizeWithAuthorizationCode(
+        serverState: parRequested.state,
         request: parRequested,
         authorizationCode: AuthorizationCode(value: UUID().uuidString),
         grant: offer.grants!

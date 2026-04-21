@@ -73,6 +73,7 @@ class KeyAttestationTests: XCTestCase {
     
     // When
     let authorized = try! await data.issuer.authorizeWithAuthorizationCode(
+      serverState: TestsConstants.unAuthorizedRequest.state,
       request: TestsConstants.unAuthorizedRequest,
       authorizationCode: data.authorizationCode,
       grant: data.offer.grants!
@@ -118,6 +119,7 @@ class KeyAttestationTests: XCTestCase {
     
     // When
     let authorized = try! await data.issuer.authorizeWithAuthorizationCode(
+      serverState: TestsConstants.unAuthorizedRequest.state,
       request: TestsConstants.unAuthorizedRequest,
       authorizationCode: data.authorizationCode,
       grant: data.offer.grants!

@@ -30,7 +30,7 @@ class WebpageHelper {
     formUrl: URL,
     username: String,
     password: String
-  ) async throws -> String {
+  ) async throws -> (String, String) {
     let htmlString = try await downloadWebPage(url: formUrl)
     let actionUrl = try extractAction(from: htmlString)
        
@@ -65,7 +65,7 @@ class WebpageHelper {
     username: String,
     password: String,
     actionURL: URL
-  ) async throws -> String {
+  ) async throws -> (String, String) {
     var request = URLRequest(url: actionURL)
     request.httpMethod = "POST"
     
@@ -81,10 +81,17 @@ class WebpageHelper {
     
     let redirectUrl = httpResponse.url
     
-    return try extractValue(
+    let code = try extractValue(
       url: redirectUrl,
       forKey: "code"
     )
+    
+    let state = try extractValue(
+      url: redirectUrl,
+      forKey: "state"
+    )
+    
+    return (code, state)
   }
   
   private func extractValue(
