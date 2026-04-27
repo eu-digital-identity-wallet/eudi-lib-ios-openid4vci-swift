@@ -198,27 +198,32 @@ public struct Claim: Codable, Sendable {
   public let mandatory: Bool?
   public let display: [Display]?
   public let path: ClaimPath
+  public let valueType: String?
   
   enum CodingKeys: String, CodingKey {
     case mandatory
     case display
     case path
+    case valueType = "value_type"
   }
   
   public init() {
     self.mandatory = nil
     self.display = nil
     self.path = .init([])
+    self.valueType = nil
   }
   
   public init(
     mandatory: Bool?,
     display: [Display]?,
-    path: ClaimPath = .init([])
+    path: ClaimPath = .init([]),
+    valueType: String? = nil
   ) {
     self.mandatory = mandatory
     self.display = display
     self.path = path
+    self.valueType = valueType
   }
   
   init(json: JSON) throws {
@@ -233,6 +238,7 @@ public struct Claim: Codable, Sendable {
     }
     
     self.path = try ClaimPath(json: json["path"])
+    self.valueType = json["value_type"].string
   }
 }
 
