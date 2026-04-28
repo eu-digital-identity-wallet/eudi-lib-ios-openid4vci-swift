@@ -484,6 +484,13 @@ private extension Issuer {
       throw ValidationError.error(reason: "Invalid Supported credential for requestSingle")
     }
     
+    for bindingKey in bindingKeys {
+      try config.proofTypesPolicy.validate(
+        credentialConfiguration: supportedCredential,
+        bindingKey: bindingKey
+      )
+    }
+
     let proofs = try await obtainProofs(
       authorizedRequest: authorizedRequest,
       batchCredentialIssuance: issuerMetadata.batchCredentialIssuance,
@@ -519,6 +526,13 @@ private extension Issuer {
     guard let supportedCredential = issuerMetadata
       .credentialsSupported[credentialConfigurationIdentifier] else {
       throw ValidationError.error(reason: "Invalid Supported credential for requestSingle")
+    }
+    
+    for bindingKey in bindingKeys {
+      try config.proofTypesPolicy.validate(
+        credentialConfiguration: supportedCredential,
+        bindingKey: bindingKey
+      )
     }
     
     let proofs = try await obtainProofs(

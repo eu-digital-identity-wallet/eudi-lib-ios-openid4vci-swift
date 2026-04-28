@@ -52,6 +52,7 @@ In particular, the library focuses on the wallet's role in the protocol to:
 | `attestation` proof type                                                                        | ✅                                                                                                                  |
 | `key_attestation` to the JWT Proof (JOSE header)                                                | ✅                                                                                                                  |
 | Wallet attestation                                                                              | ✅                                                                                                                  |
+| Proof Types Policy                                   | ✅                                                                                                                  |
 
 
 ## Disclaimer
@@ -288,6 +289,7 @@ public struct OpenId4VCIConfig: Sendable {
   public let dPoPConstructor: DPoPConstructorType?
   public let clientAttestationPoPBuilder: ClientAttestationPoPBuilder?
   public let issuerMetadataPolicy: IssuerMetadataPolicy
+  public let proofTypesPolicy: ProofTypesPolicy
 }
 ```
 
@@ -301,6 +303,27 @@ public struct OpenId4VCIConfig: Sendable {
 - `dPoPConstructor`: If dpop is supported this option constructs what is required.
 - `clientAttestationPoPBuilder`: If the authorization supports client attestations, this object constructs what is required.
 - `issuerMetadataPolicy`: Trust between the Wallet and the Signer of the signed metadata advertised by the Credential Issuer is established using this configuration option.
+- `proofTypesPolicy`: Policy defining which proof types the wallet supports. See [Proof Types Policy Configuration](#proof-types-policy-configuration) for details.
+
+### Proof Types Policy Configuration
+
+The library supports configuring which proof types your wallet will accept for credential issuance.
+
+#### Policy Options
+
+**1. Accept All (Default - Backward Compatible)**
+Accepts any proof type including simple JWT proofs without key attestation. Use for testing or legacy compatibility.
+
+**2. Device Bound (HAIP Compliant - Recommended for Production)**
+Enforces HAIP v1 / ETSI TS 119 472-3 compliance:
+- Accepts JWT proofs WITH key attestation
+- Accepts attestation proofs
+- Rejects simple JWT proofs without key attestation
+- Ensures device-bound credentials are properly secured with hardware-backed keys
+
+**3. Flexible Policy**
+Allows custom configuration supporting both device-bound and non-device-bound credentials.
+
 
 ## Features supported
 
@@ -369,10 +392,6 @@ can be requested using `authorization_details` or `scope` parameter when using a
 Though for `authorization_details` we don't support the `format` attribute and its specializations per format.
 Only `credential_configuration_id` attribute is supported.
 
-### Key attestations
-
-Current version of the library does not support [key attestations](https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0-15.html#appendix-D) 
-neither as a [proof type](https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0-15.html#section-8.2.1.3) nor as a `key_attestation` header in JWT proofs.
 
 ## How to contribute
 

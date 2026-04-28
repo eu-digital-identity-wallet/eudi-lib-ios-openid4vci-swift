@@ -56,6 +56,13 @@ public struct OpenId4VCIConfig: Sendable {
   /// Dpop requirement, if required by wallet and not supported by issuer, halt the issuance process
   public let requireDpop: Bool
   
+  /// Policy defining which proof types the wallet supports.
+  /// Wallets should reject credentials that require plain JWT proofs without key attestation
+  /// for device-bound attestations.
+  ///
+  /// Default is `.acceptAll` for backward compatibility.
+  public let proofTypesPolicy: ProofTypesPolicy
+  
   /// Initializes an `OpenId4VCIConfig` instance with the given parameters.
   /// - Parameters:
   ///   - client: The client used for OpenID4VCI operations.
@@ -65,6 +72,7 @@ public struct OpenId4VCIConfig: Sendable {
   ///   - clientAttestationPoPBuilder: An optional client attestation PoP builder (default: `nil`).
   ///   - issuerMetadataPolicy: Policy defining how issuer metadata should be handled (default: `.ignoreSigned`).
   ///   - requireDpop: If dpop is supported then use it, otherwise always don't
+  ///   - proofTypesPolicy: Policy defining which proof types the wallet supports (default: `.acceptAll`).
   public init(
     client: Client,
     authFlowRedirectionURI: URL,
@@ -73,7 +81,8 @@ public struct OpenId4VCIConfig: Sendable {
     clientAttestationPoPBuilder: ClientAttestationPoPBuilder? = nil,
     issuerMetadataPolicy: IssuerMetadataPolicy = .ignoreSigned,
     supportedCompressionAlgorithms: [CompressionAlgorithm]? = nil,
-    requireDpop: Bool = true
+    requireDpop: Bool = true,
+    proofTypesPolicy: ProofTypesPolicy = .acceptAll
   ) {
     self.client = client
     self.authFlowRedirectionURI = authFlowRedirectionURI
@@ -83,5 +92,6 @@ public struct OpenId4VCIConfig: Sendable {
     self.issuerMetadataPolicy = issuerMetadataPolicy
     self.supportedCompressionAlgorithms = supportedCompressionAlgorithms
     self.requireDpop = requireDpop
+    self.proofTypesPolicy = proofTypesPolicy
   }
 }

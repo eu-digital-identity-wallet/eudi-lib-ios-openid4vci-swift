@@ -48,6 +48,12 @@ public enum CredentialIssuanceError: Error, LocalizedError {
   case proofTypeKeyAttestationRequired
   case combinationOfBindingKeys
   
+  case proofTypesNotSupportedByCredentialConfiguration
+  case proofTypeNotSupportedByWalletPolicy
+  case proofTypeJwtWithoutKeyAttestationNotAllowedByPolicy
+  case bindingKeyNotAttestationCapable
+  case noMatchingAlgorithmForProofType
+  
   public var errorDescription: String? {
     switch self {
     case .pushedAuthorizationRequestFailed(_, let errorDescription),
@@ -109,6 +115,16 @@ public enum CredentialIssuanceError: Error, LocalizedError {
       return "Proof type key attestation required."
     case .combinationOfBindingKeys:
       return "Combination of binding keys"
+    case .proofTypesNotSupportedByCredentialConfiguration:
+      return "Credential configuration does not support proof types required by wallet policy."
+    case .proofTypeNotSupportedByWalletPolicy:
+      return "The credential configuration requires a proof type that is not supported by the wallet's policy."
+    case .proofTypeJwtWithoutKeyAttestationNotAllowedByPolicy:
+      return "The credential configuration requires JWT proof without key attestation, which is not allowed by the wallet's policy."
+    case .bindingKeyNotAttestationCapable:
+      return "The binding key is not attestation-capable but the credential configuration or wallet policy requires key attestation."
+    case .noMatchingAlgorithmForProofType:
+      return "No matching cryptographic algorithm found between wallet policy and credential configuration for the required proof type."
     }
   }
 }
