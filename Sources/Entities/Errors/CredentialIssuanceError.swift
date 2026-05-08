@@ -37,7 +37,7 @@ public enum CredentialIssuanceError: Error, LocalizedError {
   case requestEncryptionRequiredByIssuer
   
   case invalidToken
-  case issuanceRequestFailed(error: String, errorDescription: String?)
+  case requestFailed(code: Int, error: String, errorDescription: String?)
   case invalidTransactionId
   case unsupportedCredentialType
   case unsupportedCredentialFormat
@@ -52,9 +52,10 @@ public enum CredentialIssuanceError: Error, LocalizedError {
     switch self {
     case .pushedAuthorizationRequestFailed(_, let errorDescription),
         .accessTokenRequestFailed(_, let errorDescription),
-        .issuanceRequestFailed(_, let errorDescription),
         .invalidProof(let errorDescription):
       return errorDescription
+    case .requestFailed(let code, let error, let errorDescription):
+      return "Issuance request failed with code: \(code). Error: \(error). \(errorDescription ?? "N/A")"
     case .responseUnparsable(let details):
       return "Response is unparsable. Details: \(details)"
     case .invalidIssuanceRequest(let details):
