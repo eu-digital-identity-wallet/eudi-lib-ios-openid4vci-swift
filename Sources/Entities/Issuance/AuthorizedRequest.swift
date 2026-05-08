@@ -95,7 +95,7 @@ public struct AuthorizedRequest: Sendable {
   }
   
   public func isAccessTokenExpired(
-    _ from: TimeInterval = Date().timeIntervalSince1970
+    _ from: TimeInterval = Date().timeIntervalSinceReferenceDate
   ) -> Bool {
     return accessToken.isExpired(issued: timeStamp, at: from)
   }
