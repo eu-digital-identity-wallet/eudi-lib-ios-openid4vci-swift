@@ -31,7 +31,7 @@ public extension CanExpire {
     }
     
     let expiration = issued + expiresIn
-    return expiration >= at
+    return expiration < at
   }
 }
 
