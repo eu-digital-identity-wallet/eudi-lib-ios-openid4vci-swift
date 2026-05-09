@@ -572,7 +572,18 @@ private extension Issuer {
       case 1:
         return (proofs, cNonce?.dPoPNonce)
       default:
-        if let batchSize = batchCredentialIssuance?.batchSize,
+        // Determine effective batch size: reuse policy > batch_credential_issuance
+        let selectedPolicy = try? CredentialReusePolicyValidator.selectMatchingPolicy(
+          issuerPolicy: supportedCredential.credentialReusePolicy,
+          walletSupported: config.supportedCredentialReusePolicies
+        )
+
+        let effectiveBatchSize = CredentialReusePolicyValidator.determineBatchSize(
+          selectedPolicy: selectedPolicy,
+          issuerBatchSize: batchCredentialIssuance?.batchSize
+        )
+
+        if let batchSize = effectiveBatchSize,
            proofs.count > batchSize {
           throw ValidationError.issuerBatchSizeLimitExceeded(batchSize)
         }

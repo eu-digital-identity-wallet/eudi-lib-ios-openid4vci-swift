@@ -181,7 +181,8 @@ public extension SdJwtVcFormat {
     public let proofTypesSupported: [String: ProofTypeSupportedMeta]?
     public let credentialMetadata: ConfigurationCredentialMetadata?
     public let credentialDefinition: CredentialDefinitionTO
-    
+    public let credentialReusePolicy: CredentialReusePolicy?
+
     enum CodingKeys: String, CodingKey {
       case format
       case scope
@@ -191,6 +192,7 @@ public extension SdJwtVcFormat {
       case proofTypesSupported = "proof_types_supported"
       case credentialMetadata = "credential_metadata"
       case credentialDefinition = "credential_definition"
+      case credentialReusePolicy = "credential_reuse_policy"
     }
     
     public init(
@@ -201,7 +203,8 @@ public extension SdJwtVcFormat {
       credentialSigningAlgValuesSupported: [String]? = nil,
       proofTypesSupported: [String: ProofTypeSupportedMeta]? = nil,
       credentialMetadata: ConfigurationCredentialMetadata? = nil,
-      credentialDefinition: CredentialDefinitionTO
+      credentialDefinition: CredentialDefinitionTO,
+      credentialReusePolicy: CredentialReusePolicy? = nil
     ) {
       self.format = format
       self.scope = scope
@@ -211,6 +214,7 @@ public extension SdJwtVcFormat {
       self.proofTypesSupported = proofTypesSupported
       self.credentialMetadata = credentialMetadata
       self.credentialDefinition = credentialDefinition
+      self.credentialReusePolicy = credentialReusePolicy
     }
     
     func toDomain() throws -> SdJwtVcFormat.CredentialConfiguration {
@@ -222,13 +226,14 @@ public extension SdJwtVcFormat {
       let credentialDefinition = self.credentialDefinition.toDomain()
       
       return .init(
-        scope: scope, 
+        scope: scope,
         vct: vct,
         cryptographicBindingMethodsSupported: bindingMethods,
         credentialSigningAlgValuesSupported: credentialSigningAlgValuesSupported ?? [],
         proofTypesSupported: self.proofTypesSupported,
         credentialMetadata: credentialMetadata,
-        credentialDefinition: credentialDefinition
+        credentialDefinition: credentialDefinition,
+        credentialReusePolicy: credentialReusePolicy
       )
     }
   }
@@ -241,7 +246,8 @@ public extension SdJwtVcFormat {
     public let proofTypesSupported: [String: ProofTypeSupportedMeta]?
     public let credentialMetadata: ConfigurationCredentialMetadata?
     public let credentialDefinition: CredentialDefinition
-    
+    public let credentialReusePolicy: CredentialReusePolicy?
+
     enum CodingKeys: String, CodingKey {
       case scope
       case vct
@@ -250,6 +256,7 @@ public extension SdJwtVcFormat {
       case proofTypesSupported = "proof_types_supported"
       case credentialMetadata = "credential_metadata"
       case credentialDefinition = "credential_definition"
+      case credentialReusePolicy = "credential_reuse_policy"
     }
     
     public init(
@@ -259,7 +266,8 @@ public extension SdJwtVcFormat {
       credentialSigningAlgValuesSupported: [String],
       proofTypesSupported: [String: ProofTypeSupportedMeta]?,
       credentialMetadata: ConfigurationCredentialMetadata?,
-      credentialDefinition: CredentialDefinition
+      credentialDefinition: CredentialDefinition,
+      credentialReusePolicy: CredentialReusePolicy? = nil
     ) {
       self.scope = scope
       self.vct = vct
@@ -268,6 +276,7 @@ public extension SdJwtVcFormat {
       self.proofTypesSupported = proofTypesSupported
       self.credentialMetadata = credentialMetadata
       self.credentialDefinition = credentialDefinition
+      self.credentialReusePolicy = credentialReusePolicy
     }
     
     public init(from decoder: Decoder) throws {
@@ -282,6 +291,7 @@ public extension SdJwtVcFormat {
       
       credentialMetadata = try container.decode(ConfigurationCredentialMetadata.self, forKey: .credentialMetadata)
       credentialDefinition = try container.decode(CredentialDefinition.self, forKey: .credentialDefinition)
+      credentialReusePolicy = try? container.decode(CredentialReusePolicy.self, forKey: .credentialReusePolicy)
     }
     
     public func encode(to encoder: Encoder) throws {
@@ -292,6 +302,7 @@ public extension SdJwtVcFormat {
       try container.encode(proofTypesSupported, forKey: .proofTypesSupported)
       try container.encode(credentialMetadata, forKey: .credentialMetadata)
       try container.encode(credentialDefinition, forKey: .credentialDefinition)
+      try container.encodeIfPresent(credentialReusePolicy, forKey: .credentialReusePolicy)
     }
     
     init(json: JSON) throws {
@@ -318,6 +329,7 @@ public extension SdJwtVcFormat {
       
       self.credentialMetadata = try ConfigurationCredentialMetadata(json: json["credential_metadata"])
       self.credentialDefinition = try CredentialDefinition(json: json["credential_definition"])
+      self.credentialReusePolicy = credentialMetadata?.credentialReusePolicy
     }
     
     func toIssuanceRequest(
