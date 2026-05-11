@@ -22,16 +22,13 @@ public protocol CanExpire: Sendable {
 
 public extension CanExpire {
   func isExpired(issued: TimeInterval, at: TimeInterval) -> Bool {
-    if issued >= at {
-      return true
-    }
-    
+ 
     guard let expiresIn = expiresIn else {
       return false
     }
     
     let expiration = issued + expiresIn
-    return expiration >= at
+    return expiration < at
   }
 }
 
@@ -95,7 +92,7 @@ public struct AuthorizedRequest: Sendable {
   }
   
   public func isAccessTokenExpired(
-    _ from: TimeInterval = Date().timeIntervalSince1970
+    _ from: TimeInterval = Date().timeIntervalSinceReferenceDate
   ) -> Bool {
     return accessToken.isExpired(issued: timeStamp, at: from)
   }

@@ -39,6 +39,7 @@ public enum PostError: LocalizedError {
   case serverError
   case useDpopNonce(Nonce)
   case useAttestationNonce(Nonce)
+  case requestError(Int, Error)
   
   /**
    Provides a localized description of the post error.
@@ -59,6 +60,8 @@ public enum PostError: LocalizedError {
       return "Use dPop Nonce error: \(nonce)"
     case .useAttestationNonce(let nonce):
       return "Use attestation Nonce error: \(nonce)"
+    case .requestError(let statusCode, let error):
+      return "Request error: \(statusCode) \(error.localizedDescription)"
     }
   }
 }
@@ -149,7 +152,7 @@ public struct Poster: PostingType {
             )
           }
           
-          return .failure(object.toIssuanceError())
+          return .failure(object.toIssuanceError(statusCode))
         }
         
       } else if statusCode >= HTTPStatusCode.internalServerError {
@@ -168,7 +171,7 @@ public struct Poster: PostingType {
         if statusCode == HTTPStatusCode.ok || statusCode == HTTPStatusCode.accepted, let string = String(data: data, encoding: .utf8) {
           return .failure(PostError.cannotParse(string))
         } else {
-          return .failure(PostError.networkError(error))
+          return .failure(PostError.requestError(statusCode, error))
         }
       }
       

@@ -236,7 +236,8 @@ public extension W3CSignedJwtFormat {
     public let proofTypesSupported: [String: ProofTypeSupportedMeta]?
     public let credentialMetadata: ConfigurationCredentialMetadata?
     public let credentialDefinition: CredentialDefinition
-    
+    public let credentialReusePolicy: CredentialReusePolicy? = nil
+
     enum CodingKeys: String, CodingKey {
       case scope
       case cryptographicBindingMethodsSupported = "cryptographic_binding_methods_supported"
