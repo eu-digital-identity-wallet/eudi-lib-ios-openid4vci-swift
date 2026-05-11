@@ -155,7 +155,8 @@ public extension W3CJsonLdDataIntegrityFormat {
     public let context: [String]
     public let type: [String]
     public let credentialDefinition: CredentialDefinition
-    
+    public let credentialReusePolicy: CredentialReusePolicy? = nil
+
     enum CodingKeys: String, CodingKey {
       case scope
       case cryptographicBindingMethodsSupported = "cryptographic_binding_methods_supported"

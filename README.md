@@ -52,6 +52,7 @@ In particular, the library focuses on the wallet's role in the protocol to:
 | `attestation` proof type                                                                        | ✅                                                                                                                  |
 | `key_attestation` to the JWT Proof (JOSE header)                                                | ✅                                                                                                                  |
 | Wallet attestation                                                                              | ✅                                                                                                                  |
+| Credential Reuse Policy (ETSI TS 119 472-3 / ARF Annex II)                                      | ✅                                                                                                                  |
 
 
 ## Disclaimer
@@ -329,6 +330,94 @@ interactions use the newly provided DPoP Nonce value.
 Library supports [OAUTH2 Attestation-Based Client Authentication - Draft 03](https://www.ietf.org/archive/id/draft-ietf-oauth-attestation-based-client-auth-03.html)
 
 An example can be found in this test: `testNoOfferSdJWTClientAuthentication()`
+
+### Credential Reuse Policy
+
+The library supports **Credential Reuse Policies** according to **ETSI TS 119 472-3** and **ARF Annex II** specifications, fully aligned with the Android implementation.
+
+#### What is a Credential Reuse Policy?
+
+Credential reuse policies define how many times and under what conditions a verifiable credential can be presented to relying parties. This enables issuers to control credential usage patterns for security and privacy purposes.
+
+#### Supported Reuse Methods
+
+The library supports all 4 ARF Annex II reuse policy methods:
+
+1. **Method A - Once Only** (`once_only`): Credential can only be presented once
+2. **Method B - Limited Time** (`limited_time`): Credential can be presented unlimited times until expiry
+3. **Method C - Rotating Batch** (`rotating-batch`): Issue batch of credentials, trigger reissuance based on unused count or time
+4. **Method D - Per Relying Party** (`per-relying-party`): Issue batch with one credential per relying party
+
+#### Wallet Configuration
+
+Configure the wallet's reuse policy support using `SupportedCredentialReusePolicies`:
+
+```swift
+// Option 1: Wallet supports policies but doesn't require them
+let walletConfig = SupportedCredentialReusePolicies.supported([
+  .onceOnly,
+  .rotatingBatch,
+  .limitedTime
+])
+
+// Option 2: Wallet requires issuer to provide a matching policy
+let walletConfig = SupportedCredentialReusePolicies.required([
+  .rotatingBatch
+])
+
+// Option 3: Wallet doesn't support reuse policies at all
+let walletConfig = SupportedCredentialReusePolicies.notSupported
+```
+
+#### Policy Selection and Validation
+
+The library automatically handles policy matching between issuer and wallet:
+
+```swift
+import OpenID4VCI
+
+// Issuer metadata contains reuse policy (parsed automatically)
+let issuerMetadata: CredentialIssuerMetadata = ...
+
+// Select matching policy
+let selectedPolicy = try CredentialReusePolicyValidator.selectMatchingPolicy(
+  issuerPolicy: issuerMetadata.credentialReusePolicy,
+  walletSupported: walletConfig
+)
+
+// Determine batch size (policy takes priority over metadata)
+let batchSize = CredentialReusePolicyValidator.determineBatchSize(
+  selectedPolicy: selectedPolicy,
+  issuerBatchSize: issuerMetadata.batchCredentialIssuance
+)
+
+// Validate proof count matches batch size
+try CredentialReusePolicyValidator.validateProofCount(
+  proofCount: proofs.count,
+  requiredBatchSize: batchSize
+)
+```
+
+#### Behavior Matrix
+
+| Wallet Config | Issuer Has Policy | Result |
+|---------------|-------------------|--------|
+| `.supported([...])` | No | Returns `nil`, continues normally |
+| `.supported([...])` | Yes, matches | Returns matching policy |
+| `.supported([...])` | Yes, no match | Throws `noSupportedPolicyFound` |
+| `.required([...])` | No | Throws `noSupportedPolicyFound` |
+| `.required([...])` | Yes, matches | Returns matching policy |
+| `.required([...])` | Yes, no match | Throws `noSupportedPolicyFound` |
+| `.notSupported` | No | Returns `nil`, continues normally |
+| `.notSupported` | Yes | Returns `nil`, ignores policy |
+
+#### Batch Issuance
+
+When a reuse policy requires batch issuance, the library handles it automatically:
+
+- Policy `batch_size` takes priority over issuer metadata `batch_credential_issuance`
+- Multiple proofs must be generated (one per credential in batch)
+- Proof count validation ensures correct number of proofs
 
 #### Notes
 

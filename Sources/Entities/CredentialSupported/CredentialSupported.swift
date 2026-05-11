@@ -163,21 +163,41 @@ public extension CredentialSupported {
       []
     }
   }
+
+  var credentialReusePolicy: CredentialReusePolicy? {
+    switch self {
+    case .msoMdoc(let spec):
+      return spec.credentialReusePolicy
+    case .sdJwtVc(let spec):
+      return spec.credentialReusePolicy
+    case .w3CSignedJwt(let spec):
+      return spec.credentialReusePolicy
+    case .w3CJsonLdSignedJwt(let spec):
+      return spec.credentialReusePolicy
+    case .w3CJsonLdDataIntegrity(let spec):
+      return spec.credentialReusePolicy
+    case .scope:
+      return nil
+    }
+  }
 }
 
 
 public struct ConfigurationCredentialMetadata: Codable, Sendable {
   public let display: [Display]
   public let claims: [Claim]
+  public let credentialReusePolicy: CredentialReusePolicy?
   
   enum CodingKeys: String, CodingKey {
     case display
     case claims
+    case credentialReusePolicy = "credential_reuse_policy"
   }
   
-  public init(display: [Display], claims: [Claim]) {
+  public init(display: [Display], claims: [Claim], credentialReusePolicy: CredentialReusePolicy? = nil) {
     self.display = display
     self.claims = claims
+    self.credentialReusePolicy = credentialReusePolicy
   }
   
   public init(json: JSON) throws {
@@ -186,5 +206,13 @@ public struct ConfigurationCredentialMetadata: Codable, Sendable {
     }
     let claims = try json["claims"].array?.compactMap({ try Claim(json: $0)}) ?? []
     self.claims = claims
+    
+    if let policyJson = json["credential_reuse_policy"].dictionaryObject,
+       let policyData = try? JSONSerialization.data(withJSONObject: policyJson),
+       let reusePolicy = try? JSONDecoder().decode(CredentialReusePolicy.self, from: policyData) {
+      self.credentialReusePolicy = reusePolicy
+    } else {
+      self.credentialReusePolicy = nil
+    }
   }
 }
