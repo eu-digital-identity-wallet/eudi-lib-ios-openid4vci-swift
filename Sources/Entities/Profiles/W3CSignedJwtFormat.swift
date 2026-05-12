@@ -357,11 +357,13 @@ public extension W3CSignedJwtFormat {
       switch credentialConfigurationsSupported.value {
       case .w3CSignedJwt(let profile):
         
-        // Validation: proof_types_supported must be present if cryptographic_binding_methods_supported is present
-        if !profile.cryptographicBindingMethodsSupported.isEmpty {
-          guard let proofTypes = profile.proofTypesSupported, !proofTypes.isEmpty else {
-            throw ValidationError.error(reason: "Property `proof_types_supported` must be present if `cryptographic_binding_methods_supported` is present")
-          }
+        let hasBindingMethods = !profile.cryptographicBindingMethodsSupported.isEmpty
+        let hasProofTypes = profile.proofTypesSupported?.isEmpty == false
+
+        if hasBindingMethods != hasProofTypes {
+          throw ValidationError.error(
+            reason: "Properties `proof_types_supported` and `cryptographic_binding_methods_supported` must both be present or both be omitted"
+          )
         }
         
         return .w3CSignedJwt(.init(
