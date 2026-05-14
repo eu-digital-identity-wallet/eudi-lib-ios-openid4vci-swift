@@ -384,21 +384,21 @@ class CredentialOfferResolverTests: XCTestCase {
     }
     
   func testBuildWellKnownURL_invalidUrl() async {
-      let resolver = CredentialIssuerMetadataResolver()
-      let input = URL(string: "http://")! // deliberately invalid
+    let resolver = CredentialIssuerMetadataResolver()
+    let input = URL(string: "http://")! // deliberately invalid
 
-      do {
-          _ = try await resolver.buildWellKnownCredentialIssuerURL(from: input)
-      } catch let error as FetchError {
-          switch error {
-          case .invalidUrl:
-            XCTAssert(true)
-          default:
-              XCTFail("Unexpected FetchError case: \(error)")
-          }
-      } catch {
-          XCTFail("Unexpected error type: \(error)")
-      }
+    do {
+        _ = try await resolver.buildWellKnownCredentialIssuerURL(from: input)
+    } catch let error as FetchError {
+        switch error {
+        case .invalidUrl:
+          XCTAssert(true)
+        default:
+            XCTFail("Unexpected FetchError case: \(error)")
+        }
+    } catch {
+        XCTFail("Unexpected error type: \(error)")
+    }
   }
 
   func testBuildWellKnownURL_withoutTrailingSlash() async throws {
@@ -412,4 +412,252 @@ class CredentialOfferResolverTests: XCTestCase {
         "https://issuer.example.com/.well-known/openid-credential-issuer"
       )
     }
+
+  func testResolvesCredentialOfferWithAuthorizationServerHint() async throws {
+    // Given: A credential offer with authorization_server hint that matches metadata
+    let credentialIssuerMetadataResolver = CredentialIssuerMetadataResolver(
+      fetcher: createMetadataFetcher()
+    )
+
+    let authorizationServerMetadataResolver = AuthorizationServerMetadataResolver(
+      oidcFetcher: Fetcher<OIDCProviderMetadata>(session: NetworkingMock(
+        path: "oidc_authorization_server_metadata",
+        extension: "json"
+      )),
+      oauthFetcher: Fetcher<AuthorizationServerMetadata>(session: NetworkingMock(
+        path: "oauth_authorization_server_metadata",
+        extension: "json"
+      ))
+    )
+
+    let credentialOfferRequestResolver = CredentialOfferRequestResolver(
+      fetcher: Fetcher<CredentialOfferRequestObject>(session: NetworkingMock(
+        path: "credential_offer_with_auth_server_hint",
+        extension: "json"
+      )),
+      credentialIssuerMetadataResolver: credentialIssuerMetadataResolver,
+      authorizationServerMetadataResolver: authorizationServerMetadataResolver
+    )
+
+    // When
+    let result = await credentialOfferRequestResolver.resolve(
+      source: .fetchByReference(url: .stub()),
+      policy: .ignoreSigned
+    )
+
+    // Then
+    switch result {
+    case .success(let credentialOffer):
+      XCTAssertEqual(credentialOffer.credentialIssuerIdentifier.url.absoluteString, "https://credential-issuer.example.com")
+
+      // Verify the grants contain the authorization_server
+      if case .authorizationCode(let authCode) = credentialOffer.grants {
+        XCTAssertEqual(authCode.authorizationServer?.absoluteString, "https://example.com/realms/pid-issuer-realm")
+        XCTAssertEqual(authCode.issuerState, "eyJhbGciOiJSU0EtFYUaBy")
+      } else {
+        XCTFail("Expected authorization_code grant")
+      }
+
+    case .failure(let error):
+      XCTFail("Expected success but got failure: \(error.localizedDescription)")
+    }
+  }
+
+  func testFailsWhenAuthorizationServerHintNotInMetadata() async throws {
+    // Given: A credential offer with authorization_server hint that does NOT match metadata
+    let credentialIssuerMetadataResolver = CredentialIssuerMetadataResolver(
+      fetcher: createMetadataFetcher())
+
+    let authorizationServerMetadataResolver = AuthorizationServerMetadataResolver(
+      oidcFetcher: Fetcher<OIDCProviderMetadata>(session: NetworkingMock(
+        path: "oidc_authorization_server_metadata",
+        extension: "json"
+      )),
+      oauthFetcher: Fetcher<AuthorizationServerMetadata>(session: NetworkingMock(
+        path: "oauth_authorization_server_metadata",
+        extension: "json"
+      ))
+    )
+
+    let credentialOfferRequestResolver = CredentialOfferRequestResolver(
+      fetcher: Fetcher<CredentialOfferRequestObject>(session: NetworkingMock(
+        path: "credential_offer_with_invalid_auth_server_hint",
+        extension: "json"
+      )),
+      credentialIssuerMetadataResolver: credentialIssuerMetadataResolver,
+      authorizationServerMetadataResolver: authorizationServerMetadataResolver
+    )
+
+    // When
+    let result = await credentialOfferRequestResolver.resolve(
+      source: .fetchByReference(url: .stub()),
+      policy: .ignoreSigned
+    )
+
+    // Then
+    switch result {
+    case .success:
+      XCTFail("Expected failure when authorization_server hint is not in metadata")
+
+    case .failure(let error):
+      // Verify the error message mentions the authorization server not being in the list
+      let errorDescription = error.localizedDescription
+      XCTAssertTrue(
+        errorDescription.contains("not in the list") || errorDescription.contains("authorization server"),
+        "Error should mention that authorization server is not in the list: \(errorDescription)"
+      )
+    }
+  }
+
+  func testSelectsSecondAuthServerWhenHintedInMultipleServers() async throws {
+    // Given: Metadata with multiple auth servers and offer hints at the second one
+    let credentialIssuerMetadataResolver = CredentialIssuerMetadataResolver(
+      fetcher: MetadataFetcher(
+        rawFetcher: RawDataFetcher(
+          session: NetworkingMock(
+            path: "credential_issuer_metadata_multiple_auth_servers",
+            extension: "json",
+            headers: ["Content-Type": "application/json"]
+        ))))
+
+    let authorizationServerMetadataResolver = AuthorizationServerMetadataResolver(
+      oidcFetcher: Fetcher<OIDCProviderMetadata>(session: NetworkingMock(
+        path: "oidc_authorization_server_metadata",
+        extension: "json"
+      )),
+      oauthFetcher: Fetcher<AuthorizationServerMetadata>(session: NetworkingMock(
+        path: "oauth_authorization_server_metadata",
+        extension: "json"
+      ))
+    )
+
+    let credentialOfferRequestResolver = CredentialOfferRequestResolver(
+      fetcher: Fetcher<CredentialOfferRequestObject>(session: NetworkingMock(
+        path: "credential_offer_with_second_auth_server_hint",
+        extension: "json"
+      )),
+      credentialIssuerMetadataResolver: credentialIssuerMetadataResolver,
+      authorizationServerMetadataResolver: authorizationServerMetadataResolver
+    )
+
+    // When
+    let result = await credentialOfferRequestResolver.resolve(
+      source: .fetchByReference(url: .stub()),
+      policy: .ignoreSigned
+    )
+
+    // Then
+    switch result {
+    case .success(let credentialOffer):
+      // Verify the grants contain the second authorization_server
+      if case .authorizationCode(let authCode) = credentialOffer.grants {
+        XCTAssertEqual(authCode.authorizationServer?.absoluteString, "https://auth-server-two.example.com")
+      } else {
+        XCTFail("Expected authorization_code grant")
+      }
+
+    case .failure(let error):
+      XCTFail("Expected success but got failure: \(error.localizedDescription)")
+    }
+  }
+
+  func testResolvesCredentialOfferWithPreAuthorizationServerHint() async throws {
+    // Given: A credential offer with authorization_server hint in pre-authorization code flow
+    let credentialIssuerMetadataResolver = CredentialIssuerMetadataResolver(
+      fetcher: createMetadataFetcher()
+    )
+
+    let authorizationServerMetadataResolver = AuthorizationServerMetadataResolver(
+      oidcFetcher: Fetcher<OIDCProviderMetadata>(session: NetworkingMock(
+        path: "oidc_authorization_server_metadata",
+        extension: "json"
+      )),
+      oauthFetcher: Fetcher<AuthorizationServerMetadata>(session: NetworkingMock(
+        path: "oauth_authorization_server_metadata",
+        extension: "json"
+      ))
+    )
+
+    let credentialOfferRequestResolver = CredentialOfferRequestResolver(
+      fetcher: Fetcher<CredentialOfferRequestObject>(session: NetworkingMock(
+        path: "credential_offer_with_pre_auth_server_hint",
+        extension: "json"
+      )),
+      credentialIssuerMetadataResolver: credentialIssuerMetadataResolver,
+      authorizationServerMetadataResolver: authorizationServerMetadataResolver
+    )
+
+    // When
+    let result = await credentialOfferRequestResolver.resolve(
+      source: .fetchByReference(url: .stub()),
+      policy: .ignoreSigned
+    )
+
+    // Then
+    switch result {
+    case .success(let credentialOffer):
+      XCTAssertEqual(credentialOffer.credentialIssuerIdentifier.url.absoluteString, "https://credential-issuer.example.com")
+
+      // Verify the grants contain the authorization_server in pre-auth flow
+      if case .preAuthorizedCode(let preAuthCode) = credentialOffer.grants {
+        XCTAssertEqual(preAuthCode.authorizationServer?.absoluteString, "https://example.com/realms/pid-issuer-realm")
+        XCTAssertEqual(preAuthCode.preAuthorizedCode, "123456")
+        XCTAssertEqual(preAuthCode.txCode?.length, 6)
+      } else {
+        XCTFail("Expected pre-authorized_code grant")
+      }
+
+    case .failure(let error):
+      XCTFail("Expected success but got failure: \(error.localizedDescription)")
+    }
+  }
+
+  func testFallsBackToFirstAuthServerWhenNoHintProvided() async throws {
+    // Given: A credential offer without authorization_server hint (pre-authorized code flow)
+    let credentialIssuerMetadataResolver = CredentialIssuerMetadataResolver(
+      fetcher: MetadataFetcher(
+        rawFetcher: RawDataFetcher(
+          session: NetworkingMock(
+            path: "credential_issuer_metadata_multiple_auth_servers",
+            extension: "json",
+            headers: ["Content-Type": "application/json"]
+        ))))
+
+    let authorizationServerMetadataResolver = AuthorizationServerMetadataResolver(
+      oidcFetcher: Fetcher<OIDCProviderMetadata>(session: NetworkingMock(
+        path: "oidc_authorization_server_metadata",
+        extension: "json"
+      )),
+      oauthFetcher: Fetcher<AuthorizationServerMetadata>(session: NetworkingMock(
+        path: "oauth_authorization_server_metadata",
+        extension: "json"
+      ))
+    )
+
+    let credentialOfferRequestResolver = CredentialOfferRequestResolver(
+      fetcher: Fetcher<CredentialOfferRequestObject>(session: NetworkingMock(
+        path: "credential_offer_with_blank_pre_authorized_code",
+        extension: "json"
+      )),
+      credentialIssuerMetadataResolver: credentialIssuerMetadataResolver,
+      authorizationServerMetadataResolver: authorizationServerMetadataResolver
+    )
+
+    // When
+    let result = await credentialOfferRequestResolver.resolve(
+      source: .fetchByReference(url: .stub()),
+      policy: .ignoreSigned
+    )
+
+    // Then: Should succeed using the first authorization server from metadata
+    switch result {
+    case .success(let credentialOffer):
+      XCTAssertEqual(credentialOffer.credentialIssuerIdentifier.url.absoluteString, "https://credential-issuer.example.com")
+      // The first auth server should have been selected
+      XCTAssertNotNil(credentialOffer.authorizationServerMetadata)
+
+    case .failure(let error):
+      XCTFail("Expected success but got failure: \(error.localizedDescription)")
+    }
+  }
 }

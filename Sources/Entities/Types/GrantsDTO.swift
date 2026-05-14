@@ -63,15 +63,18 @@ public extension GrantsDTO {
   struct PreAuthorizationCode: Codable, Sendable {
     public let preAuthorizedCode: String?
     public let txCode: TxCode?
-    
+    public let authorizationServer: String?
+
     enum CodingKeys: String, CodingKey {
       case preAuthorizedCode = "pre-authorized_code"
       case txCode = "tx_code"
+      case authorizationServer = "authorization_server"
     }
-    
-    public init(preAuthorizedCode: String, txCode: TxCode?) {
+
+    public init(preAuthorizedCode: String, txCode: TxCode?, authorizationServer: String? = nil) {
       self.preAuthorizedCode = preAuthorizedCode
       self.txCode = txCode
+      self.authorizationServer = authorizationServer
     }
   }
 }

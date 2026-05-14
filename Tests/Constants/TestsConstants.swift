@@ -39,7 +39,7 @@ let EHIC_JwsJson_config_id = "urn:eudi:ehic:1:dc+sd-jwt-jws-json"
 // let PID_mDL_SCOPE = "eu.europa.ec.eudi.mdl_mdoc"
 
 let CREDENTIAL_OFFER_QR_CODE_URL = """
-eudi-openid4ci://credentialsOffer?credential_offer=%7B%22credential_issuer%22:%22https://dev.issuer-backend.eudiw.dev%22,%22credential_configuration_ids%22:[%22eu.europa.ec.eudi.pid_mso_mdoc%22,%22eu.europa.ec.eudi.pid_vc_sd_jwt%22,%22org.iso.18013.5.1.mDL%22],%22grants%22:%7B%22authorization_code%22:%7B%22authorization_server%22:%22https://dev.auth.eudiw.dev/realms/pid-issuer-realm%22%7D%7D%7D
+eudi-openid4ci://credentialsOffer?credential_offer=%7B%22credential_issuer%22:%22https://dev.issuer-backend.eudiw.dev%22,%22credential_configuration_ids%22:[%22eu.europa.ec.eudi.pid_mso_mdoc%22,%22eu.europa.ec.eudi.pid_vc_sd_jwt%22,%22org.iso.18013.5.1.mDL%22],%22grants%22:%7B%22authorization_code%22:%7B%22authorization_server%22:%22https://dev.authenticate.eudiw.dev/realms/pid-issuer-realm%22%7D%7D%7D
 """
 
 let SECONDARY_CREDENTIAL_OFFER_QR_CODE_URL = """
