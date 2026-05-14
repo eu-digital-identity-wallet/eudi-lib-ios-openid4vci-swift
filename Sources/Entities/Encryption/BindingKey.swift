@@ -32,7 +32,7 @@ public enum BindingKey: Sendable, Equatable {
   case jwtKeyAttestation(
     algorithm: JWSAlgorithm,
     keyAttestationJWT: @Sendable (_ nonce: String?) async throws -> KeyAttestationJWT,
-    keyIndex: UInt,
+    keyIndex: UInt = 0,
     privateKey: SigningKeyProxy,
     issuer: String? = nil
   )
@@ -149,7 +149,15 @@ public extension BindingKey {
           reason: ".jwtKeyAttestation: Invalid key attestation JWT"
         )
       }
-      
+
+      // Validate keyIndex is within bounds
+      guard keyIndex < keyAttestationJwt.attestedKeys.count else {
+        throw CredentialIssuanceError.keyIndexOutOfBounds(
+          index: keyIndex,
+          available: keyAttestationJwt.attestedKeys.count
+        )
+      }
+
       let proofTypesSupported = credentialSpec.proofTypesSupported
       let keyAttestationRequirement = proofTypesSupported?["jwt"]?.keyAttestationRequirement
       switch keyAttestationRequirement {
