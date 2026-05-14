@@ -47,11 +47,21 @@ public struct KeyAttestationJWT: Sendable {
   
   public static let keyAttestationJWTType = "key-attestation+jwt"
   
+  private static let allowedAlgorithms: Set<SignatureAlgorithm> = [.ES256, .ES384, .ES512]
+
   // MARK: - Validation Helpers
   
   private static func validateHeader(_ header: JWSHeader) throws {
-    guard ![.HS256, .HS384, .HS512].contains(header.algorithm) else {
-      throw KeyAttestationError.invalidSignature
+    
+    guard let algorithm = header.algorithm else {
+      throw KeyAttestationError.missingAlgorithm
+    }
+    
+    guard allowedAlgorithms.contains(algorithm) else {
+      throw KeyAttestationError.unsupportedAlgorithm(
+        found: algorithm,
+        allowed: allowedAlgorithms
+      )
     }
     
     guard header.typ == keyAttestationJWTType else {
@@ -101,6 +111,62 @@ public struct KeyAttestationJWT: Sendable {
       }
     }
   }
+
+
+  /// Validates that a JWT proof is signed by the first key in the attested_keys array.
+  ///
+  /// - The JWT proof must be signed by the first key (index 0) in attested_keys
+  /// - The kid header in the JWT proof should be "0"
+  /// - Signature verification must succeed using only the first attested key
+  ///
+  /// - Parameter jwtProof: The JWS object representing the JWT proof
+  /// - Throws: `KeyAttestationError.jwtProofNotSignedByFirstAttestedKey` if verification fails
+  public func validateJWTProofSignature(_ jwtProof: JWS) throws {
+    guard let firstKey = attestedKeys.first else {
+      throw KeyAttestationError.missingOrEmptyAttestedKeys
+    }
+    
+    let verifier = try createVerifier(for: firstKey)
+    _ = try jwtProof.validate(using: verifier)
+  }
+
+  /// Creates an appropriate verifier based on the key type.
+  ///
+  /// - Parameter key: The JWK to create a verifier for
+  /// - Returns: A verifier that can validate signatures for this key type
+  /// - Throws: `KeyAttestationError` if the key type is not supported
+  private func createVerifier(for key: JWK) throws -> Verifier {
+    let algorithm: SignatureAlgorithm
+
+    switch key {
+    case let ecKey as ECPublicKey:
+      algorithm = switch ecKey.crv {
+      case .P256: .ES256
+      case .P384: .ES384
+      case .P521: .ES512
+      default:
+        throw KeyAttestationError.unsupportedKeyType("Unsupported EC curve: \(ecKey.crv.rawValue)")
+      }
+
+    case let rsaKey as RSAPublicKey:
+      // RSA keys not required by TS3 v1.5, but support for compatibility
+      algorithm = .RS256
+
+    default:
+      let keyTypeDescription = type(of: key)
+      throw KeyAttestationError.unsupportedKeyType(String(describing: keyTypeDescription))
+    }
+    
+    guard let secKey = try JWKSecKeyConverter(jwk: key).secKey() else {
+      throw KeyAttestationError.invalidKeyType
+    }
+    
+    guard let verifier = Verifier(signatureAlgorithm: algorithm, key: secKey) else {
+      throw KeyAttestationError.invalidKeyType
+    }
+
+    return verifier
+  }
 }
 
 
@@ -114,7 +180,12 @@ public enum KeyAttestationError: Error, LocalizedError {
   case missingOrEmptyAttestedKeys
   case keyIsPrivate(index: Int)
   case invalidJWK(index: Int, underlying: Error)
-  
+  case missingAlgorithm
+  case unsupportedAlgorithm(found: SignatureAlgorithm, allowed: Set<SignatureAlgorithm>)
+  case jwtProofNotSignedByFirstAttestedKey
+  case invalidKeyType
+  case unsupportedKeyType(String)
+
   public var errorDescription: String? {
     switch self {
     case .invalidSignature:
@@ -131,6 +202,17 @@ public enum KeyAttestationError: Error, LocalizedError {
       return "Key at index \(index) is a symmetric key; must be a public key."
     case .invalidJWK(let index, let error):
       return "Failed to parse JWK at index \(index): \(error.localizedDescription)"
+    case .missingAlgorithm:
+      return "Key attestation JWT header is missing the 'alg' parameter."
+    case .unsupportedAlgorithm(let found, let allowed):
+      let allowedNames = allowed.map { $0.rawValue }.sorted().joined(separator: ", ")
+      return "Key attestation algorithm '\(found.rawValue)' is not supported, requires one of: \(allowedNames)."
+    case .jwtProofNotSignedByFirstAttestedKey:
+      return "JWT proof must be signed by the first key in the attested_keys array"
+    case .invalidKeyType:
+      return "Key type is invalid or cannot be used for signature verification."
+    case .unsupportedKeyType(let keyType):
+      return "Key type '\(keyType)' is not supported for signature verification."
     }
   }
 }
