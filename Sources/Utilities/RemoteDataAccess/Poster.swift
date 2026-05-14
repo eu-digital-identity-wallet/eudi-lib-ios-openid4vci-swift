@@ -39,6 +39,7 @@ public enum PostError: LocalizedError {
   case serverError
   case useDpopNonce(Nonce)
   case useAttestationNonce(Nonce)
+  case requestError(Int, Error)
   
   /**
    Provides a localized description of the post error.
@@ -59,6 +60,8 @@ public enum PostError: LocalizedError {
       return "Use dPop Nonce error: \(nonce)"
     case .useAttestationNonce(let nonce):
       return "Use attestation Nonce error: \(nonce)"
+    case .requestError(let statusCode, let error):
+      return "Request error: \(statusCode) \(error.localizedDescription)"
     }
   }
 }
@@ -128,28 +131,32 @@ public struct Poster: PostingType {
             )
           )
         } else {
-          let object = try JSONDecoder().decode(GenericErrorResponse.self, from: data)
-          if object.error == Constants.USE_DPOP_NONCE,
-            let dPopNonce = headers.value(forCaseInsensitiveKey: Constants.DPOP_NONCE_HEADER) as? String {
-            return .failure(
+          do {
+            let object = try JSONDecoder().decode(GenericErrorResponse.self, from: data)
+            if object.error == Constants.USE_DPOP_NONCE,
+               let dPopNonce = headers.value(forCaseInsensitiveKey: Constants.DPOP_NONCE_HEADER) as? String {
+              return .failure(
                 PostError.useDpopNonce(
-                .init(
-                  value: dPopNonce
+                  .init(
+                    value: dPopNonce
+                  )
                 )
               )
-            )
-          } else if object.error == Constants.USE_ATTESTATION_CHALLENGE,
-            let attestationNonce = headers.value(forCaseInsensitiveKey: Constants.OAUTH_CLIENT_ATTESTATION_CHALLENGE) as? String {
-            return .failure(
-              PostError.useAttestationNonce(
-                .init(
-                  value: attestationNonce
+            } else if object.error == Constants.USE_ATTESTATION_CHALLENGE,
+                      let attestationNonce = headers.value(forCaseInsensitiveKey: Constants.OAUTH_CLIENT_ATTESTATION_CHALLENGE) as? String {
+              return .failure(
+                PostError.useAttestationNonce(
+                  .init(
+                    value: attestationNonce
+                  )
                 )
               )
-            )
+            }
+            
+            return .failure(object.toIssuanceError(statusCode))
+          } catch {
+            return .failure(PostError.requestError(statusCode, error))
           }
-          
-          return .failure(object.toIssuanceError())
         }
         
       } else if statusCode >= HTTPStatusCode.internalServerError {
@@ -168,7 +175,7 @@ public struct Poster: PostingType {
         if statusCode == HTTPStatusCode.ok || statusCode == HTTPStatusCode.accepted, let string = String(data: data, encoding: .utf8) {
           return .failure(PostError.cannotParse(string))
         } else {
-          return .failure(PostError.networkError(error))
+          return .failure(PostError.requestError(statusCode, error))
         }
       }
       

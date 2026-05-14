@@ -76,7 +76,12 @@ public actor AuthorisationService: AuthorisationServiceType {
     )
     
     let result: Result<ResponseWithHeaders<U>, Error> = await poster.post(request: post.urlRequest)
-    return try result.get()
+    switch result {
+    case .success(let response):
+      return response
+    case .failure(let error):
+      throw error
+    }
   }
   
   public func formPost<T: Codable, U: Codable>(
@@ -93,7 +98,12 @@ public actor AuthorisationService: AuthorisationServiceType {
     )
     
     let result: Result<ResponseWithHeaders<U>, Error> = await poster.post(request: post.urlRequest)
-    return try result.get()
+    switch result {
+    case .success(let response):
+      return response
+    case .failure(let error):
+      throw error
+    }
   }
   
   public func formPost<U: Codable>(
@@ -109,8 +119,15 @@ public actor AuthorisationService: AuthorisationServiceType {
       formData: parameters
     )
     
-    let result: Result<ResponseWithHeaders<U>, Error> = await poster.post(request: post.urlRequest)
-    return try result.get()
+    let result: Result<ResponseWithHeaders<U>, Error> = await poster.post(
+      request: post.urlRequest
+    )
+    switch result {
+    case .success(let response):
+      return response
+    case .failure(let error):
+      throw error
+    }
   }
   
   public func formPost<U: Codable>(
@@ -141,7 +158,12 @@ public actor AuthorisationService: AuthorisationServiceType {
     }
     
     let result: Result<ResponseWithHeaders<U>, Error> = await poster.post(request: post.urlRequest)
-    return try result.get()
+    switch result {
+    case .success(let response):
+      return response
+    case .failure(let error):
+      throw error
+    }
   }
 }
 

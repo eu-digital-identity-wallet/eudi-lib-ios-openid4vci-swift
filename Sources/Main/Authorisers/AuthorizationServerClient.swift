@@ -593,24 +593,24 @@ internal actor AuthorizationServerClient: AuthorizationServerClientType {
         let identifiers
       ):
         return (
-            try .init(
-              accessToken: accessToken,
-              tokenType: .init(
-                value: tokenType
-              ),
-              expiresIn: TimeInterval(expiresIn)
-            ),
-			try .init(
-			  refreshToken: refreshToken,
-        expiresIn: TimeInterval(refreshTokenExpiresIn ?? .zero)
-			),
-            identifiers,
-            TokenType(
+          try .init(
+            accessToken: accessToken,
+            tokenType: .init(
               value: tokenType
             ),
-            expiresIn,
-            response.dpopNonce()
-          )
+            expiresIn: TimeInterval(expiresIn)
+          ),
+          try .init(
+            refreshToken: refreshToken,
+            expiresIn: TimeInterval(refreshTokenExpiresIn ?? .zero)
+          ),
+          identifiers,
+          .init(
+            value: tokenType
+          ),
+          expiresIn,
+          response.dpopNonce()
+        )
       case .failure(let error, let errorDescription):
         throw CredentialIssuanceError.pushedAuthorizationRequestFailed(
           error: error,

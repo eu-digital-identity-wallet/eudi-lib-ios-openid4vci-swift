@@ -39,7 +39,7 @@ public struct GenericErrorResponse: Codable, Sendable {
 
 public extension GenericErrorResponse {
   
-  func toIssuanceError() -> CredentialIssuanceError {
+  func toIssuanceError(_ statusCode: Int) -> CredentialIssuanceError {
     switch error {
     case "invalid_proof":
       return .invalidProof(
@@ -53,7 +53,8 @@ public extension GenericErrorResponse {
       return .unsupportedCredentialType
     case "unsupported_credential_format": return .unsupportedCredentialFormat
     case "invalid_encryption_parameters": return .invalidEncryptionParameters
-    default: return .issuanceRequestFailed(
+    default: return .requestFailed(
+      code: statusCode,
       error: error,
       errorDescription: errorDescription
     )

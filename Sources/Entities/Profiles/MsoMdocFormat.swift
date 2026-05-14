@@ -139,7 +139,8 @@ public extension MsoMdocFormat {
     public let credentialMetadata: ConfigurationCredentialMetadata?
     public let docType: String
     public let policy: Policy?
-    
+    public let credentialReusePolicy: CredentialReusePolicy?
+
     enum CodingKeys: String, CodingKey {
       case format
       case scope
@@ -149,6 +150,7 @@ public extension MsoMdocFormat {
       case credentialMetadata = "credential_metadata"
       case docType = "doctype"
       case policy
+      case credentialReusePolicy = "credential_reuse_policy"
     }
     
     public init(
@@ -159,7 +161,8 @@ public extension MsoMdocFormat {
       proofTypesSupported: [String: ProofTypeSupportedMeta]? = nil,
       credentialMetadata: ConfigurationCredentialMetadata? = nil,
       docType: String,
-      policy: Policy? = nil
+      policy: Policy? = nil,
+      credentialReusePolicy: CredentialReusePolicy? = nil
     ) {
       self.format = format
       self.scope = scope
@@ -169,6 +172,7 @@ public extension MsoMdocFormat {
       self.credentialMetadata = credentialMetadata
       self.docType = docType
       self.policy = policy
+      self.credentialReusePolicy = credentialReusePolicy
     }
     
     func toDomain() throws -> MsoMdocFormat.CredentialConfiguration {
@@ -185,7 +189,8 @@ public extension MsoMdocFormat {
         proofTypesSupported: self.proofTypesSupported,
         credentialMetadata: credentialMetadata,
         docType: docType,
-        policy: policy
+        policy: policy,
+        credentialReusePolicy: credentialReusePolicy
       )
     }
   }
@@ -199,7 +204,8 @@ public extension MsoMdocFormat {
     public let credentialMetadata: ConfigurationCredentialMetadata?
     public let docType: String
     public let policy: Policy?
-    
+    public let credentialReusePolicy: CredentialReusePolicy?
+
     enum CodingKeys: String, CodingKey {
       case format
       case scope
@@ -209,6 +215,7 @@ public extension MsoMdocFormat {
       case credentialMetadata = "credential_metadata"
       case docType = "doctype"
       case policy
+      case credentialReusePolicy = "credential_reuse_policy"
     }
     
     public init(
@@ -219,7 +226,8 @@ public extension MsoMdocFormat {
       proofTypesSupported: [String: ProofTypeSupportedMeta]?,
       credentialMetadata: ConfigurationCredentialMetadata?,
       docType: String,
-      policy: Policy?
+      policy: Policy?,
+      credentialReusePolicy: CredentialReusePolicy? = nil
     ) {
       self.format = format
       self.scope = scope
@@ -229,6 +237,7 @@ public extension MsoMdocFormat {
       self.credentialMetadata = credentialMetadata
       self.docType = docType
       self.policy = policy
+      self.credentialReusePolicy = credentialReusePolicy
     }
     
     public init(from decoder: Decoder) throws {
@@ -245,6 +254,7 @@ public extension MsoMdocFormat {
       credentialMetadata = try container.decode(ConfigurationCredentialMetadata.self, forKey: .credentialMetadata)
       docType = try container.decode(String.self, forKey: .docType)
       policy = try? container.decode(Policy.self, forKey: .policy)
+      credentialReusePolicy = try? container.decode(CredentialReusePolicy.self, forKey: .credentialReusePolicy)
     }
     
     public func encode(to encoder: Encoder) throws {
@@ -258,6 +268,7 @@ public extension MsoMdocFormat {
       try container.encode(credentialMetadata, forKey: .credentialMetadata)
       try container.encode(docType, forKey: .docType)
       try container.encode(policy, forKey: .policy)
+      try container.encodeIfPresent(credentialReusePolicy, forKey: .credentialReusePolicy)
     }
     
     init(json: JSON) throws {
@@ -284,6 +295,7 @@ public extension MsoMdocFormat {
       self.credentialMetadata = try ConfigurationCredentialMetadata(json: json["credential_metadata"])
       self.docType = json["doctype"].stringValue
       self.policy = .init(json: json["policy"])
+      self.credentialReusePolicy = credentialMetadata?.credentialReusePolicy
     }
     
     internal static func parseCredentialSigningAlgorithms(from json: JSON) -> [String] {
