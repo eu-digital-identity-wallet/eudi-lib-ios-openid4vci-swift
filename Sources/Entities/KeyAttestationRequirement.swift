@@ -126,12 +126,12 @@ public extension KeyAttestationRequirement {
         return AttackPotentialResistance(rawValue: potential)
       })
     else {
-      self = .notRequired
+      self = .requiredNoConstraints
       return
     }
 
     if keyStorageConstraints.isEmpty && userAuthenticationConstraints.isEmpty {
-      self = .notRequired
+      self = .requiredNoConstraints
       return
     }
     
