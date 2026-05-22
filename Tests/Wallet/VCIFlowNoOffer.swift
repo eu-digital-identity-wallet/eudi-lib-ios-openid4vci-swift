@@ -481,7 +481,7 @@ class VCIFlowNoOffer: XCTestCase {
     do {
       try await walletInitiatedIssuanceNoOfferSdJwtClientAuthentication(
         wallet: wallet,
-        id: EHIC_JwsJson_config_id
+        id: EHIC_JwtCompact_config_id
       )
       
     } catch {
