@@ -611,6 +611,7 @@ class VCIFlowNoOffer: XCTestCase {
       XCTExpectFailure()
       XCTAssert(false, error.localizedDescription)
     }
+    
     XCTAssert(true)
   }
 }
