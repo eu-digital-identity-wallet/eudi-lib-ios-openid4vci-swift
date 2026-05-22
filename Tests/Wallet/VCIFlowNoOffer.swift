@@ -436,54 +436,53 @@ class VCIFlowNoOffer: XCTestCase {
         "kid": UUID().uuidString
       ])
     
-    let algorithm = JWSAlgorithm(.ES256)
-    let bindingKey: BindingKey = try! .jwtKeyAttestation(
-      algorithm: algorithm,
-      keyAttestationJWT: { nonce in
-        
-        let client = WalletProviderClient(
-          baseURL: .init(
-            string: "https://dev.wallet-provider.eudiw.dev"
-          )!
-        )
-        
-        let jwt = try await client.issueWalletUnitAttestation(
-          dictionary: [
-          "nonce": nonce!,
-          "jwkSet": [
-            "keys": [
-              publicKeyJWK.toDictionary()
-            ]
-          ]
-        ]).walletUnitAttestation
-        
-        return try .init(
-          jws: .init(
-            compactSerialization: jwt
-          )
-        )
-      },
-      keyIndex: 0,
-      privateKey: .secKey(privateKey),
-      issuer: "wallet-dev"
-    )
-    
-    let user = ActingUser(
-      username: "tneal",
-      password: "password"
-    )
-    
-    let wallet = Wallet(
-      actingUser: user,
-      bindingKeys: [bindingKey]
-    )
-    
     do {
-      try await walletInitiatedIssuanceNoOfferSdJwtClientAuthentication(
-        wallet: wallet,
-        id: EHIC_JwsJson_config_id
+      let algorithm = JWSAlgorithm(.ES256)
+      let bindingKey: BindingKey = try .jwtKeyAttestation(
+        algorithm: algorithm,
+        keyAttestationJWT: { nonce in
+          
+          let client = WalletProviderClient(
+            baseURL: .init(
+              string: "https://dev.wallet-provider.eudiw.dev"
+            )!
+          )
+          
+          let jwt = try await client.issueWalletUnitAttestation(
+            dictionary: [
+              "nonce": nonce!,
+              "jwkSet": [
+                "keys": [
+                  publicKeyJWK.toDictionary()
+                ]
+              ]
+            ]).walletUnitAttestation
+          
+          return try .init(
+            jws: .init(
+              compactSerialization: jwt
+            )
+          )
+        },
+        keyIndex: 0,
+        privateKey: .secKey(privateKey),
+        issuer: "wallet-dev"
       )
       
+      let user = ActingUser(
+        username: "tneal",
+        password: "password"
+      )
+      
+      let wallet = Wallet(
+        actingUser: user,
+        bindingKeys: [bindingKey]
+      )
+      
+      try await walletInitiatedIssuanceNoOfferSdJwtClientAuthentication(
+        wallet: wallet,
+        id: EHIC_JwtCompact_config_id
+      )
     } catch {
       
       XCTExpectFailure()
@@ -506,48 +505,47 @@ class VCIFlowNoOffer: XCTestCase {
         "kid": UUID().uuidString
       ])
     
-    let bindingKey: BindingKey = .attestation(
-      keyAttestationJWT: { @KeyAttester nonce in
-        let client = WalletProviderClient(
-          baseURL: .init(
-            string: "https://dev.wallet-provider.eudiw.dev"
-          )!
-        )
-        
-        let jwt = try await client.issueWalletUnitAttestation(
-          dictionary: [
-          "nonce": nonce!,
-          "jwkSet": [
-            "keys": [
-              publicKeyJWK.toDictionary()
-            ]
-          ]
-        ]).walletUnitAttestation
-        
-        return try .init(
-          jws: .init(
-            compactSerialization: jwt
-          )
-        )
-      }
-    )
-    
-    let user = ActingUser(
-      username: "tneal",
-      password: "password"
-    )
-    
-    let wallet = Wallet(
-      actingUser: user,
-      bindingKeys: [bindingKey]
-    )
-    
     do {
+      let bindingKey: BindingKey = .attestation(
+        keyAttestationJWT: { @KeyAttester nonce in
+          let client = WalletProviderClient(
+            baseURL: .init(
+              string: "https://dev.wallet-provider.eudiw.dev"
+            )!
+          )
+          
+          let jwt = try await client.issueWalletUnitAttestation(
+            dictionary: [
+              "nonce": nonce!,
+              "jwkSet": [
+                "keys": [
+                  publicKeyJWK.toDictionary()
+                ]
+              ]
+            ]).walletUnitAttestation
+          
+          return try .init(
+            jws: .init(
+              compactSerialization: jwt
+            )
+          )
+        }
+      )
+      
+      let user = ActingUser(
+        username: "tneal",
+        password: "password"
+      )
+      
+      let wallet = Wallet(
+        actingUser: user,
+        bindingKeys: [bindingKey]
+      )
+      
       try await walletInitiatedIssuanceNoOfferSdJwtClientAuthentication(
         wallet: wallet,
         id: EHIC_JwsCompact_config_id
       )
-      
     } catch {
       XCTExpectFailure()
       XCTAssert(false, error.localizedDescription)
@@ -567,48 +565,47 @@ class VCIFlowNoOffer: XCTestCase {
     let privateKey = try KeyController.generateECDHPrivateKey()
     let publicKey = try KeyController.generateECDHPublicKey(from: privateKey)
     
-    let attestationConfig: OpenId4VCIConfig = await .init(
-      client: try! jwkProviderSignedClient(
-        client: client,
-        clientId: "eudiw-abca",
-        algorithm: .ES256,
-        privateKey: privateKey
-      ),
-      authFlowRedirectionURI: URL(string: "urn:ietf:wg:oauth:2.0:oob")!,
-      authorizeIssuanceConfig: .favorScopes,
-      clientAttestationPoPBuilder: DefaultClientAttestationPoPBuilder()
-    )
-    
-    let publicKeyJWK = try ECPublicKey(
-      publicKey: publicKey,
-      additionalParameters: [
-        "alg": "ES256",
-        "use": "sig",
-        "kid": UUID().uuidString
-      ])
-    
-    let bindingKey: BindingKey = .jwt(
-      algorithm: JWSAlgorithm(.ES256),
-      jwk: publicKeyJWK,
-      privateKey: .secKey(privateKey)
-    )
-    
-    let user = ActingUser(
-      username: "tneal",
-      password: "password"
-    )
-    
-    let wallet = Wallet(
-      actingUser: user,
-      bindingKeys: [bindingKey]
-    )
-    
     do {
+      let attestationConfig: OpenId4VCIConfig = await .init(
+        client: try jwkProviderSignedClient(
+          client: client,
+          clientId: "eudiw-abca",
+          algorithm: .ES256,
+          privateKey: privateKey
+        ),
+        authFlowRedirectionURI: URL(string: "urn:ietf:wg:oauth:2.0:oob")!,
+        authorizeIssuanceConfig: .favorScopes,
+        clientAttestationPoPBuilder: DefaultClientAttestationPoPBuilder()
+      )
+      
+      let publicKeyJWK = try ECPublicKey(
+        publicKey: publicKey,
+        additionalParameters: [
+          "alg": "ES256",
+          "use": "sig",
+          "kid": UUID().uuidString
+        ])
+      
+      let bindingKey: BindingKey = .jwt(
+        algorithm: JWSAlgorithm(.ES256),
+        jwk: publicKeyJWK,
+        privateKey: .secKey(privateKey)
+      )
+      
+      let user = ActingUser(
+        username: "tneal",
+        password: "password"
+      )
+      
+      let wallet = Wallet(
+        actingUser: user,
+        bindingKeys: [bindingKey]
+      )
+      
       try await walletInitiatedIssuanceNoOfferSdJwt(
         wallet: wallet,
         config: attestationConfig
       )
-      
     } catch {
       
       XCTExpectFailure()

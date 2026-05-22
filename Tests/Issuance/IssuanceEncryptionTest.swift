@@ -49,6 +49,19 @@ class IssuanceEncryptionTest: XCTestCase {
       encryptionMethod: .init(.A128CBC_HS256)
     )
     
+    let keyBindingKey: BindingKey = try! .jwtKeyAttestation(
+      algorithm: .init(.ES256),
+      keyAttestationJWT: { _ in
+        try! .init(
+          jws: .init(
+            compactSerialization: TestsConstants.ketAttestationJWT
+          )
+        )
+      },
+      keyIndex: 1,
+      privateKey: .secKey(privateKey)
+    )
+    
     // When
     guard let (authorizedRequest, issuer) = await (try? initIssuerWithOfferAndAuthorize(issuanceResponseEncryptionSpec: spec)) else {
       XCTAssert(false, "Unable to create tuple")
@@ -64,7 +77,7 @@ class IssuanceEncryptionTest: XCTestCase {
       )
       _ = try await issuer.requestCredential(
         request: authorizedRequest,
-        bindingKeys: [],
+        bindingKeys: [keyBindingKey],
         requestPayload: payload,
         responseEncryptionSpecProvider: { _ in
           return spec
@@ -102,6 +115,19 @@ class IssuanceEncryptionTest: XCTestCase {
       encryptionMethod: .init(.A128GCM)
     )
     
+    let keyBindingKey: BindingKey = try! .jwtKeyAttestation(
+      algorithm: .init(.ES256),
+      keyAttestationJWT: { _ in
+        try! .init(
+          jws: .init(
+            compactSerialization: TestsConstants.ketAttestationJWT
+          )
+        )
+      },
+      keyIndex: 1,
+      privateKey: .secKey(privateKey)
+    )
+    
     // When
     guard let (authorizedRequest, issuer) = await (try? initIssuerWithOfferAndAuthorize(issuanceResponseEncryptionSpec: spec)) else {
       XCTAssert(false, "Unable to create tuple")
@@ -117,7 +143,7 @@ class IssuanceEncryptionTest: XCTestCase {
       )
       _ = try await issuer.requestCredential(
         request: authorizedRequest,
-        bindingKeys: [],
+        bindingKeys: [keyBindingKey],
         requestPayload: payload,
         responseEncryptionSpecProvider: { _ in
           return spec
@@ -141,6 +167,20 @@ class IssuanceEncryptionTest: XCTestCase {
       return
     }
     
+    let privateKey = try KeyController.generateRSAPrivateKey()
+    let keyBindingKey: BindingKey = try! .jwtKeyAttestation(
+      algorithm: .init(.ES256),
+      keyAttestationJWT: { _ in
+        try! .init(
+          jws: .init(
+            compactSerialization: TestsConstants.ketAttestationJWT
+          )
+        )
+      },
+      keyIndex: 1,
+      privateKey: .secKey(privateKey)
+    )
+    
     // When
     guard let (authorizedRequest, issuer) = await (try? initIssuerWithOfferAndAuthorizeRequesterGenericError(issuanceResponseEncryptionSpec: spec)) else {
       XCTAssert(false, "Unable to create tuple")
@@ -156,7 +196,7 @@ class IssuanceEncryptionTest: XCTestCase {
       )
       _ = try await issuer.requestCredential(
         request: authorizedRequest,
-        bindingKeys: [],
+        bindingKeys: [keyBindingKey],
         requestPayload: payload,
         responseEncryptionSpecProvider: { _ in
           return spec
