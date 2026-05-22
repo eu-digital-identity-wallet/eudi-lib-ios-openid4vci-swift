@@ -567,54 +567,52 @@ class VCIFlowNoOffer: XCTestCase {
     let privateKey = try KeyController.generateECDHPrivateKey()
     let publicKey = try KeyController.generateECDHPublicKey(from: privateKey)
     
-    let attestationConfig: OpenId4VCIConfig = await .init(
-      client: try! jwkProviderSignedClient(
-        client: client,
-        clientId: "eudiw-abca",
-        algorithm: .ES256,
-        privateKey: privateKey
-      ),
-      authFlowRedirectionURI: URL(string: "urn:ietf:wg:oauth:2.0:oob")!,
-      authorizeIssuanceConfig: .favorScopes,
-      clientAttestationPoPBuilder: DefaultClientAttestationPoPBuilder()
-    )
-    
-    let publicKeyJWK = try ECPublicKey(
-      publicKey: publicKey,
-      additionalParameters: [
-        "alg": "ES256",
-        "use": "sig",
-        "kid": UUID().uuidString
-      ])
-    
-    let bindingKey: BindingKey = .jwt(
-      algorithm: JWSAlgorithm(.ES256),
-      jwk: publicKeyJWK,
-      privateKey: .secKey(privateKey)
-    )
-    
-    let user = ActingUser(
-      username: "tneal",
-      password: "password"
-    )
-    
-    let wallet = Wallet(
-      actingUser: user,
-      bindingKeys: [bindingKey]
-    )
-    
     do {
+      let attestationConfig: OpenId4VCIConfig = await .init(
+        client: try jwkProviderSignedClient(
+          client: client,
+          clientId: "eudiw-abca",
+          algorithm: .ES256,
+          privateKey: privateKey
+        ),
+        authFlowRedirectionURI: URL(string: "urn:ietf:wg:oauth:2.0:oob")!,
+        authorizeIssuanceConfig: .favorScopes,
+        clientAttestationPoPBuilder: DefaultClientAttestationPoPBuilder()
+      )
+      
+      let publicKeyJWK = try ECPublicKey(
+        publicKey: publicKey,
+        additionalParameters: [
+          "alg": "ES256",
+          "use": "sig",
+          "kid": UUID().uuidString
+        ])
+      
+      let bindingKey: BindingKey = .jwt(
+        algorithm: JWSAlgorithm(.ES256),
+        jwk: publicKeyJWK,
+        privateKey: .secKey(privateKey)
+      )
+      
+      let user = ActingUser(
+        username: "tneal",
+        password: "password"
+      )
+      
+      let wallet = Wallet(
+        actingUser: user,
+        bindingKeys: [bindingKey]
+      )
+      
       try await walletInitiatedIssuanceNoOfferSdJwt(
         wallet: wallet,
         config: attestationConfig
       )
-      
     } catch {
       
       XCTExpectFailure()
       XCTAssert(false, error.localizedDescription)
     }
-    
     XCTAssert(true)
   }
 }
