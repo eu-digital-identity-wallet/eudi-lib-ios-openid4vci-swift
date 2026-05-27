@@ -189,6 +189,11 @@ private extension AuthorisationService {
     /// If the spec's key is a JWK, embed it in the header.
     if let jwkDict = try? spec.recipientKey.toDictionary() {
       headerParams["jwk"] = jwkDict
+        
+      /// Per OpenID4VCI 1.0 Section 10: add kid to root if present in JWK
+      if let kid = jwkDict["kid"] as? String {
+        headerParams["kid"] = kid
+      }
     }
 
     let header = try JWEHeader(parameters: headerParams)
