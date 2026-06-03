@@ -17,7 +17,7 @@ import Foundation
 @preconcurrency import JOSESwift
 
 public protocol AsyncSignerProtocol: Sendable {
-  var publicKey: JWK { get }
+  var publicKey: any JWK { get }
   func signAsync(_ header: Data, _ payload: Data) async throws -> Data
 }
  
