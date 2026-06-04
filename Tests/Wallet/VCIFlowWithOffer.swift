@@ -89,8 +89,8 @@ class VCIFlowWithOffer: XCTestCase {
       algorithm: alg,
       jwk: publicKeyJWK,
       privateKey: .custom(
-        TestSinger(
-          privateKey: privateKey
+        TestSigner(
+          privateKey: privateKey, jwk: publicKeyJWK
         )
       )
     )

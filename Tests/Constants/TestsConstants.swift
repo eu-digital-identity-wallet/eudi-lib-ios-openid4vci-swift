@@ -442,11 +442,17 @@ struct TestsConstants {
   }
 }
 
-final class TestSinger: AsyncSignerProtocol {
+final class TestSigner: AsyncSignerProtocol {
   let privateKey: SecKey
+  let jwk: JWK
   
-  init(privateKey: SecKey) {
+  init(privateKey: SecKey, jwk: JWK) {
     self.privateKey = privateKey
+    self.jwk = jwk
+  }
+
+  var publicKey: JWK {
+    return jwk
   }
   
   func signAsync(_ header: Data, _ payload: Data) async throws -> Data {
@@ -488,9 +494,15 @@ final class TestSinger: AsyncSignerProtocol {
 
 final class AsyncSigner: AsyncSignerProtocol {
   let signer: Signer
+  let jwk: JWK
   
-  init(signer: Signer) {
+  init(signer: Signer, jwk: JWK) {
     self.signer = signer
+    self.jwk = jwk
+  }
+
+  var publicKey: JWK {
+    return jwk
   }
   
   func signAsync(_ header: Data, _ payload: Data) async throws -> Data {
