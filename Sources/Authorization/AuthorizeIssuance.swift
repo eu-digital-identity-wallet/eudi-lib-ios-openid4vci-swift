@@ -317,13 +317,13 @@ private extension AuthorizeIssuance {
       )
 
       return AuthorizationRequested(
-            credentials: try credentialConfigurationIdentifiers.map {
-                try CredentialIdentifier(value: $0.value)
-            },
-            authorizationCodeURL: result.code,
-            pkceVerifier: result.verifier,
-            state: state,
-            configurationIds: credentialConfigurationIdentifiers
-        )
+        credentials: try credentialConfigurationIdentifiers.map {
+            try CredentialIdentifier(value: $0.value)
+        },
+        authorizationCodeURL: result.code,
+        pkceVerifier: result.verifier,
+        state: state,
+        configurationIds: credentialConfigurationIdentifiers
+      )
   }
 }
