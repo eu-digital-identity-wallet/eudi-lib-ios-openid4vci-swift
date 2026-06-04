@@ -59,6 +59,13 @@ public struct OpenId4VCIConfig: Sendable {
   /// Wallet's supported credential reuse policies
   public let supportedCredentialReusePolicies: SupportedCredentialReusePolicies
   
+  /// Policy defining which proof types the wallet supports.
+  /// Wallets should reject credentials that require plain JWT proofs without key attestation
+  /// for device-bound attestations.
+  ///
+  /// Default is `.acceptAll` for backward compatibility.
+  public let proofTypesPolicy: ProofTypesPolicy
+  
   /// Initializes an `OpenId4VCIConfig` instance with the given parameters.
   /// - Parameters:
   ///   - client: The client used for OpenID4VCI operations.
@@ -68,6 +75,7 @@ public struct OpenId4VCIConfig: Sendable {
   ///   - clientAttestationPoPBuilder: An optional client attestation PoP builder (default: `nil`).
   ///   - issuerMetadataPolicy: Policy defining how issuer metadata should be handled (default: `.ignoreSigned`).
   ///   - requireDpop: If dpop is supported then use it, otherwise always don't
+  ///   - proofTypesPolicy: Policy defining which proof types the wallet supports (default: `.acceptAll`).
   ///   - supportedCredentialReusePolicies: Wallet's supported credential reuse policies (default: `.notSupported`).
   public init(
     client: Client,
@@ -77,6 +85,7 @@ public struct OpenId4VCIConfig: Sendable {
     clientAttestationPoPBuilder: ClientAttestationPoPBuilder? = nil,
     issuerMetadataPolicy: IssuerMetadataPolicy = .ignoreSigned,
     supportedCompressionAlgorithms: [CompressionAlgorithm]? = nil,
+    proofTypesPolicy: ProofTypesPolicy = .acceptAll,
     requireDpop: Bool = true,
     supportedCredentialReusePolicies: SupportedCredentialReusePolicies = .notSupported
   ) {
@@ -89,5 +98,6 @@ public struct OpenId4VCIConfig: Sendable {
     self.supportedCompressionAlgorithms = supportedCompressionAlgorithms
     self.requireDpop = requireDpop
     self.supportedCredentialReusePolicies = supportedCredentialReusePolicies
+    self.proofTypesPolicy = proofTypesPolicy
   }
 }

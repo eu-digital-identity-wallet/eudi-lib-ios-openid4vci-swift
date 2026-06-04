@@ -36,15 +36,18 @@ public enum KeyAttestationRequirement: Codable, Sendable, Equatable {
   /// - Parameters:
   ///   - keyStorageConstraints: Constraints related to key storage.
   ///   - userAuthenticationConstraints: Constraints related to user authentication.
+  ///   - preferredKeyStorageStatusPeriod: Preferred remaining status maintenance period for KA in seconds.
   case required(
     keyStorageConstraints: [AttackPotentialResistance],
-    userAuthenticationConstraints: [AttackPotentialResistance]
+    userAuthenticationConstraints: [AttackPotentialResistance],
+    preferredKeyStorageStatusPeriod: Int?
   )
 
   /// Coding keys for encoding and decoding.
   private enum CodingKeys: String, CodingKey {
     case keyStorageConstraints = "key_storage"
     case userAuthenticationConstraints = "user_authentication"
+    case preferredKeyStorageStatusPeriod = "preferred_key_storage_status_period"
   }
 
   /// Initializes a `KeyAttestationRequirement` instance from a decoder.
@@ -59,9 +62,11 @@ public enum KeyAttestationRequirement: Codable, Sendable, Equatable {
       guard !keyStorageConstraints.isEmpty, !userAuthenticationConstraints.isEmpty else {
         throw KeyAttestationRequirementError.invalidConstraints
       }
+      let preferredKeyStorageStatusPeriod = try? container.decodeIfPresent(Int.self, forKey: .preferredKeyStorageStatusPeriod)
       self = .required(
         keyStorageConstraints: keyStorageConstraints,
-        userAuthenticationConstraints: userAuthenticationConstraints
+        userAuthenticationConstraints: userAuthenticationConstraints,
+        preferredKeyStorageStatusPeriod: preferredKeyStorageStatusPeriod
       )
     } else {
       self = .notRequired
@@ -78,9 +83,12 @@ public enum KeyAttestationRequirement: Codable, Sendable, Equatable {
     switch self {
     case .notRequired, .requiredNoConstraints:
       break
-    case .required(let keyStorageConstraints, let userAuthenticationConstraints):
+    case .required(let keyStorageConstraints, let userAuthenticationConstraints, let preferredKeyStorageStatusPeriod):
       try container.encode(keyStorageConstraints, forKey: .keyStorageConstraints)
       try container.encode(userAuthenticationConstraints, forKey: .userAuthenticationConstraints)
+      if let preferredKeyStorageStatusPeriod = preferredKeyStorageStatusPeriod {
+        try container.encode(preferredKeyStorageStatusPeriod, forKey: .preferredKeyStorageStatusPeriod)
+      }
     }
   }
 }
@@ -95,14 +103,16 @@ public extension KeyAttestationRequirement {
   /// - Throws: `KeyAttestationRequirementError.invalidConstraints` if constraints are empty.
   init(
     keyStorageConstraints: [AttackPotentialResistance] = [],
-    userAuthenticationConstraints: [AttackPotentialResistance] = []
+    userAuthenticationConstraints: [AttackPotentialResistance] = [],
+    preferredKeyStorageStatusPeriod: Int? = nil
   ) throws {
     guard !keyStorageConstraints.isEmpty, !userAuthenticationConstraints.isEmpty else {
       throw KeyAttestationRequirementError.invalidConstraints
     }
     self = .required(
       keyStorageConstraints: keyStorageConstraints,
-      userAuthenticationConstraints: userAuthenticationConstraints
+      userAuthenticationConstraints: userAuthenticationConstraints,
+      preferredKeyStorageStatusPeriod: preferredKeyStorageStatusPeriod
     )
   }
 
@@ -138,10 +148,13 @@ public extension KeyAttestationRequirement {
       self = .requiredNoConstraints
       return
     }
-    
+
+    let preferredKeyStorageStatusPeriod = json[CodingKeys.preferredKeyStorageStatusPeriod.rawValue].int
+
     try self.init(
       keyStorageConstraints: keyStorageConstraints,
-      userAuthenticationConstraints: userAuthenticationConstraints
+      userAuthenticationConstraints: userAuthenticationConstraints,
+      preferredKeyStorageStatusPeriod: preferredKeyStorageStatusPeriod
     )
   }
 }

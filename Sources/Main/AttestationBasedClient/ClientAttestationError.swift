@@ -17,6 +17,7 @@ import Foundation
 
 enum ClientAttestationError: Error, LocalizedError {
   case notSigned
+  case invalidAlgorithm(allowedAlgorithms:[String])
   case invalidPayload
   case invalidClientId
   case missingSubject
@@ -31,6 +32,9 @@ enum ClientAttestationError: Error, LocalizedError {
   var errorDescription: String? {
     switch self {
     case .notSigned: return "Invalid Attestation JWT. Not properly signed."
+    case .invalidAlgorithm(let allowed):
+      let list = allowed.sorted().joined(separator: ", ")
+      return "Invalid Attestation JWT. Signature algorithm must be one of: \(list)."
     case .invalidPayload: return "Invalid Attestation JWT. Cannot parse payload."
     case .missingSubject: return "Invalid Attestation JWT. Missing subject claim."
     case .missingCnfClaim: return "Invalid Attestation JWT. Missing cnf claim."

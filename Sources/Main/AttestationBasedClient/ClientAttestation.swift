@@ -21,11 +21,19 @@ public struct ClientAttestationJWT: Sendable {
   public let jws: JWS
   private let payload: JSON
   
+  private static let allowedAlgorithms: Set<SignatureAlgorithm> = [
+    .ES256, .ES384, .ES512
+  ]
+  
   public init(jws: JWS, validateCnf: Bool = true) throws {
     self.jws = jws
     
-    guard jws.header.algorithm != nil else {
+    guard let algorithm = jws.header.algorithm else {
       throw ClientAttestationError.notSigned
+    }
+    
+    guard Self.allowedAlgorithms.contains(algorithm) else {
+      throw ClientAttestationError.invalidAlgorithm(allowedAlgorithms: Self.allowedAlgorithms.map { $0.rawValue})
     }
     
     let payloadData = jws.payload.data()

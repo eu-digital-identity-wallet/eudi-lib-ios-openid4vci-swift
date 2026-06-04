@@ -30,6 +30,7 @@ public struct CredentialIssuerMetadata: Decodable, Equatable, Sendable {
   public let credentialIdentifiersSupported: Bool?
   public let display: [Display]
   public let batchCredentialIssuance: BatchCredentialIssuance?
+  public let preferredClientStatusPeriod: Int?
   
   public enum CodingKeys: String, CodingKey {
     case credentialIssuerIdentifier = "credential_issuer"
@@ -47,6 +48,7 @@ public struct CredentialIssuerMetadata: Decodable, Equatable, Sendable {
     case credentialRequestEncryption = "credential_request_encryption"
     case credentialIdentifiersSupported = "credential_identifiers_supported"
     case batchCredentialIssuance = "batch_credential_issuance"
+    case preferredClientStatusPeriod = "preferred_client_status_period"
   }
   
   public init(
@@ -61,7 +63,8 @@ public struct CredentialIssuerMetadata: Decodable, Equatable, Sendable {
     credentialConfigurationsSupported: [CredentialConfigurationIdentifier: CredentialSupported],
     display: [Display]?,
     credentialIdentifiersSupported: Bool? = nil,
-    batchCredentialIssuance: BatchCredentialIssuance? = nil
+    batchCredentialIssuance: BatchCredentialIssuance? = nil,
+    preferredClientStatusPeriod: Int? = nil
   ) {
     self.credentialIssuerIdentifier = credentialIssuerIdentifier
     self.authorizationServers = authorizationServers
@@ -79,6 +82,7 @@ public struct CredentialIssuerMetadata: Decodable, Equatable, Sendable {
     
     self.credentialIdentifiersSupported = credentialIdentifiersSupported
     self.batchCredentialIssuance = batchCredentialIssuance
+    self.preferredClientStatusPeriod = preferredClientStatusPeriod
   }
   
   public init(deferredCredentialEndpoint: CredentialIssuerEndpoint?) throws {
@@ -191,6 +195,11 @@ public struct CredentialIssuerMetadata: Decodable, Equatable, Sendable {
     batchCredentialIssuance = try? container.decodeIfPresent(
       BatchCredentialIssuance.self,
       forKey: .batchCredentialIssuance
+    )
+
+    preferredClientStatusPeriod = try? container.decodeIfPresent(
+      Int.self,
+      forKey: .preferredClientStatusPeriod
     )
   }
   
