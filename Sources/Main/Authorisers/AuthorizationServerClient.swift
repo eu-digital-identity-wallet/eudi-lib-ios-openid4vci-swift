@@ -923,14 +923,13 @@ private extension AuthorizationServerClient {
     }
     
     let (attestationJWT, signingKey) = provider(authServerId)
-    
-    
+
     let popJWT = try await clientAttestationPoPBuilder.buildAttestationPoPJWT(
       for: client,
       algorithm: spec.signingAlgorithm,
       clock: clock,
       authServerId: authServerId,
-      challenge: challenge?.value
+      challenge: challenge?.challenge.value
     )
 
     return ([

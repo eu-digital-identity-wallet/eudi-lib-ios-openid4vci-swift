@@ -16,7 +16,7 @@
 import Foundation
 
 public protocol ChallengeEndpointClientType: Sendable {
-  func getChallenge() async throws -> Nonce
+  func getChallenge() async throws -> (challenge: Nonce, dpopNonce: Nonce?)
 }
 
 public actor ChallengeEndpointClient: ChallengeEndpointClientType {
@@ -32,7 +32,7 @@ public actor ChallengeEndpointClient: ChallengeEndpointClientType {
     self.challengeEndpoint = challengeEndpoint
   }
   
-  public func getChallenge() async throws -> Nonce {
+  public func getChallenge() async throws -> (challenge: Nonce, dpopNonce: Nonce?) {
 
     var request = URLRequest(url: challengeEndpoint)
     request.httpMethod = HTTPMethod.POST.rawValue
@@ -43,7 +43,17 @@ public actor ChallengeEndpointClient: ChallengeEndpointClientType {
     
     switch result {
     case .success(let response):
-      return Nonce(value: response.body.attestationChallenge)
+      if let dPopNonce = response.headers.value(forCaseInsensitiveKey: Constants.DPOP_NONCE_HEADER) as? String {
+        return (
+          challenge: Nonce(value: response.body.attestationChallenge),
+          dpopNonce: Nonce(value: dPopNonce)
+        )
+      } else {
+        return (
+          challenge: Nonce(value: response.body.attestationChallenge),
+          dpopNonce: nil
+        )
+      }
     case .failure(let error):
       throw error
     }
