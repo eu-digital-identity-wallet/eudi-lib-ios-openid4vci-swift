@@ -82,7 +82,7 @@ public struct ChallengeResponse: Decodable {
   }
 }
 
-public struct WalletInstanceAttestation: Decodable {
+public struct WalletInstanceAttestation: Sendable, Decodable {
   public let walletInstanceAttestation: String
   
   public init(walletInstanceAttestation: String) {

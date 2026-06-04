@@ -94,7 +94,7 @@ let MDL_CredentialOffer = """
 let WALLET_DEV_CLIENT_ID = "wallet-dev"
 
 let clientConfig: OpenId4VCIConfig = .init(
-  client: .public(id: WALLET_DEV_CLIENT_ID),
+  client: publicClient,
   authFlowRedirectionURI: URL(string: "urn:ietf:wg:oauth:2.0:oob")!,
   authorizeIssuanceConfig: .favorScopes
 )
@@ -105,15 +105,38 @@ struct TestTrust: CertificateChainTrust {
   }
 }
 
+func testSigningKeyPair(alg: JWSAlgorithm) -> (public: JWK, private: SigningKeyProxy) {
+  let privateKey = try! KeyController.generateECDHPrivateKey()
+  let publicKey = try! KeyController.generateECDHPublicKey(from: privateKey)
+  
+  let publicKeyJWK = try! ECPublicKey(
+    publicKey: publicKey,
+    additionalParameters: [
+      "alg": alg.name,
+      "use": "enc",
+      "kid": UUID().uuidString
+    ])
+  return (publicKeyJWK, .secKey(privateKey))
+}
+
+let testingSigningKeyPair = testSigningKeyPair(alg: .init(.ES256))
+
+let publicClient: Client = .public(
+  id: WALLET_DEV_CLIENT_ID,
+  alg: .init(.ES256),
+  jwk: testingSigningKeyPair.public,
+  signingKey: testingSigningKeyPair.private
+)
+
 let preferSignedClientConfig: OpenId4VCIConfig = .init(
-  client: .public(id: WALLET_DEV_CLIENT_ID),
+  client: publicClient,
   authFlowRedirectionURI: URL(string: "urn:ietf:wg:oauth:2.0:oob")!,
   authorizeIssuanceConfig: .favorScopes,
   issuerMetadataPolicy: .preferSigned(issuerTrust: .byCertificateChain(certificateChainTrust: TestTrust()))
 )
 
 let requireSignedClientConfig: OpenId4VCIConfig = .init(
-  client: .public(id: WALLET_DEV_CLIENT_ID),
+  client: publicClient,
   authFlowRedirectionURI: URL(string: "urn:ietf:wg:oauth:2.0:oob")!,
   authorizeIssuanceConfig: .favorScopes,
   issuerMetadataPolicy: .requireSigned(issuerTrust: .byCertificateChain(certificateChainTrust: TestTrust()))

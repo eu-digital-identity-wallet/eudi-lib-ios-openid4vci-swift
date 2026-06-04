@@ -13,8 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import Foundation
-import JOSESwift
+@preconcurrency import Foundation
+@preconcurrency import JOSESwift
 
 @testable import OpenID4VCI
 
@@ -40,18 +40,29 @@ internal func jwkProviderSignedClient(
     ]
   )
   
+  @Sendable func getSignerFrom(authServer: URL) -> SigningKeyProxy {
+    .secKey(privateKey)
+  }
+  
   return try .attested(
-    attestationJWT: .init(
-      jws: .init(
-        compactSerialization: attestation.walletInstanceAttestation
-      )
-    ),
+    id: clientId,
+    alg: .init(.ES256),
+    jwk: publicKeyJWK,
     popJwtSpec: .init(
       signingAlgorithm: algorithm,
       duration: 300.0,
-      typ: "oauth-client-attestation-pop+jwt",
-      signingKey: .secKey(privateKey)
-    )
+      typ: "oauth-client-attestation-pop+jwt"
+    ),
+    clientAttestationProvider: { authServer in
+      return (
+        try! .init(
+          jws: .init(
+            compactSerialization: attestation.walletInstanceAttestation
+          )
+        ),
+        getSignerFrom(authServer: authServer)
+      )
+    }
   )
 }
 
@@ -80,19 +91,29 @@ internal func jwkSetProviderSignedClient(
     ]
   )
   
+  @Sendable func getSignerFrom(authServer: URL) -> SigningKeyProxy {
+    .secKey(privateKey)
+  }
+  
   return try .attested(
-    attestationJWT: .init(
-      jws: .init(
-        compactSerialization: attestation.walletUnitAttestation
-      ),
-      validateCnf: false
-    ),
+    id: clientId,
+    alg: .init(.ES256),
+    jwk: publicKeyJWK,
     popJwtSpec: .init(
       signingAlgorithm: algorithm,
       duration: 300.0,
-      typ: "oauth-client-attestation-pop+jwt",
-      signingKey: .secKey(privateKey)
-    )
+      typ: "oauth-client-attestation-pop+jwt"
+    ),
+    clientAttestationProvider: { authServer in
+      return (
+        try! .init(
+          jws: .init(
+            compactSerialization: attestation.walletUnitAttestation
+          )
+        ),
+        getSignerFrom(authServer: authServer)
+      )
+    }
   )
 }
 
@@ -117,6 +138,12 @@ internal func selfSignedClient(
     ]
   )
   
+  let jwk: ECPublicKey = try! ECPublicKey(
+    publicKey: try! KeyController.generateECDHPublicKey(
+      from: privateKey
+    )
+  )
+  
   let duration: TimeInterval = 300
   let now = Date().timeIntervalSince1970
   let exp = Date().addingTimeInterval(duration).timeIntervalSince1970
@@ -127,33 +154,43 @@ internal func selfSignedClient(
     "iat": now,
     "exp": exp,
     "cnf": [
-      "jwk": ECPublicKey(
-        publicKey: try! KeyController.generateECDHPublicKey(
-          from: privateKey
-        )
-      ).toDictionary()
+      "jwk": jwk.toDictionary()
     ]
   ].toThrowingJSONData())
   
-  let signer = Signer(
-    signatureAlgorithm: algorithm,
-    key: privateKey
-  )!
+
+  
+  @Sendable func getSignerFrom(authServer: URL) -> SigningKeyProxy {
+    .secKey(privateKey)
+  }
   
   return try .attested(
-    attestationJWT: .init(
-      jws: .init(
-        header: header,
-        payload: payload,
-        signer: signer
-      )
-    ),
+    id: clientId,
+    alg: .init(.ES256),
+    jwk: jwk,
     popJwtSpec: .init(
       signingAlgorithm: algorithm,
       duration: duration,
-      typ: "oauth-client-attestation-pop+jwt",
-      signingKey: .secKey(privateKey)
-    )
+      typ: "oauth-client-attestation-pop+jwt"
+    ),
+    clientAttestationProvider: { authServer in
+      let proxy = getSignerFrom(authServer: authServer)
+      let signer = Signer(
+        signatureAlgorithm: algorithm,
+        key: proxy
+      )!
+      
+      return (
+        try! .init(
+          jws: .init(
+            header: header,
+            payload: payload,
+            signer: signer
+          )
+        ),
+        proxy
+      )
+    }
   )
 }
 

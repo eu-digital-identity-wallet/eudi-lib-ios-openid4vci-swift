@@ -369,7 +369,7 @@ class VCIFlowWithOffer: XCTestCase {
     )
     
     let dPoPClientConfig: OpenId4VCIConfig = .init(
-      client: .public(id: WALLET_DEV_CLIENT_ID),
+      client: publicClient,
       authFlowRedirectionURI: URL(string: "urn:ietf:wg:oauth:2.0:oob")!,
       authorizeIssuanceConfig: .favorScopes
     )
@@ -420,7 +420,7 @@ class VCIFlowWithOffer: XCTestCase {
     )
     
     let dPoPClientConfig: OpenId4VCIConfig = .init(
-      client: .public(id: WALLET_DEV_CLIENT_ID),
+      client: publicClient,
       authFlowRedirectionURI: URL(string: "urn:ietf:wg:oauth:2.0:oob")!,
       authorizeIssuanceConfig: .favorScopes
     )
@@ -471,7 +471,7 @@ class VCIFlowWithOffer: XCTestCase {
     )
     
     let dPoPClientConfig: OpenId4VCIConfig = .init(
-      client: .public(id: WALLET_DEV_CLIENT_ID),
+      client: publicClient,
       authFlowRedirectionURI: URL(string: "urn:ietf:wg:oauth:2.0:oob")!,
       authorizeIssuanceConfig: .favorScopes
     )
