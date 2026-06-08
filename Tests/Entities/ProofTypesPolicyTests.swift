@@ -51,7 +51,7 @@ final class ProofTypesPolicyTests: XCTestCase {
     XCTAssertEqual(policy.supportedAlgorithms.first?.name, "ES256")
     XCTAssertTrue(policy.supportedProofTypes.contains(.jwtWithKeyAttestation))
     XCTAssertTrue(policy.supportedProofTypes.contains(.attestation))
-    XCTAssertFalse(policy.supportedProofTypes.contains(.jwtWithoutKeyAttestation))
+    XCTAssertEqual(policy.supportedProofTypes.count, 2)
   }
 
   func testDeviceBoundPolicyCreation() throws {

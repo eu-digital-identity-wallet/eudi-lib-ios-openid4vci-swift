@@ -66,10 +66,15 @@ public struct DeviceBoundProofPolicy: Sendable {
   }
 }
 
-/// Types of proofs for device-bound credentials.
+/// Types of proofs accepted for device-bound credentials.
+///
+/// Per the device-bound proof rule, only proofs that carry a key attestation
+/// are valid: either a JWT proof with `key_attestation` in its protected header,
+/// or an `attestation` proof. Plain JWT proofs (without key attestation) are
+/// intentionally not modeled here; permission to send them is controlled by
+/// `ProofTypesPolicy.flexible(_, allowNonDeviceBound:)`.
 public enum DeviceBoundProofType: String, Hashable, Sendable {
-  
-  case jwtWithoutKeyAttestation = "jwt_without_key_attestation"
+
   case jwtWithKeyAttestation = "jwt_with_key_attestation"
   case attestation = "attestation"
 }
@@ -129,7 +134,8 @@ public extension ProofTypesPolicy {
       try validateJwtProof(
         jwtProofMeta: jwtProofMeta,
         policy: policy,
-        bindingKey: bindingKey
+        bindingKey: bindingKey,
+        allowNonDeviceBound: allowNonDeviceBound
       )
     }
 
@@ -145,9 +151,10 @@ public extension ProofTypesPolicy {
   private func validateJwtProof(
     jwtProofMeta: ProofTypeSupportedMeta,
     policy: DeviceBoundProofPolicy,
-    bindingKey: BindingKey
+    bindingKey: BindingKey,
+    allowNonDeviceBound: Bool
   ) throws {
-    
+
     let hasMatchingAlgorithm = jwtProofMeta.algorithms.contains { issuerAlg in
       policy.supportedAlgorithms.contains { walletAlg in
         walletAlg.name == issuerAlg
@@ -158,24 +165,23 @@ public extension ProofTypesPolicy {
       throw CredentialIssuanceError.noMatchingAlgorithmForProofType
     }
 
-    // Determine if key attestation is required
     let keyAttestationRequired = jwtProofMeta.keyAttestationRequirement != nil &&
                                  jwtProofMeta.keyAttestationRequirement != .notRequired
 
     if keyAttestationRequired {
-      // Issuer requires key attestation - check if wallet policy supports it
       guard policy.supportedProofTypes.contains(.jwtWithKeyAttestation) else {
         throw CredentialIssuanceError.proofTypeNotSupportedByWalletPolicy
       }
 
-      // Check if the binding key is attestation-capable
       guard bindingKey.isAttestationCapable else {
         throw CredentialIssuanceError.bindingKeyNotAttestationCapable
       }
     } else {
-      // Issuer allows plain JWT without key attestation
-      // Check if wallet policy allows this
-      guard policy.supportedProofTypes.contains(.jwtWithoutKeyAttestation) else {
+      // Issuer's jwt proof type does not require key attestation: this is a
+      // non-device-bound JWT proof. Under strict device-bound policy it is
+      // always rejected; under flexible mode it is permitted only when the
+      // wallet has opted in via allowNonDeviceBound.
+      guard allowNonDeviceBound else {
         throw CredentialIssuanceError.proofTypeJwtWithoutKeyAttestationNotAllowedByPolicy
       }
     }
