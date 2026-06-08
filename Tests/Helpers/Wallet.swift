@@ -469,9 +469,9 @@ extension Wallet {
 }
 
 extension AuthorizationCode {
-    init(testValue: inout String) throws {
-        self = try AuthorizationCode(value: testValue)
-    }
+  init(testValue: inout String) throws {
+    self = try AuthorizationCode(value: testValue)
+  }
 }
 
 extension Wallet {
