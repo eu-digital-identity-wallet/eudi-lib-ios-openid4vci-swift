@@ -22,7 +22,7 @@ import JOSESwift
 class IssuanceDeferredRequestTest: XCTestCase {
   
   let config: OpenId4VCIConfig = .init(
-    client: .public(id: WALLET_DEV_CLIENT_ID),
+    client: publicClient,
     authFlowRedirectionURI: URL(string: "urn:ietf:wg:oauth:2.0:oob")!,
     authorizeIssuanceConfig: .favorScopes
   )

@@ -144,14 +144,14 @@ internal actor AuthorizeIssuance: AuthorizeIssuanceType {
             expiresIn,
             dPopNonce
           ) = try await authorizer.requestAccessTokenPreAuthFlow(
-          preAuthorizedCode: authorisation,
-          txCode: txCode,
-          client: client,
-          transactionCode: transactionCode,
-          identifiers: credConfigIdsAsAuthDetails,
-          dpopNonce: nil,
-          challenge: challenge,
-          maxRetries: Constants.MAX_RETRIES
+            preAuthorizedCode: authorisation,
+            txCode: txCode,
+            client: client,
+            transactionCode: transactionCode,
+            identifiers: credConfigIdsAsAuthDetails,
+            dpopNonce: challenge?.dpopNonce,
+            challenge: challenge?.challenge,
+            maxRetries: Constants.MAX_RETRIES
         )
         
           return AuthorizedRequest(
@@ -198,8 +198,8 @@ internal actor AuthorizeIssuance: AuthorizeIssuanceType {
       authorizationCode: authorizationCode,
       codeVerifier: request.pkceVerifier.codeVerifier,
       identifiers: credConfigIdsAsAuthDetails,
-      dpopNonce: request.dpopNonce,
-      challenge: challenge,
+      dpopNonce: challenge?.dpopNonce ?? request.dpopNonce,
+      challenge: challenge?.challenge,
       maxRetries: Constants.MAX_RETRIES
     )
     
@@ -283,8 +283,8 @@ private extension AuthorizeIssuance {
         state: state,
         issuerState: issuerState,
         resource: resource,
-        dpopNonce: nil,
-        challenge: challenge,
+        dpopNonce: challenge?.dpopNonce,
+        challenge: challenge?.challenge,
         maxRetries: Constants.MAX_RETRIES
       )
 
@@ -317,13 +317,13 @@ private extension AuthorizeIssuance {
       )
 
       return AuthorizationRequested(
-            credentials: try credentialConfigurationIdentifiers.map {
-                try CredentialIdentifier(value: $0.value)
-            },
-            authorizationCodeURL: result.code,
-            pkceVerifier: result.verifier,
-            state: state,
-            configurationIds: credentialConfigurationIdentifiers
-        )
+        credentials: try credentialConfigurationIdentifiers.map {
+            try CredentialIdentifier(value: $0.value)
+        },
+        authorizationCodeURL: result.code,
+        pkceVerifier: result.verifier,
+        state: state,
+        configurationIds: credentialConfigurationIdentifiers
+      )
   }
 }

@@ -89,19 +89,31 @@ public actor CredentialOfferRequestResolver {
         ).get() else {
           return .failure(ValidationError.error(reason: "Invalid credential metadata"))
         }
-        
-        guard let authorizationServer = credentialIssuerMetadata.authorizationServers?.first,
-              let authorizationServerMetadata = try? await authorizationServerMetadataResolver.resolve(url: authorizationServer).get() else {
+
+        let authServerHint = getAuthorizationServerFromGrants(credentialOfferRequestObject.grants)
+        let authorizationServerResult = selectAuthorizationServer(
+          hint: authServerHint,
+          availableServers: credentialIssuerMetadata.authorizationServers
+        )
+
+        guard case .success(let authorizationServer) = authorizationServerResult else {
+          if case .failure(let error) = authorizationServerResult {
+            return .failure(error)
+          }
           return .failure(ValidationError.error(reason: "Invalid authorization metadata"))
         }
-        
+
+        guard let authorizationServerMetadata = try? await authorizationServerMetadataResolver.resolve(url: authorizationServer).get() else {
+          return .failure(ValidationError.error(reason: "Invalid authorization metadata"))
+        }
+
         let domain = try toDomain(
           credentialOfferRequestObject: credentialOfferRequestObject,
           credentialIssuerMetadata: credentialIssuerMetadata,
           authorizationServerMetadata: authorizationServerMetadata
         )
         return .success(domain)
-        
+
       case .fetchByReference(let url):
         let result = await fetcher.fetch(url: url)
         let credentialOfferRequestObject = try? result.get()
@@ -113,12 +125,24 @@ public actor CredentialOfferRequestResolver {
           ).get() else {
             return .failure(ValidationError.error(reason: "Invalid credential metadata"))
           }
-          
-          guard let authorizationServer = credentialIssuerMetadata.authorizationServers?.first,
-                  let authorizationServerMetadata = try? await authorizationServerMetadataResolver.resolve(url: authorizationServer).get() else {
+
+          let authServerHint = getAuthorizationServerFromGrants(credentialOfferRequestObject.grants)
+          let authorizationServerResult = selectAuthorizationServer(
+            hint: authServerHint,
+            availableServers: credentialIssuerMetadata.authorizationServers
+          )
+
+          guard case .success(let authorizationServer) = authorizationServerResult else {
+            if case .failure(let error) = authorizationServerResult {
+              return .failure(error)
+            }
             return .failure(ValidationError.error(reason: "Invalid authorization metadata"))
           }
-          
+
+          guard let authorizationServerMetadata = try? await authorizationServerMetadataResolver.resolve(url: authorizationServer).get() else {
+            return .failure(ValidationError.error(reason: "Invalid authorization metadata"))
+          }
+
           let domain = try toDomain(
             credentialOfferRequestObject: credentialOfferRequestObject,
             credentialIssuerMetadata: credentialIssuerMetadata,
@@ -133,6 +157,57 @@ public actor CredentialOfferRequestResolver {
     }
   }
   
+  /// Extracts the authorization server URL from the grants if specified in the credential offer.
+  /// Checks both authorization code and pre-authorization code grants as per the specification.
+  private func getAuthorizationServerFromGrants(_ grants: GrantsDTO?) -> URL? {
+    guard let grants = grants else { return nil }
+
+    // Check authorization code grant first
+    if let authServer = grants.authorizationCode?.authorizationServer,
+       !authServer.isEmpty,
+       let url = URL(string: authServer) {
+      return url
+    }
+
+    // Check pre-authorization code grant
+    if let authServer = grants.preAuthorizationCode?.authorizationServer,
+       !authServer.isEmpty,
+       let url = URL(string: authServer) {
+      return url
+    }
+
+    return nil
+  }
+
+  /// Selects the authorization server based on the hint from the credential offer.
+  /// If a hint is provided, validates it against the available servers.
+  /// If no hint is provided, falls back to the first available server.
+  private func selectAuthorizationServer(
+    hint: URL?,
+    availableServers: [URL]?
+  ) -> Result<URL, Error> {
+    guard let availableServers = availableServers, !availableServers.isEmpty else {
+      return .failure(ValidationError.error(reason: "No authorization servers available"))
+    }
+
+    if let hint = hint {
+      if availableServers.contains(hint) {
+        return .success(hint)
+      } else {
+        return .failure(ValidationError.error(
+          reason: "Authorization server '\(hint.absoluteString)' from credential offer is not in the list of available authorization servers"
+        ))
+      }
+    }
+
+    if let first = availableServers.first {
+      return .success(first)
+    }
+    return .failure(ValidationError.error(
+      reason: "No available authorization servers"
+    ))
+  }
+
   func toDomain(
     credentialOfferRequestObject: CredentialOfferRequestObject,
     credentialIssuerMetadata: CredentialIssuerMetadata?,

@@ -40,14 +40,16 @@ public enum Grants: Sendable {
   public struct PreAuthorizedCode: Sendable {
     public let preAuthorizedCode: String?
     public let txCode: TxCode?
-    
+    public let authorizationServer: URL?
+
     public init(
       preAuthorizedCode: String?,
-
-      txCode: TxCode? = nil
+      txCode: TxCode? = nil,
+      authorizationServer: URL? = nil
     ) {
       self.preAuthorizedCode = preAuthorizedCode
       self.txCode = txCode
+      self.authorizationServer = authorizationServer
     }
   }
   
@@ -68,12 +70,13 @@ extension GrantsDTO {
        let preAuthorizationCode = preAuthorizationCode {
       return .both(
         try Grants.AuthorizationCode(
-          issuerState: authorizationCode.issuerState, 
+          issuerState: authorizationCode.issuerState,
           authorizationServer: URL(string: authorizationCode.authorizationServer ?? "")
         ),
         Grants.PreAuthorizedCode(
           preAuthorizedCode: preAuthorizationCode.preAuthorizedCode,
-          txCode: preAuthorizationCode.txCode
+          txCode: preAuthorizationCode.txCode,
+          authorizationServer: preAuthorizationCode.authorizationServer.flatMap { URL(string: $0) }
         )
       )
       
@@ -89,7 +92,8 @@ extension GrantsDTO {
       return .preAuthorizedCode(
         Grants.PreAuthorizedCode(
           preAuthorizedCode: preAuthorizationCode.preAuthorizedCode,
-          txCode: preAuthorizationCode.txCode
+          txCode: preAuthorizationCode.txCode,
+          authorizationServer: preAuthorizationCode.authorizationServer.flatMap { URL(string: $0) }
         )
       )
     }

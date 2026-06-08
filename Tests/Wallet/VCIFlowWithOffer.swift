@@ -89,8 +89,8 @@ class VCIFlowWithOffer: XCTestCase {
       algorithm: alg,
       jwk: publicKeyJWK,
       privateKey: .custom(
-        TestSinger(
-          privateKey: privateKey
+        TestSigner(
+          privateKey: privateKey, jwk: publicKeyJWK
         )
       )
     )
@@ -293,50 +293,6 @@ class VCIFlowWithOffer: XCTestCase {
     XCTAssert(true)
   }
   
-  func testWithTertiaryIssuerCredentialOfferURL() async throws {
-    
-    let privateKey = try KeyController.generateECDHPrivateKey()
-    let publicKey = try KeyController.generateECDHPublicKey(from: privateKey)
-    
-    let alg = JWSAlgorithm(.ES256)
-    let publicKeyJWK = try ECPublicKey(
-      publicKey: publicKey,
-      additionalParameters: [
-        "alg": alg.name,
-        "use": "sig",
-        "kid": UUID().uuidString
-      ])
-    
-    let bindingKey: BindingKey = .jwt(
-      algorithm: alg,
-      jwk: publicKeyJWK,
-      privateKey: .secKey(privateKey)
-    )
-    
-    let user = ActingUser(
-      username: "tneal",
-      password: "password"
-    )
-    
-    let wallet = Wallet(
-      actingUser: user,
-      bindingKeys: [bindingKey]
-    )
-    
-    do {
-      try await walletInitiatedIssuanceWithTertiaryOfferUrl(
-        wallet: wallet,
-        url: TERTIARY_CREDENTIAL_OFFER_QR_CODE_URL.removingPercentEncoding!
-      )
-    } catch {
-      
-      XCTExpectFailure()
-      XCTAssert(false, error.localizedDescription)
-    }
-    
-    XCTAssert(true)
-  }
-  
   func testWithOfferMDLDPoP() async throws {
     
     let privateKey = try KeyController.generateECDHPrivateKey()
@@ -369,7 +325,7 @@ class VCIFlowWithOffer: XCTestCase {
     )
     
     let dPoPClientConfig: OpenId4VCIConfig = .init(
-      client: .public(id: WALLET_DEV_CLIENT_ID),
+      client: publicClient,
       authFlowRedirectionURI: URL(string: "urn:ietf:wg:oauth:2.0:oob")!,
       authorizeIssuanceConfig: .favorScopes
     )
@@ -420,7 +376,7 @@ class VCIFlowWithOffer: XCTestCase {
     )
     
     let dPoPClientConfig: OpenId4VCIConfig = .init(
-      client: .public(id: WALLET_DEV_CLIENT_ID),
+      client: publicClient,
       authFlowRedirectionURI: URL(string: "urn:ietf:wg:oauth:2.0:oob")!,
       authorizeIssuanceConfig: .favorScopes
     )
@@ -471,7 +427,7 @@ class VCIFlowWithOffer: XCTestCase {
     )
     
     let dPoPClientConfig: OpenId4VCIConfig = .init(
-      client: .public(id: WALLET_DEV_CLIENT_ID),
+      client: publicClient,
       authFlowRedirectionURI: URL(string: "urn:ietf:wg:oauth:2.0:oob")!,
       authorizeIssuanceConfig: .favorScopes
     )

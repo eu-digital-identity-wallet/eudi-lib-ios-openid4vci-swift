@@ -149,7 +149,7 @@ final class KeyAttestationRequirementTests: XCTestCase {
     ]
 
     let requirement = try KeyAttestationRequirement(json: json)
-    XCTAssertEqual(requirement, .notRequired)
+    XCTAssertEqual(requirement, .requiredNoConstraints)
   }
 
   // MARK: - Preferred Key Storage Status Period Tests

@@ -329,12 +329,10 @@ Allows custom configuration supporting both device-bound and non-device-bound cr
 ## Features supported
 
 ### Authorization Endpoint
-Specification defines ([section 5.1.1](https://openid.github.io/OpenID4VCI/openid-4-verifiable-credential-issuance-wg-draft.html#section-5.1.1)) that a credential's issuance can be requested using authorization_details parameter when using authorization code flow.
-Current version of the library does not support that. It only supports requesting issuance using `scope` parameter in the authorization endpoint. 
+Specification defines ([section 5.1.1](https://openid.github.io/OpenID4VCI/openid-4-verifiable-credential-issuance-wg-draft.html#section-5.1.1)) that a credential's issuance can be requested using authorization_details parameter when using authorization code flow. 
 
 ### Token Endpoint
 Specification defines ([section 6.2](https://openid.github.io/OpenID4VCI/openid-4-verifiable-credential-issuance-wg-draft.html#section-6.2)) that upon a successful token response `authorization_details` is included in response,
-if `authorization_details` parameter is used in authorization endpoint. Current version of library is not parsing/utilizing this response attribute.
 
 ### Credential Request
 Current version of the library implements integrations with issuer's [Crednetial Endpoint](https://openid.github.io/OpenID4VCI/openid-4-verifiable-credential-issuance-wg-draft.html#name-credential-endpoint) and
@@ -477,7 +475,7 @@ Current version of the library does not support this.
 ### Authorization
 
 [Specification](https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0-14.html#name-using-authorization-details) defines that a credential's issuance
-can be requested using `authorization_details` or `scope` parameter when using authorization code flow. The current version of the library supports usage of both parameters.
+can be requested using `authorization_details` (`identifierBased`) or `scope`(`configurationBased`) parameter when using authorization code flow. The current version of the library supports usage of both parameters.
 Though for `authorization_details` we don't support the `format` attribute and its specializations per format.
 Only `credential_configuration_id` attribute is supported.
 

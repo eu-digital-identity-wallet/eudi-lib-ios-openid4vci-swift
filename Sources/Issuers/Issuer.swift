@@ -415,7 +415,7 @@ public actor Issuer: IssuerType {
   }
 }
 
-private extension Issuer {
+internal extension Issuer {
   
   private func requestIssuance(
     token: IssuanceAccessToken,
@@ -434,10 +434,10 @@ private extension Issuer {
         maxRetries: Constants.MAX_RETRIES,
         encryptionSpec: requestEncryptionSpec
       )
-        
-        return .success(
-            response: credentialIssuanceResponse
-          )
+      
+      return .success(
+        response: credentialIssuanceResponse
+      )
     }
   }
   
@@ -528,6 +528,11 @@ private extension Issuer {
       throw ValidationError.error(reason: "Invalid Supported credential for requestSingle")
     }
     
+    try Self.validateRequestPayload(
+      requestPayload: issuancePayload,
+      authorizationDetails: authorizedRequest.credentialIdentifiers ?? [:]
+    )
+    
     for bindingKey in bindingKeys {
       try config.proofTypesPolicy.validate(
         credentialConfiguration: supportedCredential,
@@ -591,12 +596,12 @@ private extension Issuer {
           issuerPolicy: supportedCredential.credentialReusePolicy,
           walletSupported: config.supportedCredentialReusePolicies
         )
-
+        
         let effectiveBatchSize = CredentialReusePolicyValidator.determineBatchSize(
           selectedPolicy: selectedPolicy,
           issuerBatchSize: batchCredentialIssuance?.batchSize
         )
-
+        
         if let batchSize = effectiveBatchSize,
            proofs.count > batchSize {
           throw ValidationError.issuerBatchSizeLimitExceeded(batchSize)
@@ -678,6 +683,43 @@ private extension Issuer {
       return .proofRequiredWithoutCNonce
     }
     return .proofRequiredWithCNonce
+  }
+  
+  static func validateRequestPayload(
+    requestPayload: IssuanceRequestPayload,
+    authorizationDetails: [CredentialConfigurationIdentifier: [CredentialIdentifier]]
+  ) throws {
+    
+    if !authorizationDetails.isEmpty {
+      let authorizedIdentifiers =
+      authorizationDetails[requestPayload.credentialConfigurationIdentifier]
+      
+      guard let authorizedIdentifiers, !authorizedIdentifiers.isEmpty else {
+        throw ValidationError.error(
+          reason: "No credential identifiers authorized for \(requestPayload.credentialConfigurationIdentifier)"
+        )
+      }
+      
+      guard case let .identifierBased(_, credentialIdentifier) = requestPayload else {
+        throw ValidationError.error(
+          reason: "Authorization details of type `openid_credential` require usage of credential identifiers in the credential request"
+        )
+      }
+      
+      guard authorizedIdentifiers.contains(credentialIdentifier) else {
+        throw ValidationError.error(
+          reason: "Credential identifier \(credentialIdentifier.value) is not among the authorized identifiers: \(authorizedIdentifiers)"
+        )
+      }
+      
+    } else {
+      
+      guard case .configurationBased = requestPayload else {
+        throw ValidationError.error(
+          reason: "Issuance request payload must be of type configurationBased when no credential identifiers are authorized"
+        )
+      }
+    }
   }
 }
 
@@ -866,17 +908,17 @@ public extension Issuer {
     dPopNonce: Nonce?
   ) async throws -> AuthorizedRequest {
     if let refreshToken = authorizedRequest.refreshToken {
-        let (accessToken, refreshToken, _, _, timeStamp, _) = try await authorizer.refreshAccessToken(
-          client: client,
-          refreshToken: refreshToken,
-          dpopNonce: dPopNonce,
-          maxRetries: Constants.MAX_RETRIES
-        )
-          return authorizedRequest.replacing(
-            accessToken: accessToken,
-			refreshToken: refreshToken,
-            timeStamp: timeStamp?.asTimeInterval ?? .zero
-          )
+      let (accessToken, refreshToken, _, _, timeStamp, _) = try await authorizer.refreshAccessToken(
+        client: client,
+        refreshToken: refreshToken,
+        dpopNonce: dPopNonce,
+        maxRetries: Constants.MAX_RETRIES
+      )
+      return authorizedRequest.replacing(
+        accessToken: accessToken,
+        refreshToken: refreshToken,
+        timeStamp: timeStamp?.asTimeInterval ?? .zero
+      )
     }
     return authorizedRequest
   }

@@ -131,28 +131,32 @@ public struct Poster: PostingType {
             )
           )
         } else {
-          let object = try JSONDecoder().decode(GenericErrorResponse.self, from: data)
-          if object.error == Constants.USE_DPOP_NONCE,
-            let dPopNonce = headers.value(forCaseInsensitiveKey: Constants.DPOP_NONCE_HEADER) as? String {
-            return .failure(
+          do {
+            let object = try JSONDecoder().decode(GenericErrorResponse.self, from: data)
+            if object.error == Constants.USE_DPOP_NONCE,
+               let dPopNonce = headers.value(forCaseInsensitiveKey: Constants.DPOP_NONCE_HEADER) as? String {
+              return .failure(
                 PostError.useDpopNonce(
-                .init(
-                  value: dPopNonce
+                  .init(
+                    value: dPopNonce
+                  )
                 )
               )
-            )
-          } else if object.error == Constants.USE_ATTESTATION_CHALLENGE,
-            let attestationNonce = headers.value(forCaseInsensitiveKey: Constants.OAUTH_CLIENT_ATTESTATION_CHALLENGE) as? String {
-            return .failure(
-              PostError.useAttestationNonce(
-                .init(
-                  value: attestationNonce
+            } else if object.error == Constants.USE_ATTESTATION_CHALLENGE,
+                      let attestationNonce = headers.value(forCaseInsensitiveKey: Constants.OAUTH_CLIENT_ATTESTATION_CHALLENGE) as? String {
+              return .failure(
+                PostError.useAttestationNonce(
+                  .init(
+                    value: attestationNonce
+                  )
                 )
               )
-            )
+            }
+            
+            return .failure(object.toIssuanceError(statusCode))
+          } catch {
+            return .failure(PostError.requestError(statusCode, error))
           }
-          
-          return .failure(object.toIssuanceError(statusCode))
         }
         
       } else if statusCode >= HTTPStatusCode.internalServerError {

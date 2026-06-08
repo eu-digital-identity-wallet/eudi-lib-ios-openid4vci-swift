@@ -27,6 +27,7 @@ let EHIC_JwsCompact_config_id = "urn:eudi:ehic:1:dc+sd-jwt-compact"
 let PID_SdJwtVC_config_id_deferred = "eu.europa.ec.eudi.pid_vc_sd_jwt_deferred"
 let EHIC_SdJwtVC_config_id_deferred = "urn:eudi:ehic:1:dc+sd-jwt-compact"
 let EHIC_JwsJson_config_id = "urn:eudi:ehic:1:dc+sd-jwt-jws-json"
+let EHIC_JwtCompact_config_id = "urn:eudi:ehic:1:dc+sd-jwt-compact"
 
 //let CREDENTIAL_ISSUER_PUBLIC_URL = "https://ec.dev.issuer.eudiw.dev"
 //let PID_SdJwtVC_config_id = "eu.europa.ec.eudi.pid_vc_sd_jwt"
@@ -39,15 +40,11 @@ let EHIC_JwsJson_config_id = "urn:eudi:ehic:1:dc+sd-jwt-jws-json"
 // let PID_mDL_SCOPE = "eu.europa.ec.eudi.mdl_mdoc"
 
 let CREDENTIAL_OFFER_QR_CODE_URL = """
-eudi-openid4ci://credentialsOffer?credential_offer=%7B%22credential_issuer%22:%22https://dev.issuer-backend.eudiw.dev%22,%22credential_configuration_ids%22:[%22eu.europa.ec.eudi.pid_mso_mdoc%22,%22eu.europa.ec.eudi.pid_vc_sd_jwt%22,%22org.iso.18013.5.1.mDL%22],%22grants%22:%7B%22authorization_code%22:%7B%22authorization_server%22:%22https://dev.auth.eudiw.dev/realms/pid-issuer-realm%22%7D%7D%7D
+eudi-openid4ci://credentialsOffer?credential_offer=%7B%22credential_issuer%22:%22https://dev.issuer-backend.eudiw.dev%22,%22credential_configuration_ids%22:[%22eu.europa.ec.eudi.pid_mso_mdoc%22,%22eu.europa.ec.eudi.pid_vc_sd_jwt%22,%22org.iso.18013.5.1.mDL%22],%22grants%22:%7B%22authorization_code%22:%7B%22authorization_server%22:%22https://dev.authenticate.eudiw.dev/realms/pid-issuer-realm%22%7D%7D%7D
 """
 
 let SECONDARY_CREDENTIAL_OFFER_QR_CODE_URL = """
 eudi-openid4ci://credentialsOffer?credential_offer=%7B%22credential_issuer%22:%22https://dev.issuer.eudiw.dev%22,%22credential_configuration_ids%22:[%22eu.europa.ec.eudi.pid_mdoc%22,%22eu.europa.ec.eudi.pid_jwt_vc_json%22,%22eu.europa.ec.eudi.mdl_mdoc%22],%22grants%22:%7B%22authorization_code%22:%7B%22authorization_server%22:%22https://dev.auth.eudiw.dev/realms/pid-issuer-realm%22%7D%7D%7D
-"""
-
-let TERTIARY_CREDENTIAL_OFFER_QR_CODE_URL = """
-urn:ietf:wg:oauth:2.0:oob?credential_offer=%7B%22credential_issuer%22%3A%22https%3A%2F%2Fdemo-issuer.wwwallet.org%22%2C%22credential_configuration_ids%22%3A%5B%22urn%3Aeudi%3Aehic%3A1%22%5D%2C%22grants%22%3A%7B%22authorization_code%22%3A%7B%7D%7D%7D
 """
 
 let All_Supported_CredentialOffer = """
@@ -93,7 +90,7 @@ let MDL_CredentialOffer = """
 let WALLET_DEV_CLIENT_ID = "wallet-dev"
 
 let clientConfig: OpenId4VCIConfig = .init(
-  client: .public(id: WALLET_DEV_CLIENT_ID),
+  client: publicClient,
   authFlowRedirectionURI: URL(string: "urn:ietf:wg:oauth:2.0:oob")!,
   authorizeIssuanceConfig: .favorScopes
 )
@@ -104,15 +101,38 @@ struct TestTrust: CertificateChainTrust {
   }
 }
 
+func testSigningKeyPair(alg: JWSAlgorithm) -> (public: JWK, private: SigningKeyProxy) {
+  let privateKey = try! KeyController.generateECDHPrivateKey()
+  let publicKey = try! KeyController.generateECDHPublicKey(from: privateKey)
+  
+  let publicKeyJWK = try! ECPublicKey(
+    publicKey: publicKey,
+    additionalParameters: [
+      "alg": alg.name,
+      "use": "enc",
+      "kid": UUID().uuidString
+    ])
+  return (publicKeyJWK, .secKey(privateKey))
+}
+
+let testingSigningKeyPair = testSigningKeyPair(alg: .init(.ES256))
+
+let publicClient: Client = .public(
+  id: WALLET_DEV_CLIENT_ID,
+  alg: .init(.ES256),
+  jwk: testingSigningKeyPair.public,
+  signingKey: testingSigningKeyPair.private
+)
+
 let preferSignedClientConfig: OpenId4VCIConfig = .init(
-  client: .public(id: WALLET_DEV_CLIENT_ID),
+  client: publicClient,
   authFlowRedirectionURI: URL(string: "urn:ietf:wg:oauth:2.0:oob")!,
   authorizeIssuanceConfig: .favorScopes,
   issuerMetadataPolicy: .preferSigned(issuerTrust: .byCertificateChain(certificateChainTrust: TestTrust()))
 )
 
 let requireSignedClientConfig: OpenId4VCIConfig = .init(
-  client: .public(id: WALLET_DEV_CLIENT_ID),
+  client: publicClient,
   authFlowRedirectionURI: URL(string: "urn:ietf:wg:oauth:2.0:oob")!,
   authorizeIssuanceConfig: .favorScopes,
   issuerMetadataPolicy: .requireSigned(issuerTrust: .byCertificateChain(certificateChainTrust: TestTrust()))
@@ -441,11 +461,17 @@ struct TestsConstants {
   }
 }
 
-final class TestSinger: AsyncSignerProtocol {
+final class TestSigner: AsyncSignerProtocol {
   let privateKey: SecKey
+  let jwk: JWK
   
-  init(privateKey: SecKey) {
+  init(privateKey: SecKey, jwk: JWK) {
     self.privateKey = privateKey
+    self.jwk = jwk
+  }
+
+  var publicKey: JWK {
+    return jwk
   }
   
   func signAsync(_ header: Data, _ payload: Data) async throws -> Data {
@@ -487,9 +513,15 @@ final class TestSinger: AsyncSignerProtocol {
 
 final class AsyncSigner: AsyncSignerProtocol {
   let signer: Signer
+  let jwk: JWK
   
-  init(signer: Signer) {
+  init(signer: Signer, jwk: JWK) {
     self.signer = signer
+    self.jwk = jwk
+  }
+
+  var publicKey: JWK {
+    return jwk
   }
   
   func signAsync(_ header: Data, _ payload: Data) async throws -> Data {

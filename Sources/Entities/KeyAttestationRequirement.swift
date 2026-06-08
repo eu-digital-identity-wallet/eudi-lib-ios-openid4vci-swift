@@ -125,6 +125,10 @@ public extension KeyAttestationRequirement {
       self = .notRequired
       return
     }
+	  if json == JSON.null {
+		  self = .notRequired
+		return
+  	}
 
     guard
       let keyStorageConstraints: [AttackPotentialResistance] = json[CodingKeys.keyStorageConstraints.rawValue].arrayObject?.compactMap({
@@ -136,12 +140,12 @@ public extension KeyAttestationRequirement {
         return AttackPotentialResistance(rawValue: potential)
       })
     else {
-      self = .notRequired
+      self = .requiredNoConstraints
       return
     }
 
     if keyStorageConstraints.isEmpty && userAuthenticationConstraints.isEmpty {
-      self = .notRequired
+      self = .requiredNoConstraints
       return
     }
 

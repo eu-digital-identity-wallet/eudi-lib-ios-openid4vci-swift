@@ -31,6 +31,6 @@ final class ChallengeEndpointClientTests: XCTestCase {
     let sut = ChallengeEndpointClient(poster: poster, challengeEndpoint: endpoint)
     
     let nonce = try await sut.getChallenge()
-      XCTAssertEqual(nonce.value, "my.attestation.challenge")
+    XCTAssertEqual(nonce.challenge.value, "my.attestation.challenge")
   }
 }

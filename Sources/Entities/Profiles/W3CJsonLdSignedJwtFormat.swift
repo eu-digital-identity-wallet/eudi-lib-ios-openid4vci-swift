@@ -216,9 +216,11 @@ public extension W3CJsonLdSignedJwtFormat {
         if let types = values as? [String: Any],
            let algorithms = types["proof_signing_alg_values_supported"] as? [String] {
           let requirement = types["key_attestations_required"]
+          // if requirement is NSNull or nil, it will be treated as not required
+          let requirementJSON = if let requirement { JSON(requirement) } else { JSON.null }
           return .init(
             algorithms: algorithms,
-            keyAttestationRequirement: try? .init(json: JSON(requirement ?? [:]))
+            keyAttestationRequirement: try? .init(json: requirementJSON)
           )
         }
         return nil
