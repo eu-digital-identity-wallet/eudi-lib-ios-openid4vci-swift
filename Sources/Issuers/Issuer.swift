@@ -90,12 +90,12 @@ public protocol IssuerType: Sendable {
   ///
   /// - Parameters:
   ///   - authorizedRequest: The authorized request linked to the notification.
-  ///   - notificationId: The ID of the notification.
+  ///   - notification: The notification object to send.
   ///   - dPopNonce: An optional nonce for DPoP security.
   /// - Returns: A result containing either `Void` if successful or an `Error` otherwise.
   func notify(
     authorizedRequest: AuthorizedRequest,
-    notificationId: NotificationObject,
+    notification: NotificationObject,
     dPopNonce: Nonce?
   ) async throws
   
@@ -856,12 +856,12 @@ public extension Issuer {
   
   func notify(
     authorizedRequest: AuthorizedRequest,
-    notificationId: NotificationObject,
+    notification: NotificationObject,
     dPopNonce: Nonce?
   ) async throws {
     try await notifyIssuer.notify(
       authorizedRequest: authorizedRequest,
-      notification: notificationId,
+      notification: notification,
       dPopNonce: dPopNonce
     )
   }
