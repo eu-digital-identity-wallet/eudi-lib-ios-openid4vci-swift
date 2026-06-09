@@ -245,8 +245,107 @@ class KeyAttestationTests: XCTestCase {
         key: data.privateKey
       )!
     ))
-    
+
     XCTAssert(true)
+  }
+
+  // Regression (Bug#2): a jwt key-attestation proof header must carry an inline
+  // `jwk` and must not use a `kid` (= keyIndex) that a verifier cannot resolve.
+  // Before the fix (v0.38.x / v0.39.0) this test fails (kid present, jwk absent).
+  func testJwtKeyAttestationProofHeaderHasInlineJwkNotKid() async throws {
+    let configId = try CredentialConfigurationIdentifier(value: "eu.europa.ec.eudiw.pid_vc_sd_jwt")
+    let spec = try XCTUnwrap(
+      data.offer.credentialIssuerMetadata.credentialsSupported[configId]
+    )
+    let requester = IssuanceRequester(
+      issuerMetadata: data.offer.credentialIssuerMetadata,
+      poster: Poster(
+        session: NetworkingMock(
+          path: "batch_credential_issuance_success_response_credentials",
+          extension: "json"
+        )
+      )
+    )
+    let keyAttestation = try KeyAttestationJWT(
+      jws: try JWS(compactSerialization: TestsConstants.ketAttestationJWT)
+    )
+
+    let bindingKey: BindingKey = try .jwtKeyAttestation(
+      algorithm: .init(.ES256),
+      keyAttestationJWT: { _ in keyAttestation },
+      keyIndex: 0,
+      privateKey: .secKey(data.privateKey)
+    )
+
+    let proof = try await bindingKey.toSupportedProof(
+      issuanceRequester: requester,
+      credentialSpec: spec,
+      keyAttestationJwt: keyAttestation,
+      cNonce: "test-nonce",
+      omitIss: false
+    )
+
+    let header = try Self.decodeJWTHeader(proof.proof)
+    XCTAssertNotNil(header["jwk"], "jwt key attestation proof header must carry inline jwk")
+    XCTAssertNil(header["kid"], "jwt key attestation proof header must not use kid (unresolvable at verifier)")
+  }
+
+  // Regression (Bug#1): when an attestation proof is sent to an issuer that
+  // advertises only the `attestation` proof type, the algorithms are validated
+  // against the `attestation` advertised algs. Before the fix they were looked
+  // up with `for: .jwt`, always failing with "Issuer did not advertise any
+  // algorithms for JWT proofs".
+  func testAttestationProofValidatedAgainstAttestationAlgsNotJwt() async throws {
+    let offerOptional = await TestsConstants.createMockCredentialOfferAttestationOnly()
+    let offer = try XCTUnwrap(offerOptional)
+    let spec = data.spec
+    let issuer = try Issuer(
+      authorizationServerMetadata: offer.authorizationServerMetadata,
+      issuerMetadata: offer.credentialIssuerMetadata,
+      config: config,
+      parPoster: Poster(session: NetworkingMock(path: "pushed_authorization_request_response", extension: "json")),
+      tokenPoster: Poster(session: NetworkingMock(path: "access_token_request_response_no_proof", extension: "json")),
+      requesterPoster: Poster(session: NetworkingMock(path: "batch_credential_issuance_success_response_credentials", extension: "json")),
+      noncePoster: Poster(session: NetworkingMock(path: "mock_cnonce_endpoint_response", extension: "json")),
+      dpopConstructor: dpopConstructor(algorithms: offer.authorizationServerMetadata.dpopSigningAlgValuesSupported)
+    )
+
+    let authorized = try await issuer.authorizeWithAuthorizationCode(
+      serverState: TestsConstants.unAuthorizedRequest.state,
+      request: TestsConstants.unAuthorizedRequest,
+      authorizationCode: try AuthorizationCode(value: "MZqG9bsQ8UALhsGNlY39Yw=="),
+      grant: offer.grants!
+    )
+
+    let keyBindingKey: BindingKey = .attestation(
+      keyAttestationJWT: { _ in
+        try! .init(jws: try! .init(compactSerialization: TestsConstants.ketAttestationJWT))
+      }
+    )
+    let payload: IssuanceRequestPayload = .configurationBased(
+      credentialConfigurationIdentifier: try .init(value: "eu.europa.ec.eudiw.pid_vc_sd_jwt")
+    )
+
+    do {
+      _ = try await issuer.requestCredential(
+        request: authorized,
+        bindingKeys: [keyBindingKey],
+        requestPayload: payload,
+        responseEncryptionSpecProvider: { _ in spec }
+      )
+    } catch {
+      XCTFail("attestation proof was rejected by an attestation-only issuer (Bug#1): \(error.localizedDescription)")
+    }
+  }
+
+  private static func decodeJWTHeader(_ jwt: String) throws -> [String: Any] {
+    let segment = String(jwt.split(separator: ".").first ?? "")
+    var base64 = segment
+      .replacingOccurrences(of: "-", with: "+")
+      .replacingOccurrences(of: "_", with: "/")
+    while base64.count % 4 != 0 { base64 += "=" }
+    let bytes = try XCTUnwrap(Data(base64Encoded: base64))
+    return try XCTUnwrap(JSONSerialization.jsonObject(with: bytes) as? [String: Any])
   }
 }
 
