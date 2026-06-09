@@ -369,7 +369,15 @@ interactions use the newly provided DPoP Nonce value.
 
 ### OAUTH2 Attestation-Based Client Authentication
 
-Library supports [OAUTH2 Attestation-Based Client Authentication - Draft 03](https://www.ietf.org/archive/id/draft-ietf-oauth-attestation-based-client-auth-03.html)
+Library supports [OAUTH2 Attestation-Based Client Authentication - Draft 03](https://www.ietf.org/archive/id/draft-ietf-oauth-attestation-based-client-auth-03.html).
+
+When a `Client.attested(...)` is used, the provided `ClientAttestationJWT` is eagerly validated as a **Wallet Instance Attestation per [TS3 v1.5 §2.3](https://github.com/eu-digital-identity-wallet/eudi-doc-standards-and-technical-specifications/blob/main/docs/technical-specifications/ts3-wallet-unit-attestation.md#23-content)**. The JWT must:
+
+- be signed with `ES256`, `ES384`, or `ES512`
+- carry header `typ` of `oauth-client-attestation+jwt` (when set)
+- contain the required claims: `iss`, `sub`, `exp`, `cnf.jwk` (public key), `wallet_name`, `wallet_version`, `wallet_solution_certification_information`, and `client_status` (with nested `status_list` reference and `exp`)
+
+Parsed values are available via the typed `attestation.claimsSet` (e.g. `attestation.claimsSet.walletName.value`, `attestation.publicKey`). Wallet Provider back-ends MUST issue WIAs that include every required claim, otherwise construction fails with a specific `ClientAttestationError` naming the missing or invalid claim.
 
 An example can be found in this test: `testNoOfferSdJWTClientAuthentication()`
 

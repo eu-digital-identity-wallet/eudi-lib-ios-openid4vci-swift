@@ -39,11 +39,16 @@ internal func jwkProviderSignedClient(
       "jwk": publicKeyJWK.toDictionary()
     ]
   )
-  
+
+  // Pre-validate the WIA here so TS3 parsing failures surface as throws.
+  let attestationJWT = try ClientAttestationJWT(
+    jws: JWS(compactSerialization: attestation.walletInstanceAttestation)
+  )
+
   @Sendable func getSignerFrom(authServer: URL) -> SigningKeyProxy {
     .secKey(privateKey)
   }
-  
+
   return try .attested(
     id: clientId,
     alg: .init(.ES256),
@@ -54,14 +59,7 @@ internal func jwkProviderSignedClient(
       typ: "oauth-client-attestation-pop+jwt"
     ),
     clientAttestationProvider: { authServer in
-      return (
-        try! .init(
-          jws: .init(
-            compactSerialization: attestation.walletInstanceAttestation
-          )
-        ),
-        getSignerFrom(authServer: authServer)
-      )
+      (attestationJWT, getSignerFrom(authServer: authServer))
     }
   )
 }
@@ -90,11 +88,16 @@ internal func jwkSetProviderSignedClient(
       ]
     ]
   )
-  
+
+  // Pre-validate the WIA here so TS3 parsing failures surface as throws,
+  let attestationJWT = try ClientAttestationJWT(
+    jws: JWS(compactSerialization: attestation.walletUnitAttestation)
+  )
+
   @Sendable func getSignerFrom(authServer: URL) -> SigningKeyProxy {
     .secKey(privateKey)
   }
-  
+
   return try .attested(
     id: clientId,
     alg: .init(.ES256),
@@ -105,14 +108,7 @@ internal func jwkSetProviderSignedClient(
       typ: "oauth-client-attestation-pop+jwt"
     ),
     clientAttestationProvider: { authServer in
-      return (
-        try! .init(
-          jws: .init(
-            compactSerialization: attestation.walletUnitAttestation
-          )
-        ),
-        getSignerFrom(authServer: authServer)
-      )
+      (attestationJWT, getSignerFrom(authServer: authServer))
     }
   )
 }
@@ -155,6 +151,21 @@ internal func selfSignedClient(
     "exp": exp,
     "cnf": [
       "jwk": jwk.toDictionary()
+    ],
+    "wallet_name": "Test Wallet Solution",
+    "wallet_version": "1.0.0",
+    "wallet_solution_certification_information": [
+      "certification_body": "Test CAB",
+      "certification_number": "TEST-CERT-001"
+    ],
+    "client_status": [
+      "status": [
+        "status_list": [
+          "idx": 0,
+          "uri": "https://wallet-provider.example.org/status-lists/clients/1"
+        ]
+      ],
+      "exp": Date().addingTimeInterval(7 * 24 * 3600).timeIntervalSince1970
     ]
   ].toThrowingJSONData())
   
