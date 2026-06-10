@@ -26,6 +26,15 @@ package extension ResponseWithHeaders {
     }
     return nil
   }
+
+  /// Extracts a fresh attestation challenge from the
+  /// `OAuth-Client-Attestation-Challenge` response header
+  func attestationChallenge() -> Nonce? {
+    if let value = headers.value(forCaseInsensitiveKey: Constants.OAUTH_CLIENT_ATTESTATION_CHALLENGE) as? String {
+      return Nonce(value: value)
+    }
+    return nil
+  }
 }
 
 /// A protocol defining the interface for an authorization server client.
@@ -378,7 +387,11 @@ internal actor AuthorizationServerClient: AuthorizationServerClientType {
         request: authRequest,
         headers: clientAttestationHeaders + tokenHeaders
       )
-      
+
+      if let freshChallenge = response.attestationChallenge() {
+        await challenger?.setChallenge(freshChallenge)
+      }
+
       switch response.body {
       case .success(let requestURI, _):
         let verifier = try PKCEVerifier(
@@ -488,7 +501,11 @@ internal actor AuthorizationServerClient: AuthorizationServerClientType {
         headers: clientAttestationHeaders + tokenHeaders,
         parameters: parameters.toDictionary().convertToDictionaryOfStrings()
       )
-      
+
+      if let freshChallenge = response.attestationChallenge() {
+        await challenger?.setChallenge(freshChallenge)
+      }
+
       switch response.body {
       case .success(let tokenType, let accessToken, let refreshToken, let refreshTokenExpiresIn, let expiresIn, _, let identifiers):
         return (
@@ -587,7 +604,11 @@ internal actor AuthorizationServerClient: AuthorizationServerClientType {
         ),
         parameters: parameters.toDictionary().convertToDictionaryOfStrings()
       )
-      
+
+      if let freshChallenge = response.attestationChallenge() {
+        await challenger?.setChallenge(freshChallenge)
+      }
+
       switch response.body {
       case .success(
         let tokenType,
@@ -670,6 +691,10 @@ internal actor AuthorizationServerClient: AuthorizationServerClientType {
         parameters: parameters.toDictionary().convertToDictionaryOfStrings()
       )
       
+      if let freshChallenge = response.attestationChallenge() {
+        await challenger?.setChallenge(freshChallenge)
+      }
+
       switch response.body {
       case .success(
         let tokenType,
@@ -714,6 +739,18 @@ internal actor AuthorizationServerClient: AuthorizationServerClientType {
         client: client,
         refreshToken: refreshToken,
         dpopNonce: nonce,
+        maxRetries: maxRetries - 1
+      )
+    } catch PostError.useAttestationNonce(let challenge) {
+      guard maxRetries > 0 else {
+        throw ValidationError.retryFailedAfterDpopNonce
+      }
+
+      await challenger?.setChallenge(challenge)
+      return try await refreshAccessToken(
+        client: client,
+        refreshToken: refreshToken,
+        dpopNonce: dpopNonce,
         maxRetries: maxRetries - 1
       )
     }
@@ -768,6 +805,10 @@ internal actor AuthorizationServerClient: AuthorizationServerClientType {
           parameters: parameters.toDictionary().convertToDictionaryOfStrings()
         )
         
+        if let freshChallenge = response.attestationChallenge() {
+          await challenger?.setChallenge(freshChallenge)
+        }
+
         switch response.body {
         case .success(
           let tokenType,
