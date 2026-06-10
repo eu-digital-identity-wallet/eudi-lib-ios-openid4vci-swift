@@ -16,13 +16,20 @@
 import Foundation
 
 public protocol ChallengeEndpointClientType: Sendable {
+
   func getChallenge() async throws -> (challenge: Nonce, dpopNonce: Nonce?)
+
+  /// Stores a challenge that the authorization server provided through the
+  /// `OAuth-Client-Attestation-Challenge` HTTP response header on a previous
+  /// response.
+  func setChallenge(_ challenge: Nonce) async
 }
 
 public actor ChallengeEndpointClient: ChallengeEndpointClientType {
   
   public let challengeEndpoint: URL
   let poster: PostingType
+  private var cachedChallenge: Nonce?
   
   public init(
     poster: PostingType = Poster(),
@@ -32,7 +39,16 @@ public actor ChallengeEndpointClient: ChallengeEndpointClientType {
     self.challengeEndpoint = challengeEndpoint
   }
   
+  public func setChallenge(_ challenge: Nonce) async {
+    self.cachedChallenge = challenge
+  }
+
   public func getChallenge() async throws -> (challenge: Nonce, dpopNonce: Nonce?) {
+
+    if let cached = cachedChallenge {
+      cachedChallenge = nil
+      return (challenge: cached, dpopNonce: nil)
+    }
 
     var request = URLRequest(url: challengeEndpoint)
     request.httpMethod = HTTPMethod.POST.rawValue
