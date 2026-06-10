@@ -53,4 +53,19 @@ public extension JWTClaimNames {
   static let kid = "kid"
   static let keyAttestation = "key_attestation"
   static let challenge = "challenge"
+  static let walletName = "wallet_name"
+  static let walletVersion = "wallet_version"
+  static let walletLink = "wallet_link"
+  static let walletSolutionCertificationInformation = "wallet_solution_certification_information"
+  static let clientStatus = "client_status"
+  static let status = "status"
+  static let statusList = "status_list"
+  static let idx = "idx"
+  static let uri = "uri"
+}
+
+public struct AttestationBasedClientAuthenticationSpec {
+  public static let attestationJwtType = "oauth-client-attestation+jwt"
+  public static let attestationPopJwtType = "oauth-client-attestation-pop+jwt"
+  private init() {}
 }
