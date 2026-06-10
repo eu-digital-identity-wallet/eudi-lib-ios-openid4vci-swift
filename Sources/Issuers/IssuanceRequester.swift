@@ -409,7 +409,7 @@ private extension IssuanceRequester {
     // Validate KeyAttestation proofs
     if !attestations.isEmpty {
       let advertised = try advertisedAlgs(
-        for: .jwt,
+        for: .attestation,
         configId: configId,
         issuerMetadata: issuerMetadata
       )
