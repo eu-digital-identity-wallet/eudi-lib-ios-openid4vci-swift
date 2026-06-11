@@ -713,6 +713,7 @@ public extension Issuer {
   
   static func createDeferredIssuer(
     deferredCredentialEndpoint: CredentialIssuerEndpoint?,
+    credentialRequestEncryption: CredentialRequestEncryption? = nil,
     deferredRequesterPoster: PostingType,
     config: OpenId4VCIConfig
   ) throws -> Issuer {
@@ -725,7 +726,8 @@ public extension Issuer {
         )
       ),
       issuerMetadata: .init(
-        deferredCredentialEndpoint: deferredCredentialEndpoint
+        deferredCredentialEndpoint: deferredCredentialEndpoint,
+        credentialRequestEncryption: credentialRequestEncryption
       ),
       config: config,
       deferredRequesterPoster: deferredRequesterPoster
@@ -844,13 +846,16 @@ public extension Issuer {
     transactionId: TransactionId,
     dPopNonce: Nonce?
   ) async throws -> DeferredCredentialIssuanceResponse {
-    
+
+    let encryptionSpec = try encryptionSpec()
+
     return try await deferredIssuanceRequester.placeDeferredCredentialRequest(
       accessToken: request.accessToken,
       transactionId: transactionId,
       dPopNonce: dPopNonce,
       maxRetries: Constants.MAX_RETRIES,
-      issuanceResponseEncryptionSpec: deferredResponseEncryptionSpec
+      issuanceResponseEncryptionSpec: deferredResponseEncryptionSpec,
+      encryptionSpec: encryptionSpec
     )
   }
   

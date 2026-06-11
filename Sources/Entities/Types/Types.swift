@@ -244,13 +244,16 @@ public struct Claim: Codable, Sendable {
 
 public struct DeferredIssuanceRequestTO: Codable {
   public let transactionId: String
-  
+  public let credentialResponseEncryption: CredentialResponseEncryptionSpecTO?
+
   private enum CodingKeys: String, CodingKey {
     case transactionId = "transaction_id"
+    case credentialResponseEncryption = "credential_response_encryption"
   }
   
-  public init(transactionId: String) {
+  public init(transactionId: String, credentialResponseEncryption: CredentialResponseEncryptionSpecTO? = nil) {
     self.transactionId = transactionId
+    self.credentialResponseEncryption = credentialResponseEncryption
   }
 }
 
