@@ -26,7 +26,7 @@ extension NotificationObject: Stubbable {
   static func stub() throws -> NotificationObject {
     .init(
       id: try .init(value: "String"),
-      event: .init(rawValue: "CREDENTIAL_ACCEPTED")!,
+      event: .credentialAccepted,
       eventDescription: "String?"
     )
   }

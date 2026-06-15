@@ -558,7 +558,7 @@ private extension SingleIssuanceSuccessResponse {
           .issued(
             format: nil,
             credential: .string(string),
-            notificationId: nil,
+            notificationId: notificationId,
             additionalInfo: nil
           )
         ]
@@ -570,7 +570,7 @@ private extension SingleIssuanceSuccessResponse {
           .issued(
             format: nil,
             credential: .json(JSON(credentials)),
-            notificationId: nil,
+            notificationId: notificationId,
             additionalInfo: nil
           )
         ]
