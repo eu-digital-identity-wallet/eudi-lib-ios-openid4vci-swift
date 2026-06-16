@@ -99,6 +99,13 @@ let clientConfig: OpenId4VCIConfig = .init(
   authorizeIssuanceConfig: .favorScopes
 )
 
+let skipDpopOnPARConfig: OpenId4VCIConfig = .init(
+  client: .public(id: WALLET_DEV_CLIENT_ID),
+  authFlowRedirectionURI: URL(string: "urn:ietf:wg:oauth:2.0:oob")!,
+  authorizeIssuanceConfig: .favorScopes,
+  requirePAR: .required(authorizationCodeDPoPBinding: false)
+)
+
 struct TestTrust: CertificateChainTrust {
   func isValid(chain: [String]) -> Bool {
     true

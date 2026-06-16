@@ -176,7 +176,6 @@ public extension BindingKey {
       let header: JWSHeader = try .init(
         parameters: [
           JWTClaimNames.algorithm: algorithm.name,
-          JWTClaimNames.JWK: attestedPublicKey.toDictionary(),
           JWTClaimNames.type: Self.OpenID4VCIProofJWT,
           JWTClaimNames.keyAttestation: keyAttestationJwt.jws.compactSerializedString
         ]
