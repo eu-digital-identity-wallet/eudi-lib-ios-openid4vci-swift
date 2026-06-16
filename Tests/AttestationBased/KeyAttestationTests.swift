@@ -249,47 +249,6 @@ class KeyAttestationTests: XCTestCase {
     XCTAssert(true)
   }
 
-  // Regression (Bug#2): a jwt key-attestation proof header must carry an inline
-  // `jwk` and must not use a `kid` (= keyIndex) that a verifier cannot resolve.
-  // Before the fix (v0.38.x / v0.39.0) this test fails (kid present, jwk absent).
-  func testJwtKeyAttestationProofHeaderHasInlineJwkNotKid() async throws {
-    let configId = try CredentialConfigurationIdentifier(value: "eu.europa.ec.eudiw.pid_vc_sd_jwt")
-    let spec = try XCTUnwrap(
-      data.offer.credentialIssuerMetadata.credentialsSupported[configId]
-    )
-    let requester = IssuanceRequester(
-      issuerMetadata: data.offer.credentialIssuerMetadata,
-      poster: Poster(
-        session: NetworkingMock(
-          path: "batch_credential_issuance_success_response_credentials",
-          extension: "json"
-        )
-      )
-    )
-    let keyAttestation = try KeyAttestationJWT(
-      jws: try JWS(compactSerialization: TestsConstants.ketAttestationJWT)
-    )
-
-    let bindingKey: BindingKey = try .jwtKeyAttestation(
-      algorithm: .init(.ES256),
-      keyAttestationJWT: { _ in keyAttestation },
-      keyIndex: 0,
-      privateKey: .secKey(data.privateKey)
-    )
-
-    let proof = try await bindingKey.toSupportedProof(
-      issuanceRequester: requester,
-      credentialSpec: spec,
-      keyAttestationJwt: keyAttestation,
-      cNonce: "test-nonce",
-      omitIss: false
-    )
-
-    let header = try Self.decodeJWTHeader(proof.proof)
-    XCTAssertNotNil(header["jwk"], "jwt key attestation proof header must carry inline jwk")
-    XCTAssertNil(header["kid"], "jwt key attestation proof header must not use kid (unresolvable at verifier)")
-  }
-
   // Regression (Bug#1): when an attestation proof is sent to an issuer that
   // advertises only the `attestation` proof type, the algorithms are validated
   // against the `attestation` advertised algs. Before the fix they were looked

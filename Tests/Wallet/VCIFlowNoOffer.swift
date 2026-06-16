@@ -59,7 +59,8 @@ class VCIFlowNoOffer: XCTestCase {
     
     do {
       try await walletInitiatedIssuanceNoOfferSdJwt(
-        wallet: wallet
+        wallet: wallet,
+        config: skipDpopOnPARConfig
       )
       
     } catch {
