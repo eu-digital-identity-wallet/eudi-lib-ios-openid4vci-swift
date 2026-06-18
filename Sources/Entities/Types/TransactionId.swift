@@ -30,7 +30,9 @@ public struct TransactionId: Codable, Sendable {
 
 public extension TransactionId {
   
-  func toDeferredRequestTO() -> DeferredIssuanceRequestTO {
-    DeferredIssuanceRequestTO(transactionId: value)
+  func toDeferredRequestTO(
+    credentialResponseEncryption: CredentialResponseEncryptionSpecTO? = nil
+  ) -> DeferredIssuanceRequestTO {
+    DeferredIssuanceRequestTO(transactionId: value, credentialResponseEncryption: credentialResponseEncryption)
   }
 }

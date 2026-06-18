@@ -60,7 +60,8 @@ public protocol IssuanceRequesterType: Sendable {
     transactionId: TransactionId,
     dPopNonce: Nonce?,
     maxRetries: Int,
-    issuanceResponseEncryptionSpec: IssuanceResponseEncryptionSpec?
+    issuanceResponseEncryptionSpec: IssuanceResponseEncryptionSpec?,
+    encryptionSpec: EncryptionSpec?
   ) async throws -> DeferredCredentialIssuanceResponse
   
   /// Sends a notification to the credential issuer.
@@ -245,7 +246,8 @@ public actor IssuanceRequester: IssuanceRequesterType {
     transactionId: TransactionId,
     dPopNonce: Nonce?,
     maxRetries: Int = Constants.MAX_RETRIES,
-    issuanceResponseEncryptionSpec: IssuanceResponseEncryptionSpec?
+    issuanceResponseEncryptionSpec: IssuanceResponseEncryptionSpec?,
+    encryptionSpec: EncryptionSpec?
   ) async throws -> DeferredCredentialIssuanceResponse {
     guard let deferredCredentialEndpoint = issuerMetadata.deferredCredentialEndpoint else {
       throw CredentialError.issuerDoesNotSupportDeferredIssuance
@@ -256,16 +258,22 @@ public actor IssuanceRequester: IssuanceRequesterType {
       dPopNonce: dPopNonce,
       endpoint: deferredCredentialEndpoint.url
     )
-    
-    let encodedRequest: [String: any Sendable] = try JSON(transactionId.toDeferredRequestTO().toDictionary()).dictionaryValue
-    
+
+    let credentialResponseEncryption = makeCredentialResponseEncryption(
+      from: issuanceResponseEncryptionSpec
+    )
+
+    let encodedRequest: [String: any Sendable] = try JSON(
+      transactionId.toDeferredRequestTO(credentialResponseEncryption: credentialResponseEncryption).toDictionary()
+    ).dictionaryValue
+
     do {
       let response: ResponseWithHeaders<DeferredCredentialIssuanceResponse> = try await service.formPost(
         poster: poster,
         url: deferredCredentialEndpoint.url,
         headers: authorizationHeader,
         body: encodedRequest,
-        encryptionSpec: nil
+        encryptionSpec: encryptionSpec
       )
       
       if let interval = response.body.interval {
@@ -287,7 +295,8 @@ public actor IssuanceRequester: IssuanceRequesterType {
         transactionId: transactionId,
         dPopNonce: nonce,
         maxRetries: maxRetries - 1,
-        issuanceResponseEncryptionSpec: issuanceResponseEncryptionSpec
+        issuanceResponseEncryptionSpec: issuanceResponseEncryptionSpec,
+		encryptionSpec: encryptionSpec
       )
         
     } catch CredentialIssuanceError.deferredCredentialIssuancePending(let interval) {
@@ -376,7 +385,24 @@ public actor IssuanceRequester: IssuanceRequesterType {
 }
 
 private extension IssuanceRequester {
-  
+
+  private func makeCredentialResponseEncryption(
+    from spec: IssuanceResponseEncryptionSpec?
+  ) -> CredentialResponseEncryptionSpecTO? {
+    guard let spec else { return nil }
+    guard let jwkString = spec.jwk?.jsonString(), !jwkString.isEmpty else { return nil }
+
+    let jwk = JSON(parseJSON: jwkString)
+    guard jwk.type != .null else { return nil }
+
+    return CredentialResponseEncryptionSpecTO(
+      jwk: jwk,
+      encryptionAlgorithm: spec.algorithm.name,
+      encryptionMethod: spec.encryptionMethod.name,
+      compressionMethod: spec.compressionMethod?.rawValue
+    )
+  }
+
   func ensureJwtAlgIsSupported(
     credentialConfigurationIdentifier: CredentialConfigurationIdentifier?,
     issuerMetadata: CredentialIssuerMetadata,
