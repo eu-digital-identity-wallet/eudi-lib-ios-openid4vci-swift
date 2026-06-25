@@ -483,14 +483,18 @@ internal extension Issuer {
       .credentialsSupported[credentialConfigurationIdentifier] else {
       throw ValidationError.error(reason: "Invalid Supported credential for requestSingle")
     }
-    
+
+    try config.proofTypesPolicy.validateIssuerMetadata(
+      credentialConfiguration: supportedCredential
+    )
+
     for bindingKey in bindingKeys {
       try config.proofTypesPolicy.validate(
         credentialConfiguration: supportedCredential,
         bindingKey: bindingKey
       )
     }
-
+    
     let proofs = try await obtainProofs(
       authorizedRequest: authorizedRequest,
       batchCredentialIssuance: issuerMetadata.batchCredentialIssuance,
@@ -531,6 +535,10 @@ internal extension Issuer {
     try Self.validateRequestPayload(
       requestPayload: issuancePayload,
       authorizationDetails: authorizedRequest.credentialIdentifiers ?? [:]
+    )
+    
+    try config.proofTypesPolicy.validateIssuerMetadata(
+      credentialConfiguration: supportedCredential
     )
     
     for bindingKey in bindingKeys {
@@ -648,7 +656,7 @@ internal extension Issuer {
     /// Filter for keys we care about
     let eligibleKeys = bindingKeys.filter {
       switch $0 {
-      case .jwt, .jwtKeyAttestation, .attestation: true
+      case .jwtKeyAttestation, .attestation: true
       default: false
       }
     }

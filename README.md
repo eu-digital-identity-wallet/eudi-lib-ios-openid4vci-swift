@@ -308,22 +308,41 @@ public struct OpenId4VCIConfig: Sendable {
 
 ### Proof Types Policy Configuration
 
-The library supports configuring which proof types your wallet will accept for credential issuance.
+The library enforces device-bound attestations. Only the following proof types are
+accepted for credential issuance:
 
-#### Policy Options
+- `proof_type: attestation`
+- `proof_type: jwt` with `key_attestation` in the protected header
 
-**1. Accept All (Default - Backward Compatible)**
-Accepts any proof type including simple JWT proofs without key attestation. Use for testing or legacy compatibility.
+Plain JWT proofs (no `key_attestation`) are not supported.
 
-**2. Device Bound (HAIP Compliant - Recommended for Production)**
-Enforces HAIP v1 / ETSI TS 119 472-3 compliance:
-- Accepts JWT proofs WITH key attestation
-- Accepts attestation proofs
-- Rejects simple JWT proofs without key attestation
-- Ensures device-bound credentials are properly secured with hardware-backed keys
+Issuer metadata is validated:
 
-**3. Flexible Policy**
-Allows custom configuration supporting both device-bound and non-device-bound credentials.
+- A credential configuration whose `proof_types_supported` is missing or empty
+  is treated as "no proof required" and accepted.
+- A non-empty `proof_types_supported` MUST advertise BOTH `jwt` AND
+  `attestation`, and BOTH MUST carry `key_attestations_required`. Any other
+  shape is rejected with `CredentialIssuanceError.issuerMetadataNoAttestedProofType`.
+
+`ProofTypesPolicy` is a struct that declares the wallet's supported signing
+algorithms and supported attested proof types:
+
+```swift
+public struct ProofTypesPolicy: Sendable {
+  public let supportedAlgorithms: [JWSAlgorithm]
+  public let supportedProofTypes: Set<AttestedProofType>
+}
+
+public enum AttestedProofType: String, Sendable {
+  case jwtWithKeyAttestation
+  case attestation
+}
+```
+
+The default for `OpenId4VCIConfig.proofTypesPolicy` is `.haipCompliant()`, which
+accepts `ES256` and both attested proof types. Provide a custom
+`ProofTypesPolicy(supportedAlgorithms:, supportedProofTypes:)` to narrow the
+algorithms or the attested proof types your wallet is willing to produce.
 
 
 ## Features supported
@@ -345,7 +364,12 @@ endpoints.
 OpenId4VCI specification defines several extension points to accommodate the differences across Credential formats. The current version of the library fully supports **ISO mDL** profile and gives some initial support for **IETF SD-JWT VC** profile.  
 
 #### Proof Types
-OpenId4VCI specification (draft 14) defines proofs that can be included in a credential issuance request, JWT proof type in particular. The current version of the library supports JWT proof types.
+OpenId4VCI specification (draft 14) defines proofs that can be included in a credential issuance request. The library supports the two attested proof types only:
+
+- `attestation` proof.
+- `jwt` proof with `key_attestation` in the protected header.
+
+Plain JWT proofs (without `key_attestation`) are intentionally not supported. See [Proof Types Policy Configuration](#proof-types-policy-configuration) above.
 
 ### Demonstrating Proof of Possession (DPoP)
 

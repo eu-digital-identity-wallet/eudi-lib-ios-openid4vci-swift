@@ -351,9 +351,11 @@ class IssuanceAuthorizationTest: XCTestCase {
         "kid": UUID().uuidString
       ])
     
-    let bindingKey: BindingKey = .jwt(
+    let bindingKey: BindingKey = .jwtKeyAttestation(
       algorithm: alg,
-      jwk: publicKeyJWK,
+      keyAttestationJWT: { _ in
+        try .init(jws: .init(compactSerialization: TestsConstants.ketAttestationJWT))
+      },
       privateKey: .secKey(privateKey),
       issuer: "218232426"
     )
@@ -431,9 +433,11 @@ class IssuanceAuthorizationTest: XCTestCase {
         "kid": UUID().uuidString
       ])
     
-    let bindingKey: BindingKey = .jwt(
+    let bindingKey: BindingKey = .jwtKeyAttestation(
       algorithm: alg,
-      jwk: publicKeyJWK,
+      keyAttestationJWT: { _ in
+        try .init(jws: .init(compactSerialization: TestsConstants.ketAttestationJWT))
+      },
       privateKey: privateKeyProxy,
       issuer: "track2_full"
     )
@@ -573,9 +577,11 @@ class IssuanceAuthorizationTest: XCTestCase {
         "kid": UUID().uuidString
     ])
 
-    let bindingKey: BindingKey = .jwt(
+    let bindingKey: BindingKey = .jwtKeyAttestation(
       algorithm: alg,
-      jwk: publicKeyJWK,
+      keyAttestationJWT: { _ in
+        try .init(jws: .init(compactSerialization: TestsConstants.ketAttestationJWT))
+      },
       privateKey: .secKey(privateKey),
       issuer: "218232426"
     )
@@ -683,9 +689,11 @@ class IssuanceAuthorizationTest: XCTestCase {
       XCTAssert(false, "Unexpected grant type")
     }
     
-    let bindingKey: BindingKey = .jwt(
+    let bindingKey: BindingKey = .jwtKeyAttestation(
       algorithm: alg,
-      jwk: jwk,
+      keyAttestationJWT: { _ in
+        try .init(jws: .init(compactSerialization: TestsConstants.ketAttestationJWT))
+      },
       privateKey: .secKey(privateKey),
       issuer: "218232426"
     )

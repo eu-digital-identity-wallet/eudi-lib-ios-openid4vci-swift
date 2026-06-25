@@ -59,11 +59,10 @@ public struct OpenId4VCIConfig: Sendable {
   /// Wallet's supported credential reuse policies
   public let supportedCredentialReusePolicies: SupportedCredentialReusePolicies
   
-  /// Policy defining which proof types the wallet supports.
-  /// Wallets should reject credentials that require plain JWT proofs without key attestation
-  /// for device-bound attestations.
+  /// Policy defining which signing algorithms and attested proof types the
+  /// wallet supports. Plain `jwt` proofs (no key attestation) are not supported.
   ///
-  /// Default is `.acceptAll` for backward compatibility.
+  /// Default is `.haipCompliant()`.
   public let proofTypesPolicy: ProofTypesPolicy
   
   /// Initializes an `OpenId4VCIConfig` instance with the given parameters.
@@ -75,7 +74,7 @@ public struct OpenId4VCIConfig: Sendable {
   ///   - clientAttestationPoPBuilder: An optional client attestation PoP builder (default: `nil`).
   ///   - issuerMetadataPolicy: Policy defining how issuer metadata should be handled (default: `.ignoreSigned`).
   ///   - requireDpop: If dpop is supported then use it, otherwise always don't
-  ///   - proofTypesPolicy: Policy defining which proof types the wallet supports (default: `.acceptAll`).
+  ///   - proofTypesPolicy: Policy defining which proof types the wallet supports (default: `.haipCompliant()`).
   ///   - supportedCredentialReusePolicies: Wallet's supported credential reuse policies (default: `.notSupported`).
   public init(
     client: Client,
@@ -85,7 +84,7 @@ public struct OpenId4VCIConfig: Sendable {
     clientAttestationPoPBuilder: ClientAttestationPoPBuilder? = nil,
     issuerMetadataPolicy: IssuerMetadataPolicy = .ignoreSigned,
     supportedCompressionAlgorithms: [CompressionAlgorithm]? = nil,
-    proofTypesPolicy: ProofTypesPolicy = .acceptAll,
+    proofTypesPolicy: ProofTypesPolicy = .haipCompliant(),
     requireDpop: Bool = true,
     supportedCredentialReusePolicies: SupportedCredentialReusePolicies = .notSupported
   ) {

@@ -41,9 +41,11 @@ class VCIFlowNoOffer: XCTestCase {
         "kid": UUID().uuidString
       ])
     
-    let bindingKey: BindingKey = .jwt(
+    let bindingKey: BindingKey = .jwtKeyAttestation(
       algorithm: alg,
-      jwk: publicKeyJWK,
+      keyAttestationJWT: { _ in
+        try .init(jws: .init(compactSerialization: TestsConstants.ketAttestationJWT))
+      },
       privateKey: .secKey(privateKey)
     )
     
@@ -85,9 +87,11 @@ class VCIFlowNoOffer: XCTestCase {
         "kid": UUID().uuidString
       ])
     
-    let bindingKey: BindingKey = .jwt(
+    let bindingKey: BindingKey = .jwtKeyAttestation(
       algorithm: alg,
-      jwk: publicKeyJWK,
+      keyAttestationJWT: { _ in
+        try .init(jws: .init(compactSerialization: TestsConstants.ketAttestationJWT))
+      },
       privateKey: .secKey(privateKey)
     )
     
@@ -130,9 +134,11 @@ class VCIFlowNoOffer: XCTestCase {
         "kid": UUID().uuidString
       ])
     
-    let bindingKey: BindingKey = .jwt(
+    let bindingKey: BindingKey = .jwtKeyAttestation(
       algorithm: alg,
-      jwk: publicKeyJWK,
+      keyAttestationJWT: { _ in
+        try .init(jws: .init(compactSerialization: TestsConstants.ketAttestationJWT))
+      },
       privateKey: .secKey(privateKey)
     )
     
@@ -175,9 +181,11 @@ class VCIFlowNoOffer: XCTestCase {
         "kid": UUID().uuidString
       ])
     
-    let bindingKey: BindingKey = .jwt(
+    let bindingKey: BindingKey = .jwtKeyAttestation(
       algorithm: alg,
-      jwk: publicKeyJWK,
+      keyAttestationJWT: { _ in
+        try .init(jws: .init(compactSerialization: TestsConstants.ketAttestationJWT))
+      },
       privateKey: .secKey(privateKey)
     )
     
@@ -220,9 +228,11 @@ class VCIFlowNoOffer: XCTestCase {
         "kid": UUID().uuidString
       ])
     
-    let bindingKey: BindingKey = .jwt(
+    let bindingKey: BindingKey = .jwtKeyAttestation(
       algorithm: alg,
-      jwk: publicKeyJWK,
+      keyAttestationJWT: { _ in
+        try .init(jws: .init(compactSerialization: TestsConstants.ketAttestationJWT))
+      },
       privateKey: .secKey(privateKey)
     )
     
@@ -263,9 +273,11 @@ class VCIFlowNoOffer: XCTestCase {
         "kid": UUID().uuidString
       ])
     
-    let bindingKey: BindingKey = .jwt(
+    let bindingKey: BindingKey = .jwtKeyAttestation(
       algorithm: alg,
-      jwk: publicKeyJWK,
+      keyAttestationJWT: { _ in
+        try .init(jws: .init(compactSerialization: TestsConstants.ketAttestationJWT))
+      },
       privateKey: .secKey(privateKey)
     )
     
@@ -306,9 +318,11 @@ class VCIFlowNoOffer: XCTestCase {
         "kid": UUID().uuidString
       ])
     
-    let bindingKey: BindingKey = .jwt(
+    let bindingKey: BindingKey = .jwtKeyAttestation(
       algorithm: alg,
-      jwk: publicKeyJWK,
+      keyAttestationJWT: { _ in
+        try .init(jws: .init(compactSerialization: TestsConstants.ketAttestationJWT))
+      },
       privateKey: .secKey(privateKey)
     )
     
@@ -349,9 +363,11 @@ class VCIFlowNoOffer: XCTestCase {
         "kid": UUID().uuidString
       ])
     
-    let bindingKey: BindingKey = .jwt(
+    let bindingKey: BindingKey = .jwtKeyAttestation(
       algorithm: alg,
-      jwk: publicKeyJWK,
+      keyAttestationJWT: { _ in
+        try .init(jws: .init(compactSerialization: TestsConstants.ketAttestationJWT))
+      },
       privateKey: .secKey(privateKey)
     )
     
@@ -393,9 +409,11 @@ class VCIFlowNoOffer: XCTestCase {
         "kid": UUID().uuidString
       ])
     
-    let bindingKey: BindingKey = .jwt(
+    let bindingKey: BindingKey = .jwtKeyAttestation(
       algorithm: alg,
-      jwk: publicKeyJWK,
+      keyAttestationJWT: { _ in
+        try .init(jws: .init(compactSerialization: TestsConstants.ketAttestationJWT))
+      },
       privateKey: .secKey(privateKey)
     )
     
@@ -586,9 +604,11 @@ class VCIFlowNoOffer: XCTestCase {
           "kid": UUID().uuidString
         ])
       
-      let bindingKey: BindingKey = .jwt(
+      let bindingKey: BindingKey = .jwtKeyAttestation(
         algorithm: JWSAlgorithm(.ES256),
-        jwk: publicKeyJWK,
+        keyAttestationJWT: { _ in
+          try .init(jws: .init(compactSerialization: TestsConstants.ketAttestationJWT))
+        },
         privateKey: .secKey(privateKey)
       )
       

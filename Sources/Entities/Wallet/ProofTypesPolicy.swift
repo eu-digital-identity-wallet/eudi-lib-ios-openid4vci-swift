@@ -16,198 +16,120 @@
 import Foundation
 import JOSESwift
 
-/// Policy defining which proof types the wallet supports for credential issuance.
+/// Proof types accepted by the wallet.
 ///
-/// For device-bound attestations, proofs of type JWT cannot be used alone
-/// - Wallet must use either:
-///   - Proof of type `attestation`
-///   - Proof of type `jwt` + `key_attestation`
-/// - Plain JWT proofs (without key_attestation) are not allowed for device-bound credentials
-public enum ProofTypesPolicy: Sendable {
-  /// Default policy: accepts any proof type including plain JWT without key attestation.
-  /// This is the legacy behavior for backward compatibility.
-  case acceptAll
-
-  /// Rejects credential configurations that require plain JWT proofs without key attestation.
-  /// - Parameter policy: The device-bound proof policy specifying supported algorithms and proof types.
-  case deviceBound(DeviceBoundProofPolicy)
-
-  /// Flexible policy: supports both device-bound and non-device-bound attestations.
-  /// - Parameters:
-  ///   - deviceBound: Policy for device-bound credentials
-  ///   - allowNonDeviceBound: Whether to allow non-device-bound credentials (no proofs required)
-  case flexible(deviceBound: DeviceBoundProofPolicy, allowNonDeviceBound: Bool)
+public enum AttestedProofType: String, Hashable, Sendable {
+  case jwtWithKeyAttestation = "jwt_with_key_attestation"
+  case attestation = "attestation"
 }
 
-/// Policy configuration for device-bound proof types.
-public struct DeviceBoundProofPolicy: Sendable {
+/// Wallet's policy for credential-request proofs.
+///
+/// Defines which signing algorithms and which attested proof types the wallet
+/// is willing to produce. Used to validate that the issuer's
+/// `proof_types_supported` advertises a compatible option.
+public struct ProofTypesPolicy: Sendable {
   public let supportedAlgorithms: [JWSAlgorithm]
-  public let supportedProofTypes: Set<DeviceBoundProofType>
+  public let supportedProofTypes: Set<AttestedProofType>
 
   public init(
     supportedAlgorithms: [JWSAlgorithm],
-    supportedProofTypes: Set<DeviceBoundProofType>
+    supportedProofTypes: Set<AttestedProofType>
   ) {
     self.supportedAlgorithms = supportedAlgorithms
     self.supportedProofTypes = supportedProofTypes
   }
 
-  /// Creates a HAIP compliant policy.
-  /// This policy only accepts JWT with key attestation or attestation proofs.
-  /// - Parameter algorithms: Supported signing algorithms. Defaults to ES256.
-  /// - Returns: A compliant device-bound proof policy.
+  /// HAIP-compliant policy: ES256 with both attested proof types.
   public static func haipCompliant(
     algorithms: [JWSAlgorithm] = [JWSAlgorithm(.ES256)]
-  ) -> DeviceBoundProofPolicy {
-    return DeviceBoundProofPolicy(
+  ) -> ProofTypesPolicy {
+    return ProofTypesPolicy(
       supportedAlgorithms: algorithms,
       supportedProofTypes: [.jwtWithKeyAttestation, .attestation]
     )
   }
 }
 
-/// Types of proofs accepted for device-bound credentials.
-///
-/// Per the device-bound proof rule, only proofs that carry a key attestation
-/// are valid: either a JWT proof with `key_attestation` in its protected header,
-/// or an `attestation` proof. Plain JWT proofs (without key attestation) are
-/// intentionally not modeled here; permission to send them is controlled by
-/// `ProofTypesPolicy.flexible(_, allowNonDeviceBound:)`.
-public enum DeviceBoundProofType: String, Hashable, Sendable {
-
-  case jwtWithKeyAttestation = "jwt_with_key_attestation"
-  case attestation = "attestation"
-}
-
 // MARK: - Validation
 
 public extension ProofTypesPolicy {
 
-  /// Validates whether a credential configuration is compatible with this policy.
+  /// Validates issuer metadata for a credential configuration up front, before
+  /// any binding key is built.
   ///
-  /// - Parameters:
-  ///   - credentialConfiguration: The credential configuration to validate.
-  ///   - bindingKey: The binding key that will be used for the proof.
-  /// - Throws: `CredentialIssuanceError` if the configuration violates the policy.
+  /// Rules
+  ///   - If `proof_types_supported` is missing or empty, the configuration
+  ///     does not require a proof; this method returns successfully.
+  ///   - Otherwise, the configuration MUST advertise BOTH `proof_type: jwt`
+  ///     AND `proof_type: attestation`, and BOTH MUST carry
+  ///     `key_attestations_required`.
+  ///   - At least one of the two advertised attested proof types must be in
+  ///     the wallet's `supportedProofTypes`, with at least one matching
+  ///     algorithm in `supportedAlgorithms`.
+  ///
+  /// Throws:
+  ///   - `CredentialIssuanceError.issuerMetadataNoAttestedProofType` when the
+  ///     metadata invariant is violated.
+  ///   - `CredentialIssuanceError.proofTypeNotSupportedByWalletPolicy` when no
+  ///     advertised type intersects the wallet's `supportedProofTypes`.
+  ///   - `CredentialIssuanceError.noMatchingAlgorithmForProofType` when no
+  ///     advertised algorithm intersects the wallet's `supportedAlgorithms`.
+  func validateIssuerMetadata(
+    credentialConfiguration: CredentialSupported
+  ) throws {
+    guard let proofTypesSupported = credentialConfiguration.proofTypesSupported,
+          !proofTypesSupported.isEmpty else {
+      return
+    }
+
+    guard let jwtMeta = proofTypesSupported["jwt"],
+          let attestationMeta = proofTypesSupported["attestation"],
+          Self.requiresKeyAttestation(jwtMeta),
+          Self.requiresKeyAttestation(attestationMeta) else {
+      throw CredentialIssuanceError.issuerMetadataNoAttestedProofType
+    }
+
+    let walletSupported: [(AttestedProofType, ProofTypeSupportedMeta)] = [
+      (.jwtWithKeyAttestation, jwtMeta),
+      (.attestation, attestationMeta)
+    ].filter { supportedProofTypes.contains($0.0) }
+
+    guard !walletSupported.isEmpty else {
+      throw CredentialIssuanceError.proofTypeNotSupportedByWalletPolicy
+    }
+
+    let hasMatchingAlgorithm = walletSupported.contains { (_, meta) in
+      meta.algorithms.contains { issuerAlg in
+        supportedAlgorithms.contains { walletAlg in
+          walletAlg.name == issuerAlg
+        }
+      }
+    }
+    guard hasMatchingAlgorithm else {
+      throw CredentialIssuanceError.noMatchingAlgorithmForProofType
+    }
+  }
+
+  /// Validates that a chosen binding key is compatible with the credential
+  /// configuration. Assumes `validateIssuerMetadata` has already succeeded.
   func validate(
     credentialConfiguration: CredentialSupported,
     bindingKey: BindingKey
   ) throws {
-    switch self {
-    case .acceptAll:
-      // Accept everything - no validation needed
-      return
-
-    case .deviceBound(let policy):
-      try validateDeviceBound(
-        credentialConfiguration: credentialConfiguration,
-        policy: policy,
-        bindingKey: bindingKey,
-        allowNonDeviceBound: false
-      )
-
-    case .flexible(let policy, let allowNonDeviceBound):
-      try validateDeviceBound(
-        credentialConfiguration: credentialConfiguration,
-        policy: policy,
-        bindingKey: bindingKey,
-        allowNonDeviceBound: allowNonDeviceBound
-      )
-    }
-  }
-
-  private func validateDeviceBound(
-    credentialConfiguration: CredentialSupported,
-    policy: DeviceBoundProofPolicy,
-    bindingKey: BindingKey,
-    allowNonDeviceBound: Bool
-  ) throws {
-    guard let proofTypesSupported = credentialConfiguration.proofTypesSupported else {
-      if allowNonDeviceBound {
-        return
-      } else {
-        throw CredentialIssuanceError.proofTypesNotSupportedByCredentialConfiguration
-      }
-    }
-
-    if let jwtProofMeta = proofTypesSupported["jwt"] {
-      try validateJwtProof(
-        jwtProofMeta: jwtProofMeta,
-        policy: policy,
-        bindingKey: bindingKey,
-        allowNonDeviceBound: allowNonDeviceBound
-      )
-    }
-
-    if let attestationProofMeta = proofTypesSupported["attestation"] {
-      try validateAttestationProof(
-        attestationProofMeta: attestationProofMeta,
-        policy: policy,
-        bindingKey: bindingKey
-      )
-    }
-  }
-
-  private func validateJwtProof(
-    jwtProofMeta: ProofTypeSupportedMeta,
-    policy: DeviceBoundProofPolicy,
-    bindingKey: BindingKey,
-    allowNonDeviceBound: Bool
-  ) throws {
-
-    let hasMatchingAlgorithm = jwtProofMeta.algorithms.contains { issuerAlg in
-      policy.supportedAlgorithms.contains { walletAlg in
-        walletAlg.name == issuerAlg
-      }
-    }
-
-    guard hasMatchingAlgorithm else {
-      throw CredentialIssuanceError.noMatchingAlgorithmForProofType
-    }
-
-    let keyAttestationRequired = jwtProofMeta.keyAttestationRequirement != nil &&
-                                 jwtProofMeta.keyAttestationRequirement != .notRequired
-
-    if keyAttestationRequired {
-      guard policy.supportedProofTypes.contains(.jwtWithKeyAttestation) else {
-        throw CredentialIssuanceError.proofTypeNotSupportedByWalletPolicy
-      }
-
-      guard bindingKey.isAttestationCapable else {
-        throw CredentialIssuanceError.bindingKeyNotAttestationCapable
-      }
-    } else {
-      // Issuer's jwt proof type does not require key attestation: this is a
-      // non-device-bound JWT proof. Under strict device-bound policy it is
-      // always rejected; under flexible mode it is permitted only when the
-      // wallet has opted in via allowNonDeviceBound.
-      guard allowNonDeviceBound else {
-        throw CredentialIssuanceError.proofTypeJwtWithoutKeyAttestationNotAllowedByPolicy
-      }
-    }
-  }
-
-  private func validateAttestationProof(
-    attestationProofMeta: ProofTypeSupportedMeta,
-    policy: DeviceBoundProofPolicy,
-    bindingKey: BindingKey
-  ) throws {
-    guard policy.supportedProofTypes.contains(.attestation) else {
-      throw CredentialIssuanceError.proofTypeNotSupportedByWalletPolicy
-    }
+    try validateIssuerMetadata(credentialConfiguration: credentialConfiguration)
 
     guard bindingKey.isAttestationCapable else {
       throw CredentialIssuanceError.bindingKeyNotAttestationCapable
     }
+  }
 
-    let hasMatchingAlgorithm = attestationProofMeta.algorithms.contains { issuerAlg in
-      policy.supportedAlgorithms.contains { walletAlg in
-        walletAlg.name == issuerAlg
-      }
-    }
-
-    guard hasMatchingAlgorithm else {
-      throw CredentialIssuanceError.noMatchingAlgorithmForProofType
+  private static func requiresKeyAttestation(_ meta: ProofTypeSupportedMeta) -> Bool {
+    switch meta.keyAttestationRequirement {
+    case .some(.required), .some(.requiredNoConstraints):
+      return true
+    default:
+      return false
     }
   }
 }
