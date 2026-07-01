@@ -182,8 +182,7 @@ private extension AuthorisationService {
     /// Build JWE header
     var headerParams: [String: Any] = [
       EncryptionKey.alg.rawValue: spec.algorithm.name,
-      EncryptionKey.enc.rawValue: spec.encryptionMethod.name,
-      EncryptionKey.type.rawValue: EncryptionKey.JWT.rawValue
+      EncryptionKey.enc.rawValue: spec.encryptionMethod.name
     ]
 
     /// If the spec's key is a JWK, embed it in the header.
