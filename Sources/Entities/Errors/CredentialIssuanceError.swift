@@ -50,7 +50,7 @@ public enum CredentialIssuanceError: Error, LocalizedError {
   
   case proofTypesNotSupportedByCredentialConfiguration
   case proofTypeNotSupportedByWalletPolicy
-  case proofTypeJwtWithoutKeyAttestationNotAllowedByPolicy
+  case issuerMetadataNoAttestedProofType
   case bindingKeyNotAttestationCapable
   case noMatchingAlgorithmForProofType
   case keyIndexOutOfBounds(index: UInt, available: Int)
@@ -123,8 +123,8 @@ public enum CredentialIssuanceError: Error, LocalizedError {
       return "Credential configuration does not support proof types required by wallet policy."
     case .proofTypeNotSupportedByWalletPolicy:
       return "The credential configuration requires a proof type that is not supported by the wallet's policy."
-    case .proofTypeJwtWithoutKeyAttestationNotAllowedByPolicy:
-      return "The credential configuration requires JWT proof without key attestation, which is not allowed by the wallet's policy."
+    case .issuerMetadataNoAttestedProofType:
+      return "Issuer metadata does not advertise an attested proof type. Device-bound attestations require either proof_type 'attestation' or proof_type 'jwt' with key_attestation in the protected header."
     case .bindingKeyNotAttestationCapable:
       return "The binding key is not attestation-capable but the credential configuration or wallet policy requires key attestation."
     case .noMatchingAlgorithmForProofType:

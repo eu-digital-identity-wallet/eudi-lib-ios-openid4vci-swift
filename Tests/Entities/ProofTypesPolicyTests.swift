@@ -20,379 +20,204 @@ import JOSESwift
 
 final class ProofTypesPolicyTests: XCTestCase {
 
-  // MARK: - Policy Creation Tests
+  // MARK: - Construction
 
-  func testAcceptAllPolicy() throws {
-    let policy = ProofTypesPolicy.acceptAll
-
-    // Create a test credential configuration that requires JWT without key attestation
-    let proofTypesSupported: [String: ProofTypeSupportedMeta] = [
-      "jwt": ProofTypeSupportedMeta(
-        algorithms: ["ES256"],
-        keyAttestationRequirement: .notRequired
-      )
-    ]
-    let credentialConfig = createTestCredentialConfiguration(proofTypesSupported: proofTypesSupported)
-
-    // Create a plain JWT binding key
-    let bindingKey = try createJwtBindingKey()
-
-    // Should not throw with acceptAll policy
-    XCTAssertNoThrow(try policy.validate(
-      credentialConfiguration: credentialConfig,
-      bindingKey: bindingKey
-    ))
-  }
-
-  func testHaipCompliantPolicy() throws {
-    let policy = DeviceBoundProofPolicy.haipCompliant()
+  func testHaipCompliantPolicy() {
+    let policy = ProofTypesPolicy.haipCompliant()
 
     XCTAssertEqual(policy.supportedAlgorithms.count, 1)
     XCTAssertEqual(policy.supportedAlgorithms.first?.name, "ES256")
-    XCTAssertTrue(policy.supportedProofTypes.contains(.jwtWithKeyAttestation))
-    XCTAssertTrue(policy.supportedProofTypes.contains(.attestation))
-    XCTAssertEqual(policy.supportedProofTypes.count, 2)
+    XCTAssertEqual(policy.supportedProofTypes, [.jwtWithKeyAttestation, .attestation])
   }
 
-  func testDeviceBoundPolicyCreation() throws {
-    let policy = DeviceBoundProofPolicy(
-      supportedAlgorithms: [JWSAlgorithm(.ES256), JWSAlgorithm(.ES384)],
-      supportedProofTypes: [.jwtWithKeyAttestation, .attestation]
-    )
+  // MARK: - validateIssuerMetadata: no-proof case
 
-    XCTAssertEqual(policy.supportedAlgorithms.count, 2)
-    XCTAssertTrue(policy.supportedAlgorithms.contains(where: { $0.name == "ES256" }))
-    XCTAssertTrue(policy.supportedAlgorithms.contains(where: { $0.name == "ES384" }))
-    XCTAssertEqual(policy.supportedProofTypes.count, 2)
+  func testAcceptsMissingProofTypesSupported() {
+    let config = makeConfig(proofTypesSupported: nil)
+
+    XCTAssertNoThrow(try ProofTypesPolicy.haipCompliant().validateIssuerMetadata(
+      credentialConfiguration: config
+    ))
   }
 
-  // MARK: - Validation Tests - JWT Without Key Attestation
+  func testAcceptsEmptyProofTypesSupported() {
+    let config = makeConfig(proofTypesSupported: [:])
 
-  func testDeviceBoundPolicy_RejectsJwtWithoutKeyAttestation() throws {
-    let deviceBoundPolicy = DeviceBoundProofPolicy(
-      supportedAlgorithms: [JWSAlgorithm(.ES256)],
-      supportedProofTypes: [.jwtWithKeyAttestation, .attestation]
+    XCTAssertNoThrow(try ProofTypesPolicy.haipCompliant().validateIssuerMetadata(
+      credentialConfiguration: config
+    ))
+  }
+
+  // MARK: - validateIssuerMetadata: accept paths
+
+  func testAcceptsJwtAndAttestationBothWithKeyAttestation() {
+    let config = makeConfig(proofTypesSupported: [
+      "jwt": ProofTypeSupportedMeta(
+        algorithms: ["ES256"],
+        keyAttestationRequirement: .requiredNoConstraints
+      ),
+      "attestation": ProofTypeSupportedMeta(
+        algorithms: ["ES256"],
+        keyAttestationRequirement: .requiredNoConstraints
+      )
+    ])
+
+    XCTAssertNoThrow(try ProofTypesPolicy.haipCompliant().validateIssuerMetadata(
+      credentialConfiguration: config
+    ))
+  }
+
+  // MARK: - validateIssuerMetadata: reject paths (metadata error)
+
+  func testRejectsJwtOnly() {
+    let config = makeConfig(proofTypesSupported: [
+      "jwt": ProofTypeSupportedMeta(
+        algorithms: ["ES256"],
+        keyAttestationRequirement: .requiredNoConstraints
+      )
+    ])
+
+    expectError(
+      .issuerMetadataNoAttestedProofType,
+      try ProofTypesPolicy.haipCompliant().validateIssuerMetadata(credentialConfiguration: config)
     )
-    let policy = ProofTypesPolicy.deviceBound(deviceBoundPolicy)
+  }
 
-    // Credential requires JWT without key attestation
-    let proofTypesSupported: [String: ProofTypeSupportedMeta] = [
+  func testRejectsAttestationOnly() {
+    let config = makeConfig(proofTypesSupported: [
+      "attestation": ProofTypeSupportedMeta(
+        algorithms: ["ES256"],
+        keyAttestationRequirement: .requiredNoConstraints
+      )
+    ])
+
+    expectError(
+      .issuerMetadataNoAttestedProofType,
+      try ProofTypesPolicy.haipCompliant().validateIssuerMetadata(credentialConfiguration: config)
+    )
+  }
+
+  func testRejectsJwtWithoutKeyAttestation() {
+    let config = makeConfig(proofTypesSupported: [
       "jwt": ProofTypeSupportedMeta(
         algorithms: ["ES256"],
         keyAttestationRequirement: .notRequired
+      ),
+      "attestation": ProofTypeSupportedMeta(
+        algorithms: ["ES256"],
+        keyAttestationRequirement: .requiredNoConstraints
       )
-    ]
-    let credentialConfig = createTestCredentialConfiguration(proofTypesSupported: proofTypesSupported)
-    let bindingKey = try createJwtBindingKey()
+    ])
 
-    // Should throw because policy doesn't support JWT without key attestation
-    XCTAssertThrowsError(try policy.validate(
-      credentialConfiguration: credentialConfig,
-      bindingKey: bindingKey
-    )) { error in
-      guard let issuanceError = error as? CredentialIssuanceError else {
-        XCTFail("Expected CredentialIssuanceError")
-        return
-      }
-      if case .proofTypeJwtWithoutKeyAttestationNotAllowedByPolicy = issuanceError {
-        // Expected error
-      } else {
-        XCTFail("Expected proofTypeJwtWithoutKeyAttestationNotAllowedByPolicy error")
-      }
-    }
+    expectError(
+      .issuerMetadataNoAttestedProofType,
+      try ProofTypesPolicy.haipCompliant().validateIssuerMetadata(credentialConfiguration: config)
+    )
   }
 
-  func testAcceptAllPolicy_AcceptsJwtWithoutKeyAttestation() throws {
-    let policy = ProofTypesPolicy.acceptAll
-
-    // Credential requires JWT without key attestation
-    let proofTypesSupported: [String: ProofTypeSupportedMeta] = [
+  func testRejectsAttestationWithoutKeyAttestation() {
+    let config = makeConfig(proofTypesSupported: [
       "jwt": ProofTypeSupportedMeta(
+        algorithms: ["ES256"],
+        keyAttestationRequirement: .requiredNoConstraints
+      ),
+      "attestation": ProofTypeSupportedMeta(
         algorithms: ["ES256"],
         keyAttestationRequirement: .notRequired
       )
-    ]
-    let credentialConfig = createTestCredentialConfiguration(proofTypesSupported: proofTypesSupported)
-    let bindingKey = try createJwtBindingKey()
+    ])
 
-    // Should not throw with acceptAll policy
-    XCTAssertNoThrow(try policy.validate(
-      credentialConfiguration: credentialConfig,
-      bindingKey: bindingKey
-    ))
+    expectError(
+      .issuerMetadataNoAttestedProofType,
+      try ProofTypesPolicy.haipCompliant().validateIssuerMetadata(credentialConfiguration: config)
+    )
   }
 
-  // MARK: - Validation Tests - JWT With Key Attestation
+  func testRejectsUnknownProofTypeOnly() {
+    let config = makeConfig(proofTypesSupported: [
+      "ldp_vc": ProofTypeSupportedMeta(algorithms: ["ES256"])
+    ])
 
-  func testDeviceBoundPolicy_AcceptsJwtWithKeyAttestation() throws {
-    let deviceBoundPolicy = DeviceBoundProofPolicy(
-      supportedAlgorithms: [JWSAlgorithm(.ES256)],
-      supportedProofTypes: [.jwtWithKeyAttestation]
+    expectError(
+      .issuerMetadataNoAttestedProofType,
+      try ProofTypesPolicy.haipCompliant().validateIssuerMetadata(credentialConfiguration: config)
     )
-    let policy = ProofTypesPolicy.deviceBound(deviceBoundPolicy)
+  }
 
-    // Credential requires JWT with key attestation
-    let proofTypesSupported: [String: ProofTypeSupportedMeta] = [
+  // MARK: - validateIssuerMetadata: wallet policy restrictions
+
+  func testRejectsWhenWalletSupportsNeitherAdvertisedType() {
+    let policy = ProofTypesPolicy(
+      supportedAlgorithms: [JWSAlgorithm(.ES256)],
+      supportedProofTypes: []
+    )
+    let config = makeConfig(proofTypesSupported: [
       "jwt": ProofTypeSupportedMeta(
         algorithms: ["ES256"],
-        keyAttestationRequirement: .required(
-          keyStorageConstraints: [.iso18045High],
-          userAuthenticationConstraints: [.iso18045Moderate],
-          preferredKeyStorageStatusPeriod: nil
-        )
-      )
-    ]
-    let credentialConfig = createTestCredentialConfiguration(proofTypesSupported: proofTypesSupported)
-    let bindingKey = try createJwtKeyAttestationBindingKey()
-
-    // Should not throw
-    XCTAssertNoThrow(try policy.validate(
-      credentialConfiguration: credentialConfig,
-      bindingKey: bindingKey
-    ))
-  }
-
-  func testDeviceBoundPolicy_RejectsJwtWithKeyAttestation_WhenNotInSupportedProofTypes() throws {
-    let deviceBoundPolicy = DeviceBoundProofPolicy(
-      supportedAlgorithms: [JWSAlgorithm(.ES256)],
-      supportedProofTypes: [.attestation] // Only attestation, not JWT with key attestation
-    )
-    let policy = ProofTypesPolicy.deviceBound(deviceBoundPolicy)
-
-    // Credential requires JWT with key attestation
-    let proofTypesSupported: [String: ProofTypeSupportedMeta] = [
-      "jwt": ProofTypeSupportedMeta(
-        algorithms: ["ES256"],
-        keyAttestationRequirement: .required(
-          keyStorageConstraints: [.iso18045High],
-          userAuthenticationConstraints: [.iso18045Moderate],
-          preferredKeyStorageStatusPeriod: nil
-        )
-      )
-    ]
-    let credentialConfig = createTestCredentialConfiguration(proofTypesSupported: proofTypesSupported)
-    let bindingKey = try createJwtKeyAttestationBindingKey()
-
-    // Should throw because policy doesn't support JWT with key attestation
-    XCTAssertThrowsError(try policy.validate(
-      credentialConfiguration: credentialConfig,
-      bindingKey: bindingKey
-    )) { error in
-      guard let issuanceError = error as? CredentialIssuanceError else {
-        XCTFail("Expected CredentialIssuanceError")
-        return
-      }
-      if case .proofTypeNotSupportedByWalletPolicy = issuanceError {
-        // Expected error
-      } else {
-        XCTFail("Expected proofTypeNotSupportedByWalletPolicy error")
-      }
-    }
-  }
-
-  func testDeviceBoundPolicy_RejectsJwtWithKeyAttestation_WhenBindingKeyNotAttestationCapable() throws {
-    let deviceBoundPolicy = DeviceBoundProofPolicy(
-      supportedAlgorithms: [JWSAlgorithm(.ES256)],
-      supportedProofTypes: [.jwtWithKeyAttestation]
-    )
-    let policy = ProofTypesPolicy.deviceBound(deviceBoundPolicy)
-
-    // Credential requires JWT with key attestation
-    let proofTypesSupported: [String: ProofTypeSupportedMeta] = [
-      "jwt": ProofTypeSupportedMeta(
-        algorithms: ["ES256"],
-        keyAttestationRequirement: .required(
-          keyStorageConstraints: [.iso18045High],
-          userAuthenticationConstraints: [.iso18045Moderate],
-          preferredKeyStorageStatusPeriod: nil
-        )
-      )
-    ]
-    let credentialConfig = createTestCredentialConfiguration(proofTypesSupported: proofTypesSupported)
-    // Use a plain JWT binding key (not attestation-capable)
-    let bindingKey = try createJwtBindingKey()
-
-    // Should throw because binding key is not attestation-capable
-    XCTAssertThrowsError(try policy.validate(
-      credentialConfiguration: credentialConfig,
-      bindingKey: bindingKey
-    )) { error in
-      guard let issuanceError = error as? CredentialIssuanceError else {
-        XCTFail("Expected CredentialIssuanceError")
-        return
-      }
-      if case .bindingKeyNotAttestationCapable = issuanceError {
-        // Expected error
-      } else {
-        XCTFail("Expected bindingKeyNotAttestationCapable error")
-      }
-    }
-  }
-
-  // MARK: - Validation Tests - Attestation Proof Type
-
-  func testDeviceBoundPolicy_AcceptsAttestationProof() throws {
-    let deviceBoundPolicy = DeviceBoundProofPolicy(
-      supportedAlgorithms: [JWSAlgorithm(.ES256)],
-      supportedProofTypes: [.attestation]
-    )
-    let policy = ProofTypesPolicy.deviceBound(deviceBoundPolicy)
-
-    // Credential requires attestation proof
-    let proofTypesSupported: [String: ProofTypeSupportedMeta] = [
+        keyAttestationRequirement: .requiredNoConstraints
+      ),
       "attestation": ProofTypeSupportedMeta(
         algorithms: ["ES256"],
-        keyAttestationRequirement: nil
+        keyAttestationRequirement: .requiredNoConstraints
       )
-    ]
-    let credentialConfig = createTestCredentialConfiguration(proofTypesSupported: proofTypesSupported)
-    let bindingKey = try createAttestationBindingKey()
+    ])
 
-    // Should not throw
-    XCTAssertNoThrow(try policy.validate(
-      credentialConfiguration: credentialConfig,
-      bindingKey: bindingKey
-    ))
+    expectError(
+      .proofTypeNotSupportedByWalletPolicy,
+      try policy.validateIssuerMetadata(credentialConfiguration: config)
+    )
   }
 
-  func testDeviceBoundPolicy_RejectsAttestationProof_WhenNotInSupportedProofTypes() throws {
-    let deviceBoundPolicy = DeviceBoundProofPolicy(
-      supportedAlgorithms: [JWSAlgorithm(.ES256)],
-      supportedProofTypes: [.jwtWithKeyAttestation] // Only JWT with key attestation
-    )
-    let policy = ProofTypesPolicy.deviceBound(deviceBoundPolicy)
+  func testRejectsAlgorithmMismatch() {
+    let config = makeConfig(proofTypesSupported: [
+      "jwt": ProofTypeSupportedMeta(
+        algorithms: ["RS256"],
+        keyAttestationRequirement: .requiredNoConstraints
+      ),
+      "attestation": ProofTypeSupportedMeta(
+        algorithms: ["RS256"],
+        keyAttestationRequirement: .requiredNoConstraints
+      )
+    ])
 
-    // Credential requires attestation proof
-    let proofTypesSupported: [String: ProofTypeSupportedMeta] = [
+    expectError(
+      .noMatchingAlgorithmForProofType,
+      try ProofTypesPolicy.haipCompliant().validateIssuerMetadata(credentialConfiguration: config)
+    )
+  }
+
+  // MARK: - validate(bindingKey:)
+
+  func testValidateRejectsNonAttestationCapableBindingKey() {
+    let config = makeConfig(proofTypesSupported: [
+      "jwt": ProofTypeSupportedMeta(
+        algorithms: ["ES256"],
+        keyAttestationRequirement: .requiredNoConstraints
+      ),
       "attestation": ProofTypeSupportedMeta(
         algorithms: ["ES256"],
-        keyAttestationRequirement: nil
+        keyAttestationRequirement: .requiredNoConstraints
       )
-    ]
-    let credentialConfig = createTestCredentialConfiguration(proofTypesSupported: proofTypesSupported)
-    let bindingKey = try createAttestationBindingKey()
+    ])
 
-    // Should throw because policy doesn't support attestation proofs
-    XCTAssertThrowsError(try policy.validate(
-      credentialConfiguration: credentialConfig,
-      bindingKey: bindingKey
-    )) { error in
-      guard let issuanceError = error as? CredentialIssuanceError else {
-        XCTFail("Expected CredentialIssuanceError")
-        return
-      }
-      if case .proofTypeNotSupportedByWalletPolicy = issuanceError {
-        // Expected error
-      } else {
-        XCTFail("Expected proofTypeNotSupportedByWalletPolicy error")
-      }
-    }
-  }
-
-  // MARK: - Algorithm Matching Tests
-
-  func testDeviceBoundPolicy_RejectsWhenNoMatchingAlgorithm() throws {
-    let deviceBoundPolicy = DeviceBoundProofPolicy(
-      supportedAlgorithms: [JWSAlgorithm(.ES384)], // Only ES384
-      supportedProofTypes: [.jwtWithKeyAttestation]
-    )
-    let policy = ProofTypesPolicy.deviceBound(deviceBoundPolicy)
-
-    // Credential requires ES256
-    let proofTypesSupported: [String: ProofTypeSupportedMeta] = [
-      "jwt": ProofTypeSupportedMeta(
-        algorithms: ["ES256"], // Different algorithm
-        keyAttestationRequirement: .required(
-          keyStorageConstraints: [.iso18045High],
-          userAuthenticationConstraints: [.iso18045Moderate],
-          preferredKeyStorageStatusPeriod: nil
-        )
+    expectError(
+      .bindingKeyNotAttestationCapable,
+      try ProofTypesPolicy.haipCompliant().validate(
+        credentialConfiguration: config,
+        bindingKey: .did(identity: "did:example:123")
       )
-    ]
-    let credentialConfig = createTestCredentialConfiguration(proofTypesSupported: proofTypesSupported)
-    let bindingKey = try createJwtKeyAttestationBindingKey()
-
-    // Should throw because no matching algorithm
-    XCTAssertThrowsError(try policy.validate(
-      credentialConfiguration: credentialConfig,
-      bindingKey: bindingKey
-    )) { error in
-      guard let issuanceError = error as? CredentialIssuanceError else {
-        XCTFail("Expected CredentialIssuanceError")
-        return
-      }
-      if case .noMatchingAlgorithmForProofType = issuanceError {
-        // Expected error
-      } else {
-        XCTFail("Expected noMatchingAlgorithmForProofType error")
-      }
-    }
+    )
   }
 
-  // MARK: - Flexible Policy Tests
+  // MARK: - Helpers
 
-  func testFlexiblePolicy_AllowsNonDeviceBound() throws {
-    let deviceBoundPolicy = DeviceBoundProofPolicy(
-      supportedAlgorithms: [JWSAlgorithm(.ES256)],
-      supportedProofTypes: [.jwtWithKeyAttestation]
-    )
-    let policy = ProofTypesPolicy.flexible(
-      deviceBound: deviceBoundPolicy,
-      allowNonDeviceBound: true
-    )
-
-    // Credential without proof types (non-device-bound)
-    let credentialConfig = createTestCredentialConfiguration(proofTypesSupported: nil)
-    let bindingKey = try createJwtBindingKey()
-
-    // Should not throw because non-device-bound is allowed
-    XCTAssertNoThrow(try policy.validate(
-      credentialConfiguration: credentialConfig,
-      bindingKey: bindingKey
-    ))
-  }
-
-  func testFlexiblePolicy_RejectsNonDeviceBound_WhenNotAllowed() throws {
-    let deviceBoundPolicy = DeviceBoundProofPolicy(
-      supportedAlgorithms: [JWSAlgorithm(.ES256)],
-      supportedProofTypes: [.jwtWithKeyAttestation]
-    )
-    let policy = ProofTypesPolicy.flexible(
-      deviceBound: deviceBoundPolicy,
-      allowNonDeviceBound: false
-    )
-
-    // Credential without proof types (non-device-bound)
-    let credentialConfig = createTestCredentialConfiguration(proofTypesSupported: nil)
-    let bindingKey = try createJwtBindingKey()
-
-    // Should throw because non-device-bound is not allowed
-    XCTAssertThrowsError(try policy.validate(
-      credentialConfiguration: credentialConfig,
-      bindingKey: bindingKey
-    )) { error in
-      guard let issuanceError = error as? CredentialIssuanceError else {
-        XCTFail("Expected CredentialIssuanceError")
-        return
-      }
-      if case .proofTypesNotSupportedByCredentialConfiguration = issuanceError {
-        // Expected error
-      } else {
-        XCTFail("Expected proofTypesNotSupportedByCredentialConfiguration error")
-      }
-    }
-  }
-
-  // MARK: - Helper Methods
-
-  private func createTestCredentialConfiguration(
+  private func makeConfig(
     proofTypesSupported: [String: ProofTypeSupportedMeta]?
   ) -> CredentialSupported {
-    let credentialDefinition = SdJwtVcFormat.CredentialDefinition(
+    let definition = SdJwtVcFormat.CredentialDefinition(
       type: "VerifiableCredential",
       claims: []
     )
-
     let config = SdJwtVcFormat.CredentialConfiguration(
       scope: nil,
       vct: "test_vct",
@@ -400,62 +225,29 @@ final class ProofTypesPolicyTests: XCTestCase {
       credentialSigningAlgValuesSupported: [],
       proofTypesSupported: proofTypesSupported,
       credentialMetadata: nil,
-      credentialDefinition: credentialDefinition
+      credentialDefinition: definition
     )
     return .sdJwtVc(config)
   }
 
-  private func createJwtBindingKey() throws -> BindingKey {
-    let privateKey = try KeyController.generateECDHPrivateKey()
-    let publicKey = try KeyController.generateECDHPublicKey(from: privateKey)
-    let jwk = try ECPublicKey(
-      publicKey: publicKey,
-      additionalParameters: [
-        "use": "sig",
-        "kid": "test-key-1",
-        "alg": JWSAlgorithm(.ES256).name
-      ]
-    )
-
-    return .jwt(
-      algorithm: JWSAlgorithm(.ES256),
-      jwk: jwk,
-      privateKey: .secKey(privateKey),
-      issuer: nil
-    )
-  }
-
-  private func createJwtKeyAttestationBindingKey() throws -> BindingKey {
-    let privateKey = try KeyController.generateECDHPrivateKey()
-
-    // Mock compact JWS string for testing
-    let mockJWSString = "eyJhbGciOiJFUzI1NiIsInR5cCI6ImtleS1hdHRlc3RhdGlvbitqd3QifQ.eyJ0ZXN0IjoiZGF0YSJ9.mock_signature"
-
-    return .jwtKeyAttestation(
-      algorithm: JWSAlgorithm(.ES256),
-      keyAttestationJWT: { _ in
-        // Mock key attestation JWT using compact serialization
-        try KeyAttestationJWT(
-          jws: JWS(compactSerialization: mockJWSString)
-        )
-      },
-      keyIndex: 0,
-      privateKey: .secKey(privateKey),
-      issuer: nil
-    )
-  }
-
-  private func createAttestationBindingKey() throws -> BindingKey {
-    // Mock compact JWS string for testing
-    let mockJWSString = "eyJhbGciOiJFUzI1NiIsInR5cCI6ImtleS1hdHRlc3RhdGlvbitqd3QifQ.eyJ0ZXN0IjoiZGF0YSJ9.mock_signature"
-
-    return .attestation(
-      keyAttestationJWT: { _ in
-        // Mock key attestation JWT using compact serialization
-        try KeyAttestationJWT(
-          jws: JWS(compactSerialization: mockJWSString)
-        )
+  private func expectError(
+    _ expected: CredentialIssuanceError,
+    _ expression: @autoclosure () throws -> Void,
+    file: StaticString = #filePath,
+    line: UInt = #line
+  ) {
+    XCTAssertThrowsError(try expression(), file: file, line: line) { error in
+      guard let issuanceError = error as? CredentialIssuanceError else {
+        XCTFail("Expected CredentialIssuanceError, got \(error)", file: file, line: line)
+        return
       }
-    )
+      XCTAssertEqual(
+        "\(issuanceError)",
+        "\(expected)",
+        "Expected \(expected), got \(issuanceError)",
+        file: file,
+        line: line
+      )
+    }
   }
 }
