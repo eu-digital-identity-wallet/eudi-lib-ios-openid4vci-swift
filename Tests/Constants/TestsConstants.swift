@@ -107,7 +107,7 @@ let skipDpopOnPARConfig: OpenId4VCIConfig = .init(
 )
 
 struct TestTrust: CertificateChainTrust {
-  func isValid(chain: [String]) -> Bool {
+  func isValid(chain: [String]) async -> Bool {
     true
   }
 }
