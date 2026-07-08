@@ -90,7 +90,7 @@ let MDL_CredentialOffer = """
 let WALLET_DEV_CLIENT_ID = "wallet-dev"
 
 struct TestTrust: CertificateChainTrust {
-  func isValid(chain: [String]) -> Bool {
+  func isValid(chain: [String]) async -> Bool {
     true
   }
 }

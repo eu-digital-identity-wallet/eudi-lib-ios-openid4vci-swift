@@ -223,7 +223,7 @@ private extension IssuerTrust {
       
     case .byCertificateChain(let certificateChainTrust):
       let chain = jws.header.x5c ?? []
-      guard certificateChainTrust.isValid(chain: chain) else {
+      guard await certificateChainTrust.isValid(chain: chain) else {
         throw CredentialIssuerMetadataError.invalidSignedMetadata(
           "Failed to verify chain (.byCertificateChain)"
         )
