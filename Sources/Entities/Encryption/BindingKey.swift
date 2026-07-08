@@ -94,8 +94,8 @@ public extension BindingKey {
       
       let header: JWSHeader = try .init(
         parameters: [
+          JWTClaimNames.kid: "0",
           JWTClaimNames.algorithm: algorithm.name,
-          JWTClaimNames.kid: "\(keyIndex)",
           JWTClaimNames.type: Self.OpenID4VCIProofJWT,
           JWTClaimNames.keyAttestation: keyAttestationJwt.jws.compactSerializedString
         ]

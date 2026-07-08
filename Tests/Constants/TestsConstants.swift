@@ -331,7 +331,39 @@ struct TestsConstants {
       policy: .ignoreSigned
     ).get()
   }
-  
+
+  // An issuer whose proof_types_supported advertises only `attestation` (no jwt).
+  // Used to reproduce the attestation-proof algorithm-validation bug (Bug#1).
+  static func createMockCredentialOfferAttestationOnly() async -> CredentialOffer? {
+    let credentialIssuerMetadataResolver = CredentialIssuerMetadataResolver(
+      fetcher: MetadataFetcher(rawFetcher: RawDataFetcher(session: NetworkingMock(
+        path: "openid-credential-issuer_attestation_only",
+        extension: "json",
+        headers: ["Content-type": "application/json"]
+      ))))
+
+    let authorizationServerMetadataResolver = AuthorizationServerMetadataResolver(
+      oidcFetcher: Fetcher<OIDCProviderMetadata>(session: NetworkingMock(
+        path: "oidc_authorization_server_metadata",
+        extension: "json"
+      ))
+    )
+
+    let credentialOfferRequestResolver = CredentialOfferRequestResolver(
+      fetcher: Fetcher<CredentialOfferRequestObject>(session: NetworkingMock(
+        path: "credential_offer_with_blank_pre_authorized_code",
+        extension: "json"
+      )),
+      credentialIssuerMetadataResolver: credentialIssuerMetadataResolver,
+      authorizationServerMetadataResolver: authorizationServerMetadataResolver
+    )
+
+    return try? await credentialOfferRequestResolver.resolve(
+      source: .fetchByReference(url: .stub()),
+      policy: .ignoreSigned
+    ).get()
+  }
+
   static func createMockCredentialOfferValidEncryptionWithBatchLimit() async -> CredentialOffer? {
     let credentialIssuerMetadataResolver = CredentialIssuerMetadataResolver(
       fetcher: MetadataFetcher(rawFetcher: RawDataFetcher(session: NetworkingMock(

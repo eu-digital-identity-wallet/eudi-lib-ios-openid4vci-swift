@@ -85,7 +85,10 @@ public struct CredentialIssuerMetadata: Decodable, Equatable, Sendable {
     self.preferredClientStatusPeriod = preferredClientStatusPeriod
   }
   
-  public init(deferredCredentialEndpoint: CredentialIssuerEndpoint?) throws {
+  public init(
+    deferredCredentialEndpoint: CredentialIssuerEndpoint?,
+    credentialRequestEncryption: CredentialRequestEncryption? = nil
+  ) throws {
     try self.init(
       credentialIssuerIdentifier: .init(Constants.url),
       authorizationServers: [],
@@ -93,6 +96,7 @@ public struct CredentialIssuerMetadata: Decodable, Equatable, Sendable {
       deferredCredentialEndpoint: deferredCredentialEndpoint,
       nonceEndpoint: nil,
       notificationEndpoint: nil,
+      credentialRequestEncryption: credentialRequestEncryption ?? .notSupported,
       credentialConfigurationsSupported: [:],
       display: nil
     )

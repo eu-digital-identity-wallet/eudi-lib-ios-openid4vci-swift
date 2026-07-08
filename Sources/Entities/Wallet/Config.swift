@@ -23,6 +23,30 @@ public enum AuthorizeIssuanceConfig: Sendable {
   case authorizationDetails
 }
 
+/// Configuration options for PAR usage.
+public enum ParUsage: Sendable {
+  case never
+  case required(authorizationCodeDPoPBinding: Bool)
+  
+  public var required: Bool {
+    switch self {
+    case .never:
+      false
+    case .required:
+      true
+    }
+  }
+  
+  public var authorizationCodeDPoPBinding: Bool {
+    switch self {
+    case .never:
+      false
+    case .required(let authorizationCodeDPoPBinding):
+      authorizationCodeDPoPBinding
+    }
+  }
+}
+
 /// A type alias representing a Client ID.
 public typealias ClientId = String
 
@@ -42,7 +66,7 @@ public struct OpenId4VCIConfig: Sendable {
   public let authorizeIssuanceConfig: AuthorizeIssuanceConfig
   
   /// Whether to require PAR or not.
-  public let requirePAR: Bool
+  public let requirePAR: ParUsage
   
   /// An optional builder for client attestation proof-of-possession tokens.
   public let clientAttestationPoPBuilder: ClientAttestationPoPBuilder?
@@ -80,7 +104,7 @@ public struct OpenId4VCIConfig: Sendable {
     client: Client,
     authFlowRedirectionURI: URL,
     authorizeIssuanceConfig: AuthorizeIssuanceConfig = .favorScopes,
-    requirePAR: Bool = true,
+    requirePAR: ParUsage = .required(authorizationCodeDPoPBinding: true),
     clientAttestationPoPBuilder: ClientAttestationPoPBuilder? = nil,
     issuerMetadataPolicy: IssuerMetadataPolicy = .ignoreSigned,
     supportedCompressionAlgorithms: [CompressionAlgorithm]? = nil,

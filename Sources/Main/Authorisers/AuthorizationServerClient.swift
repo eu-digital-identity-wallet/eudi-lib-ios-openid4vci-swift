@@ -59,6 +59,7 @@ protocol AuthorizationServerClientType: Sendable {
   /// Submits a pushed authorization request (PAR).
   ///
   /// - Parameters:
+  ///   - parUsage: ParUsage,
   ///   - scopes: The requested authorization scopes.
   ///   - credentialConfigurationIdentifiers: Identifiers for the credential configurations.
   ///   - state: A unique state parameter
@@ -70,6 +71,7 @@ protocol AuthorizationServerClientType: Sendable {
   /// See [RFC7636](https://www.rfc-editor.org/rfc/rfc7636.html) for more information
   /// See [RFC9126](https://www.rfc-editor.org/rfc/rfc9126) for more information
   func submitPushedAuthorizationRequest(
+    parUsage: ParUsage,
     scopes: [Scope],
     credentialConfigurationIdentifiers: [CredentialConfigurationIdentifier],
     state: String,
@@ -320,6 +322,7 @@ internal actor AuthorizationServerClient: AuthorizationServerClientType {
   }
   
   public func submitPushedAuthorizationRequest(
+    parUsage: ParUsage,
     scopes: [Scope],
     credentialConfigurationIdentifiers: [CredentialConfigurationIdentifier],
     state: String,
@@ -376,6 +379,7 @@ internal actor AuthorizationServerClient: AuthorizationServerClientType {
       )
       
       let tokenHeaders = try await tokenEndPointHeaders(
+        parUsage: parUsage,
         url: parEndpoint,
         dpopNonce: dpopNonce
       )
@@ -426,6 +430,7 @@ internal actor AuthorizationServerClient: AuthorizationServerClientType {
       }
 
       return try await submitPushedAuthorizationRequest(
+        parUsage: parUsage,
         scopes: scopes,
         credentialConfigurationIdentifiers: credentialConfigurationIdentifiers,
         state: state,
@@ -441,6 +446,7 @@ internal actor AuthorizationServerClient: AuthorizationServerClientType {
       }
 
       return try await submitPushedAuthorizationRequest(
+        parUsage: parUsage,
         scopes: scopes,
         credentialConfigurationIdentifiers: credentialConfigurationIdentifiers,
         state: state,
@@ -977,10 +983,11 @@ private extension AuthorizationServerClient {
   }
   
   func tokenEndPointHeaders(
+    parUsage: ParUsage = .required(authorizationCodeDPoPBinding: true),
     url: URL?,
     dpopNonce: Nonce? = nil
   ) async throws -> [String: String] {
-    if let dpopConstructor, let url {
+    if let dpopConstructor, let url, parUsage.authorizationCodeDPoPBinding {
       let jwt = try await dpopConstructor.jwt(
         endpoint: url,
         accessToken: nil,

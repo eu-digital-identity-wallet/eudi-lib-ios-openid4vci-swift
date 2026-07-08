@@ -74,6 +74,7 @@ public struct DefaultClientAttestationPoPBuilder: ClientAttestationPoPBuilder {
       ]
       
       let header: JWSHeader = try .init(parameters: [
+        JWTClaimNames.kid: "0",
         JWTClaimNames.algorithm: popJwtSpec.signingAlgorithm.rawValue,
         JWTClaimNames.type: popJwtSpec.typ,
         JWTClaimNames.JWK: jwk.toDictionary()
