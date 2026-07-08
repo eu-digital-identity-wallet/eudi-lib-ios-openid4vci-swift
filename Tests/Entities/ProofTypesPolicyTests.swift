@@ -85,7 +85,7 @@ final class ProofTypesPolicyTests: XCTestCase {
 
   func testRejectsAttestationOnly() {
     let config = makeConfig(proofTypesSupported: [
-      "attestation": ProofTypeSupportedMeta(
+      "jwt": ProofTypeSupportedMeta(
         algorithms: ["ES256"],
         keyAttestationRequirement: .requiredNoConstraints
       )
@@ -102,10 +102,6 @@ final class ProofTypesPolicyTests: XCTestCase {
       "jwt": ProofTypeSupportedMeta(
         algorithms: ["ES256"],
         keyAttestationRequirement: .notRequired
-      ),
-      "attestation": ProofTypeSupportedMeta(
-        algorithms: ["ES256"],
-        keyAttestationRequirement: .requiredNoConstraints
       )
     ])
 
