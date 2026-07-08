@@ -35,7 +35,7 @@ class KeyAttestationTests: XCTestCase {
     try await super.setUp()
     
     config = .init(
-      client: publicClient,
+      client: attestionClient,
       authFlowRedirectionURI: URL(string: "urn:ietf:wg:oauth:2.0:oob")!,
       authorizeIssuanceConfig: .favorScopes
     )

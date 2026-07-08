@@ -238,7 +238,8 @@ public actor Issuer: IssuerType {
     
     deferredIssuanceRequester = IssuanceRequester(
       issuerMetadata: issuerMetadata,
-      poster: Poster(session: session)
+      poster: Poster(session: session),
+      dpopConstructor: dpopConstructor
     )
     
     notifyIssuer = NotifyIssuer(

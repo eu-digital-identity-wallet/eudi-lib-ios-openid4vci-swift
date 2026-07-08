@@ -89,16 +89,39 @@ let MDL_CredentialOffer = """
 
 let WALLET_DEV_CLIENT_ID = "wallet-dev"
 
-let clientConfig: OpenId4VCIConfig = .init(
-  client: publicClient,
-  authFlowRedirectionURI: URL(string: "urn:ietf:wg:oauth:2.0:oob")!,
-  authorizeIssuanceConfig: .favorScopes
-)
-
 struct TestTrust: CertificateChainTrust {
   func isValid(chain: [String]) -> Bool {
     true
   }
+}
+
+let attestionClient =  try! attestedClient(
+  clientId: "eudiw-abca",
+  privateKey: try KeyController.generateECDHPrivateKey()
+)
+
+func fetchKeyAttestationJWT(
+  nonce: String?,
+  publicKeyJWK: JWK
+) async throws -> KeyAttestationJWT {
+  let client = WalletProviderClient(
+    baseURL: .init(
+      string: "https://dev.wallet-provider.eudiw.dev"
+    )!
+  )
+  
+  let jwt = try await client.issueKeyAttestation(
+    nonce: nonce,
+    jwkDictionaries: [publicKeyJWK.toDictionary()],
+    supportedSigningAlgorithms: ["ES256"],
+    preferredKeyStorageStatusPeriod: 0
+  )
+  
+  return try .init(
+    jws: .init(
+      compactSerialization: jwt.keyAttestation
+    )
+  )
 }
 
 func testSigningKeyPair(alg: JWSAlgorithm) -> (public: JWK, private: SigningKeyProxy) {
@@ -117,34 +140,11 @@ func testSigningKeyPair(alg: JWSAlgorithm) -> (public: JWK, private: SigningKeyP
 
 let testingSigningKeyPair = testSigningKeyPair(alg: .init(.ES256))
 
-let publicClient: Client = .public(
-  id: WALLET_DEV_CLIENT_ID,
-  alg: .init(.ES256),
-  jwk: testingSigningKeyPair.public,
-  signingKey: testingSigningKeyPair.private
-)
-
-let preferSignedClientConfig: OpenId4VCIConfig = .init(
-  client: publicClient,
-  authFlowRedirectionURI: URL(string: "urn:ietf:wg:oauth:2.0:oob")!,
-  authorizeIssuanceConfig: .favorScopes,
-  issuerMetadataPolicy: .preferSigned(issuerTrust: .byCertificateChain(certificateChainTrust: TestTrust()))
-)
-
-let requireSignedClientConfig: OpenId4VCIConfig = .init(
-  client: publicClient,
-  authFlowRedirectionURI: URL(string: "urn:ietf:wg:oauth:2.0:oob")!,
-  authorizeIssuanceConfig: .favorScopes,
-  issuerMetadataPolicy: .requireSigned(issuerTrust: .byCertificateChain(certificateChainTrust: TestTrust()))
-)
-
 let attestationConfig: OpenId4VCIConfig = .init(
-  client: try! selfSignedClient(
-    clientId: WALLET_DEV_CLIENT_ID,
-    privateKey: try KeyController.generateECDHPrivateKey()
-  ),
+  client: attestionClient,
   authFlowRedirectionURI: URL(string: "urn:ietf:wg:oauth:2.0:oob")!,
-  authorizeIssuanceConfig: .favorScopes
+  authorizeIssuanceConfig: .favorScopes,
+  clientAttestationPoPBuilder: DefaultClientAttestationPoPBuilder()
 )
 
 func dpopConstructor(algorithms: [JWSAlgorithm]?) throws -> DPoPConstructorType? {

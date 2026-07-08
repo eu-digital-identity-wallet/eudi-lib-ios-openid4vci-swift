@@ -375,7 +375,6 @@ internal actor AuthorizationServerClient: AuthorizationServerClientType {
         clientAttestation: clientAttestation
       )
       
-      let alg = config.client.alg
       let tokenHeaders = try await tokenEndPointHeaders(
         url: parEndpoint,
         dpopNonce: dpopNonce
@@ -581,7 +580,7 @@ internal actor AuthorizationServerClient: AuthorizationServerClientType {
     maxRetries: Int = Constants.MAX_RETRIES
   ) async throws -> (
     IssuanceAccessToken,
-	IssuanceRefreshToken?,
+	  IssuanceRefreshToken?,
     AuthorizationDetailsIdentifiers?,
     TokenType?,
     Int?,
@@ -665,7 +664,7 @@ internal actor AuthorizationServerClient: AuthorizationServerClientType {
     maxRetries: Int = Constants.MAX_RETRIES
   ) async throws -> (
     IssuanceAccessToken,
-	IssuanceRefreshToken?, 
+	  IssuanceRefreshToken?,
     AuthorizationDetailsIdentifiers?,
     TokenType?,
     Int?,
@@ -677,7 +676,7 @@ internal actor AuthorizationServerClient: AuthorizationServerClientType {
       Constants.REFRESH_TOKEN_PARAM: refreshToken.refreshToken
     ].compactMapValues { $0 })
     
-    let (attestationHeaders, signingKeyProxy) = try await makeAttestationHeadersIfNeeded(
+    let (attestationHeaders, _) = try await makeAttestationHeadersIfNeeded(
       for: client,
       clock: Clock()
     )
@@ -705,25 +704,25 @@ internal actor AuthorizationServerClient: AuthorizationServerClientType {
         _,
         let identifiers
       ):
-          return (
-            try IssuanceAccessToken(
-              accessToken: accessToken,
-              tokenType: .init(
-                value: tokenType
-              ),
-              expiresIn: TimeInterval(expiresIn)
+        return (
+          try IssuanceAccessToken(
+            accessToken: accessToken,
+            tokenType: .init(
+              value: tokenType
             ),
+            expiresIn: TimeInterval(expiresIn)
+          ),
 			try IssuanceRefreshToken(
 				refreshToken: refreshToken,
         expiresIn: .init(seconds: refreshTokenExpiresIn)
 			),
-            identifiers,
-            TokenType(
-              value: tokenType
-            ),
-            expiresIn,
-            response.dpopNonce()
-          )
+        identifiers,
+        TokenType(
+          value: tokenType
+        ),
+        expiresIn,
+        response.dpopNonce()
+      )
       case .failure(let error, let errorDescription):
         throw CredentialIssuanceError.pushedAuthorizationRequestFailed(
           error: error,
@@ -914,8 +913,6 @@ private extension AuthorizationServerClient {
     challenge: Nonce?
   ) async throws -> (ClientAttestationJWT, ClientAttestationPoPJWT, JWK, SigningKeyProxy)? {
     switch client {
-    case .public:
-      return nil
     case .attested(_, _, let jwk, let spec, let provider):
       guard let clientAttestationPoPBuilder = config.clientAttestationPoPBuilder else {
         return nil
@@ -925,7 +922,7 @@ private extension AuthorizationServerClient {
         return nil
       }
       
-      let (attestationJWT, signingKeyProxy) = provider(authServerId)
+      let (attestationJWT, signingKeyProxy) = try await provider(authServerId)
       let popJWT = try await clientAttestationPoPBuilder.buildAttestationPoPJWT(
         for: client,
         algorithm: spec.signingAlgorithm,
@@ -963,7 +960,7 @@ private extension AuthorizationServerClient {
       return ([:], nil)
     }
     
-    let (attestationJWT, signingKey) = provider(authServerId)
+    let (attestationJWT, signingKey) = try await provider(authServerId)
 
     let popJWT = try await clientAttestationPoPBuilder.buildAttestationPoPJWT(
       for: client,

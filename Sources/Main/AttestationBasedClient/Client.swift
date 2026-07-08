@@ -16,20 +16,12 @@
 import Foundation
 @preconcurrency import JOSESwift
 
-public typealias ClientAttestationProvider = @Sendable (URL) -> (
+public typealias ClientAttestationProvider = @Sendable (URL) async throws -> (
   attestationJWT: ClientAttestationJWT,
   signingKey: SigningKeyProxy
 )
 
 public enum Client: Sendable {
-  
-  /// Represents a Public client
-  case `public`(
-    id: ClientId,
-    alg: JWSAlgorithm,
-    jwk: JWK,
-    signingKey: SigningKeyProxy
-  )
   
   /// Represents an Attested client
   case attested(
@@ -43,8 +35,6 @@ public enum Client: Sendable {
   // Computed property for 'id' (common property for both cases)
   public var id: ClientId {
     switch self {
-    case .public(let id, _, _, _):
-      return id
     case .attested(let id, _, _, _, _):
       return id
     }
@@ -53,8 +43,6 @@ public enum Client: Sendable {
   // Computed property for public key
   public var jwk: JWK {
     switch self {
-    case .public(_, _, let jwk, _):
-      return jwk
     case .attested(_, _, let jwk, _, _):
       return jwk
     }
@@ -63,8 +51,6 @@ public enum Client: Sendable {
   // Computed property for JWS alg
   public var alg: JWSAlgorithm {
     switch self {
-    case .public(_, let alg, _, _):
-      return alg
     case .attested(_, let alg, _, _, _):
       return alg
     }
@@ -73,8 +59,6 @@ public enum Client: Sendable {
   // Computed property for 'provider'
   public func provider() -> ClientAttestationProvider? {
     switch self {
-    case .public:
-      return nil
     case .attested(_, _, _, _, let provider):
       return provider
     }
@@ -83,35 +67,9 @@ public enum Client: Sendable {
   // Computed property for 'provider'
   public func spec() -> ClientAttestationPoPJWTSpec? {
     switch self {
-    case .public:
-      return nil
     case .attested(_, _, _, let spec, _):
       return spec
     }
-  }
-
-  // Computed property for signingKey
-  public func signingKey() -> SigningKeyProxy? {
-    switch self {
-    case .public(_, _, _, let signingKey):
-      return signingKey
-    case .attested:
-      return nil
-    }
-  }
-  
-  public init(
-    public id: ClientId,
-    alg: JWSAlgorithm,
-    jwk: JWK,
-    signingKey: SigningKeyProxy
-  ) {
-    self = .public(
-      id: id,
-      alg: alg,
-      jwk: jwk,
-      signingKey: signingKey
-    )
   }
   
   public init(
@@ -132,8 +90,6 @@ public enum Client: Sendable {
   
   internal var attested: (id: ClientId, popJwtSpec: ClientAttestationPoPJWTSpec, clientAttestationProvider: ClientAttestationProvider)? {
     return switch self {
-    case .public:
-      nil
     case .attested(let id, _, _, let popJwtSpec, let clientAttestationProvider):
       (id, popJwtSpec, clientAttestationProvider)
     }

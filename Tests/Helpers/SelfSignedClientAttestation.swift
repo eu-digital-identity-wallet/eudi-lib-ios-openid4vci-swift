@@ -23,7 +23,7 @@ internal func jwkProviderSignedClient(
   clientId: String,
   algorithm: SignatureAlgorithm = .ES256,
   privateKey: SecKey
-) async throws -> Client {
+) async throws -> (client: Client, publicKey: JWK) {
   
   let publicKey = try KeyController.generateECDHPublicKey(from: privateKey)
   let publicKeyJWK = try ECPublicKey(
@@ -49,7 +49,7 @@ internal func jwkProviderSignedClient(
     .secKey(privateKey)
   }
 
-  return try .attested(
+  return try (.attested(
     id: clientId,
     alg: .init(.ES256),
     jwk: publicKeyJWK,
@@ -61,7 +61,7 @@ internal func jwkProviderSignedClient(
     clientAttestationProvider: { authServer in
       (attestationJWT, getSignerFrom(authServer: authServer))
     }
-  )
+  ), publicKeyJWK)
 }
 
 internal func jwkSetProviderSignedClient(
@@ -113,25 +113,16 @@ internal func jwkSetProviderSignedClient(
   )
 }
 
-internal func selfSignedClient(
+internal func attestedClient(
   clientId: String,
   algorithm: SignatureAlgorithm = .ES256,
   privateKey: SecKey
 ) throws -> Client {
   
-  guard isECPrivateKey(privateKey) else {
-    fatalError("Key shoulb be EC and private")
-  }
-  
-  guard algorithm.isNotMacAlgorithm else {
-    fatalError("MAC not supported")
-  }
-  
-  let header: JWSHeader = try! .init(
-    parameters: [
-      "alg": algorithm.rawValue,
-      "typ": "oauth-client-attestation+jwt"
-    ]
+  let client = WalletProviderClient(
+    baseURL: .init(
+      string: "https://dev.wallet-provider.eudiw.dev"
+    )!
   )
   
   let jwk: ECPublicKey = try! ECPublicKey(
@@ -140,36 +131,13 @@ internal func selfSignedClient(
     )
   )
   
-  let duration: TimeInterval = 300
-  let now = Date().timeIntervalSince1970
-  let exp = Date().addingTimeInterval(duration).timeIntervalSince1970
-  let payload: Payload = try! .init([
-    "iss": clientId,
-    "aud": clientId,
-    "sub": clientId,
-    "iat": now,
-    "exp": exp,
-    "cnf": [
-      "jwk": jwk.toDictionary()
-    ],
-    "wallet_name": "Test Wallet Solution",
-    "wallet_version": "1.0.0",
-    "wallet_solution_certification_information": [
-      "certification_body": "Test CAB",
-      "certification_number": "TEST-CERT-001"
-    ],
-    "client_status": [
-      "status": [
-        "status_list": [
-          "idx": 0,
-          "uri": "https://wallet-provider.example.org/status-lists/clients/1"
-        ]
-      ],
-      "exp": Date().addingTimeInterval(7 * 24 * 3600).timeIntervalSince1970
-    ]
-  ].toThrowingJSONData())
+  guard isECPrivateKey(privateKey) else {
+    fatalError("Key shoulb be EC and private")
+  }
   
-
+  guard algorithm.isNotMacAlgorithm else {
+    fatalError("MAC not supported")
+  }
   
   @Sendable func getSignerFrom(authServer: URL) -> SigningKeyProxy {
     .secKey(privateKey)
@@ -181,23 +149,15 @@ internal func selfSignedClient(
     jwk: jwk,
     popJwtSpec: .init(
       signingAlgorithm: algorithm,
-      duration: duration,
+      duration: 1000,
       typ: "oauth-client-attestation-pop+jwt"
     ),
     clientAttestationProvider: { authServer in
       let proxy = getSignerFrom(authServer: authServer)
-      let signer = Signer(
-        signatureAlgorithm: algorithm,
-        key: proxy
-      )!
-      
+      let walletInstanceAttestation = try await client.issueWalletInstanceAttestation(payload: ["jwk": jwk.toDictionary()])
       return (
         try! .init(
-          jws: .init(
-            header: header,
-            payload: payload,
-            signer: signer
-          )
+          jws: .init(compactSerialization: walletInstanceAttestation.walletInstanceAttestation)
         ),
         proxy
       )

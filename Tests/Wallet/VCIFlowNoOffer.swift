@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import Foundation
+@preconcurrency import Foundation
 import XCTest
 @preconcurrency import JOSESwift
 
@@ -43,8 +43,8 @@ class VCIFlowNoOffer: XCTestCase {
     
     let bindingKey: BindingKey = .jwtKeyAttestation(
       algorithm: alg,
-      keyAttestationJWT: { _ in
-        try .init(jws: .init(compactSerialization: TestsConstants.ketAttestationJWT))
+      keyAttestationJWT: { nonce in
+        try await fetchKeyAttestationJWT(nonce: nonce, publicKeyJWK: publicKeyJWK)
       },
       privateKey: .secKey(privateKey)
     )
@@ -61,7 +61,8 @@ class VCIFlowNoOffer: XCTestCase {
     
     do {
       try await walletInitiatedIssuanceNoOfferSdJwt(
-        wallet: wallet
+        wallet: wallet,
+        config: attestationConfig
       )
       
     } catch {
@@ -89,8 +90,8 @@ class VCIFlowNoOffer: XCTestCase {
     
     let bindingKey: BindingKey = .jwtKeyAttestation(
       algorithm: alg,
-      keyAttestationJWT: { _ in
-        try .init(jws: .init(compactSerialization: TestsConstants.ketAttestationJWT))
+      keyAttestationJWT: { nonce in
+        try await fetchKeyAttestationJWT(nonce: nonce, publicKeyJWK: publicKeyJWK)
       },
       privateKey: .secKey(privateKey)
     )
@@ -108,7 +109,7 @@ class VCIFlowNoOffer: XCTestCase {
     do {
       try await walletInitiatedIssuanceNoOfferSdJwt(
         wallet: wallet,
-        config: preferSignedClientConfig
+        config: attestationConfig
       )
       
     } catch {
@@ -136,8 +137,8 @@ class VCIFlowNoOffer: XCTestCase {
     
     let bindingKey: BindingKey = .jwtKeyAttestation(
       algorithm: alg,
-      keyAttestationJWT: { _ in
-        try .init(jws: .init(compactSerialization: TestsConstants.ketAttestationJWT))
+      keyAttestationJWT: { nonce in
+        try await fetchKeyAttestationJWT(nonce: nonce, publicKeyJWK: publicKeyJWK)
       },
       privateKey: .secKey(privateKey)
     )
@@ -155,7 +156,7 @@ class VCIFlowNoOffer: XCTestCase {
     do {
       try await walletInitiatedIssuanceNoOfferSdJwt(
         wallet: wallet,
-        config: requireSignedClientConfig
+        config: attestationConfig
       )
       
     } catch {
@@ -183,8 +184,8 @@ class VCIFlowNoOffer: XCTestCase {
     
     let bindingKey: BindingKey = .jwtKeyAttestation(
       algorithm: alg,
-      keyAttestationJWT: { _ in
-        try .init(jws: .init(compactSerialization: TestsConstants.ketAttestationJWT))
+      keyAttestationJWT: { nonce in
+        try await fetchKeyAttestationJWT(nonce: nonce, publicKeyJWK: publicKeyJWK)
       },
       privateKey: .secKey(privateKey)
     )
@@ -202,7 +203,8 @@ class VCIFlowNoOffer: XCTestCase {
     do {
       try await walletInitiatedIssuanceNoOfferSdJwt(
         wallet: wallet,
-        id: PID_SdJwtVC_config_id_deferred
+        id: PID_SdJwtVC_config_id_deferred,
+        config: attestationConfig
       )
       
     } catch {
@@ -230,8 +232,8 @@ class VCIFlowNoOffer: XCTestCase {
     
     let bindingKey: BindingKey = .jwtKeyAttestation(
       algorithm: alg,
-      keyAttestationJWT: { _ in
-        try .init(jws: .init(compactSerialization: TestsConstants.ketAttestationJWT))
+      keyAttestationJWT: { nonce in
+        try await fetchKeyAttestationJWT(nonce: nonce, publicKeyJWK: publicKeyJWK)
       },
       privateKey: .secKey(privateKey)
     )
@@ -248,7 +250,8 @@ class VCIFlowNoOffer: XCTestCase {
     
     do {
       try await walletInitiatedIssuanceNoOfferMdoc(
-        wallet: wallet
+        wallet: wallet,
+        config: attestationConfig
       )
     } catch {
       
@@ -275,8 +278,8 @@ class VCIFlowNoOffer: XCTestCase {
     
     let bindingKey: BindingKey = .jwtKeyAttestation(
       algorithm: alg,
-      keyAttestationJWT: { _ in
-        try .init(jws: .init(compactSerialization: TestsConstants.ketAttestationJWT))
+      keyAttestationJWT: { nonce in
+        try await fetchKeyAttestationJWT(nonce: nonce, publicKeyJWK: publicKeyJWK)
       },
       privateKey: .secKey(privateKey)
     )
@@ -304,51 +307,6 @@ class VCIFlowNoOffer: XCTestCase {
     XCTAssert(true)
   }
   
-  func testNoOfferMdocMultipleProofs() async throws {
-    
-    let privateKey = try KeyController.generateECDHPrivateKey()
-    let publicKey = try KeyController.generateECDHPublicKey(from: privateKey)
-    
-    let alg = JWSAlgorithm(.ES256)
-    let publicKeyJWK = try ECPublicKey(
-      publicKey: publicKey,
-      additionalParameters: [
-        "alg": alg.name,
-        "use": "sig",
-        "kid": UUID().uuidString
-      ])
-    
-    let bindingKey: BindingKey = .jwtKeyAttestation(
-      algorithm: alg,
-      keyAttestationJWT: { _ in
-        try .init(jws: .init(compactSerialization: TestsConstants.ketAttestationJWT))
-      },
-      privateKey: .secKey(privateKey)
-    )
-    
-    let user = ActingUser(
-      username: "tneal",
-      password: "password"
-    )
-    
-    let wallet = Wallet(
-      actingUser: user,
-      bindingKeys: [bindingKey, bindingKey]
-    )
-    
-    do {
-      try await walletInitiatedIssuanceNoOfferMdoc(
-        wallet: wallet
-      )
-    } catch {
-      
-      XCTExpectFailure()
-      XCTAssert(false, error.localizedDescription)
-    }
-    
-    XCTAssert(true)
-  }
-  
   func testNoOfferSdJWTSingleProof() async throws {
     
     let privateKey = try KeyController.generateECDHPrivateKey()
@@ -365,8 +323,8 @@ class VCIFlowNoOffer: XCTestCase {
     
     let bindingKey: BindingKey = .jwtKeyAttestation(
       algorithm: alg,
-      keyAttestationJWT: { _ in
-        try .init(jws: .init(compactSerialization: TestsConstants.ketAttestationJWT))
+      keyAttestationJWT: { nonce in
+        try await fetchKeyAttestationJWT(nonce: nonce, publicKeyJWK: publicKeyJWK)
       },
       privateKey: .secKey(privateKey)
     )
@@ -411,8 +369,8 @@ class VCIFlowNoOffer: XCTestCase {
     
     let bindingKey: BindingKey = .jwtKeyAttestation(
       algorithm: alg,
-      keyAttestationJWT: { _ in
-        try .init(jws: .init(compactSerialization: TestsConstants.ketAttestationJWT))
+      keyAttestationJWT: { nonce in
+        try await fetchKeyAttestationJWT(nonce: nonce, publicKeyJWK: publicKeyJWK)
       },
       privateKey: .secKey(privateKey)
     )
@@ -441,75 +399,6 @@ class VCIFlowNoOffer: XCTestCase {
     XCTAssert(true)
   }
   
-  func testNoOfferJWSJSONSdJWTKeyAttestation() async throws {
-    
-    let privateKey = TestsConstants.keyAttestationPrivateKey
-    let publicKey = try KeyController.generateECDHPublicKey(from: privateKey)
-    let alg = JWSAlgorithm(.ES256)
-    let publicKeyJWK = try ECPublicKey(
-      publicKey: publicKey,
-      additionalParameters: [
-        "alg": alg.name,
-        "use": "sig",
-        "kid": UUID().uuidString
-      ])
-    
-    do {
-      let algorithm = JWSAlgorithm(.ES256)
-      let bindingKey: BindingKey = try .jwtKeyAttestation(
-        algorithm: algorithm,
-        keyAttestationJWT: { nonce in
-          
-          let client = WalletProviderClient(
-            baseURL: .init(
-              string: "https://dev.wallet-provider.eudiw.dev"
-            )!
-          )
-          
-          let jwt = try await client.issueWalletUnitAttestation(
-            dictionary: [
-              "nonce": nonce!,
-              "jwkSet": [
-                "keys": [
-                  publicKeyJWK.toDictionary()
-                ]
-              ]
-            ]).walletUnitAttestation
-          
-          return try .init(
-            jws: .init(
-              compactSerialization: jwt
-            )
-          )
-        },
-        keyIndex: 0,
-        privateKey: .secKey(privateKey),
-        issuer: "wallet-dev"
-      )
-      
-      let user = ActingUser(
-        username: "tneal",
-        password: "password"
-      )
-      
-      let wallet = Wallet(
-        actingUser: user,
-        bindingKeys: [bindingKey]
-      )
-      
-      try await walletInitiatedIssuanceNoOfferSdJwtClientAuthentication(
-        wallet: wallet,
-        id: EHIC_JwtCompact_config_id
-      )
-    } catch {
-      
-      XCTExpectFailure()
-      XCTAssert(false, error.localizedDescription)
-    }
-    
-    XCTAssert(true)
-  }
-  
   func testNoOfferCompactSdJWTKeyAttestation() async throws {
     
     let privateKey = TestsConstants.keyAttestationPrivateKey
@@ -526,27 +415,7 @@ class VCIFlowNoOffer: XCTestCase {
     do {
       let bindingKey: BindingKey = .attestation(
         keyAttestationJWT: { @KeyAttester nonce in
-          let client = WalletProviderClient(
-            baseURL: .init(
-              string: "https://dev.wallet-provider.eudiw.dev"
-            )!
-          )
-          
-          let jwt = try await client.issueWalletUnitAttestation(
-            dictionary: [
-              "nonce": nonce!,
-              "jwkSet": [
-                "keys": [
-                  publicKeyJWK.toDictionary()
-                ]
-              ]
-            ]).walletUnitAttestation
-          
-          return try .init(
-            jws: .init(
-              compactSerialization: jwt
-            )
-          )
+          try await fetchKeyAttestationJWT(nonce: nonce, publicKeyJWK: publicKeyJWK)
         }
       )
       
@@ -562,7 +431,7 @@ class VCIFlowNoOffer: XCTestCase {
       
       try await walletInitiatedIssuanceNoOfferSdJwtClientAuthentication(
         wallet: wallet,
-        id: EHIC_JwsCompact_config_id
+        id: PID_SdJwtVC_config_id
       )
     } catch {
       XCTExpectFailure()
@@ -581,33 +450,24 @@ class VCIFlowNoOffer: XCTestCase {
     )
     
     let privateKey = try KeyController.generateECDHPrivateKey()
-    let publicKey = try KeyController.generateECDHPublicKey(from: privateKey)
-    
+    let provider = try await jwkProviderSignedClient(
+      client: client,
+      clientId: "eudiw-abca",
+      algorithm: .ES256,
+      privateKey: privateKey
+    )
     do {
-      let attestationConfig: OpenId4VCIConfig = await .init(
-        client: try jwkProviderSignedClient(
-          client: client,
-          clientId: "eudiw-abca",
-          algorithm: .ES256,
-          privateKey: privateKey
-        ),
+      let attestationConfig: OpenId4VCIConfig = .init(
+        client: provider.client,
         authFlowRedirectionURI: URL(string: "urn:ietf:wg:oauth:2.0:oob")!,
         authorizeIssuanceConfig: .favorScopes,
         clientAttestationPoPBuilder: DefaultClientAttestationPoPBuilder()
       )
       
-      let publicKeyJWK = try ECPublicKey(
-        publicKey: publicKey,
-        additionalParameters: [
-          "alg": "ES256",
-          "use": "sig",
-          "kid": UUID().uuidString
-        ])
-      
       let bindingKey: BindingKey = .jwtKeyAttestation(
         algorithm: JWSAlgorithm(.ES256),
-        keyAttestationJWT: { _ in
-          try .init(jws: .init(compactSerialization: TestsConstants.ketAttestationJWT))
+        keyAttestationJWT: { nonce in
+          try await fetchKeyAttestationJWT(nonce: nonce, publicKeyJWK: provider.publicKey)
         },
         privateKey: .secKey(privateKey)
       )
@@ -654,7 +514,7 @@ private func walletInitiatedIssuanceNoOfferSdJwtClientAuthentication(
 private func walletInitiatedIssuanceNoOfferSdJwt(
   wallet: Wallet,
   id: String? = nil,
-  config: OpenId4VCIConfig = clientConfig
+  config: OpenId4VCIConfig = attestationConfig
 ) async throws {
   
   print(NO_OFFER_BASED_SCENARIO)
@@ -668,14 +528,15 @@ private func walletInitiatedIssuanceNoOfferSdJwt(
 }
 
 private func walletInitiatedIssuanceNoOfferMdoc(
-  wallet: Wallet
+  wallet: Wallet,
+  config: OpenId4VCIConfig
 ) async throws {
   
   print(NO_OFFER_BASED_SCENARIO)
   
   let credential = try await wallet.issueByCredentialIdentifier(
     PID_MsoMdoc_config_id,
-    config: clientConfig
+    config: attestationConfig
   )
   
   print("--> [ISSUANCE] Issued PID in format \(PID_MsoMdoc_config_id): \(credential)")
@@ -687,7 +548,7 @@ private func walletInitiatedIssuanceNoOfferMDL(wallet: Wallet) async throws {
   
   let credential = try await wallet.issueByCredentialIdentifier(
     MDL_config_id,
-    config: clientConfig
+    config: attestationConfig
   )
   
   print("--> [ISSUANCE] Issued PID in format \(MDL_config_id): \(credential)")

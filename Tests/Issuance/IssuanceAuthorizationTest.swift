@@ -22,7 +22,7 @@ import JOSESwift
 class IssuanceAuthorizationTest: XCTestCase {
   
   let config: OpenId4VCIConfig = .init(
-    client: publicClient,
+    client: attestionClient,
     authFlowRedirectionURI: URL(string: "urn:ietf:wg:oauth:2.0:oob")!,
     authorizeIssuanceConfig: .favorScopes
   )
@@ -276,7 +276,7 @@ class IssuanceAuthorizationTest: XCTestCase {
         preAuthorizationCode: code.preAuthorizedCode,
         txCode: code.txCode
       ),
-      client: publicClient,
+      client: attestionClient,
       transactionCode: "123456"
     )
     
@@ -373,7 +373,7 @@ class IssuanceAuthorizationTest: XCTestCase {
         preAuthorizationCode: code.preAuthorizedCode,
         txCode: code.txCode
       ),
-      client: publicClient,
+      client: attestionClient,
       transactionCode: "12345"
     )
     
@@ -452,10 +452,7 @@ class IssuanceAuthorizationTest: XCTestCase {
       )
     
     let attestationConfig: OpenId4VCIConfig = .init(
-      client: try! selfSignedClient(
-        clientId: "track2_full",
-        privateKey: try KeyController.generateECDHPrivateKey()
-      ),
+      client: attestionClient,
       authFlowRedirectionURI: URL(string: "urn:ietf:wg:oauth:2.0:oob")!,
       authorizeIssuanceConfig: .favorScopes,
       clientAttestationPoPBuilder: DefaultClientAttestationPoPBuilder()
@@ -600,7 +597,7 @@ class IssuanceAuthorizationTest: XCTestCase {
         preAuthorizationCode: code.preAuthorizedCode,
         txCode: code.txCode
       ),
-      client: publicClient,
+      client: attestionClient,
       transactionCode: "12345"
     )
 
@@ -711,7 +708,7 @@ class IssuanceAuthorizationTest: XCTestCase {
         preAuthorizationCode: code.preAuthorizedCode,
         txCode: code.txCode
       ),
-      client: publicClient,
+      client: attestionClient,
       transactionCode: "12345"
     )
     
