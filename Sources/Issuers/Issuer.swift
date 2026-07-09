@@ -90,12 +90,12 @@ public protocol IssuerType: RefreshAccessToken {
   ///
   /// - Parameters:
   ///   - authorizedRequest: The authorized request linked to the notification.
-  ///   - notificationId: The ID of the notification.
+  ///   - notification: The notification object to send.
   ///   - dPopNonce: An optional nonce for DPoP security.
   /// - Returns: A result containing either `Void` if successful or an `Error` otherwise.
   func notify(
     authorizedRequest: AuthorizedRequest,
-    notificationId: NotificationObject,
+    notification: NotificationObject,
     dPopNonce: Nonce?
   ) async throws
   
@@ -238,7 +238,8 @@ public actor Issuer: IssuerType {
     
     deferredIssuanceRequester = IssuanceRequester(
       issuerMetadata: issuerMetadata,
-      poster: Poster(session: session)
+      poster: Poster(session: session),
+      dpopConstructor: dpopConstructor
     )
     
     notifyIssuer = NotifyIssuer(
@@ -735,6 +736,7 @@ public extension Issuer {
   
   static func createDeferredIssuer(
     deferredCredentialEndpoint: CredentialIssuerEndpoint?,
+    credentialRequestEncryption: CredentialRequestEncryption? = nil,
     deferredRequesterPoster: PostingType,
     config: OpenId4VCIConfig
   ) throws -> Issuer {
@@ -747,7 +749,8 @@ public extension Issuer {
         )
       ),
       issuerMetadata: .init(
-        deferredCredentialEndpoint: deferredCredentialEndpoint
+        deferredCredentialEndpoint: deferredCredentialEndpoint,
+        credentialRequestEncryption: credentialRequestEncryption
       ),
       config: config,
       deferredRequesterPoster: deferredRequesterPoster
@@ -866,24 +869,27 @@ public extension Issuer {
     transactionId: TransactionId,
     dPopNonce: Nonce?
   ) async throws -> DeferredCredentialIssuanceResponse {
-    
+
+    let encryptionSpec = try encryptionSpec()
+
     return try await deferredIssuanceRequester.placeDeferredCredentialRequest(
       accessToken: request.accessToken,
       transactionId: transactionId,
       dPopNonce: dPopNonce,
       maxRetries: Constants.MAX_RETRIES,
-      issuanceResponseEncryptionSpec: deferredResponseEncryptionSpec
+      issuanceResponseEncryptionSpec: deferredResponseEncryptionSpec,
+      encryptionSpec: encryptionSpec
     )
   }
   
   func notify(
     authorizedRequest: AuthorizedRequest,
-    notificationId: NotificationObject,
+    notification: NotificationObject,
     dPopNonce: Nonce?
   ) async throws {
     try await notifyIssuer.notify(
       authorizedRequest: authorizedRequest,
-      notification: notificationId,
+      notification: notification,
       dPopNonce: dPopNonce
     )
   }

@@ -83,15 +83,12 @@ public extension ProofTypesPolicy {
       return
     }
 
-    guard let jwtMeta = proofTypesSupported["jwt"],
-          let attestationMeta = proofTypesSupported["attestation"],
-          Self.requiresKeyAttestation(jwtMeta),
+    guard let attestationMeta = proofTypesSupported["attestation"],
           Self.requiresKeyAttestation(attestationMeta) else {
       throw CredentialIssuanceError.issuerMetadataNoAttestedProofType
     }
 
     let walletSupported: [(AttestedProofType, ProofTypeSupportedMeta)] = [
-      (.jwtWithKeyAttestation, jwtMeta),
       (.attestation, attestationMeta)
     ].filter { supportedProofTypes.contains($0.0) }
 

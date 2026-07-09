@@ -59,6 +59,7 @@ protocol AuthorizationServerClientType: Sendable {
   /// Submits a pushed authorization request (PAR).
   ///
   /// - Parameters:
+  ///   - parUsage: ParUsage,
   ///   - scopes: The requested authorization scopes.
   ///   - credentialConfigurationIdentifiers: Identifiers for the credential configurations.
   ///   - state: A unique state parameter
@@ -70,6 +71,7 @@ protocol AuthorizationServerClientType: Sendable {
   /// See [RFC7636](https://www.rfc-editor.org/rfc/rfc7636.html) for more information
   /// See [RFC9126](https://www.rfc-editor.org/rfc/rfc9126) for more information
   func submitPushedAuthorizationRequest(
+    parUsage: ParUsage,
     scopes: [Scope],
     credentialConfigurationIdentifiers: [CredentialConfigurationIdentifier],
     state: String,
@@ -320,6 +322,7 @@ internal actor AuthorizationServerClient: AuthorizationServerClientType {
   }
   
   public func submitPushedAuthorizationRequest(
+    parUsage: ParUsage,
     scopes: [Scope],
     credentialConfigurationIdentifiers: [CredentialConfigurationIdentifier],
     state: String,
@@ -375,8 +378,8 @@ internal actor AuthorizationServerClient: AuthorizationServerClientType {
         clientAttestation: clientAttestation
       )
       
-      let alg = config.client.alg
       let tokenHeaders = try await tokenEndPointHeaders(
+        parUsage: parUsage,
         url: parEndpoint,
         dpopNonce: dpopNonce
       )
@@ -427,6 +430,7 @@ internal actor AuthorizationServerClient: AuthorizationServerClientType {
       }
 
       return try await submitPushedAuthorizationRequest(
+        parUsage: parUsage,
         scopes: scopes,
         credentialConfigurationIdentifiers: credentialConfigurationIdentifiers,
         state: state,
@@ -442,6 +446,7 @@ internal actor AuthorizationServerClient: AuthorizationServerClientType {
       }
 
       return try await submitPushedAuthorizationRequest(
+        parUsage: parUsage,
         scopes: scopes,
         credentialConfigurationIdentifiers: credentialConfigurationIdentifiers,
         state: state,
@@ -581,7 +586,7 @@ internal actor AuthorizationServerClient: AuthorizationServerClientType {
     maxRetries: Int = Constants.MAX_RETRIES
   ) async throws -> (
     IssuanceAccessToken,
-	IssuanceRefreshToken?,
+	  IssuanceRefreshToken?,
     AuthorizationDetailsIdentifiers?,
     TokenType?,
     Int?,
@@ -665,7 +670,7 @@ internal actor AuthorizationServerClient: AuthorizationServerClientType {
     maxRetries: Int = Constants.MAX_RETRIES
   ) async throws -> (
     IssuanceAccessToken,
-	IssuanceRefreshToken?, 
+	  IssuanceRefreshToken?,
     AuthorizationDetailsIdentifiers?,
     TokenType?,
     Int?,
@@ -677,7 +682,7 @@ internal actor AuthorizationServerClient: AuthorizationServerClientType {
       Constants.REFRESH_TOKEN_PARAM: refreshToken.refreshToken
     ].compactMapValues { $0 })
     
-    let (attestationHeaders, signingKeyProxy) = try await makeAttestationHeadersIfNeeded(
+    let (attestationHeaders, _) = try await makeAttestationHeadersIfNeeded(
       for: client,
       clock: Clock()
     )
@@ -705,25 +710,25 @@ internal actor AuthorizationServerClient: AuthorizationServerClientType {
         _,
         let identifiers
       ):
-          return (
-            try IssuanceAccessToken(
-              accessToken: accessToken,
-              tokenType: .init(
-                value: tokenType
-              ),
-              expiresIn: TimeInterval(expiresIn)
+        return (
+          try IssuanceAccessToken(
+            accessToken: accessToken,
+            tokenType: .init(
+              value: tokenType
             ),
+            expiresIn: TimeInterval(expiresIn)
+          ),
 			try IssuanceRefreshToken(
 				refreshToken: refreshToken,
         expiresIn: .init(seconds: refreshTokenExpiresIn)
 			),
-            identifiers,
-            TokenType(
-              value: tokenType
-            ),
-            expiresIn,
-            response.dpopNonce()
-          )
+        identifiers,
+        TokenType(
+          value: tokenType
+        ),
+        expiresIn,
+        response.dpopNonce()
+      )
       case .failure(let error, let errorDescription):
         throw CredentialIssuanceError.pushedAuthorizationRequestFailed(
           error: error,
@@ -914,8 +919,6 @@ private extension AuthorizationServerClient {
     challenge: Nonce?
   ) async throws -> (ClientAttestationJWT, ClientAttestationPoPJWT, JWK, SigningKeyProxy)? {
     switch client {
-    case .public:
-      return nil
     case .attested(_, _, let jwk, let spec, let provider):
       guard let clientAttestationPoPBuilder = config.clientAttestationPoPBuilder else {
         return nil
@@ -925,7 +928,7 @@ private extension AuthorizationServerClient {
         return nil
       }
       
-      let (attestationJWT, signingKeyProxy) = provider(authServerId)
+      let (attestationJWT, signingKeyProxy) = try await provider(authServerId)
       let popJWT = try await clientAttestationPoPBuilder.buildAttestationPoPJWT(
         for: client,
         algorithm: spec.signingAlgorithm,
@@ -963,7 +966,7 @@ private extension AuthorizationServerClient {
       return ([:], nil)
     }
     
-    let (attestationJWT, signingKey) = provider(authServerId)
+    let (attestationJWT, signingKey) = try await provider(authServerId)
 
     let popJWT = try await clientAttestationPoPBuilder.buildAttestationPoPJWT(
       for: client,
@@ -980,10 +983,11 @@ private extension AuthorizationServerClient {
   }
   
   func tokenEndPointHeaders(
+    parUsage: ParUsage = .required(authorizationCodeDPoPBinding: true),
     url: URL?,
     dpopNonce: Nonce? = nil
   ) async throws -> [String: String] {
-    if let dpopConstructor, let url {
+    if let dpopConstructor, let url, parUsage.authorizationCodeDPoPBinding {
       let jwt = try await dpopConstructor.jwt(
         endpoint: url,
         accessToken: nil,

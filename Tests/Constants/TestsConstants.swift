@@ -89,16 +89,39 @@ let MDL_CredentialOffer = """
 
 let WALLET_DEV_CLIENT_ID = "wallet-dev"
 
-let clientConfig: OpenId4VCIConfig = .init(
-  client: publicClient,
-  authFlowRedirectionURI: URL(string: "urn:ietf:wg:oauth:2.0:oob")!,
-  authorizeIssuanceConfig: .favorScopes
-)
-
 struct TestTrust: CertificateChainTrust {
-  func isValid(chain: [String]) -> Bool {
+  func isValid(chain: [String]) async -> Bool {
     true
   }
+}
+
+let attestionClient =  try! attestedClient(
+  clientId: "eudiw-abca",
+  privateKey: try KeyController.generateECDHPrivateKey()
+)
+
+func fetchKeyAttestationJWT(
+  nonce: String?,
+  publicKeyJWK: JWK
+) async throws -> KeyAttestationJWT {
+  let client = WalletProviderClient(
+    baseURL: .init(
+      string: "https://dev.wallet-provider.eudiw.dev"
+    )!
+  )
+  
+  let jwt = try await client.issueKeyAttestation(
+    nonce: nonce,
+    jwkDictionaries: [publicKeyJWK.toDictionary()],
+    supportedSigningAlgorithms: ["ES256"],
+    preferredKeyStorageStatusPeriod: 0
+  )
+  
+  return try .init(
+    jws: .init(
+      compactSerialization: jwt.keyAttestation
+    )
+  )
 }
 
 func testSigningKeyPair(alg: JWSAlgorithm) -> (public: JWK, private: SigningKeyProxy) {
@@ -117,34 +140,11 @@ func testSigningKeyPair(alg: JWSAlgorithm) -> (public: JWK, private: SigningKeyP
 
 let testingSigningKeyPair = testSigningKeyPair(alg: .init(.ES256))
 
-let publicClient: Client = .public(
-  id: WALLET_DEV_CLIENT_ID,
-  alg: .init(.ES256),
-  jwk: testingSigningKeyPair.public,
-  signingKey: testingSigningKeyPair.private
-)
-
-let preferSignedClientConfig: OpenId4VCIConfig = .init(
-  client: publicClient,
-  authFlowRedirectionURI: URL(string: "urn:ietf:wg:oauth:2.0:oob")!,
-  authorizeIssuanceConfig: .favorScopes,
-  issuerMetadataPolicy: .preferSigned(issuerTrust: .byCertificateChain(certificateChainTrust: TestTrust()))
-)
-
-let requireSignedClientConfig: OpenId4VCIConfig = .init(
-  client: publicClient,
-  authFlowRedirectionURI: URL(string: "urn:ietf:wg:oauth:2.0:oob")!,
-  authorizeIssuanceConfig: .favorScopes,
-  issuerMetadataPolicy: .requireSigned(issuerTrust: .byCertificateChain(certificateChainTrust: TestTrust()))
-)
-
 let attestationConfig: OpenId4VCIConfig = .init(
-  client: try! selfSignedClient(
-    clientId: WALLET_DEV_CLIENT_ID,
-    privateKey: try KeyController.generateECDHPrivateKey()
-  ),
+  client: attestionClient,
   authFlowRedirectionURI: URL(string: "urn:ietf:wg:oauth:2.0:oob")!,
-  authorizeIssuanceConfig: .favorScopes
+  authorizeIssuanceConfig: .favorScopes,
+  clientAttestationPoPBuilder: DefaultClientAttestationPoPBuilder()
 )
 
 func dpopConstructor(algorithms: [JWSAlgorithm]?) throws -> DPoPConstructorType? {
@@ -331,7 +331,39 @@ struct TestsConstants {
       policy: .ignoreSigned
     ).get()
   }
-  
+
+  // An issuer whose proof_types_supported advertises only `attestation` (no jwt).
+  // Used to reproduce the attestation-proof algorithm-validation bug (Bug#1).
+  static func createMockCredentialOfferAttestationOnly() async -> CredentialOffer? {
+    let credentialIssuerMetadataResolver = CredentialIssuerMetadataResolver(
+      fetcher: MetadataFetcher(rawFetcher: RawDataFetcher(session: NetworkingMock(
+        path: "openid-credential-issuer_attestation_only",
+        extension: "json",
+        headers: ["Content-type": "application/json"]
+      ))))
+
+    let authorizationServerMetadataResolver = AuthorizationServerMetadataResolver(
+      oidcFetcher: Fetcher<OIDCProviderMetadata>(session: NetworkingMock(
+        path: "oidc_authorization_server_metadata",
+        extension: "json"
+      ))
+    )
+
+    let credentialOfferRequestResolver = CredentialOfferRequestResolver(
+      fetcher: Fetcher<CredentialOfferRequestObject>(session: NetworkingMock(
+        path: "credential_offer_with_blank_pre_authorized_code",
+        extension: "json"
+      )),
+      credentialIssuerMetadataResolver: credentialIssuerMetadataResolver,
+      authorizationServerMetadataResolver: authorizationServerMetadataResolver
+    )
+
+    return try? await credentialOfferRequestResolver.resolve(
+      source: .fetchByReference(url: .stub()),
+      policy: .ignoreSigned
+    ).get()
+  }
+
   static func createMockCredentialOfferValidEncryptionWithBatchLimit() async -> CredentialOffer? {
     let credentialIssuerMetadataResolver = CredentialIssuerMetadataResolver(
       fetcher: MetadataFetcher(rawFetcher: RawDataFetcher(session: NetworkingMock(

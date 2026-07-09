@@ -22,7 +22,7 @@ import JOSESwift
 class IssuanceNotificationTest: XCTestCase {
   
   let config: OpenId4VCIConfig = .init(
-    client: publicClient,
+    client: attestionClient,
     authFlowRedirectionURI: URL(string: "urn:ietf:wg:oauth:2.0:oob")!,
     authorizeIssuanceConfig: .favorScopes
   )
@@ -120,12 +120,13 @@ class IssuanceNotificationTest: XCTestCase {
                 switch result {
                 case .deferred:
                   XCTAssert(false, "Unexpected deferred")
-                case .issued(_, let credential, _, _):
+                case .issued(_, let credential, let notificationId, _):
                   XCTAssert(true, "credential: \(credential)")
-                  
+                  XCTAssertNotNil(notificationId, "notificationId should be present in credential response")
+
                   try await issuer.notify(
                     authorizedRequest: authorizedRequest,
-                    notificationId: .stub(),
+                    notification: try .stub(),
                     dPopNonce: nil
                   )
                 }
@@ -236,12 +237,17 @@ class IssuanceNotificationTest: XCTestCase {
                 switch result {
                 case .deferred:
                   XCTAssert(false, "Unexpected deferred")
-                case .issued(_, let credential, _, _):
+                case .issued(_, let credential, let notificationId, _):
                   XCTAssert(true, "credential: \(credential)")
-                  
+
+                  guard notificationId != nil else {
+                    // notificationId absent: notify not called (expected behaviour)
+                    return
+                  }
+
                   try await issuer.notify(
                     authorizedRequest: authorizedRequest,
-                    notificationId: .stub(),
+                    notification: try .stub(),
                     dPopNonce: nil
                   )
                   XCTAssert(false, "Success not expected")

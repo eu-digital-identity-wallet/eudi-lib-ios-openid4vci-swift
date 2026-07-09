@@ -85,9 +85,9 @@ internal actor AuthorizeIssuance: AuthorizeIssuanceType {
       credentialOffer: credentialOffer
     )
     
-    let authorizationServerSupportsPar = credentialOffer.authorizationServerMetadata.authorizationServerSupportsPar && config.requirePAR
+    let authorizationServerSupportsPar = credentialOffer.authorizationServerMetadata.authorizationServerSupportsPar && config.requirePAR.required
     
-    if config.requirePAR {
+    if config.requirePAR.required {
       guard let _ = credentialOffer.authorizationServerMetadata.pushedAuthorizationRequestEndpointURI else {
         throw ValidationError.parRequired
       }
@@ -97,6 +97,7 @@ internal actor AuthorizeIssuance: AuthorizeIssuanceType {
     
     if authorizationServerSupportsPar {
       return try await handlePARAuthorization(
+        parUsage: config.requirePAR,
         credentialOffer: credentialOffer,
         scopes: scopes,
         credentialConfigurationIdentifiers: identifiers,
@@ -261,6 +262,7 @@ private extension AuthorizeIssuance {
   }
   
   private func handlePARAuthorization(
+    parUsage: ParUsage,
     credentialOffer: CredentialOffer,
     scopes: [Scope],
     credentialConfigurationIdentifiers: [CredentialConfigurationIdentifier],
@@ -278,6 +280,7 @@ private extension AuthorizeIssuance {
         code: AuthorizationCodeURL,
         dPopNonce: Nonce?
       ) = try await authorizer.submitPushedAuthorizationRequest(
+        parUsage: parUsage,
         scopes: scopes,
         credentialConfigurationIdentifiers: credentialConfigurationIdentifiers,
         state: state,

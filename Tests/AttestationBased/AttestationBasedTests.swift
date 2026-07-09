@@ -60,7 +60,7 @@ class AttestationBasedTests: XCTestCase {
   
   func testClientAttestationJWT() async throws {
     
-    let client = try selfSignedClient(
+    let client = try attestedClient(
       clientId: WALLET_DEV_CLIENT_ID,
       privateKey: try! KeyController.generateECDHPrivateKey()
     )
@@ -73,7 +73,7 @@ class AttestationBasedTests: XCTestCase {
     let privateKey = try KeyController.generateECDHPrivateKey()
 
     // Test ES256
-    let clientES256 = try selfSignedClient(
+    let clientES256 = try attestedClient(
       clientId: "test-client-es256",
       algorithm: .ES256,
       privateKey: privateKey
@@ -81,7 +81,7 @@ class AttestationBasedTests: XCTestCase {
     XCTAssertNotNil(clientES256, "ES256 should be accepted")
 
     // Test ES384
-    let clientES384 = try selfSignedClient(
+    let clientES384 = try attestedClient(
       clientId: "test-client-es384",
       algorithm: .ES384,
       privateKey: privateKey
@@ -89,7 +89,7 @@ class AttestationBasedTests: XCTestCase {
     XCTAssertNotNil(clientES384, "ES384 should be accepted")
 
     // Test ES512
-    let clientES512 = try selfSignedClient(
+    let clientES512 = try attestedClient(
       clientId: "test-client-es512",
       algorithm: .ES512,
       privateKey: privateKey
