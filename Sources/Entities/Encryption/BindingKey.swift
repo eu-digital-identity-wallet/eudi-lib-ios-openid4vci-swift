@@ -92,6 +92,18 @@ public extension BindingKey {
         break
       }
       
+      // OID4VCI Appendix F: a jwt proof header identifies the signing key with
+      // exactly one of jwk / kid / x5c. A verifier (e.g. the OpenID Foundation
+      // conformance suite) resolves kid against a pre-established client jwks,
+      // not against the key_attestation's attested_keys. So put the attested
+      // public key (attested_keys[keyIndex]) inline as jwk instead of kid; this
+      // lets a jwt proof that carries a key_attestation resolve its key.
+      guard Int(keyIndex) < keyAttestationJwt.attestedKeys.count else {
+        throw ValidationError.todo(
+          reason: ".jwtKeyAttestation: keyIndex (\(keyIndex)) out of range for attested_keys (count: \(keyAttestationJwt.attestedKeys.count))"
+        )
+      }
+      let attestedPublicKey = keyAttestationJwt.attestedKeys[Int(keyIndex)]
       let header: JWSHeader = try .init(
         parameters: [
           JWTClaimNames.kid: "0",
