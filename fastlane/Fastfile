@@ -16,18 +16,26 @@
 default_platform(:ios)
 
 platform :ios do
+  # Defaults for Xcode 26 / iOS 26.
+  #
+  # Override in CI when needed:
+  # IOS_SIMULATOR_DEVICE="iPhone 17 Pro"
+  # IOS_SIMULATOR_OS="26.5"
+  simulator_device = ENV.fetch("IOS_SIMULATOR_DEVICE", "iPhone 17")
+  simulator_os = ENV.fetch("IOS_SIMULATOR_OS", "latest")
+  simulator_destination =
+    "platform=iOS Simulator,name=#{simulator_device},OS=#{simulator_os}"
+
   desc "Run unit tests"
   lane :tests do
     params = {
-      package_path: '.',
-      scheme: 'OpenID4VCI',
-      destination: "platform=iOS Simulator,name=iPhone 16,OS=18.5",
+      package_path: ".",
+      scheme: "OpenID4VCI",
+      destination: simulator_destination,
       result_bundle: true
     }
 
-    if ENV['CI'] 
-      params[:xcargs] = "-skipPackagePluginValidation"
-    end
+    params[:xcargs] = "-skipPackagePluginValidation" if ENV["CI"]
 
     run_tests(params)
   end
@@ -39,16 +47,15 @@ platform :ios do
 
   desc "Code coverage"
   lane :code_coverage do
-    
     params = {
-      package_path: '.',
-      scheme: 'OpenID4VCI',
-      destination: "platform=iOS Simulator,name=iPhone 16,OS=18.5",
+      package_path: ".",
+      scheme: "OpenID4VCI",
+      destination: simulator_destination,
       output_directory: "xcov_output",
       result_bundle: true,
       parallel_testing: false,
       xcodebuild_formatter: "xcbeautify",
-      xcargs: ENV['CI'] ? "-skipPackagePluginValidation" : nil
+      xcargs: ENV["CI"] ? "-skipPackagePluginValidation" : nil
     }
 
     run_tests(params)
@@ -61,22 +68,25 @@ platform :ios do
       include_targets: "OpenID4VCI"
     )
 
-    if ENV['CI'] != 'true'
-      sh 'open ../xcov_output/index.html'
-    end
+    sh "open ../xcov_output/index.html" unless ENV["CI"] == "true"
   end
 
   desc "Builds the package"
   lane :just_build do
     xcodebuild(
       scheme: "OpenID4VCI",
-      destination: "platform=iOS Simulator,name=iPhone 16,OS=18.5",
-      xcargs: "-skipPackagePluginValidation -disableAutomaticPackageResolution"
+      destination: simulator_destination,
+      xcargs: [
+        "-skipPackagePluginValidation",
+        "-disableAutomaticPackageResolution"
+      ].join(" ")
     )
   end
 
   before_all do
-    FileUtils.remove_dir '../xcov_output', true
+    FileUtils.remove_dir("../xcov_output", true)
+
+    UI.message("Xcode: #{sh('xcodebuild -version', log: false).strip}")
+    UI.message("Simulator destination: #{simulator_destination}")
   end
-  
 end
