@@ -447,10 +447,11 @@ extension Wallet {
     authorized: AuthorizedRequest,
     transactionId: TransactionId
   ) async throws -> Credential {
+    
     print("--> [ISSUANCE] Got a deferred issuance response from server with transaction_id: \(transactionId.value). Retrying issuance...")
     
     let deferredRequestResponse: DeferredCredentialIssuanceResponse = try await issuer.requestDeferredCredential(
-      request: authorized,
+      request: try await issuer.refresh(authorizedRequest: authorized, dPopNonce: nil),
       transactionId: transactionId,
       dPopNonce: nil
     )
@@ -469,9 +470,9 @@ extension Wallet {
 }
 
 extension AuthorizationCode {
-    init(testValue: inout String) throws {
-        self = try AuthorizationCode(value: testValue)
-    }
+  init(testValue: inout String) throws {
+    self = try AuthorizationCode(value: testValue)
+  }
 }
 
 extension Wallet {

@@ -53,6 +53,7 @@ In particular, the library focuses on the wallet's role in the protocol to:
 | `key_attestation` to the JWT Proof (JOSE header)                                                | ✅                                                                                                                  |
 | Wallet attestation                                                                              | ✅                                                                                                                  |
 | Credential Reuse Policy (ETSI TS 119 472-3 / ARF Annex II)                                      | ✅                                                                                                                  |
+| Proof Types Policy                                   | ✅                                                                                                                  |
 
 
 ## Disclaimer
@@ -257,6 +258,27 @@ switch requestOutcome {
 
 You can also check the unit test target for more usage examples.
 
+### Refresh Access Token
+
+A Wallet/Caller can refresh the `AccessToken` of an `AuthorizedRequest` using a `refresh_token` grant.
+
+Prerequisites:
+1. Authorization Server supports `refresh_token` grant
+2. `AuthorizedRequest` contains a `RefreshToken`
+
+Library will perform a `refresh_token` grant, and return the updated `AuthorizedRequest`:
+
+```swift
+import OpenID4VCI
+
+let authorizedRequest: AuthorizedRequest = ... // has been retrieved in a previous step
+let issuer: Issuer = ...
+
+let updatedAuthorizedRequest = try await issuer.refresh(
+    authorizedRequest: authorizedRequest
+)
+```
+
 ## Configuration options
 
 ```swift
@@ -268,6 +290,7 @@ public struct OpenId4VCIConfig: Sendable {
   public let dPoPConstructor: DPoPConstructorType?
   public let clientAttestationPoPBuilder: ClientAttestationPoPBuilder?
   public let issuerMetadataPolicy: IssuerMetadataPolicy
+  public let proofTypesPolicy: ProofTypesPolicy
 }
 ```
 
@@ -281,6 +304,46 @@ public struct OpenId4VCIConfig: Sendable {
 - `dPoPConstructor`: If dpop is supported this option constructs what is required.
 - `clientAttestationPoPBuilder`: If the authorization supports client attestations, this object constructs what is required.
 - `issuerMetadataPolicy`: Trust between the Wallet and the Signer of the signed metadata advertised by the Credential Issuer is established using this configuration option.
+- `proofTypesPolicy`: Policy defining which proof types the wallet supports. See [Proof Types Policy Configuration](#proof-types-policy-configuration) for details.
+
+### Proof Types Policy Configuration
+
+The library enforces device-bound attestations. Only the following proof types are
+accepted for credential issuance:
+
+- `proof_type: attestation`
+- `proof_type: jwt` with `key_attestation` in the protected header
+
+Plain JWT proofs (no `key_attestation`) are not supported.
+
+Issuer metadata is validated:
+
+- A credential configuration whose `proof_types_supported` is missing or empty
+  is treated as "no proof required" and accepted.
+- A non-empty `proof_types_supported` MUST advertise BOTH `jwt` AND
+  `attestation`, and BOTH MUST carry `key_attestations_required`. Any other
+  shape is rejected with `CredentialIssuanceError.issuerMetadataNoAttestedProofType`.
+
+`ProofTypesPolicy` is a struct that declares the wallet's supported signing
+algorithms and supported attested proof types:
+
+```swift
+public struct ProofTypesPolicy: Sendable {
+  public let supportedAlgorithms: [JWSAlgorithm]
+  public let supportedProofTypes: Set<AttestedProofType>
+}
+
+public enum AttestedProofType: String, Sendable {
+  case jwtWithKeyAttestation
+  case attestation
+}
+```
+
+The default for `OpenId4VCIConfig.proofTypesPolicy` is `.haipCompliant()`, which
+accepts `ES256` and both attested proof types. Provide a custom
+`ProofTypesPolicy(supportedAlgorithms:, supportedProofTypes:)` to narrow the
+algorithms or the attested proof types your wallet is willing to produce.
+
 
 ## Features supported
 
@@ -301,7 +364,12 @@ endpoints.
 OpenId4VCI specification defines several extension points to accommodate the differences across Credential formats. The current version of the library fully supports **ISO mDL** profile and gives some initial support for **IETF SD-JWT VC** profile.  
 
 #### Proof Types
-OpenId4VCI specification (draft 14) defines proofs that can be included in a credential issuance request, JWT proof type in particular. The current version of the library supports JWT proof types.
+OpenId4VCI specification (draft 14) defines proofs that can be included in a credential issuance request. The library supports the two attested proof types only:
+
+- `attestation` proof.
+- `jwt` proof with `key_attestation` in the protected header.
+
+Plain JWT proofs (without `key_attestation`) are intentionally not supported. See [Proof Types Policy Configuration](#proof-types-policy-configuration) above.
 
 ### Demonstrating Proof of Possession (DPoP)
 
@@ -325,7 +393,15 @@ interactions use the newly provided DPoP Nonce value.
 
 ### OAUTH2 Attestation-Based Client Authentication
 
-Library supports [OAUTH2 Attestation-Based Client Authentication - Draft 03](https://www.ietf.org/archive/id/draft-ietf-oauth-attestation-based-client-auth-03.html)
+Library supports [OAUTH2 Attestation-Based Client Authentication - Draft 03](https://www.ietf.org/archive/id/draft-ietf-oauth-attestation-based-client-auth-03.html).
+
+When a `Client.attested(...)` is used, the provided `ClientAttestationJWT` is eagerly validated as a **Wallet Instance Attestation per [TS3 v1.5 §2.3](https://github.com/eu-digital-identity-wallet/eudi-doc-standards-and-technical-specifications/blob/main/docs/technical-specifications/ts3-wallet-unit-attestation.md#23-content)**. The JWT must:
+
+- be signed with `ES256`, `ES384`, or `ES512`
+- carry header `typ` of `oauth-client-attestation+jwt` (when set)
+- contain the required claims: `iss`, `sub`, `exp`, `cnf.jwk` (public key), `wallet_name`, `wallet_version`, `wallet_solution_certification_information`, and `client_status` (with nested `status_list` reference and `exp`)
+
+Parsed values are available via the typed `attestation.claimsSet` (e.g. `attestation.claimsSet.walletName.value`, `attestation.publicKey`). Wallet Provider back-ends MUST issue WIAs that include every required claim, otherwise construction fails with a specific `ClientAttestationError` naming the missing or invalid claim.
 
 An example can be found in this test: `testNoOfferSdJWTClientAuthentication()`
 
@@ -435,10 +511,6 @@ can be requested using `authorization_details` (`identifierBased`) or `scope`(`c
 Though for `authorization_details` we don't support the `format` attribute and its specializations per format.
 Only `credential_configuration_id` attribute is supported.
 
-### Key attestations
-
-Current version of the library does not support [key attestations](https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0-15.html#appendix-D) 
-neither as a [proof type](https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0-15.html#section-8.2.1.3) nor as a `key_attestation` header in JWT proofs.
 
 ## How to contribute
 

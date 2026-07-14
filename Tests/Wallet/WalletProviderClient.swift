@@ -15,6 +15,14 @@
  */
 import Foundation
 
+public struct KeyAttestation: Sendable, Decodable {
+  public let keyAttestation: String
+
+  public init(keyAttestation: String) {
+    self.keyAttestation = keyAttestation
+  }
+}
+
 /// Errors returned by `WalletProviderClient`
 public enum WalletProviderError: Error, LocalizedError {
   case invalidURL
@@ -82,7 +90,7 @@ public struct ChallengeResponse: Decodable {
   }
 }
 
-public struct WalletInstanceAttestation: Decodable {
+public struct WalletInstanceAttestation: Sendable, Decodable, Encodable {
   public let walletInstanceAttestation: String
   
   public init(walletInstanceAttestation: String) {
@@ -90,7 +98,7 @@ public struct WalletInstanceAttestation: Decodable {
   }
 }
 
-public struct WalletUnitAttestation: Sendable, Decodable {
+public struct WalletUnitAttestation: Sendable, Decodable, Encodable {
   public let walletUnitAttestation: String
   
   public init(walletUnitAttestation: String) {
@@ -108,8 +116,8 @@ public struct WalletUnitAttestation: Sendable, Decodable {
 /// let att = try await client.issueWalletApplicationAttestation(jwk: jwk) // jwk is JOSESwift JWK
 /// print(att.jwt)
 /// ```
-public final class WalletProviderClient {
-  public struct Config {
+public final class WalletProviderClient: Sendable {
+  public struct Config: Sendable {
     public var baseURL: URL
     public var additionalHeaders: [String: String] = [:]
     public var timeout: TimeInterval = 30
@@ -202,6 +210,56 @@ public final class WalletProviderClient {
       throw WalletProviderError.encoding(error)
     }
     return try await send(req, decode: WalletUnitAttestation.self)
+  }
+  
+  /// POST /key-attestation/jwk-set
+  ///
+  /// Body:
+  /// {
+  ///   "nonce": "...",
+  ///   "jwkSet": { "keys": [ ... ] },
+  ///   "supportedSigningAlgorithms": [ ... ],
+  ///   "preferredKeyStorageStatusPeriod": ...
+  /// }
+  ///
+  /// - Parameter jwkDictionaries: Array of JOSESwift JWK dictionaries, e.g. `jwk.toDictionary()`.
+  @discardableResult
+  public func issueKeyAttestation(
+    nonce: String?,
+    jwkDictionaries: [[String: Any]],
+    supportedSigningAlgorithms: [String],
+    preferredKeyStorageStatusPeriod: Int
+  ) async throws -> KeyAttestation {
+    let url = config.baseURL
+      .appendingPathComponent("key-attestation")
+      .appendingPathComponent("jwk-set")
+
+    var req = URLRequest(url: url)
+    req.httpMethod = "POST"
+    req.allHTTPHeaderFields = [
+      "Content-Type": "application/json",
+      "Accept": "application/json"
+    ]
+
+    var body: [String: Any] = [
+      "jwkSet": [
+        "keys": jwkDictionaries
+      ],
+      "supportedSigningAlgorithms": supportedSigningAlgorithms,
+      "preferredKeyStorageStatusPeriod": preferredKeyStorageStatusPeriod
+    ]
+
+    if let nonce {
+      body["nonce"] = nonce
+    }
+    
+    do {
+      req.httpBody = try JSONSerialization.data(withJSONObject: body, options: [])
+    } catch {
+      throw WalletProviderError.encoding(error)
+    }
+
+    return try await send(req, decode: KeyAttestation.self)
   }
   
   // MARK: - Internals

@@ -502,6 +502,9 @@ private extension IssuanceRequester {
       }
       let alg = try requireAlg(in: jws, proofLabel: proofLabel, index: idx)
       try requireAlgSupported(alg, advertised: advertised, proofLabel: proofLabel, index: idx)
+
+      // Validate key attestation if present in header
+      try validateKeyAttestationInJWT(jws, proofLabel: proofLabel, index: idx)
     }
   }
 
@@ -541,7 +544,65 @@ private extension IssuanceRequester {
       )
     }
   }
-  
+
+  /// Validates key attestation in JWT proof
+  ///
+  /// This method performs the following validations:
+  /// - kid header must be "0" (referencing the first attested key)
+  /// - JWT proof must be signed by the first key in attested_keys array
+  ///
+  /// - Parameters:
+  ///   - jws: The JWT proof to validate
+  ///   - proofLabel: Label for error messages
+  ///   - index: Index for error messages
+  private func validateKeyAttestationInJWT(_ jws: JWS, proofLabel: String, index: Int) throws {
+    // Parse header to check for key_attestation parameter
+    let headerData = jws.compactSerializedString.split(separator: ".").first.map(String.init) ?? ""
+    guard let decodedData = Data(base64URLEncoded: headerData),
+          let headerJSON = try? JSONSerialization.jsonObject(with: decodedData) as? [String: Any],
+          let kaString = headerJSON["key_attestation"] as? String else {
+      return // No key attestation, nothing to validate
+    }
+
+    // Parse the key attestation JWT
+    let keyAttestation: KeyAttestationJWT
+    do {
+      keyAttestation = try KeyAttestationJWT(jwt: kaString)
+    } catch {
+      throw ValidationError.error(
+        reason: "Invalid key attestation JWT in \(proofLabel) at index \(index): \(error.localizedDescription)"
+      )
+    }
+
+    // Validate kid = "0"
+    try validateKidIsZero(jws.header, proofLabel: proofLabel, index: index)
+
+    // Validate JWT proof is signed by first attested key
+    do {
+      try keyAttestation.validateJWTProofSignature(jws)
+    } catch {
+      throw ValidationError.error(
+        reason: "JWT proof signature validation failed for \(proofLabel) at index \(index): \(error.localizedDescription)"
+      )
+    }
+  }
+
+  /// Validates that the kid header is "0".
+  ///
+  /// - Parameters:
+  ///   - header: The JWS header to validate
+  ///   - proofLabel: Label for error messages
+  ///   - index: Index for error messages
+  private func validateKidIsZero(_ header: JWSHeader, proofLabel: String, index: Int) throws {
+    guard let kid = header.kid else {
+      throw CredentialIssuanceError.missingKid
+    }
+
+    guard kid == "0" else {
+      throw CredentialIssuanceError.invalidKid(expected: "0", actual: kid)
+    }
+  }
+
   func decrypt(
     jwtString: String,
     keyManagementAlgorithm: KeyManagementAlgorithm,

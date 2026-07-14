@@ -17,7 +17,7 @@ import Foundation
 import JOSESwift
 
 /// A protocol defining the operations required for an issuer in the credential issuance process.
-public protocol IssuerType: Sendable {
+public protocol IssuerType: RefreshAccessToken {
   
   /// Initiates an authorization request using a credential offer.
   ///
@@ -238,7 +238,8 @@ public actor Issuer: IssuerType {
     
     deferredIssuanceRequester = IssuanceRequester(
       issuerMetadata: issuerMetadata,
-      poster: Poster(session: session)
+      poster: Poster(session: session),
+      dpopConstructor: dpopConstructor
     )
     
     notifyIssuer = NotifyIssuer(
@@ -483,6 +484,17 @@ internal extension Issuer {
       .credentialsSupported[credentialConfigurationIdentifier] else {
       throw ValidationError.error(reason: "Invalid Supported credential for requestSingle")
     }
+
+    try config.proofTypesPolicy.validateIssuerMetadata(
+      credentialConfiguration: supportedCredential
+    )
+
+    for bindingKey in bindingKeys {
+      try config.proofTypesPolicy.validate(
+        credentialConfiguration: supportedCredential,
+        bindingKey: bindingKey
+      )
+    }
     
     let proofs = try await obtainProofs(
       authorizedRequest: authorizedRequest,
@@ -525,6 +537,17 @@ internal extension Issuer {
       requestPayload: issuancePayload,
       authorizationDetails: authorizedRequest.credentialIdentifiers ?? [:]
     )
+    
+    try config.proofTypesPolicy.validateIssuerMetadata(
+      credentialConfiguration: supportedCredential
+    )
+    
+    for bindingKey in bindingKeys {
+      try config.proofTypesPolicy.validate(
+        credentialConfiguration: supportedCredential,
+        bindingKey: bindingKey
+      )
+    }
     
     let proofs = try await obtainProofs(
       authorizedRequest: authorizedRequest,
@@ -634,7 +657,7 @@ internal extension Issuer {
     /// Filter for keys we care about
     let eligibleKeys = bindingKeys.filter {
       switch $0 {
-      case .jwt, .jwtKeyAttestation, .attestation: true
+      case .jwtKeyAttestation, .attestation: true
       default: false
       }
     }
@@ -877,16 +900,17 @@ public extension Issuer {
     dPopNonce: Nonce? = nil
   ) async throws -> AuthorizedRequest {
     if let refreshToken = authorizedRequest.refreshToken {
-      let (accessToken, _, _, _, timeStamp, _) = try await authorizer.refreshAccessToken(
-        clientId: clientId,
-        refreshToken: refreshToken,
-        dpopNonce: dPopNonce,
-        maxRetries: Constants.MAX_RETRIES
-      )
-      return authorizedRequest.replacing(
-        accessToken: accessToken,
-        timeStamp: timeStamp?.asTimeInterval ?? .zero
-      )
+        let (accessToken, newRefreshToken, _, _, timeStamp, _) = try await authorizer.refreshAccessToken(
+          clientId: clientId,
+          refreshToken: refreshToken,
+          dpopNonce: dPopNonce,
+          maxRetries: Constants.MAX_RETRIES
+        )
+        return authorizedRequest.replacing(
+            accessToken: accessToken,
+            refreshToken: newRefreshToken,
+            timeStamp: timeStamp?.asTimeInterval ?? .zero
+          )
     }
     
     return authorizedRequest
@@ -911,6 +935,24 @@ public extension Issuer {
       )
     }
     return authorizedRequest
+  }
+
+  /// Refreshes the access token using the issuer's configured client.
+  /// - Parameters:
+  ///   - authorizedRequest: The authorized request containing the tokens to refresh.
+  ///   - dPopNonce: An optional nonce for DPoP (Demonstrating Proof-of-Possession).
+  /// - Returns: A new `AuthorizedRequest` with refreshed tokens if successful,
+  ///            or the original request if refresh is not possible.
+  /// - Throws: An error if the token refresh request fails.
+  func refresh(
+    authorizedRequest: AuthorizedRequest,
+    dPopNonce: Nonce?
+  ) async throws -> AuthorizedRequest {
+    try await refresh(
+      client: config.client,
+      authorizedRequest: authorizedRequest,
+      dPopNonce: dPopNonce
+    )
   }
 }
 

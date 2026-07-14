@@ -18,13 +18,6 @@
 
 public enum BindingKey: Sendable, Equatable {
   
-  case jwt(
-    algorithm: JWSAlgorithm,
-    jwk: JWK,
-    privateKey: SigningKeyProxy,
-    issuer: String? = nil
-  )
-  
   case attestation(
     keyAttestationJWT: @Sendable (_ nonce: String?) async throws -> KeyAttestationJWT
   )
@@ -32,7 +25,7 @@ public enum BindingKey: Sendable, Equatable {
   case jwtKeyAttestation(
     algorithm: JWSAlgorithm,
     keyAttestationJWT: @Sendable (_ nonce: String?) async throws -> KeyAttestationJWT,
-    keyIndex: UInt,
+    keyIndex: UInt = 0,
     privateKey: SigningKeyProxy,
     issuer: String? = nil
   )
@@ -48,8 +41,7 @@ public extension BindingKey {
   
   static func == (lhs: BindingKey, rhs: BindingKey) -> Bool {
     switch (lhs, rhs) {
-    case (.jwt, .jwt),
-      (.did, .did),
+    case (.did, .did),
       (.x509, .x509),
       (.jwtKeyAttestation, .jwtKeyAttestation),
       (.attestation, .attestation):
@@ -67,75 +59,6 @@ public extension BindingKey {
     omitIss: Bool
   ) async throws -> Proof {
     switch self {
-    case .jwt(
-      let algorithm,
-      let jwk,
-      let privateKey,
-      let issuer
-    ):
-      let proofTypesSupported = credentialSpec.proofTypesSupported
-      let suites = proofTypesSupported?["jwt"]?.algorithms.contains { $0 == algorithm.name } ??  true
-      guard suites else {
-        throw CredentialIssuanceError.cryptographicSuiteNotSupported(algorithm.name)
-      }
-      
-      let keyAttestationRequirement = proofTypesSupported?["jwt"]?.keyAttestationRequirement
-      switch keyAttestationRequirement {
-      case .required, .requiredNoConstraints:
-        throw CredentialIssuanceError.proofTypeKeyAttestationRequired
-      default: break
-      }
-      
-      let proofs = proofTypesSupported?.keys.contains { $0 == "jwt" } ?? true
-      guard proofs else {
-        throw CredentialIssuanceError.proofTypeNotSupported
-      }
-      
-      let aud = issuanceRequester.issuerMetadata.credentialIssuerIdentifier.url.absoluteString
-      
-      let header: JWSHeader = try .init(parameters: [
-        JWTClaimNames.type: Self.OpenID4VCIProofJWT,
-        JWTClaimNames.algorithm: algorithm.name,
-        JWTClaimNames.JWK: jwk.toDictionary()
-      ])
-      
-      let dictionary: [String: Any] = [
-        JWTClaimNames.issuedAt: Int(Date().timeIntervalSince1970.rounded()),
-        JWTClaimNames.audience: aud,
-        JWTClaimNames.nonce: cNonce ?? "",
-        JWTClaimNames.issuer: issuer ?? ""
-      ].filter { key, value in
-        if let string = value as? String, string.isEmpty {
-          return false
-        }
-        
-        if key == JWTClaimNames.issuer, omitIss {
-          return false
-        }
-        
-        return true
-      }
-      
-      let payload = Payload(try dictionary.toThrowingJSONData())
-      
-      guard let signatureAlgorithm = SignatureAlgorithm(rawValue: algorithm.name) else {
-        throw CredentialIssuanceError.cryptographicAlgorithmNotSupported
-      }
-      
-      let signer: Signer = try await Self.createSigner(
-        with: header,
-        and: payload,
-        for: privateKey,
-        and: signatureAlgorithm
-      )
-      
-      let jws = try JWS(
-        header: header,
-        payload: payload,
-        signer: signer
-      )
-      
-      return .jwt(jws.compactSerializedString)
     case .jwtKeyAttestation(
       let algorithm,
       _,
@@ -149,7 +72,15 @@ public extension BindingKey {
           reason: ".jwtKeyAttestation: Invalid key attestation JWT"
         )
       }
-      
+
+      // Validate keyIndex is within bounds
+      guard keyIndex < keyAttestationJwt.attestedKeys.count else {
+        throw CredentialIssuanceError.keyIndexOutOfBounds(
+          index: keyIndex,
+          available: keyAttestationJwt.attestedKeys.count
+        )
+      }
+
       let proofTypesSupported = credentialSpec.proofTypesSupported
       let keyAttestationRequirement = proofTypesSupported?["jwt"]?.keyAttestationRequirement
       switch keyAttestationRequirement {
@@ -175,6 +106,7 @@ public extension BindingKey {
       let attestedPublicKey = keyAttestationJwt.attestedKeys[Int(keyIndex)]
       let header: JWSHeader = try .init(
         parameters: [
+          JWTClaimNames.kid: "0",
           JWTClaimNames.algorithm: algorithm.name,
           JWTClaimNames.type: Self.OpenID4VCIProofJWT,
           JWTClaimNames.keyAttestation: keyAttestationJwt.jws.compactSerializedString

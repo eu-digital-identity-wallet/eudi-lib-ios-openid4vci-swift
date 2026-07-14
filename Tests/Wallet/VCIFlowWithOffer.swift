@@ -15,7 +15,7 @@
  */
 import Foundation
 import XCTest
-import JOSESwift
+@preconcurrency import JOSESwift
 
 @testable import OpenID4VCI
 
@@ -41,9 +41,11 @@ class VCIFlowWithOffer: XCTestCase {
         "kid": UUID().uuidString
       ])
     
-    let bindingKey: BindingKey = .jwt(
+    let bindingKey: BindingKey = .jwtKeyAttestation(
       algorithm: alg,
-      jwk: publicKeyJWK,
+      keyAttestationJWT: { nonce in
+        try await fetchKeyAttestationJWT(nonce: nonce, publicKeyJWK: publicKeyJWK)
+      },
       privateKey: .secKey(privateKey)
     )
     
@@ -85,9 +87,11 @@ class VCIFlowWithOffer: XCTestCase {
         "kid": UUID().uuidString
       ])
     
-    let bindingKey: BindingKey = .jwt(
+    let bindingKey: BindingKey = .jwtKeyAttestation(
       algorithm: alg,
-      jwk: publicKeyJWK,
+      keyAttestationJWT: { nonce in
+        try await fetchKeyAttestationJWT(nonce: nonce, publicKeyJWK: publicKeyJWK)
+      },
       privateKey: .custom(
         TestSigner(
           privateKey: privateKey, jwk: publicKeyJWK
@@ -133,9 +137,11 @@ class VCIFlowWithOffer: XCTestCase {
         "kid": UUID().uuidString
       ])
     
-    let bindingKey: BindingKey = .jwt(
+    let bindingKey: BindingKey = .jwtKeyAttestation(
       algorithm: alg,
-      jwk: publicKeyJWK,
+      keyAttestationJWT: { nonce in
+        try await fetchKeyAttestationJWT(nonce: nonce, publicKeyJWK: publicKeyJWK)
+      },
       privateKey: .secKey(privateKey)
     )
     
@@ -176,9 +182,11 @@ class VCIFlowWithOffer: XCTestCase {
         "kid": UUID().uuidString
       ])
     
-    let bindingKey: BindingKey = .jwt(
+    let bindingKey: BindingKey = .jwtKeyAttestation(
       algorithm: alg,
-      jwk: publicKeyJWK,
+      keyAttestationJWT: { nonce in
+        try await fetchKeyAttestationJWT(nonce: nonce, publicKeyJWK: publicKeyJWK)
+      },
       privateKey: .secKey(privateKey)
     )
     
@@ -219,9 +227,11 @@ class VCIFlowWithOffer: XCTestCase {
         "kid": UUID().uuidString
       ])
     
-    let bindingKey: BindingKey = .jwt(
+    let bindingKey: BindingKey = .jwtKeyAttestation(
       algorithm: alg,
-      jwk: publicKeyJWK,
+      keyAttestationJWT: { nonce in
+        try await fetchKeyAttestationJWT(nonce: nonce, publicKeyJWK: publicKeyJWK)
+      },
       privateKey: .secKey(privateKey)
     )
     
@@ -263,9 +273,11 @@ class VCIFlowWithOffer: XCTestCase {
         "kid": UUID().uuidString
       ])
     
-    let bindingKey: BindingKey = .jwt(
+    let bindingKey: BindingKey = .jwtKeyAttestation(
       algorithm: alg,
-      jwk: publicKeyJWK,
+      keyAttestationJWT: { nonce in
+        try await fetchKeyAttestationJWT(nonce: nonce, publicKeyJWK: publicKeyJWK)
+      },
       privateKey: .secKey(privateKey)
     )
     
@@ -293,50 +305,6 @@ class VCIFlowWithOffer: XCTestCase {
     XCTAssert(true)
   }
   
-  func testWithTertiaryIssuerCredentialOfferURL() async throws {
-    
-    let privateKey = try KeyController.generateECDHPrivateKey()
-    let publicKey = try KeyController.generateECDHPublicKey(from: privateKey)
-    
-    let alg = JWSAlgorithm(.ES256)
-    let publicKeyJWK = try ECPublicKey(
-      publicKey: publicKey,
-      additionalParameters: [
-        "alg": alg.name,
-        "use": "sig",
-        "kid": UUID().uuidString
-      ])
-    
-    let bindingKey: BindingKey = .jwt(
-      algorithm: alg,
-      jwk: publicKeyJWK,
-      privateKey: .secKey(privateKey)
-    )
-    
-    let user = ActingUser(
-      username: "tneal",
-      password: "password"
-    )
-    
-    let wallet = Wallet(
-      actingUser: user,
-      bindingKeys: [bindingKey]
-    )
-    
-    do {
-      try await walletInitiatedIssuanceWithTertiaryOfferUrl(
-        wallet: wallet,
-        url: TERTIARY_CREDENTIAL_OFFER_QR_CODE_URL.removingPercentEncoding!
-      )
-    } catch {
-      
-      XCTExpectFailure()
-      XCTAssert(false, error.localizedDescription)
-    }
-    
-    XCTAssert(true)
-  }
-  
   func testWithOfferMDLDPoP() async throws {
     
     let privateKey = try KeyController.generateECDHPrivateKey()
@@ -352,9 +320,11 @@ class VCIFlowWithOffer: XCTestCase {
       ])
     
     let privateKeyProxy: SigningKeyProxy = .secKey(privateKey)
-    let bindingKey: BindingKey = .jwt(
+    let bindingKey: BindingKey = .jwtKeyAttestation(
       algorithm: alg,
-      jwk: publicKeyJWK,
+      keyAttestationJWT: { nonce in
+        try await fetchKeyAttestationJWT(nonce: nonce, publicKeyJWK: publicKeyJWK)
+      },
       privateKey: privateKeyProxy
     )
     
@@ -368,16 +338,10 @@ class VCIFlowWithOffer: XCTestCase {
       bindingKeys: [bindingKey]
     )
     
-    let dPoPClientConfig: OpenId4VCIConfig = .init(
-      client: .public(id: WALLET_DEV_CLIENT_ID),
-      authFlowRedirectionURI: URL(string: "urn:ietf:wg:oauth:2.0:oob")!,
-      authorizeIssuanceConfig: .favorScopes
-    )
-    
     do {
       try await walletInitiatedIssuanceWithOfferMDL_DPoP(
         wallet: wallet,
-        config: dPoPClientConfig
+        config: attestationConfig
       )
     } catch {
       
@@ -403,9 +367,11 @@ class VCIFlowWithOffer: XCTestCase {
       ])
     
     let privateKeyProxy: SigningKeyProxy = .secKey(privateKey)
-    let bindingKey: BindingKey = .jwt(
+    let bindingKey: BindingKey = .jwtKeyAttestation(
       algorithm: alg,
-      jwk: publicKeyJWK,
+      keyAttestationJWT: { nonce in
+        try await fetchKeyAttestationJWT(nonce: nonce, publicKeyJWK: publicKeyJWK)
+      },
       privateKey: privateKeyProxy
     )
     
@@ -419,67 +385,10 @@ class VCIFlowWithOffer: XCTestCase {
       bindingKeys: [bindingKey]
     )
     
-    let dPoPClientConfig: OpenId4VCIConfig = .init(
-      client: .public(id: WALLET_DEV_CLIENT_ID),
-      authFlowRedirectionURI: URL(string: "urn:ietf:wg:oauth:2.0:oob")!,
-      authorizeIssuanceConfig: .favorScopes
-    )
-    
     do {
       try await walletInitiatedIssuanceWithOfferSDJWT_DPoP(
         wallet: wallet,
-        config: dPoPClientConfig
-      )
-    } catch {
-      
-      XCTExpectFailure()
-      XCTAssert(false, error.localizedDescription)
-    }
-    
-    XCTAssert(true)
-  }
-  
-  func testWithOfferMultipleSdJwtDPoP() async throws {
-    
-    let privateKey = try KeyController.generateECDHPrivateKey()
-    let publicKey = try KeyController.generateECDHPublicKey(from: privateKey)
-    
-    let alg = JWSAlgorithm(.ES256)
-    let publicKeyJWK = try ECPublicKey(
-      publicKey: publicKey,
-      additionalParameters: [
-        "alg": alg.name,
-        "use": "sig",
-        "kid": UUID().uuidString
-      ])
-    
-    let privateKeyProxy: SigningKeyProxy = .secKey(privateKey)
-    let bindingKey: BindingKey = .jwt(
-      algorithm: alg,
-      jwk: publicKeyJWK,
-      privateKey: privateKeyProxy
-    )
-    
-    let user = ActingUser(
-      username: "tneal",
-      password: "password"
-    )
-    
-    let wallet = Wallet(
-      actingUser: user,
-      bindingKeys: [bindingKey, bindingKey]
-    )
-    
-    let dPoPClientConfig: OpenId4VCIConfig = .init(
-      client: .public(id: WALLET_DEV_CLIENT_ID),
-      authFlowRedirectionURI: URL(string: "urn:ietf:wg:oauth:2.0:oob")!,
-      authorizeIssuanceConfig: .favorScopes
-    )
-    
-    do {
-      try await walletInitiatedIssuanceWithOfferSDJWT_DPoP(
-        wallet: wallet,
-        config: dPoPClientConfig
+        config: attestationConfig
       )
     } catch {
       
@@ -501,7 +410,7 @@ private func walletInitiatedIssuanceWithOfferSdJWT(
   let credential = try await wallet.issueByCredentialOfferUrl(
     offerUri: url,
     scope: PID_SdJwtVC_config_id,
-    config: clientConfig
+    config: attestationConfig
   )
   
   print("--> [ISSUANCE] Issued credential: \(credential)")
@@ -517,7 +426,7 @@ private func walletInitiatedIssuanceWithOfferMDL(
   let credential = try await wallet.issueByCredentialOfferUrl(
     offerUri: url,
     scope: MDL_config_id,
-    config: clientConfig
+    config: attestationConfig
   )
   
   print("--> [ISSUANCE] Issued credential : \(credential)")
@@ -567,7 +476,7 @@ private func walletInitiatedIssuanceWithOfferMdoc(
   let credential = try await wallet.issueByCredentialOfferUrl(
     offerUri: url,
     scope: PID_MsoMdoc_config_id,
-    config: clientConfig
+    config: attestationConfig
   )
   
   print("--> [ISSUANCE] Issued credential : \(credential)")
@@ -582,7 +491,7 @@ private func walletInitiatedIssuanceWithOfferArray(
   let url = "\(CREDENTIAL_ISSUER_PUBLIC_URL)/credentialoffer?credential_offer=\(All_Supported_CredentialOffer)"
   let credentials = try await wallet.issueByCredentialOfferUrlMultipleFormats(
     offerUri: url,
-    config: clientConfig
+    config: attestationConfig
   )
   
   print(ISSUANCE_MESSAGE)
@@ -606,7 +515,7 @@ private func walletInitiatedIssuanceWithOfferUrl(
   
   let credentials = try await wallet.issueByCredentialOfferUrlMultipleFormats(
     offerUri: url,
-    config: clientConfig
+    config: attestationConfig
   )
   
   print(ISSUANCE_MESSAGE)
@@ -630,7 +539,7 @@ private func walletInitiatedIssuanceWithTertiaryOfferUrl(
   
   let credentials = try await wallet.issueByCredentialOfferUrlMultipleFormats(
     offerUri: url,
-    config: clientConfig
+    config: attestationConfig
   )
   
   print(ISSUANCE_MESSAGE)

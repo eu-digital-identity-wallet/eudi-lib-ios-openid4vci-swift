@@ -15,6 +15,7 @@
  */
 import Foundation
 import SwiftyJSON
+@preconcurrency import JOSESwift
 
 let OPENID_CREDENTIAL = "openid_credential"
 
@@ -22,6 +23,15 @@ package extension ResponseWithHeaders {
   func dpopNonce() -> Nonce? {
     if let nonceValue = headers.value(forCaseInsensitiveKey: Constants.DPOP_NONCE_HEADER) as? String {
       return Nonce(value: nonceValue)
+    }
+    return nil
+  }
+
+  /// Extracts a fresh attestation challenge from the
+  /// `OAuth-Client-Attestation-Challenge` response header
+  func attestationChallenge() -> Nonce? {
+    if let value = headers.value(forCaseInsensitiveKey: Constants.OAUTH_CLIENT_ATTESTATION_CHALLENGE) as? String {
+      return Nonce(value: value)
     }
     return nil
   }
@@ -356,14 +366,16 @@ internal actor AuthorizationServerClient: AuthorizationServerClientType {
         )
       }
       
-      let clientAttestationHeaders = await clientAttestationHeaders(
-        clientAttestation: try generateClientAttestationIfNeeded(
-          clock: Clock(),
-          authServerId: URL(
-            string: authorizationServerMetadata.issuer ?? ""
-          ),
-          challenge: challenge
-        )
+      let clientAttestation = try await generateClientAttestationIfNeeded(
+        clock: Clock(),
+        authServerId: URL(
+          string: authorizationServerMetadata.issuer ?? ""
+        ),
+        challenge: challenge
+      )
+      
+      let clientAttestationHeaders = clientAttestationHeaders(
+        clientAttestation: clientAttestation
       )
       
       let tokenHeaders = try await tokenEndPointHeaders(
@@ -378,7 +390,11 @@ internal actor AuthorizationServerClient: AuthorizationServerClientType {
         request: authRequest,
         headers: clientAttestationHeaders + tokenHeaders
       )
-      
+
+      if let freshChallenge = response.attestationChallenge() {
+        await challenger?.setChallenge(freshChallenge)
+      }
+
       switch response.body {
       case .success(let requestURI, _):
         let verifier = try PKCEVerifier(
@@ -467,14 +483,16 @@ internal actor AuthorizationServerClient: AuthorizationServerClientType {
     )
     
     do {
-      let clientAttestationHeaders = await clientAttestationHeaders(
-        clientAttestation: try generateClientAttestationIfNeeded(
-          clock: Clock(),
-          authServerId: URL(
-            string: authorizationServerMetadata.issuer ?? ""
-          ),
-          challenge: challenge
-        )
+      let clientAttestation = try await generateClientAttestationIfNeeded(
+        clock: Clock(),
+        authServerId: URL(
+          string: authorizationServerMetadata.issuer ?? ""
+        ),
+        challenge: challenge
+      )
+
+      let clientAttestationHeaders = clientAttestationHeaders(
+        clientAttestation: clientAttestation
       )
       
       let tokenHeaders = try await tokenEndPointHeaders(
@@ -488,7 +506,11 @@ internal actor AuthorizationServerClient: AuthorizationServerClientType {
         headers: clientAttestationHeaders + tokenHeaders,
         parameters: parameters.toDictionary().convertToDictionaryOfStrings()
       )
-      
+
+      if let freshChallenge = response.attestationChallenge() {
+        await challenger?.setChallenge(freshChallenge)
+      }
+
       switch response.body {
       case .success(let tokenType, let accessToken, let refreshToken, let refreshTokenExpiresIn, let expiresIn, _, let identifiers):
         return (
@@ -564,7 +586,7 @@ internal actor AuthorizationServerClient: AuthorizationServerClientType {
     maxRetries: Int = Constants.MAX_RETRIES
   ) async throws -> (
     IssuanceAccessToken,
-	IssuanceRefreshToken?,
+	  IssuanceRefreshToken?,
     AuthorizationDetailsIdentifiers?,
     TokenType?,
     Int?,
@@ -587,7 +609,11 @@ internal actor AuthorizationServerClient: AuthorizationServerClientType {
         ),
         parameters: parameters.toDictionary().convertToDictionaryOfStrings()
       )
-      
+
+      if let freshChallenge = response.attestationChallenge() {
+        await challenger?.setChallenge(freshChallenge)
+      }
+
       switch response.body {
       case .success(
         let tokenType,
@@ -644,7 +670,7 @@ internal actor AuthorizationServerClient: AuthorizationServerClientType {
     maxRetries: Int = Constants.MAX_RETRIES
   ) async throws -> (
     IssuanceAccessToken,
-	IssuanceRefreshToken?, 
+	  IssuanceRefreshToken?,
     AuthorizationDetailsIdentifiers?,
     TokenType?,
     Int?,
@@ -656,7 +682,7 @@ internal actor AuthorizationServerClient: AuthorizationServerClientType {
       Constants.REFRESH_TOKEN_PARAM: refreshToken.refreshToken
     ].compactMapValues { $0 })
     
-    let attestationHeaders = try await makeAttestationHeadersIfNeeded(
+    let (attestationHeaders, _) = try await makeAttestationHeadersIfNeeded(
       for: client,
       clock: Clock()
     )
@@ -670,6 +696,10 @@ internal actor AuthorizationServerClient: AuthorizationServerClientType {
         parameters: parameters.toDictionary().convertToDictionaryOfStrings()
       )
       
+      if let freshChallenge = response.attestationChallenge() {
+        await challenger?.setChallenge(freshChallenge)
+      }
+
       switch response.body {
       case .success(
         let tokenType,
@@ -680,25 +710,25 @@ internal actor AuthorizationServerClient: AuthorizationServerClientType {
         _,
         let identifiers
       ):
-          return (
-            try IssuanceAccessToken(
-              accessToken: accessToken,
-              tokenType: .init(
-                value: tokenType
-              ),
-              expiresIn: TimeInterval(expiresIn)
+        return (
+          try IssuanceAccessToken(
+            accessToken: accessToken,
+            tokenType: .init(
+              value: tokenType
             ),
+            expiresIn: TimeInterval(expiresIn)
+          ),
 			try IssuanceRefreshToken(
 				refreshToken: refreshToken,
         expiresIn: .init(seconds: refreshTokenExpiresIn)
 			),
-            identifiers,
-            TokenType(
-              value: tokenType
-            ),
-            expiresIn,
-            response.dpopNonce()
-          )
+        identifiers,
+        TokenType(
+          value: tokenType
+        ),
+        expiresIn,
+        response.dpopNonce()
+      )
       case .failure(let error, let errorDescription):
         throw CredentialIssuanceError.pushedAuthorizationRequestFailed(
           error: error,
@@ -714,6 +744,18 @@ internal actor AuthorizationServerClient: AuthorizationServerClientType {
         client: client,
         refreshToken: refreshToken,
         dpopNonce: nonce,
+        maxRetries: maxRetries - 1
+      )
+    } catch PostError.useAttestationNonce(let challenge) {
+      guard maxRetries > 0 else {
+        throw ValidationError.retryFailedAfterDpopNonce
+      }
+
+      await challenger?.setChallenge(challenge)
+      return try await refreshAccessToken(
+        client: client,
+        refreshToken: refreshToken,
+        dpopNonce: dpopNonce,
         maxRetries: maxRetries - 1
       )
     }
@@ -744,14 +786,16 @@ internal actor AuthorizationServerClient: AuthorizationServerClientType {
       )
       
       do {
-        let clientAttestationHeaders = await clientAttestationHeaders(
-          clientAttestation: try generateClientAttestationIfNeeded(
-            clock: Clock(),
-            authServerId: URL(
-              string: authorizationServerMetadata.issuer ?? ""
-            ),
-            challenge: challenge
-          )
+        let clientAttestation = try await generateClientAttestationIfNeeded(
+          clock: Clock(),
+          authServerId: URL(
+            string: authorizationServerMetadata.issuer ?? ""
+          ),
+          challenge: challenge
+        )
+
+        let clientAttestationHeaders = clientAttestationHeaders(
+          clientAttestation: clientAttestation
         )
         
         let tokenHeaders = try await tokenEndPointHeaders(
@@ -766,6 +810,10 @@ internal actor AuthorizationServerClient: AuthorizationServerClientType {
           parameters: parameters.toDictionary().convertToDictionaryOfStrings()
         )
         
+        if let freshChallenge = response.attestationChallenge() {
+          await challenger?.setChallenge(freshChallenge)
+        }
+
         switch response.body {
         case .success(
           let tokenType,
@@ -853,7 +901,7 @@ internal actor AuthorizationServerClient: AuthorizationServerClientType {
 private extension AuthorizationServerClient {
   
   func clientAttestationHeaders(
-    clientAttestation: (ClientAttestationJWT, ClientAttestationPoPJWT)?
+    clientAttestation: (ClientAttestationJWT, ClientAttestationPoPJWT, JWK, SigningKeyProxy)?
   ) -> [String: String] {
     guard let clientAttestation = clientAttestation else {
       return [:]
@@ -869,11 +917,9 @@ private extension AuthorizationServerClient {
     clock: ClockType,
     authServerId: URL?,
     challenge: Nonce?
-  ) async throws -> (ClientAttestationJWT, ClientAttestationPoPJWT)? {
+  ) async throws -> (ClientAttestationJWT, ClientAttestationPoPJWT, JWK, SigningKeyProxy)? {
     switch client {
-    case .public:
-      return nil
-    case .attested(let attestationJWT, let spec):
+    case .attested(_, _, let jwk, let spec, let provider):
       guard let clientAttestationPoPBuilder = config.clientAttestationPoPBuilder else {
         return nil
       }
@@ -882,6 +928,7 @@ private extension AuthorizationServerClient {
         return nil
       }
       
+      let (attestationJWT, signingKeyProxy) = try await provider(authServerId)
       let popJWT = try await clientAttestationPoPBuilder.buildAttestationPoPJWT(
         for: client,
         algorithm: spec.signingAlgorithm,
@@ -890,40 +937,49 @@ private extension AuthorizationServerClient {
         challenge: challenge?.value
       )
       
-      return (attestationJWT, popJWT)
+      return (attestationJWT, popJWT, jwk, signingKeyProxy)
     }
   }
   
-  private func makeAttestationHeadersIfNeeded(for client: Client, clock: ClockType) async throws -> [String: String] {
-    guard let attested = client.attested else {
-      return [:]
-    }
-
+  private func makeAttestationHeadersIfNeeded(
+    for client: Client,
+    clock: ClockType
+  ) async throws -> ([String: String], SigningKeyProxy?) {
     guard let clientAttestationPoPBuilder = config.clientAttestationPoPBuilder else {
-      throw ValidationError.error(reason: "No clientAttestationPoPBuilder configured")
+      return ([:], nil)
     }
 
     guard
       let issuer = authorizationServerMetadata.issuer,
       let authServerId = URL(string: issuer)
     else {
-      throw ValidationError.error(reason: "No authorization server metadata issuer")
+      return ([:], nil)
     }
 
     let challenge = try? await challenger?.getChallenge()
+    
+    guard let provider = client.provider() else {
+      return ([:], nil)
+    }
+    
+    guard let spec = client.spec() else {
+      return ([:], nil)
+    }
+    
+    let (attestationJWT, signingKey) = try await provider(authServerId)
 
     let popJWT = try await clientAttestationPoPBuilder.buildAttestationPoPJWT(
       for: client,
-      algorithm: attested.1.signingAlgorithm,
+      algorithm: spec.signingAlgorithm,
       clock: clock,
       authServerId: authServerId,
-      challenge: challenge?.value
+      challenge: challenge?.challenge.value
     )
 
-    return [
-      Constants.OAUTH_CLIENT_ATTESTATION: attested.attestationJWT.jws.compactSerializedString,
+    return ([
+      Constants.OAUTH_CLIENT_ATTESTATION: attestationJWT.jws.compactSerializedString,
       Constants.OAUTH_CLIENT_ATTESTATION_POP: popJWT.jws.compactSerializedString
-    ]
+    ], signingKey)
   }
   
   func tokenEndPointHeaders(

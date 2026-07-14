@@ -14,53 +14,84 @@
  * limitations under the License.
  */
 import Foundation
-import JOSESwift
+@preconcurrency import JOSESwift
+
+public typealias ClientAttestationProvider = @Sendable (URL) async throws -> (
+  attestationJWT: ClientAttestationJWT,
+  signingKey: SigningKeyProxy
+)
 
 public enum Client: Sendable {
   
-  /// Represents a Public client
-  case `public`(id: ClientId)
-  
   /// Represents an Attested client
-  case attested(attestationJWT: ClientAttestationJWT, popJwtSpec: ClientAttestationPoPJWTSpec)
+  case attested(
+    id: ClientId,
+    alg: JWSAlgorithm,
+    jwk: JWK,
+    popJwtSpec: ClientAttestationPoPJWTSpec,
+    clientAttestationProvider: ClientAttestationProvider
+  )
   
   // Computed property for 'id' (common property for both cases)
   public var id: ClientId {
     switch self {
-    case .public(let id):
+    case .attested(let id, _, _, _, _):
       return id
-    case .attested(let attestationJWT, _):
-      return attestationJWT.clientId
     }
   }
   
-  // MARK: - Validation
-  public init(public id: ClientId) {
-    self = .public(id: id)
+  // Computed property for public key
+  public var jwk: JWK {
+    switch self {
+    case .attested(_, _, let jwk, _, _):
+      return jwk
+    }
   }
   
-  public init(attestationJWT: ClientAttestationJWT, popJwtSpec: ClientAttestationPoPJWTSpec) throws {
-    // Validate clientId
-    let clientId = attestationJWT.clientId
-
-    guard !clientId.isEmpty && !clientId.trimmingCharacters(in: .whitespaces).isEmpty else {
-      throw ClientAttestationError.invalidClientId
+  // Computed property for JWS alg
+  public var alg: JWSAlgorithm {
+    switch self {
+    case .attested(_, let alg, _, _, _):
+      return alg
     }
-    
-    // Validate public key
-    guard attestationJWT.pubKey?.isPublicKey ?? false else {
-      throw ClientAttestationError.missingJwkClaim
-    }
-    
-    self = .attested(attestationJWT: attestationJWT, popJwtSpec: popJwtSpec)
   }
   
-  internal var attested: (attestationJWT: ClientAttestationJWT, popJwtSpec: ClientAttestationPoPJWTSpec)? {
+  // Computed property for 'provider'
+  public func provider() -> ClientAttestationProvider? {
+    switch self {
+    case .attested(_, _, _, _, let provider):
+      return provider
+    }
+  }
+  
+  // Computed property for 'provider'
+  public func spec() -> ClientAttestationPoPJWTSpec? {
+    switch self {
+    case .attested(_, _, _, let spec, _):
+      return spec
+    }
+  }
+  
+  public init(
+    id: ClientId,
+    alg: JWSAlgorithm,
+    jwk: JWK,
+    popJwtSpec: ClientAttestationPoPJWTSpec,
+    clientAttestationProvider: @escaping ClientAttestationProvider
+  ) throws {
+    self = .attested(
+      id:id,
+      alg: alg,
+      jwk: jwk,
+      popJwtSpec: popJwtSpec,
+      clientAttestationProvider: clientAttestationProvider
+    )
+  }
+  
+  internal var attested: (id: ClientId, popJwtSpec: ClientAttestationPoPJWTSpec, clientAttestationProvider: ClientAttestationProvider)? {
     return switch self {
-    case .public:
-      nil
-    case .attested(let attestationJWT, let popJwtSpec):
-      (attestationJWT, popJwtSpec)
+    case .attested(let id, _, _, let popJwtSpec, let clientAttestationProvider):
+      (id, popJwtSpec, clientAttestationProvider)
     }
   }
 }

@@ -22,7 +22,7 @@ import JOSESwift
 class IssuanceSingleRequestTest: XCTestCase {
   
   let config: OpenId4VCIConfig = .init(
-    client: .public(id: WALLET_DEV_CLIENT_ID),
+    client: attestionClient,
     authFlowRedirectionURI: URL(string: "urn:ietf:wg:oauth:2.0:oob")!,
     authorizeIssuanceConfig: .favorScopes
   )
@@ -199,7 +199,7 @@ class IssuanceSingleRequestTest: XCTestCase {
     let unAuthorized: AuthorizedRequest = try await issuer.authorizeWithPreAuthorizationCode(
       credentialOffer: offer,
       authorizationCode: issuanceAuthorization,
-      client: .public(id: "218232426"),
+      client: attestionClient,
       transactionCode: "12345"
     )
     
