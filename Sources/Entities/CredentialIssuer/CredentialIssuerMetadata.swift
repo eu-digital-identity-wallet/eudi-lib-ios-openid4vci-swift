@@ -31,7 +31,10 @@ public struct CredentialIssuerMetadata: Decodable, Equatable, Sendable {
   public let display: [Display]
   public let batchCredentialIssuance: BatchCredentialIssuance?
   public let preferredClientStatusPeriod: Int?
-  
+  public let issuerInfo: IssuerInfo?
+  /// The WRPAC (base64 DER) that signed this issuer metadata.
+  public let wrpac: String?
+
   public enum CodingKeys: String, CodingKey {
     case credentialIssuerIdentifier = "credential_issuer"
     case authorizationServers = "authorization_servers"
@@ -49,6 +52,7 @@ public struct CredentialIssuerMetadata: Decodable, Equatable, Sendable {
     case credentialIdentifiersSupported = "credential_identifiers_supported"
     case batchCredentialIssuance = "batch_credential_issuance"
     case preferredClientStatusPeriod = "preferred_client_status_period"
+    case issuerInfo = "issuer_info"
   }
   
   public init(
@@ -64,7 +68,9 @@ public struct CredentialIssuerMetadata: Decodable, Equatable, Sendable {
     display: [Display]?,
     credentialIdentifiersSupported: Bool? = nil,
     batchCredentialIssuance: BatchCredentialIssuance? = nil,
-    preferredClientStatusPeriod: Int? = nil
+    preferredClientStatusPeriod: Int? = nil,
+    issuerInfo: IssuerInfo? = nil,
+    wrpac: String? = nil
   ) {
     self.credentialIssuerIdentifier = credentialIssuerIdentifier
     self.authorizationServers = authorizationServers
@@ -83,6 +89,8 @@ public struct CredentialIssuerMetadata: Decodable, Equatable, Sendable {
     self.credentialIdentifiersSupported = credentialIdentifiersSupported
     self.batchCredentialIssuance = batchCredentialIssuance
     self.preferredClientStatusPeriod = preferredClientStatusPeriod
+    self.issuerInfo = issuerInfo
+    self.wrpac = wrpac
   }
   
   public init(
@@ -205,9 +213,43 @@ public struct CredentialIssuerMetadata: Decodable, Equatable, Sendable {
       Int.self,
       forKey: .preferredClientStatusPeriod
     )
+
+    issuerInfo = try? container.decodeIfPresent(
+      IssuerInfo.self,
+      forKey: .issuerInfo
+    )
+
+    // `wrpac` is a runtime artifact of signature verification —
+    // never present in metadata JSON. Populated by `MetadataProcessor`.
+    wrpac = nil
   }
-  
+
   public static func == (lhs: CredentialIssuerMetadata, rhs: CredentialIssuerMetadata) -> Bool {
     lhs.credentialIssuerIdentifier == rhs.credentialIssuerIdentifier
+  }
+
+  /// Returns a copy with `wrpac` set to the given leaf certificate.
+  ///
+  /// Used by `MetadataProcessor` to attach the WRP Access Certificate
+  /// (base64 DER, the leaf of the signed-metadata JWS `x5c` header) after
+  /// successful signature verification. Intended for use inside the library.
+  internal func withWrpac(_ wrpac: String?) -> CredentialIssuerMetadata {
+    CredentialIssuerMetadata(
+      credentialIssuerIdentifier: self.credentialIssuerIdentifier,
+      authorizationServers: self.authorizationServers ?? [],
+      credentialEndpoint: self.credentialEndpoint,
+      deferredCredentialEndpoint: self.deferredCredentialEndpoint,
+      nonceEndpoint: self.nonceEndpoint,
+      notificationEndpoint: self.notificationEndpoint,
+      credentialRequestEncryption: self.credentialRequestEncryption ?? .notSupported,
+      credentialResponseEncryption: self.credentialResponseEncryption,
+      credentialConfigurationsSupported: self.credentialsSupported,
+      display: self.display,
+      credentialIdentifiersSupported: self.credentialIdentifiersSupported,
+      batchCredentialIssuance: self.batchCredentialIssuance,
+      preferredClientStatusPeriod: self.preferredClientStatusPeriod,
+      issuerInfo: self.issuerInfo,
+      wrpac: wrpac
+    )
   }
 }

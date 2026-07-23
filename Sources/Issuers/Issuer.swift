@@ -327,6 +327,41 @@ public actor Issuer: IssuerType {
     }
   }
   
+  /// Builds an `Issuer` for the given resolved `CredentialOffer` and, when
+  /// `config.registrationCertificatePolicy` is set, enforces the WRP Registration
+  /// Certificate policy first via `IssuanceAuthorizer`.
+  ///
+  /// - Returns: An `IssuerResolutionResult` pairing the constructed `Issuer`
+  ///   with any `.warning`-severity `PolicyViolation`s produced by the policy
+  ///   validator.
+  /// - Throws: `WRPRCError` when the WRPRC is missing / multiple / malformed /
+  ///   untrusted, or when the policy validator produced any `.error` violations.
+  public static func make(
+    credentialOffer: CredentialOffer,
+    config: OpenId4VCIConfig,
+    dpopConstructor: DPoPConstructorType? = nil,
+    session: Networking
+  ) async throws -> IssuerResolutionResult {
+
+    let warnings: [PolicyViolation]
+    if let policy = config.registrationCertificatePolicy {
+      let authorizer = IssuanceAuthorizer(policy: policy)
+      warnings = try await authorizer.authorize(credentialOffer: credentialOffer)
+    } else {
+      warnings = []
+    }
+
+    let issuer = try Issuer(
+      authorizationServerMetadata: credentialOffer.authorizationServerMetadata,
+      issuerMetadata: credentialOffer.credentialIssuerMetadata,
+      config: config,
+      dpopConstructor: dpopConstructor,
+      session: session
+    )
+
+    return IssuerResolutionResult(issuer: issuer, warnings: warnings)
+  }
+
   public func setDeferredResponseEncryptionSpec(_ deferredResponseEncryptionSpec: IssuanceResponseEncryptionSpec?) async {
     self.deferredResponseEncryptionSpec = deferredResponseEncryptionSpec
   }
