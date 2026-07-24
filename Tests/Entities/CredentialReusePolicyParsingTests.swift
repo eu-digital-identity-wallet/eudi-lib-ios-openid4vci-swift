@@ -247,7 +247,10 @@ class CredentialReusePolicyParsingTests: XCTestCase {
     )
   }
 
-  /// Test parsing without base method (rotating-batch alone)
+  /// Test parsing an options array with no base method anywhere.
+  /// Per ETSI TS 119 472-3 ISS-MDATA-EAA-REUSE-POL-4.2.4.2-03, the base-method
+  /// requirement is enforced at the options-array level: at least one option must
+  /// contain once_only or limited_time.
   func testParsing_RotatingBatchAlone_ThrowsError() {
     let json = """
     {
@@ -265,6 +268,82 @@ class CredentialReusePolicyParsingTests: XCTestCase {
     XCTAssertThrowsError(
       try JSONDecoder().decode(CredentialReusePolicy.self, from: data)
     )
+  }
+
+  /// mDL-shaped policy: one standalone rotating-batch option plus one standalone
+  /// once_only option. The array-level base-method rule is satisfied by once_only,
+  /// so both options should be expanded (issuer's rotating-batch option is treated
+  /// as a valid standalone entry).
+  func testParsing_StandaloneRotatingBatchWithOnceOnlyBaseInArray_Succeeds() throws {
+    let json = """
+    {
+      "id": "arf_annex_ii",
+      "options": [
+        {
+          "details": ["rotating-batch"],
+          "batch_size": 4,
+          "reissue_trigger_lifetime_left": 2159400
+        },
+        {
+          "details": ["once_only"],
+          "batch_size": 8,
+          "reissue_trigger_unused": 3
+        }
+      ]
+    }
+    """
+
+    let data = json.data(using: .utf8)!
+    let policy = try JSONDecoder().decode(CredentialReusePolicy.self, from: data)
+
+    XCTAssertEqual(policy.options.count, 2)
+
+    if case .rotatingBatch(let batchSize, let reissueTriggerLifetimeLeft) = policy.options[0] {
+      XCTAssertEqual(batchSize, 4)
+      XCTAssertEqual(reissueTriggerLifetimeLeft, 2159400)
+    } else {
+      XCTFail("Expected rotatingBatch policy at index 0")
+    }
+
+    if case .onceOnly(let batchSize, let reissueTriggerUnused) = policy.options[1] {
+      XCTAssertEqual(batchSize, 8)
+      XCTAssertEqual(reissueTriggerUnused, 3)
+    } else {
+      XCTFail("Expected onceOnly policy at index 1")
+    }
+  }
+
+  /// An invalid option (missing required field) should be skipped, but the valid
+  /// options in the same array should still be produced.
+  func testParsing_InvalidOptionSkipped_ValidOptionsSurvive() throws {
+    let json = """
+    {
+      "id": "arf_annex_ii",
+      "options": [
+        {
+          "details": ["once_only"],
+          "batch_size": 8,
+          "reissue_trigger_unused": 3
+        },
+        {
+          "details": ["rotating-batch"],
+          "batch_size": 4
+        }
+      ]
+    }
+    """
+
+    let data = json.data(using: .utf8)!
+    let policy = try JSONDecoder().decode(CredentialReusePolicy.self, from: data)
+
+    XCTAssertEqual(policy.options.count, 1)
+
+    if case .onceOnly(let batchSize, let reissueTriggerUnused) = policy.options[0] {
+      XCTAssertEqual(batchSize, 8)
+      XCTAssertEqual(reissueTriggerUnused, 3)
+    } else {
+      XCTFail("Expected surviving onceOnly policy")
+    }
   }
 
   /// Test that policies are in correct order (order matters for selection)

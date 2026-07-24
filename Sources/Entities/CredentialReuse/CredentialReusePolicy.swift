@@ -39,18 +39,30 @@ extension CredentialReusePolicy: Codable {
 
     id = try container.decode(String.self, forKey: .id)
 
-
     let jsonOptions = try container.decode([ReusePolicyOption].self, forKey: .options)
-    var expandedPolicies: [ReusePolicy] = []
-
-    for jsonOption in jsonOptions {
-      let policies = try ReusePolicy.fromDetails(
-        details: jsonOption.details,
-        batchSize: jsonOption.batchSize,
-        reissueTriggerUnused: jsonOption.reissueTriggerUnused,
-        reissueTriggerLifetimeLeft: jsonOption.reissueTriggerLifetimeLeft
+    
+    let arrayHasBaseMethod = jsonOptions.contains { option in
+      option.details.contains(.onceOnly) || option.details.contains(.limitedTime)
+    }
+    guard arrayHasBaseMethod else {
+      throw CredentialReusePolicyError.invalidPolicyStructure(
+        "options array must contain at least one entry with once_only or limited_time"
       )
-      expandedPolicies.append(contentsOf: policies)
+    }
+
+    var expandedPolicies: [ReusePolicy] = []
+    for jsonOption in jsonOptions {
+      do {
+        let policies = try ReusePolicy.fromDetails(
+          details: jsonOption.details,
+          batchSize: jsonOption.batchSize,
+          reissueTriggerUnused: jsonOption.reissueTriggerUnused,
+          reissueTriggerLifetimeLeft: jsonOption.reissueTriggerLifetimeLeft
+        )
+        expandedPolicies.append(contentsOf: policies)
+      } catch {
+        print("CredentialReusePolicy: skipping invalid option \(jsonOption.details.map { $0.rawValue }): \(error)")
+      }
     }
 
     guard !expandedPolicies.isEmpty else {

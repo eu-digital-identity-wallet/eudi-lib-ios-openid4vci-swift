@@ -98,15 +98,8 @@ public enum ReusePolicy: Sendable, Equatable {
       throw CredentialReusePolicyError.invalidDetailsCombination(details)
     }
 
-    // Check for base method (once_only OR limited_time)
     let hasOnceOnly = details.contains(.onceOnly)
     let hasLimitedTime = details.contains(.limitedTime)
-
-    guard hasOnceOnly || hasLimitedTime else {
-      throw CredentialReusePolicyError.invalidPolicyStructure(
-        "details must contain either once_only or limited_time"
-      )
-    }
 
     guard !(hasOnceOnly && hasLimitedTime) else {
       throw CredentialReusePolicyError.invalidPolicyStructure(
