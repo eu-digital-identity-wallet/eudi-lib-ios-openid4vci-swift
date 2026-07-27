@@ -92,25 +92,34 @@ class ReusePolicyTests: XCTestCase {
     )
   }
 
-  func testFromDetails_FailsWhenRotatingBatchIsUsedWithoutBaseDetail() {
-    XCTAssertThrowsError(
-      try ReusePolicy.fromDetails(
-        details: [.rotatingBatch],
-        batchSize: 10,
-        reissueTriggerUnused: nil,
-        reissueTriggerLifetimeLeft: 100
-      )
+  /// The base-method requirement (once_only or limited_time) is enforced at the
+  /// options-array level in CredentialReusePolicy.init(from:), not per-option in
+  /// fromDetails. A standalone rotating-batch option is accepted here as long as
+  /// its required fields are present.
+  func testFromDetails_StandaloneRotatingBatch_Succeeds() throws {
+    let policies = try ReusePolicy.fromDetails(
+      details: [.rotatingBatch],
+      batchSize: 10,
+      reissueTriggerUnused: nil,
+      reissueTriggerLifetimeLeft: 100
     )
+    XCTAssertEqual(policies.count, 1)
+    XCTAssertEqual(policies[0], .rotatingBatch(batchSize: 10, reissueTriggerLifetimeLeft: 100))
   }
 
-  func testFromDetails_FailsWhenPerRelyingPartyIsUsedWithoutBaseDetail() {
-    XCTAssertThrowsError(
-      try ReusePolicy.fromDetails(
-        details: [.perRelyingParty],
-        batchSize: 10,
-        reissueTriggerUnused: 2,
-        reissueTriggerLifetimeLeft: 100
-      )
+  /// A standalone per-relying-party option is accepted at the fromDetails level;
+  /// the array-level base-method rule is enforced by the decoder.
+  func testFromDetails_StandalonePerRelyingParty_Succeeds() throws {
+    let policies = try ReusePolicy.fromDetails(
+      details: [.perRelyingParty],
+      batchSize: 10,
+      reissueTriggerUnused: 2,
+      reissueTriggerLifetimeLeft: 100
+    )
+    XCTAssertEqual(policies.count, 1)
+    XCTAssertEqual(
+      policies[0],
+      .perRelyingParty(batchSize: 10, reissueTriggerUnused: 2, reissueTriggerLifetimeLeft: 100)
     )
   }
 

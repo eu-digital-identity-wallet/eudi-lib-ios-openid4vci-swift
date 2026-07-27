@@ -207,10 +207,14 @@ public struct ConfigurationCredentialMetadata: Codable, Sendable {
     let claims = try json["claims"].array?.compactMap({ try Claim(json: $0)}) ?? []
     self.claims = claims
     
-    if let policyJson = json["credential_reuse_policy"].dictionaryObject,
-       let policyData = try? JSONSerialization.data(withJSONObject: policyJson),
-       let reusePolicy = try? JSONDecoder().decode(CredentialReusePolicy.self, from: policyData) {
-      self.credentialReusePolicy = reusePolicy
+    if let policyJson = json["credential_reuse_policy"].dictionaryObject {
+      do {
+        let policyData = try JSONSerialization.data(withJSONObject: policyJson)
+        self.credentialReusePolicy = try JSONDecoder().decode(CredentialReusePolicy.self, from: policyData)
+      } catch {
+        print("ConfigurationCredentialMetadata: failed to parse credential_reuse_policy: \(error)")
+        self.credentialReusePolicy = nil
+      }
     } else {
       self.credentialReusePolicy = nil
     }
