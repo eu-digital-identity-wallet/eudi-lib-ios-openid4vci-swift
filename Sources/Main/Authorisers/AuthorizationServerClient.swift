@@ -919,6 +919,8 @@ private extension AuthorizationServerClient {
     challenge: Nonce?
   ) async throws -> (ClientAttestationJWT, ClientAttestationPoPJWT, JWK, SigningKeyProxy)? {
     switch client {
+    case .public:
+      return nil
     case .attested(_, _, let jwk, let spec, let provider):
       guard let clientAttestationPoPBuilder = config.clientAttestationPoPBuilder else {
         return nil

@@ -68,6 +68,38 @@ class AttestationBasedTests: XCTestCase {
     XCTAssertNotNil(client)
   }
 
+  func testPublicClient_carriesNoAttestationMaterial() async throws {
+
+    let client = Client(public: "test-public-client")
+
+    XCTAssertEqual(client.id, "test-public-client")
+    XCTAssertNil(client.jwk)
+    XCTAssertNil(client.alg)
+    XCTAssertNil(client.provider())
+    XCTAssertNil(client.spec())
+    XCTAssertNil(client.attested)
+  }
+
+  func testPublicClient_popBuilderThrowsInvalidClient() async throws {
+
+    let builder = DefaultClientAttestationPoPBuilder()
+
+    do {
+      _ = try await builder.buildAttestationPoPJWT(
+        for: Client(public: "test-public-client"),
+        algorithm: .ES256,
+        clock: Clock(),
+        authServerId: URL(string: "https://as.example.com")!,
+        challenge: nil
+      )
+      XCTFail("Expected ClientAttestationError.invalidClient")
+    } catch let error as ClientAttestationError {
+      guard case .invalidClient = error else {
+        return XCTFail("Expected ClientAttestationError.invalidClient, got \(error)")
+      }
+    }
+  }
+
   func testClientAttestationWithValidAlgorithms_shouldSucceed() async throws {
     // Test that ES256, ES384, ES512 are all accepted
     let privateKey = try KeyController.generateECDHPrivateKey()
