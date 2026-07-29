@@ -18,12 +18,12 @@ import Foundation
 /// Outcome of a WRPRC policy evaluation performed by the consumer-supplied
 /// `RegistrationCertificatePolicy.authorize` closure.
 ///
-/// - `.granted` — the policy is satisfied. `warnings` may be empty (clean pass)
-///   or contain non-blocking violations the caller should be told about.
+/// - `.granted` — the policy is satisfied. `warnings` is a map keyed by a
+///   caller-defined bucket.
 /// - `.notGranted` — the policy is not satisfied. Carries a single blocking
 ///   `PolicyViolation` describing why. The library propagates this via
 ///   `WRPRCError.policyNotMet(...)` and refuses to construct an `Issuer`.
 public enum Authorization: Sendable, Equatable {
-  case granted(warnings: [PolicyViolation])
+  case granted(warnings: [String: [PolicyViolation]] = [:])
   case notGranted(error: PolicyViolation)
 }

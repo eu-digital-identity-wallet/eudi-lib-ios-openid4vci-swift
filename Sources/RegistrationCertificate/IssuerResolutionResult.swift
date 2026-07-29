@@ -17,13 +17,13 @@ import Foundation
 
 /// Result of `Issuer.make(credentialOffer:config:...)`.
 ///
-/// Pairs the constructed `Issuer` with any warning-severity WRPRC policy
-/// violations produced by the configured `RegistrationCertificatePolicy`.
+/// Pairs the constructed `Issuer` with any warnings produced by the configured
+/// `RegistrationCertificatePolicy`.
 public struct IssuerResolutionResult: Sendable {
   public let issuer: Issuer
-  public let warnings: [PolicyViolation]
+  public let warnings: [String: [PolicyViolation]]
 
-  public init(issuer: Issuer, warnings: [PolicyViolation]) {
+  public init(issuer: Issuer, warnings: [String: [PolicyViolation]]) {
     self.issuer = issuer
     self.warnings = warnings
   }

@@ -14,18 +14,15 @@
  * limitations under the License.
  */
 import XCTest
-@preconcurrency import JOSESwift
-import SwiftyJSON
 @testable import OpenID4VCI
 
 final class IssuanceAuthorizerTests: XCTestCase {
 
-  // MARK: - Missing / multiple / malformed WRPRC
+  // MARK: - Missing / multiple WRPRC
 
   func testNilIssuerInfoThrowsMissingIssuerInfo() async throws {
     let offer = try makeCredentialOffer(issuerInfo: nil)
-    let policy = trustAcceptAllPolicy()
-    let authorizer = IssuanceAuthorizer(policy: policy)
+    let authorizer = IssuanceAuthorizer(policy: acceptAllPolicy())
 
     await assertThrows(WRPRCError.missingIssuerInfo) {
       _ = try await authorizer.authorize(credentialOffer: offer)
@@ -34,8 +31,7 @@ final class IssuanceAuthorizerTests: XCTestCase {
 
   func testEmptyIssuerInfoThrowsMissingIssuerInfo() async throws {
     let offer = try makeCredentialOffer(issuerInfo: IssuerInfo(attestations: []))
-    let policy = trustAcceptAllPolicy()
-    let authorizer = IssuanceAuthorizer(policy: policy)
+    let authorizer = IssuanceAuthorizer(policy: acceptAllPolicy())
 
     await assertThrows(WRPRCError.missingIssuerInfo) {
       _ = try await authorizer.authorize(credentialOffer: offer)
@@ -46,7 +42,7 @@ final class IssuanceAuthorizerTests: XCTestCase {
     let offer = try makeCredentialOffer(issuerInfo: IssuerInfo(attestations: [
       IssuerInfoAttestation(format: "other_format", data: "x")
     ]))
-    let authorizer = IssuanceAuthorizer(policy: trustAcceptAllPolicy())
+    let authorizer = IssuanceAuthorizer(policy: acceptAllPolicy())
 
     await assertThrows(WRPRCError.missingRequiredRegistrationCertificate) {
       _ = try await authorizer.authorize(credentialOffer: offer)
@@ -58,77 +54,99 @@ final class IssuanceAuthorizerTests: XCTestCase {
       IssuerInfoAttestation(format: ETSI119472Part3.REGISTRATION_CERT, data: "one"),
       IssuerInfoAttestation(format: ETSI119472Part3.REGISTRATION_CERT, data: "two")
     ]))
-    let authorizer = IssuanceAuthorizer(policy: trustAcceptAllPolicy())
+    let authorizer = IssuanceAuthorizer(policy: acceptAllPolicy())
 
     await assertThrows(WRPRCError.multipleRegistrationCertificates) {
       _ = try await authorizer.authorize(credentialOffer: offer)
     }
   }
 
-  func testMalformedJWTThrowsMalformed() async throws {
-    let offer = try makeCredentialOffer(issuerInfo: IssuerInfo(attestations: [
-      IssuerInfoAttestation(format: ETSI119472Part3.REGISTRATION_CERT, data: "not.a.jwt")
-    ]))
-    let authorizer = IssuanceAuthorizer(policy: trustAcceptAllPolicy())
+  // MARK: - Missing WRPAC
 
-    do {
-      _ = try await authorizer.authorize(credentialOffer: offer)
-      XCTFail("Expected throw")
-    } catch let error as WRPRCError {
-      guard case .malformedRegistrationCertificate = error else {
-        return XCTFail("Expected .malformedRegistrationCertificate, got \(error)")
-      }
-    }
-  }
-
-  func testWrongTypHeaderThrowsMalformed() async throws {
-    let (jwt, _) = try mintTestJWT(typHeader: "some-other-typ")
-    let offer = try makeCredentialOffer(issuerInfo: IssuerInfo(attestations: [
-      IssuerInfoAttestation(format: ETSI119472Part3.REGISTRATION_CERT, data: jwt)
-    ]))
-    let authorizer = IssuanceAuthorizer(policy: trustAcceptAllPolicy())
-
-    do {
-      _ = try await authorizer.authorize(credentialOffer: offer)
-      XCTFail("Expected throw")
-    } catch let error as WRPRCError {
-      guard case .malformedRegistrationCertificate = error else {
-        return XCTFail("Expected .malformedRegistrationCertificate, got \(error)")
-      }
-    }
-  }
-
-  // MARK: - Missing x5c is treated as malformed (WRPRC always requires the WRPAC chain)
-
-  func testMissingX5CThrowsMalformed() async throws {
-    let (jwt, _) = try mintTestJWT(
-      typHeader: ETSI119475.REG_CERT_HEADER_TYPE,
-      payload: ["iat": Date().timeIntervalSince1970]
+  func testMissingWrpacThrowsMissingWrpac() async throws {
+    let offer = try makeCredentialOffer(
+      issuerInfo: IssuerInfo(attestations: [
+        IssuerInfoAttestation(format: ETSI119472Part3.REGISTRATION_CERT, data: "opaque-wrprc")
+      ]),
+      wrpac: nil
     )
-    let offer = try makeCredentialOffer(issuerInfo: IssuerInfo(attestations: [
-      IssuerInfoAttestation(format: ETSI119472Part3.REGISTRATION_CERT, data: jwt)
-    ]))
-    let authorizer = IssuanceAuthorizer(policy: trustAcceptAllPolicy())
+    let authorizer = IssuanceAuthorizer(policy: acceptAllPolicy())
+
+    await assertThrows(WRPRCError.missingWrpac) {
+      _ = try await authorizer.authorize(credentialOffer: offer)
+    }
+  }
+
+  // MARK: - Policy routing
+
+  func testGrantedReturnsWarningsAsProvided() async throws {
+    let offer = try makeCredentialOffer(
+      issuerInfo: IssuerInfo(attestations: [
+        IssuerInfoAttestation(format: ETSI119472Part3.REGISTRATION_CERT, data: "opaque-wrprc")
+      ]),
+      wrpac: "opaque-wrpac"
+    )
+    let expected: [String: [PolicyViolation]] = [
+      "test-cfg": [PolicyViolation("w1")],
+      "global": [PolicyViolation("w2")]
+    ]
+    let policy = RegistrationCertificatePolicy { _, _, _ in
+      .granted(warnings: expected)
+    }
+    let authorizer = IssuanceAuthorizer(policy: policy)
+
+    let warnings = try await authorizer.authorize(credentialOffer: offer)
+    XCTAssertEqual(warnings, expected)
+  }
+
+  func testPolicyReceivesRawWrpacAndWrprc() async throws {
+    let offer = try makeCredentialOffer(
+      issuerInfo: IssuerInfo(attestations: [
+        IssuerInfoAttestation(format: ETSI119472Part3.REGISTRATION_CERT, data: "opaque-wrprc")
+      ]),
+      wrpac: "opaque-wrpac"
+    )
+    let received = ReceivedInputs()
+    let policy = RegistrationCertificatePolicy { wrpac, wrprc, offered in
+      await received.set(wrpac: wrpac, wrprc: wrprc, offered: Array(offered.keys))
+      return .granted(warnings: [:])
+    }
+
+    _ = try await IssuanceAuthorizer(policy: policy).authorize(credentialOffer: offer)
+
+    let snapshot = await received.snapshot()
+    XCTAssertEqual(snapshot.wrpac, "opaque-wrpac")
+    XCTAssertEqual(snapshot.wrprc, "opaque-wrprc")
+  }
+
+  func testNotGrantedThrowsPolicyNotMet() async throws {
+    let offer = try makeCredentialOffer(
+      issuerInfo: IssuerInfo(attestations: [
+        IssuerInfoAttestation(format: ETSI119472Part3.REGISTRATION_CERT, data: "opaque-wrprc")
+      ]),
+      wrpac: "opaque-wrpac"
+    )
+    let policy = RegistrationCertificatePolicy { _, _, _ in
+      .notGranted(error: PolicyViolation("boom"))
+    }
+    let authorizer = IssuanceAuthorizer(policy: policy)
 
     do {
       _ = try await authorizer.authorize(credentialOffer: offer)
       XCTFail("Expected throw")
-    } catch let error as WRPRCError {
-      guard case .malformedRegistrationCertificate = error else {
-        return XCTFail("Expected .malformedRegistrationCertificate, got \(error)")
-      }
+    } catch let WRPRCError.policyNotMet(violation) {
+      XCTAssertEqual(violation, PolicyViolation("boom"))
+    } catch {
+      XCTFail("Expected WRPRCError.policyNotMet, got \(error)")
     }
   }
-
-  // NOTE: Full happy-path tests (valid signature + policy warnings/errors + time-claim
-  // validation) require a real x5c chain — the JWS must carry a base64-DER certificate
-  // whose public key matches the signing key. Adding a self-signed cert generation
-  // helper is a follow-up; the structural-failure tests above already cover the
-  // per-branch authorizer logic up to and including x5c validation.
 
   // MARK: - Fixture helpers
 
-  private func makeCredentialOffer(issuerInfo: IssuerInfo?) throws -> CredentialOffer {
+  private func makeCredentialOffer(
+    issuerInfo: IssuerInfo?,
+    wrpac: String? = "opaque-wrpac"
+  ) throws -> CredentialOffer {
     let issuerId = try CredentialIssuerId("https://issuer.example.com")
     let configId = try CredentialConfigurationIdentifier(value: "test-cfg")
     let metadata = CredentialIssuerMetadata(
@@ -140,7 +158,8 @@ final class IssuanceAuthorizerTests: XCTestCase {
       notificationEndpoint: nil,
       credentialConfigurationsSupported: [:],
       display: nil,
-      issuerInfo: issuerInfo
+      issuerInfo: issuerInfo,
+      wrpac: wrpac
     )
     let asMetadataJSON = """
     {
@@ -162,39 +181,8 @@ final class IssuanceAuthorizerTests: XCTestCase {
     )
   }
 
-  /// Trust that accepts any chain — used to isolate authorizer failure paths from crypto.
-  /// The authorizer will still reject before reaching trust when structural checks fail.
-  private func trustAcceptAllPolicy() -> RegistrationCertificatePolicy {
-    let acceptAll = AcceptAllChainTrust()
-    return RegistrationCertificatePolicy(
-      issuerTrust: .byCertificateChain(certificateChainTrust: acceptAll),
-      authorize: { _, _, _ in .granted(warnings: []) }
-    )
-  }
-
-  /// Mints a self-signed ES256 JWT with a configurable `typ` and payload.
-  /// Returns the compact-serialized JWT and the corresponding public JWK.
-  private func mintTestJWT(
-    typHeader: String,
-    payload: [String: Any] = ["iat": Date().timeIntervalSince1970]
-  ) throws -> (jwt: String, publicJWK: JWK) {
-    let privateKey = try KeyController.generateECDHPrivateKey()
-    let publicSecKey = try KeyController.generateECDHPublicKey(from: privateKey)
-    let publicJWK = try ECPublicKey(
-      publicKey: publicSecKey,
-      additionalParameters: ["alg": "ES256", "use": "sig"]
-    )
-
-    let header = try JWSHeader(parameters: [
-      "alg": SignatureAlgorithm.ES256.rawValue,
-      "typ": typHeader
-    ])
-    let payloadData = try JSONSerialization.data(withJSONObject: payload, options: [])
-    guard let signer = Signer(signatureAlgorithm: .ES256, key: privateKey) else {
-      throw XCTError("Unable to build signer")
-    }
-    let jws = try JWS(header: header, payload: Payload(payloadData), signer: signer)
-    return (jws.compactSerializedString, publicJWK)
+  private func acceptAllPolicy() -> RegistrationCertificatePolicy {
+    RegistrationCertificatePolicy(authorize: { _, _, _ in .granted(warnings: [:]) })
   }
 
   private func assertThrows(
@@ -209,9 +197,7 @@ final class IssuanceAuthorizerTests: XCTestCase {
       case (.missingIssuerInfo, .missingIssuerInfo),
            (.missingRequiredRegistrationCertificate, .missingRequiredRegistrationCertificate),
            (.multipleRegistrationCertificates, .multipleRegistrationCertificates),
-           (.registrationCertificateNotTrusted, .registrationCertificateNotTrusted):
-        return
-      case (.malformedRegistrationCertificate, .malformedRegistrationCertificate),
+           (.missingWrpac, .missingWrpac),
            (.policyNotMet, .policyNotMet):
         return
       default:
@@ -223,12 +209,18 @@ final class IssuanceAuthorizerTests: XCTestCase {
   }
 }
 
-/// Trust stub that accepts any chain. `@unchecked Sendable` — stateless and safe.
-private final class AcceptAllChainTrust: CertificateChainTrust, @unchecked Sendable {
-  func isValid(chain: [String]) async -> Bool { true }
-}
+private actor ReceivedInputs {
+  private(set) var wrpac: String = ""
+  private(set) var wrprc: String = ""
+  private(set) var offered: [CredentialConfigurationIdentifier] = []
 
-private struct XCTError: Error {
-  let message: String
-  init(_ message: String) { self.message = message }
+  func set(wrpac: String, wrprc: String, offered: [CredentialConfigurationIdentifier]) {
+    self.wrpac = wrpac
+    self.wrprc = wrprc
+    self.offered = offered
+  }
+
+  func snapshot() -> (wrpac: String, wrprc: String, offered: [CredentialConfigurationIdentifier]) {
+    (wrpac, wrprc, offered)
+  }
 }

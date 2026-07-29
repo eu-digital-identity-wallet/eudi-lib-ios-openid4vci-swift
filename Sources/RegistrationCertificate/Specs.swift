@@ -29,9 +29,3 @@ public enum ETSI119472Part3 {
   /// Format identifier for a WRP Registration Certificate attestation carried inside `issuer_info`.
   public static let REGISTRATION_CERT = "registration_cert"
 }
-
-/// Constants from ETSI TS 119 475 v1.1.1 (WRP Registration Certificate).
-public enum ETSI119475 {
-  /// JWS header `typ` value for a WRP Registration Certificate.
-  public static let REG_CERT_HEADER_TYPE = "rc-wrp+jwt"
-}

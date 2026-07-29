@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 import XCTest
-@preconcurrency import JOSESwift
 @testable import OpenID4VCI
 
 /// Sanity checks for the invariant that couples `registrationCertificatePolicy`
@@ -53,8 +52,7 @@ final class OpenId4VCIConfigInvariantTests: XCTestCase {
       authFlowRedirectionURI: redirectURI,
       issuerMetadataPolicy: .requireSigned(issuerTrust: .byCertificateChain(certificateChainTrust: AcceptAllTrust())),
       registrationCertificatePolicy: RegistrationCertificatePolicy(
-        issuerTrust: .byCertificateChain(certificateChainTrust: AcceptAllTrust()),
-        authorize: { _, _, _ in .granted(warnings: []) }
+        authorize: { _, _, _ in .granted(warnings: [:]) }
       )
     )
   }

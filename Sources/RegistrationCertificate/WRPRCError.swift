@@ -15,7 +15,7 @@
  */
 import Foundation
 
-/// Errors raised while extracting, verifying, or enforcing the WRP Registration Certificate
+/// Errors raised while extracting or enforcing the WRP Registration Certificate
 /// (ETSI TS 119 475 v1.1.1) during issuance authorization.
 public enum WRPRCError: LocalizedError, Sendable {
 
@@ -30,12 +30,6 @@ public enum WRPRCError: LocalizedError, Sendable {
 
   /// More than one WRP Registration Certificate was found in `issuer_info`.
   case multipleRegistrationCertificates
-
-  /// The WRP Registration Certificate is not well-formed. `cause` describes the specific failure.
-  case malformedRegistrationCertificate(cause: String)
-
-  /// The WRP Registration Certificate's signing certificate chain was rejected by the configured trust.
-  case registrationCertificateNotTrusted
 
   /// The metadata carries a WRPRC but no WRPAC was captured during metadata
   /// resolution — a configuration invariant should prevent this, but the check
@@ -53,10 +47,6 @@ public enum WRPRCError: LocalizedError, Sendable {
       return "No WRP Registration Certificate found in issuer metadata issuer_info"
     case .multipleRegistrationCertificates:
       return "More than one WRP Registration Certificate found in issuer_info; exactly one is required"
-    case .malformedRegistrationCertificate(let cause):
-      return "Malformed WRP Registration Certificate: \(cause)"
-    case .registrationCertificateNotTrusted:
-      return "WRP Registration Certificate signing chain is not trusted"
     case .missingWrpac:
       return "WRPAC is not available on the issuer metadata; " +
              "ensure OpenId4VCIConfig.issuerMetadataPolicy is .requireSigned(.byCertificateChain(...))."

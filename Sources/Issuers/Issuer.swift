@@ -332,10 +332,10 @@ public actor Issuer: IssuerType {
   /// Certificate policy first via `IssuanceAuthorizer`.
   ///
   /// - Returns: An `IssuerResolutionResult` pairing the constructed `Issuer`
-  ///   with any `.warning`-severity `PolicyViolation`s produced by the policy
-  ///   validator.
-  /// - Throws: `WRPRCError` when the WRPRC is missing / multiple / malformed /
-  ///   untrusted, or when the policy validator produced any `.error` violations.
+  ///   with any warnings produced by the policy validator (empty dict means a
+  ///   clean pass).
+  /// - Throws: `WRPRCError` when the WRPRC is missing / multiple / WRPAC missing,
+  ///   or when the policy validator returned `.notGranted`.
   public static func make(
     credentialOffer: CredentialOffer,
     config: OpenId4VCIConfig,
@@ -343,12 +343,12 @@ public actor Issuer: IssuerType {
     session: Networking
   ) async throws -> IssuerResolutionResult {
 
-    let warnings: [PolicyViolation]
+    let warnings: [String: [PolicyViolation]]
     if let policy = config.registrationCertificatePolicy {
       let authorizer = IssuanceAuthorizer(policy: policy)
       warnings = try await authorizer.authorize(credentialOffer: credentialOffer)
     } else {
-      warnings = []
+      warnings = [:]
     }
 
     let issuer = try Issuer(

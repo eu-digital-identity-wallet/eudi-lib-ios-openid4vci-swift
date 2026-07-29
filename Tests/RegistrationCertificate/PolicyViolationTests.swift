@@ -32,7 +32,7 @@ final class PolicyViolationTests: XCTestCase {
   // MARK: - Authorization
 
   func testGrantedWithNoWarningsIsCleanPass() {
-    let outcome: Authorization = .granted(warnings: [])
+    let outcome: Authorization = .granted()
     guard case .granted(let warnings) = outcome else {
       return XCTFail("Expected .granted")
     }
@@ -40,14 +40,15 @@ final class PolicyViolationTests: XCTestCase {
   }
 
   func testGrantedWithWarnings() {
-    let outcome: Authorization = .granted(warnings: [
-      PolicyViolation("w1"),
-      PolicyViolation("w2")
-    ])
-    guard case .granted(let warnings) = outcome else {
+    let warnings: [String: [PolicyViolation]] = [
+      "cfg-1": [PolicyViolation("w1")],
+      "global": [PolicyViolation("w2")]
+    ]
+    let outcome: Authorization = .granted(warnings: warnings)
+    guard case .granted(let received) = outcome else {
       return XCTFail("Expected .granted")
     }
-    XCTAssertEqual(warnings, [PolicyViolation("w1"), PolicyViolation("w2")])
+    XCTAssertEqual(received, warnings)
   }
 
   func testNotGrantedCarriesSingleError() {
@@ -59,12 +60,13 @@ final class PolicyViolationTests: XCTestCase {
   }
 
   func testEquatableAuthorization() {
+    let warnings: [String: [PolicyViolation]] = ["k": [PolicyViolation("w")]]
     XCTAssertEqual(
-      Authorization.granted(warnings: [PolicyViolation("w")]),
-      Authorization.granted(warnings: [PolicyViolation("w")])
+      Authorization.granted(warnings: warnings),
+      Authorization.granted(warnings: warnings)
     )
     XCTAssertNotEqual(
-      Authorization.granted(warnings: [PolicyViolation("w")]),
+      Authorization.granted(warnings: warnings),
       Authorization.notGranted(error: PolicyViolation("w"))
     )
   }
