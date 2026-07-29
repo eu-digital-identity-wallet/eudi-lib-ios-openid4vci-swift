@@ -61,12 +61,13 @@ public extension ProofTypesPolicy {
   /// Rules
   ///   - If `proof_types_supported` is missing or empty, the configuration
   ///     does not require a proof; this method returns successfully.
-  ///   - Otherwise, the configuration MUST advertise BOTH `proof_type: jwt`
-  ///     AND `proof_type: attestation`, and BOTH MUST carry
-  ///     `key_attestations_required`.
-  ///   - At least one of the two advertised attested proof types must be in
-  ///     the wallet's `supportedProofTypes`, with at least one matching
-  ///     algorithm in `supportedAlgorithms`.
+  ///   - Otherwise, the configuration MUST advertise at least one of
+  ///     `proof_type: jwt` or `proof_type: attestation` with
+  ///     `key_attestations_required`. HAIP / TS3 / TS 119 472-3 do not require
+  ///     both to be advertised.
+  ///   - At least one of the advertised attested proof types must be in the
+  ///     wallet's `supportedProofTypes`, with at least one matching algorithm
+  ///     in `supportedAlgorithms`.
   ///
   /// Throws:
   ///   - `CredentialIssuanceError.issuerMetadataNoAttestedProofType` when the
@@ -83,14 +84,22 @@ public extension ProofTypesPolicy {
       return
     }
 
-    guard let attestationMeta = proofTypesSupported["attestation"],
-          Self.requiresKeyAttestation(attestationMeta) else {
+    let attestedCandidates: [(AttestedProofType, ProofTypeSupportedMeta)] = [
+      ("jwt", .jwtWithKeyAttestation),
+      ("attestation", .attestation)
+    ].compactMap { key, type in
+      guard let meta = proofTypesSupported[key],
+            Self.requiresKeyAttestation(meta) else { return nil }
+      return (type, meta)
+    }
+
+    guard !attestedCandidates.isEmpty else {
       throw CredentialIssuanceError.issuerMetadataNoAttestedProofType
     }
 
-    let walletSupported: [(AttestedProofType, ProofTypeSupportedMeta)] = [
-      (.attestation, attestationMeta)
-    ].filter { supportedProofTypes.contains($0.0) }
+    let walletSupported = attestedCandidates.filter {
+      supportedProofTypes.contains($0.0)
+    }
 
     guard !walletSupported.isEmpty else {
       throw CredentialIssuanceError.proofTypeNotSupportedByWalletPolicy
