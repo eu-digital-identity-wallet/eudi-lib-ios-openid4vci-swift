@@ -67,35 +67,50 @@ final class ProofTypesPolicyTests: XCTestCase {
     ))
   }
 
+  func testAcceptsJwtOnlyWithKeyAttestation() {
+    let config = makeConfig(proofTypesSupported: [
+      "jwt": ProofTypeSupportedMeta(
+        algorithms: ["ES256"],
+        keyAttestationRequirement: .requiredNoConstraints
+      )
+    ])
+
+    XCTAssertNoThrow(try ProofTypesPolicy.haipCompliant().validateIssuerMetadata(
+      credentialConfiguration: config
+    ))
+  }
+
+  func testAcceptsAttestationOnlyWithKeyAttestation() {
+    let config = makeConfig(proofTypesSupported: [
+      "attestation": ProofTypeSupportedMeta(
+        algorithms: ["ES256"],
+        keyAttestationRequirement: .requiredNoConstraints
+      )
+    ])
+
+    XCTAssertNoThrow(try ProofTypesPolicy.haipCompliant().validateIssuerMetadata(
+      credentialConfiguration: config
+    ))
+  }
+
+  func testAcceptsJwtWithKeyAttestationEvenIfAttestationLacksIt() {
+    let config = makeConfig(proofTypesSupported: [
+      "jwt": ProofTypeSupportedMeta(
+        algorithms: ["ES256"],
+        keyAttestationRequirement: .requiredNoConstraints
+      ),
+      "attestation": ProofTypeSupportedMeta(
+        algorithms: ["ES256"],
+        keyAttestationRequirement: .notRequired
+      )
+    ])
+
+    XCTAssertNoThrow(try ProofTypesPolicy.haipCompliant().validateIssuerMetadata(
+      credentialConfiguration: config
+    ))
+  }
+
   // MARK: - validateIssuerMetadata: reject paths (metadata error)
-
-  func testRejectsJwtOnly() {
-    let config = makeConfig(proofTypesSupported: [
-      "jwt": ProofTypeSupportedMeta(
-        algorithms: ["ES256"],
-        keyAttestationRequirement: .requiredNoConstraints
-      )
-    ])
-
-    expectError(
-      .issuerMetadataNoAttestedProofType,
-      try ProofTypesPolicy.haipCompliant().validateIssuerMetadata(credentialConfiguration: config)
-    )
-  }
-
-  func testRejectsAttestationOnly() {
-    let config = makeConfig(proofTypesSupported: [
-      "jwt": ProofTypeSupportedMeta(
-        algorithms: ["ES256"],
-        keyAttestationRequirement: .requiredNoConstraints
-      )
-    ])
-
-    expectError(
-      .issuerMetadataNoAttestedProofType,
-      try ProofTypesPolicy.haipCompliant().validateIssuerMetadata(credentialConfiguration: config)
-    )
-  }
 
   func testRejectsJwtWithoutKeyAttestation() {
     let config = makeConfig(proofTypesSupported: [
@@ -113,9 +128,23 @@ final class ProofTypesPolicyTests: XCTestCase {
 
   func testRejectsAttestationWithoutKeyAttestation() {
     let config = makeConfig(proofTypesSupported: [
+      "attestation": ProofTypeSupportedMeta(
+        algorithms: ["ES256"],
+        keyAttestationRequirement: .notRequired
+      )
+    ])
+
+    expectError(
+      .issuerMetadataNoAttestedProofType,
+      try ProofTypesPolicy.haipCompliant().validateIssuerMetadata(credentialConfiguration: config)
+    )
+  }
+
+  func testRejectsBothWithoutKeyAttestation() {
+    let config = makeConfig(proofTypesSupported: [
       "jwt": ProofTypeSupportedMeta(
         algorithms: ["ES256"],
-        keyAttestationRequirement: .requiredNoConstraints
+        keyAttestationRequirement: .notRequired
       ),
       "attestation": ProofTypeSupportedMeta(
         algorithms: ["ES256"],
@@ -152,6 +181,42 @@ final class ProofTypesPolicyTests: XCTestCase {
         algorithms: ["ES256"],
         keyAttestationRequirement: .requiredNoConstraints
       ),
+      "attestation": ProofTypeSupportedMeta(
+        algorithms: ["ES256"],
+        keyAttestationRequirement: .requiredNoConstraints
+      )
+    ])
+
+    expectError(
+      .proofTypeNotSupportedByWalletPolicy,
+      try policy.validateIssuerMetadata(credentialConfiguration: config)
+    )
+  }
+
+  func testRejectsWhenIssuerOnlyJwtButWalletOnlyAttestation() {
+    let policy = ProofTypesPolicy(
+      supportedAlgorithms: [JWSAlgorithm(.ES256)],
+      supportedProofTypes: [.attestation]
+    )
+    let config = makeConfig(proofTypesSupported: [
+      "jwt": ProofTypeSupportedMeta(
+        algorithms: ["ES256"],
+        keyAttestationRequirement: .requiredNoConstraints
+      )
+    ])
+
+    expectError(
+      .proofTypeNotSupportedByWalletPolicy,
+      try policy.validateIssuerMetadata(credentialConfiguration: config)
+    )
+  }
+
+  func testRejectsWhenIssuerOnlyAttestationButWalletOnlyJwt() {
+    let policy = ProofTypesPolicy(
+      supportedAlgorithms: [JWSAlgorithm(.ES256)],
+      supportedProofTypes: [.jwtWithKeyAttestation]
+    )
+    let config = makeConfig(proofTypesSupported: [
       "attestation": ProofTypeSupportedMeta(
         algorithms: ["ES256"],
         keyAttestationRequirement: .requiredNoConstraints
