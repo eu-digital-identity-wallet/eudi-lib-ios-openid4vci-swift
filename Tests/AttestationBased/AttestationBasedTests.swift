@@ -13,9 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import Foundation
+@preconcurrency import Foundation
 import XCTest
-import JOSESwift
+@preconcurrency import JOSESwift
 import SwiftyJSON
 
 @testable import OpenID4VCI
@@ -99,6 +99,52 @@ class AttestationBasedTests: XCTestCase {
         return XCTFail("Expected ClientAttestationError.invalidClient, got \(error)")
       }
     }
+  }
+
+  func testPopBuilder_usesInjectedClock_andEmitsIntegerNumericDates() async throws {
+    struct FixedClock: ClockType {
+      let instant: Date
+      func now() -> Date { instant }
+    }
+
+    let fixedInstant = Date(timeIntervalSince1970: 1_700_000_000)
+    let fixedEpoch = 1_700_000_000
+    let duration: TimeInterval = 300
+
+    let privateKey = try KeyController.generateECDHPrivateKey()
+    let jwk = try ECPublicKey(publicKey: try KeyController.generateECDHPublicKey(from: privateKey))
+
+    @Sendable func signer() -> SigningKeyProxy {
+      .secKey(privateKey)
+    }
+
+    let client: Client = try .attested(
+      id: "test-client",
+      alg: .init(.ES256),
+      jwk: jwk,
+      popJwtSpec: .init(signingAlgorithm: .ES256, duration: duration, typ: "oauth-client-attestation-pop+jwt"),
+      clientAttestationProvider: { _ in
+        (ClientAttestationJWT(""), signer())
+      }
+    )
+
+    let pop = try await DefaultClientAttestationPoPBuilder().buildAttestationPoPJWT(
+      for: client,
+      algorithm: .ES256,
+      clock: FixedClock(instant: fixedInstant),
+      authServerId: URL(string: "https://as.example.com")!,
+      challenge: nil
+    )
+
+    let payload = JSON(pop.jws.payload.data())
+    XCTAssertEqual(payload["iat"].int, fixedEpoch, "iat must equal the injected clock's epoch second")
+    XCTAssertEqual(payload["exp"].int, fixedEpoch + Int(duration), "exp must equal iat + popJwtSpec.duration")
+
+    // Guard against fractional-seconds regression by inspecting the serialised bytes:
+    // if the number carried a decimal, the substring "<epoch>." would appear.
+    let raw = String(data: pop.jws.payload.data(), encoding: .utf8) ?? ""
+    XCTAssertFalse(raw.contains("\(fixedEpoch)."), "iat must not be serialised with fractional seconds")
+    XCTAssertFalse(raw.contains("\(fixedEpoch + Int(duration))."), "exp must not be serialised with fractional seconds")
   }
 
   func testClientAttestationWithValidAlgorithms_shouldSucceed() async throws {
