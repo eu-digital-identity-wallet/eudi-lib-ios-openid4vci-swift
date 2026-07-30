@@ -25,15 +25,16 @@ class AttestationBasedTests: XCTestCase {
   func testClientAttestation() async throws {
 
     let jwt = try makeWIAJWT()
-    let clientAttestation = try ClientAttestationJWT(
-      jws: JWS(compactSerialization: jwt)
-    )
+    let clientAttestation = ClientAttestationJWT(jwt)
 
-    XCTAssertEqual(clientAttestation.clientId, "test-client")
-    XCTAssertEqual(clientAttestation.claimsSet.walletName.value, "Test Wallet Solution")
-    XCTAssertEqual(clientAttestation.claimsSet.walletVersion.value, "1.0.0")
-    XCTAssertEqual(clientAttestation.claimsSet.clientStatus.status.statusList.index, 0)
-    XCTAssertNotNil(clientAttestation.publicKey)
+    XCTAssertEqual(clientAttestation.value, jwt)
+
+    let claims = try clientAttestation.decodeAsClientAttestationClaims()
+    XCTAssertEqual(claims.subject.value, "test-client")
+    XCTAssertEqual(claims.walletName.value, "Test Wallet Solution")
+    XCTAssertEqual(claims.walletVersion.value, "1.0.0")
+    XCTAssertEqual(claims.clientStatus.status.statusList.index, 0)
+    XCTAssertNotNil(claims.confirmation.jwk)
   }
   
   func testClientAttestationPopJwt() async throws {
@@ -129,103 +130,34 @@ class AttestationBasedTests: XCTestCase {
     XCTAssertNotNil(clientES512, "ES512 should be accepted")
   }
 
-  func testClientAttestationWithInvalidAlgorithm_shouldFail() async throws {
-    // Test that RS256 (RSA) is rejected
-    // Create a JWT with RS256 algorithm in the header
+  func testClientAttestation_constructionIsRelaxed() async throws {
+    // Callers that need TS3 validation must opt in via `decodeAsClientAttestationClaims()`.
     let now = Date().timeIntervalSince1970
     let exp = Date().addingTimeInterval(300).timeIntervalSince1970
 
     let headerDict: [String: Any] = [
       "alg": "RS256",
-      "typ": "oauth-client-attestation+jwt"
+      "typ": "wrong+jwt"
     ]
 
     let payloadDict: [String: Any] = [
       "iss": "test-client",
-      "aud": "test-client",
       "sub": "test-client",
       "iat": now,
-      "exp": exp,
-      "cnf": [
-        "jwk": [
-          "kty": "RSA",
-          "n": "test",
-          "e": "AQAB"
-        ]
-      ]
+      "exp": exp
     ]
 
     let headerData = try JSONSerialization.data(withJSONObject: headerDict)
     let payloadData = try JSONSerialization.data(withJSONObject: payloadDict)
 
-    let headerB64 = base64URLEncode(headerData)
-    let payloadB64 = base64URLEncode(payloadData)
-    let signature = "fake-signature"
+    let compactJWT = "\(base64URLEncode(headerData)).\(base64URLEncode(payloadData)).fake-signature"
 
-    let compactJWT = "\(headerB64).\(payloadB64).\(signature)"
-    let jws = try JWS(compactSerialization: compactJWT)
+    // Construction succeeds — no parsing, no algorithm, no typ, no claims validation.
+    let attestation = ClientAttestationJWT(compactJWT)
+    XCTAssertEqual(attestation.value, compactJWT)
 
-    // Should throw invalidAlgorithm error
-    XCTAssertThrowsError(try ClientAttestationJWT(jws: jws)) { error in
-      guard let attestationError = error as? ClientAttestationError,
-            case .invalidAlgorithm(let allowed) = attestationError else {
-        XCTFail("Expected ClientAttestationError.invalidAlgorithm, got \(error)")
-        return
-      }
-
-      // Verify the error includes all allowed algorithms
-      XCTAssertEqual(allowed.sorted(), ["ES256", "ES384", "ES512"])
-
-      // Verify error message is descriptive
-      let errorMessage = attestationError.errorDescription ?? ""
-      XCTAssertTrue(errorMessage.contains("ES256"))
-      XCTAssertTrue(errorMessage.contains("ES384"))
-      XCTAssertTrue(errorMessage.contains("ES512"))
-    }
-  }
-
-  func testClientAttestationWithHMACAlgorithm_shouldFail() async throws {
-    // Test that HS256 (HMAC) is rejected
-    let now = Date().timeIntervalSince1970
-    let exp = Date().addingTimeInterval(300).timeIntervalSince1970
-
-    let headerDict: [String: Any] = [
-      "alg": "HS256",
-      "typ": "oauth-client-attestation+jwt"
-    ]
-
-    let payloadDict: [String: Any] = [
-      "iss": "test-client",
-      "aud": "test-client",
-      "sub": "test-client",
-      "iat": now,
-      "exp": exp,
-      "cnf": [
-        "jwk": [
-          "kty": "oct",
-          "k": "test"
-        ]
-      ]
-    ]
-
-    let headerData = try JSONSerialization.data(withJSONObject: headerDict)
-    let payloadData = try JSONSerialization.data(withJSONObject: payloadDict)
-
-    let headerB64 = base64URLEncode(headerData)
-    let payloadB64 = base64URLEncode(payloadData)
-    let signature = "fake-signature"
-
-    let compactJWT = "\(headerB64).\(payloadB64).\(signature)"
-    let jws = try JWS(compactSerialization: compactJWT)
-
-    // Should throw invalidAlgorithm error
-    XCTAssertThrowsError(try ClientAttestationJWT(jws: jws)) { error in
-      guard let attestationError = error as? ClientAttestationError,
-            case .invalidAlgorithm = attestationError else {
-        XCTFail("Expected ClientAttestationError.invalidAlgorithm, got \(error)")
-        return
-      }
-    }
+    // Opt-in validation still surfaces TS3 issues.
+    XCTAssertThrowsError(try attestation.decodeAsClientAttestationClaims())
   }
 
   // Helper function for base64 URL encoding
@@ -237,13 +169,17 @@ class AttestationBasedTests: XCTestCase {
     return base64String
   }
 
-  // MARK: - TS3 WIA validation tests
+  // MARK: - TS3 WIA opt-in validation tests
+
+  private func attestation(_ jwt: String) -> ClientAttestationJWT {
+    ClientAttestationJWT(jwt)
+  }
 
   func testWIA_missingWalletName_shouldFail() throws {
     let jwt = try makeWIAJWT { payload in
       payload.removeValue(forKey: "wallet_name")
     }
-    XCTAssertThrowsError(try ClientAttestationJWT(jws: JWS(compactSerialization: jwt))) { error in
+    XCTAssertThrowsError(try attestation(jwt).decodeAsClientAttestationClaims()) { error in
       guard case ClientAttestationError.missingWalletName = error else {
         XCTFail("Expected missingWalletName, got \(error)"); return
       }
@@ -254,7 +190,7 @@ class AttestationBasedTests: XCTestCase {
     let jwt = try makeWIAJWT { payload in
       payload.removeValue(forKey: "wallet_version")
     }
-    XCTAssertThrowsError(try ClientAttestationJWT(jws: JWS(compactSerialization: jwt))) { error in
+    XCTAssertThrowsError(try attestation(jwt).decodeAsClientAttestationClaims()) { error in
       guard case ClientAttestationError.missingWalletVersion = error else {
         XCTFail("Expected missingWalletVersion, got \(error)"); return
       }
@@ -265,7 +201,7 @@ class AttestationBasedTests: XCTestCase {
     let jwt = try makeWIAJWT { payload in
       payload.removeValue(forKey: "wallet_solution_certification_information")
     }
-    XCTAssertThrowsError(try ClientAttestationJWT(jws: JWS(compactSerialization: jwt))) { error in
+    XCTAssertThrowsError(try attestation(jwt).decodeAsClientAttestationClaims()) { error in
       guard case ClientAttestationError.missingWalletSolutionCertificationInformation = error else {
         XCTFail("Expected missingWalletSolutionCertificationInformation, got \(error)"); return
       }
@@ -276,7 +212,7 @@ class AttestationBasedTests: XCTestCase {
     let jwt = try makeWIAJWT { payload in
       payload.removeValue(forKey: "client_status")
     }
-    XCTAssertThrowsError(try ClientAttestationJWT(jws: JWS(compactSerialization: jwt))) { error in
+    XCTAssertThrowsError(try attestation(jwt).decodeAsClientAttestationClaims()) { error in
       guard case ClientAttestationError.missingClientStatus = error else {
         XCTFail("Expected missingClientStatus, got \(error)"); return
       }
@@ -289,7 +225,7 @@ class AttestationBasedTests: XCTestCase {
       cs.removeValue(forKey: "exp")
       payload["client_status"] = cs
     }
-    XCTAssertThrowsError(try ClientAttestationJWT(jws: JWS(compactSerialization: jwt))) { error in
+    XCTAssertThrowsError(try attestation(jwt).decodeAsClientAttestationClaims()) { error in
       guard case ClientAttestationError.invalidClientStatus = error else {
         XCTFail("Expected invalidClientStatus, got \(error)"); return
       }
@@ -302,7 +238,7 @@ class AttestationBasedTests: XCTestCase {
       cs["status"] = [String: Any]()
       payload["client_status"] = cs
     }
-    XCTAssertThrowsError(try ClientAttestationJWT(jws: JWS(compactSerialization: jwt))) { error in
+    XCTAssertThrowsError(try attestation(jwt).decodeAsClientAttestationClaims()) { error in
       guard case ClientAttestationError.invalidStatusListReference = error else {
         XCTFail("Expected invalidStatusListReference, got \(error)"); return
       }
@@ -313,20 +249,9 @@ class AttestationBasedTests: XCTestCase {
     let jwt = try makeWIAJWT { payload in
       payload["wallet_name"] = "   "
     }
-    XCTAssertThrowsError(try ClientAttestationJWT(jws: JWS(compactSerialization: jwt))) { error in
+    XCTAssertThrowsError(try attestation(jwt).decodeAsClientAttestationClaims()) { error in
       guard case ClientAttestationError.blankClaim(let name) = error, name == "wallet_name" else {
         XCTFail("Expected blankClaim(wallet_name), got \(error)"); return
-      }
-    }
-  }
-
-  func testWIA_wrongTypHeader_shouldFail() throws {
-    let jwt = try makeWIAJWT(typHeader: "wrong+jwt")
-    XCTAssertThrowsError(try ClientAttestationJWT(jws: JWS(compactSerialization: jwt))) { error in
-      guard case ClientAttestationError.invalidTypHeader(let expected, let got) = error,
-            expected == "oauth-client-attestation+jwt",
-            got == "wrong+jwt" else {
-        XCTFail("Expected invalidTypHeader, got \(error)"); return
       }
     }
   }
@@ -335,7 +260,7 @@ class AttestationBasedTests: XCTestCase {
     let jwt = try makeWIAJWT { payload in
       payload.removeValue(forKey: "iss")
     }
-    XCTAssertThrowsError(try ClientAttestationJWT(jws: JWS(compactSerialization: jwt))) { error in
+    XCTAssertThrowsError(try attestation(jwt).decodeAsClientAttestationClaims()) { error in
       guard case ClientAttestationError.missingIssuerClaim = error else {
         XCTFail("Expected missingIssuerClaim, got \(error)"); return
       }
@@ -346,7 +271,7 @@ class AttestationBasedTests: XCTestCase {
     let jwt = try makeWIAJWT { payload in
       payload.removeValue(forKey: "sub")
     }
-    XCTAssertThrowsError(try ClientAttestationJWT(jws: JWS(compactSerialization: jwt))) { error in
+    XCTAssertThrowsError(try attestation(jwt).decodeAsClientAttestationClaims()) { error in
       guard case ClientAttestationError.missingSubject = error else {
         XCTFail("Expected missingSubject, got \(error)"); return
       }
@@ -363,11 +288,132 @@ class AttestationBasedTests: XCTestCase {
       cs["status"] = status
       payload["client_status"] = cs
     }
-    XCTAssertThrowsError(try ClientAttestationJWT(jws: JWS(compactSerialization: jwt))) { error in
+    XCTAssertThrowsError(try attestation(jwt).decodeAsClientAttestationClaims()) { error in
       guard case ClientAttestationError.invalidStatusListReference = error else {
         XCTFail("Expected invalidStatusListReference, got \(error)"); return
       }
     }
+  }
+
+  // MARK: - AS algorithm cross-check (ensureSupportedByAuthorizationServer)
+
+  private func makeAttestedClient(
+    attestationAlg: JWSAlgorithm.AlgorithmType = .ES256,
+    popAlg: SignatureAlgorithm = .ES256
+  ) throws -> Client {
+    let privateKey = try KeyController.generateECDHPrivateKey()
+    let jwk = try ECPublicKey(publicKey: try KeyController.generateECDHPublicKey(from: privateKey))
+    return try .attested(
+      id: "test-client",
+      alg: .init(attestationAlg),
+      jwk: jwk,
+      popJwtSpec: .init(signingAlgorithm: popAlg, duration: 300, typ: "oauth-client-attestation-pop+jwt"),
+      clientAttestationProvider: { _ in
+        fatalError("provider must not be invoked from ensureSupportedByAuthorizationServer")
+      }
+    )
+  }
+
+  private func makeAuthorizationServerMetadata(
+    tokenEndpointAuthMethods: [String]? = ["attest_jwt_client_auth"],
+    attestationAlgs: [String]? = ["ES256"],
+    popAlgs: [String]? = ["ES256"]
+  ) -> IdentityAndAccessManagementMetadata {
+    .oauth(AuthorizationServerMetadata(
+      tokenEndpointAuthMethodsSupported: tokenEndpointAuthMethods,
+      clientAttestationSigningAlgValuesSupported: attestationAlgs,
+      clientAttestationPopSigningAlgValuesSupported: popAlgs
+    ))
+  }
+
+  func testEnsureSupportedByAS_acceptsMatchingAlgorithms() throws {
+    let client = try makeAttestedClient(attestationAlg: .ES256, popAlg: .ES256)
+    let metadata = makeAuthorizationServerMetadata(
+      attestationAlgs: ["ES256", "ES384"],
+      popAlgs: ["ES256"]
+    )
+    XCTAssertNoThrow(try client.ensureSupportedByAuthorizationServer(metadata))
+  }
+
+  func testEnsureSupportedByAS_rejectsUnsupportedAttestationAlg() throws {
+    let client = try makeAttestedClient(attestationAlg: .ES512, popAlg: .ES256)
+    let metadata = makeAuthorizationServerMetadata(
+      attestationAlgs: ["ES256"],
+      popAlgs: ["ES256"]
+    )
+    XCTAssertThrowsError(try client.ensureSupportedByAuthorizationServer(metadata)) { error in
+      guard case ValidationError.error(let reason) = error else {
+        XCTFail("Expected ValidationError.error, got \(error)"); return
+      }
+      XCTAssertTrue(reason.contains("ES512"))
+      XCTAssertTrue(reason.contains("Client Attestation JWS Algorithm"))
+    }
+  }
+
+  func testEnsureSupportedByAS_rejectsUnsupportedPopAlg() throws {
+    let client = try makeAttestedClient(attestationAlg: .ES256, popAlg: .ES384)
+    let metadata = makeAuthorizationServerMetadata(
+      attestationAlgs: ["ES256"],
+      popAlgs: ["ES256"]
+    )
+    XCTAssertThrowsError(try client.ensureSupportedByAuthorizationServer(metadata)) { error in
+      guard case ValidationError.error(let reason) = error else {
+        XCTFail("Expected ValidationError.error, got \(error)"); return
+      }
+      XCTAssertTrue(reason.contains("ES384"))
+      XCTAssertTrue(reason.contains("POP JWS Algorithm"))
+    }
+  }
+
+  func testEnsureSupportedByAS_rejectsWhenAttestationAlgsMissing() throws {
+    let client = try makeAttestedClient()
+    let metadata = makeAuthorizationServerMetadata(
+      attestationAlgs: nil,
+      popAlgs: ["ES256"]
+    )
+    XCTAssertThrowsError(try client.ensureSupportedByAuthorizationServer(metadata)) { error in
+      guard case ValidationError.error(let reason) = error else {
+        XCTFail("Expected ValidationError.error, got \(error)"); return
+      }
+      XCTAssertTrue(reason.contains("Client Attestation JWS Algorithm"))
+    }
+  }
+
+  func testEnsureSupportedByAS_rejectsWhenPopAlgsMissing() throws {
+    let client = try makeAttestedClient()
+    let metadata = makeAuthorizationServerMetadata(
+      attestationAlgs: ["ES256"],
+      popAlgs: nil
+    )
+    XCTAssertThrowsError(try client.ensureSupportedByAuthorizationServer(metadata)) { error in
+      guard case ValidationError.error(let reason) = error else {
+        XCTFail("Expected ValidationError.error, got \(error)"); return
+      }
+      XCTAssertTrue(reason.contains("POP JWS Algorithm"))
+    }
+  }
+
+  func testEnsureSupportedByAS_rejectsWhenAuthMethodMissing() throws {
+    let client = try makeAttestedClient()
+    let metadata = makeAuthorizationServerMetadata(
+      tokenEndpointAuthMethods: ["client_secret_basic"]
+    )
+    XCTAssertThrowsError(try client.ensureSupportedByAuthorizationServer(metadata)) { error in
+      guard case ValidationError.error(let reason) = error else {
+        XCTFail("Expected ValidationError.error, got \(error)"); return
+      }
+      XCTAssertTrue(reason.contains("attest_jwt_client_auth"))
+    }
+  }
+
+  func testEnsureSupportedByAS_publicClientIsUnchecked() throws {
+    let client = Client(public: "public-client")
+    let metadata = makeAuthorizationServerMetadata(
+      tokenEndpointAuthMethods: [],
+      attestationAlgs: nil,
+      popAlgs: nil
+    )
+    XCTAssertNoThrow(try client.ensureSupportedByAuthorizationServer(metadata))
   }
 
   // MARK: - WIA builder

@@ -908,7 +908,7 @@ private extension AuthorizationServerClient {
     }
     
     return [
-      Constants.OAUTH_CLIENT_ATTESTATION: clientAttestation.0.jws.compactSerializedString,
+      Constants.OAUTH_CLIENT_ATTESTATION: clientAttestation.0.value,
       Constants.OAUTH_CLIENT_ATTESTATION_POP: clientAttestation.1.jws.compactSerializedString
     ]
   }
@@ -979,7 +979,7 @@ private extension AuthorizationServerClient {
     )
 
     return ([
-      Constants.OAUTH_CLIENT_ATTESTATION: attestationJWT.jws.compactSerializedString,
+      Constants.OAUTH_CLIENT_ATTESTATION: attestationJWT.value,
       Constants.OAUTH_CLIENT_ATTESTATION_POP: popJWT.jws.compactSerializedString
     ], signingKey)
   }

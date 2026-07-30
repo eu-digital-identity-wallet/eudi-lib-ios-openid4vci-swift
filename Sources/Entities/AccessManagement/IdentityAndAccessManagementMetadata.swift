@@ -99,4 +99,13 @@ public enum IdentityAndAccessManagementMetadata: Sendable {
     }
   }
 
+  public var clientAttestationSigningAlgValuesSupported: [JWSAlgorithm] {
+    switch self {
+    case .oidc(let metaData):
+      return metaData.clientAttestationSigningAlgValuesSupported?.map { JWSAlgorithm(name: $0) } ?? []
+    case .oauth(let metaData):
+      return metaData.clientAttestationSigningAlgValuesSupported?.map { JWSAlgorithm(name: $0) } ?? []
+    }
+  }
+
 }
