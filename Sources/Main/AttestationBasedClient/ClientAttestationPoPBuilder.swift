@@ -61,8 +61,9 @@ public struct DefaultClientAttestationPoPBuilder: ClientAttestationPoPBuilder {
     case .attested(let clientId, _, let jwk, let popJwtSpec, let clientAttestationProvider):
       let (_, signingKey) = try await clientAttestationProvider(authServerId)
 
-      let now = Date().timeIntervalSince1970
-      let exp = Date().addingTimeInterval(popJwtSpec.duration).timeIntervalSince1970
+      let issuedAt = clock.now()
+      let now = Int(issuedAt.timeIntervalSince1970)
+      let exp = Int(issuedAt.addingTimeInterval(popJwtSpec.duration).timeIntervalSince1970)
       let payload: [String: Any?] = [
         JWTClaimNames.issuer: clientId,
         JWTClaimNames.jwtId: String.randomBase64URLString(length: 20),
