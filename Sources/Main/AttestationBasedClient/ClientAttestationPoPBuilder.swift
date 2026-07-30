@@ -58,18 +58,18 @@ public struct DefaultClientAttestationPoPBuilder: ClientAttestationPoPBuilder {
     challenge: String?
   ) async throws -> ClientAttestationPoPJWT {
     switch client {
-    case .attested(_, _, let jwk, let popJwtSpec, let clientAttestationProvider):
-      let (attestationJWT, signingKey) = try await clientAttestationProvider(authServerId)
-      
+    case .attested(let clientId, _, let jwk, let popJwtSpec, let clientAttestationProvider):
+      let (_, signingKey) = try await clientAttestationProvider(authServerId)
+
       let now = Date().timeIntervalSince1970
       let exp = Date().addingTimeInterval(popJwtSpec.duration).timeIntervalSince1970
       let payload: [String: Any?] = [
-        JWTClaimNames.issuer: attestationJWT.clientId,
+        JWTClaimNames.issuer: clientId,
         JWTClaimNames.jwtId: String.randomBase64URLString(length: 20),
         JWTClaimNames.expirationTime: exp,
         JWTClaimNames.issuedAt: now,
         JWTClaimNames.audience: authServerId.absoluteString,
-        JWTClaimNames.cnf: try attestationJWT.cnf.jwk.toDictionary(),
+        JWTClaimNames.cnf: try jwk.toDictionary(),
         JWTClaimNames.challenge: challenge
       ]
       

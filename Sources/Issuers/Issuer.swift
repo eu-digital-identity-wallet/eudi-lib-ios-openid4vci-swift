@@ -957,20 +957,33 @@ public extension Issuer {
 }
 
 internal extension Client {
-  
+
   private static let ATTEST_JWT_CLIENT_AUTH = "attest_jwt_client_auth"
-  
+
   func ensureSupportedByAuthorizationServer(_ authorizationServerMetadata: IdentityAndAccessManagementMetadata) throws {
-    
-    let tokenEndpointAuthMethods = authorizationServerMetadata.tokenEndpointAuthMethods
-    
+
     switch self {
-    case .attested:
-      let expectedMethod = Self.ATTEST_JWT_CLIENT_AUTH
-      guard tokenEndpointAuthMethods.contains(expectedMethod) else {
-        throw ValidationError.error(reason: ("\(Self.ATTEST_JWT_CLIENT_AUTH) not supported by authorization server"))
+    case .attested(_, let alg, _, let popJwtSpec, _):
+      let tokenEndpointAuthMethods = authorizationServerMetadata.tokenEndpointAuthMethods
+      guard tokenEndpointAuthMethods.contains(Self.ATTEST_JWT_CLIENT_AUTH) else {
+        throw ValidationError.error(reason: "\(Self.ATTEST_JWT_CLIENT_AUTH) not supported by authorization server")
       }
-      
+
+      let supportedAttestationAlgs = authorizationServerMetadata.clientAttestationSigningAlgValuesSupported
+      guard supportedAttestationAlgs.contains(where: { $0.name == alg.name }) else {
+        throw ValidationError.error(
+          reason: "\(alg.name) Client Attestation JWS Algorithm not supported by Authorization Server"
+        )
+      }
+
+      let supportedPopAlgs = authorizationServerMetadata.clientAttestationPopSigningAlgValuesSupported
+      let popAlgName = popJwtSpec.signingAlgorithm.rawValue
+      guard supportedPopAlgs.contains(where: { $0.name == popAlgName }) else {
+        throw ValidationError.error(
+          reason: "\(popAlgName) Client Attestation POP JWS Algorithm not supported by Authorization Server"
+        )
+      }
+
     default:
       break
     }

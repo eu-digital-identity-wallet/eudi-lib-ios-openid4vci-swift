@@ -40,10 +40,7 @@ internal func jwkProviderSignedClient(
     ]
   )
 
-  // Pre-validate the WIA here so TS3 parsing failures surface as throws.
-  let attestationJWT = try ClientAttestationJWT(
-    jws: JWS(compactSerialization: attestation.walletInstanceAttestation)
-  )
+  let attestationJWT = ClientAttestationJWT(attestation.walletInstanceAttestation)
 
   @Sendable func getSignerFrom(authServer: URL) -> SigningKeyProxy {
     .secKey(privateKey)
@@ -89,9 +86,8 @@ internal func jwkSetProviderSignedClient(
     ]
   )
 
-  // Pre-validate the WIA here so TS3 parsing failures surface as throws,
-  let attestationJWT = try ClientAttestationJWT(
-    jws: JWS(compactSerialization: attestation.walletUnitAttestation)
+  let attestationJWT = ClientAttestationJWT(
+    jws: try JWS(compactSerialization: attestation.walletUnitAttestation)
   )
 
   @Sendable func getSignerFrom(authServer: URL) -> SigningKeyProxy {
@@ -156,8 +152,8 @@ internal func attestedClient(
       let proxy = getSignerFrom(authServer: authServer)
       let walletInstanceAttestation = try await client.issueWalletInstanceAttestation(payload: ["jwk": jwk.toDictionary()])
       return (
-        try! .init(
-          jws: .init(compactSerialization: walletInstanceAttestation.walletInstanceAttestation)
+        .init(
+          jws: try .init(compactSerialization: walletInstanceAttestation.walletInstanceAttestation)
         ),
         proxy
       )
