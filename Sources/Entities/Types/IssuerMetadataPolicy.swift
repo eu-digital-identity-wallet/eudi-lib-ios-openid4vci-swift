@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 import Foundation
-@preconcurrency import JOSESwift
 
 /// A protocol for verifying the trustworthiness of a certificate chain.
 public protocol CertificateChainTrust: Sendable {
@@ -28,12 +27,7 @@ public protocol CertificateChainTrust: Sendable {
 
 /// Defines how the issuer's trust is determined.
 public enum IssuerTrust: Sendable {
-  
-  /// Trust is established using a public key contained in a JSON Web Key (JWK).
-  ///
-  /// - Parameter jwk: The JSON Web Key representing the public key.
-  case byPublicKey(jwk: JWK)
-  
+
   /// Trust is established using a certificate chain validation process.
   ///
   /// - Parameter certificateChainTrust: A `CertificateChainTrust` instance that verifies the certificate chain.

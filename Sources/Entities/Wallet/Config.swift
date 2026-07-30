@@ -88,7 +88,11 @@ public struct OpenId4VCIConfig: Sendable {
   ///
   /// Default is `.haipCompliant()`.
   public let proofTypesPolicy: ProofTypesPolicy
-  
+
+  /// Optional policy that, when set, activates WRP Registration Certificate (WRPRC)
+  /// enforcement during `Issuer.make(...)`. When `nil`, WRPRC is not validated.
+  public let registrationCertificatePolicy: RegistrationCertificatePolicy?
+
   /// Initializes an `OpenId4VCIConfig` instance with the given parameters.
   /// - Parameters:
   ///   - client: The client used for OpenID4VCI operations.
@@ -100,6 +104,7 @@ public struct OpenId4VCIConfig: Sendable {
   ///   - requireDpop: If dpop is supported then use it, otherwise always don't
   ///   - proofTypesPolicy: Policy defining which proof types the wallet supports (default: `.haipCompliant()`).
   ///   - supportedCredentialReusePolicies: Wallet's supported credential reuse policies (default: `.notSupported`).
+  ///   - registrationCertificatePolicy: Optional policy that, when set, activates WRPRC enforcement in `Issuer.make(...)` (default: `nil`).
   public init(
     client: Client,
     authFlowRedirectionURI: URL,
@@ -110,7 +115,8 @@ public struct OpenId4VCIConfig: Sendable {
     supportedCompressionAlgorithms: [CompressionAlgorithm]? = nil,
     proofTypesPolicy: ProofTypesPolicy = .haipCompliant(),
     requireDpop: Bool = true,
-    supportedCredentialReusePolicies: SupportedCredentialReusePolicies = .notSupported
+    supportedCredentialReusePolicies: SupportedCredentialReusePolicies = .notSupported,
+    registrationCertificatePolicy: RegistrationCertificatePolicy? = nil
   ) {
     self.client = client
     self.authFlowRedirectionURI = authFlowRedirectionURI
@@ -122,5 +128,23 @@ public struct OpenId4VCIConfig: Sendable {
     self.requireDpop = requireDpop
     self.supportedCredentialReusePolicies = supportedCredentialReusePolicies
     self.proofTypesPolicy = proofTypesPolicy
+    self.registrationCertificatePolicy = registrationCertificatePolicy
+
+    // When a WRPRC policy is configured, the issuer metadata must be signed —
+    // otherwise there is no cryptographic binding of the `issuer_info` (and
+    // therefore the WRPRC) to the issuer's identity, and no WRP Access
+    // Certificate to hand to the policy validator.
+    if registrationCertificatePolicy != nil {
+      switch issuerMetadataPolicy {
+      case .requireSigned:
+        break
+      case .preferSigned, .ignoreSigned:
+        preconditionFailure(
+          "OpenId4VCIConfig: registrationCertificatePolicy requires " +
+          "issuerMetadataPolicy = .requireSigned(...). " +
+          "Received: \(issuerMetadataPolicy)"
+        )
+      }
+    }
   }
 }

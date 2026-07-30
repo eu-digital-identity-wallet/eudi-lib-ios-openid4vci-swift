@@ -16,12 +16,6 @@
 import Foundation
 @preconcurrency import JOSESwift
 
-private enum SignedMetadataValidation {
-  /// Default clock skew (seconds) used for validating `iat` and `exp`.
-  /// Override by changing this value (library integrators can fork/configure).
-  static let clockSkew: TimeInterval = 300
-}
-
 public protocol MetadataProcessing: Sendable {
   func processMetadata(
     rawResponse: RawFetchResponse,
@@ -140,13 +134,41 @@ private extension MetadataProcessor {
     let jws = try JWS(compactSerialization: metadata)
     
     try validateJOSEHeader(jws.header)
-    
-    // Verify signature + claims in one centralized place
-    let verifiedJWS = try await issuerTrust.verify(jws: jws)
-    
+
+    // Signature + chain verification is shared with the WRPRC path via JWSVerification.swift.
+    // Translate the shared helper's errors back into CredentialIssuerMetadataError to preserve
+    // existing metadata-error contracts.
+    let verifiedJWS: JWS
+    do {
+      verifiedJWS = try await issuerTrust.verify(jws: jws)
+    } catch let error as JWSVerificationError {
+      switch error {
+      case .chainNotTrusted:
+        throw CredentialIssuerMetadataError.invalidSignedMetadata(
+          "Failed to verify chain (.byCertificateChain)"
+        )
+      case .invalidCertificateChain(let reason),
+           .verifierCreationFailed(let reason),
+           .signatureInvalid(let reason),
+           .unsupportedAlgorithm(let reason):
+        throw CredentialIssuerMetadataError.invalidSignedMetadata(reason)
+      }
+    }
+
+    // Metadata-specific: assert iss/sub/iat presence on the verified JWS
+    _ = try verifiedJWS.validateSignedMetadataClaims()
+
     let payloadData = verifiedJWS.payload.data()
     let metadata = try JSONDecoder().decode(CredentialIssuerMetadata.self, from: payloadData)
     try validateJWTClaims(jws: verifiedJWS, expectedSubject: issuerId.url.absoluteString)
+
+    // Capture the verified WRPAC (base64 DER — the LEAF of the JWS `x5c`
+    // header) and attach it to the metadata so it can be used later by WRPRC
+    // policy enforcement. The chain has already been trust-validated at this
+    // point; only the leaf carries the WRP's identity.
+    if let leaf = verifiedJWS.header.x5c?.first {
+      return metadata.withWrpac(leaf)
+    }
     return metadata
   }
   
@@ -177,7 +199,7 @@ private extension MetadataProcessor {
     }
     
     let currentTime = Date().timeIntervalSince1970
-    let skew = SignedMetadataValidation.clockSkew
+    let skew = SignedJWTValidation.clockSkew
 
     // iat must not be in the future beyond skew
     if iat > currentTime + skew {
@@ -194,65 +216,6 @@ private extension MetadataProcessor {
       if iat > exp + skew {
         throw CredentialIssuerMetadataError.invalidSignedMetadata("JWT 'iat' is after 'exp'")
       }
-    }
-  }
-}
-
-private extension IssuerTrust {
-  
-  @discardableResult
-  func verify(
-    jws: JWS
-  ) async throws -> JWS {
-    switch self {
-    // NOTE: Only RS256 (RSA) and ES256 (EC P-256) are supported for signed metadata verification.
-    case .byPublicKey(let jwk):
-      let algorithm = try supportedSignatureAlgorithm(for: jwk)
-      
-      guard
-        let key = try JWKSecKeyConverter(jwk: jwk).secKey(),
-        let verifier: Verifier = .init(
-          signatureAlgorithm: algorithm,
-          key: key
-        ) else {
-        throw CredentialIssuerMetadataError.invalidSignedMetadata(
-          "Failed to create verifier"
-        )
-      }
-      return try jws.validate(using: verifier)
-      
-    case .byCertificateChain(let certificateChainTrust):
-      let chain = jws.header.x5c ?? []
-      guard await certificateChainTrust.isValid(chain: chain) else {
-        throw CredentialIssuerMetadataError.invalidSignedMetadata(
-          "Failed to verify chain (.byCertificateChain)"
-        )
-      }
-      
-      let utilities: SecCertificateHelper = .init()
-      guard
-        let first = chain.first,
-        let key = utilities.publicKey(fromPem: first),
-        let algorithm: SignatureAlgorithm = switch key.keyAlgorithm() {
-        case "RSA": .RS256
-        case "EC": .ES256
-        default: nil
-        },
-      let verifier: Verifier = .init(
-        signatureAlgorithm: algorithm,
-        key: key
-      )
-      else {
-        throw CredentialIssuerMetadataError.invalidSignedMetadata(
-          "Failed to create verifier (.byCertificateChain)"
-        )
-      }
-      
-      let verifiedJWS = try jws
-        .validate(using: verifier)
-        .validateSignedMetadataClaims()
-      
-      return verifiedJWS
     }
   }
 }
@@ -290,28 +253,3 @@ private extension JWS {
   }
 }
 
-private extension IssuerTrust {
-  func supportedSignatureAlgorithm(for jwk: JWK) throws -> SignatureAlgorithm {
-    // If the JWK declares an alg, enforce it.
-    if let alg = jwk.parameters["alg"]?.uppercased() {
-      switch alg {
-      case "RS256": return .RS256
-      case "ES256": return .ES256
-      default:
-        throw CredentialIssuerMetadataError.invalidSignedMetadata(
-          "Unsupported JWK alg '\(alg)'. Only RS256 and ES256 are supported."
-        )
-      }
-    }
-
-    // If no alg is declared, fall back to key type, but still only allow RS256/ES256.
-    switch jwk.keyType {
-    case .RSA: return .RS256
-    case .EC:  return .ES256
-    default:
-      throw CredentialIssuerMetadataError.invalidSignedMetadata(
-        "Unsupported key type: \(jwk.keyType). Only RSA (RS256) and EC P-256 (ES256) are supported."
-      )
-    }
-  }
-}

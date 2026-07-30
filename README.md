@@ -145,10 +145,15 @@ The OpenID4VCI specification defines two flows of issuance:
 
 The ```Issuer``` is the component that facilitates the authorization and submission of a credential issuance request.
 It consists of two components:
-- **IssuanceAuthorizer**: A component responsible for all interactions with an authorization server to authorize a request for credential issuance.
+- **AuthorizeIssuance**: A component responsible for all interactions with an authorization server to authorize a request for credential issuance.
 - **IssuanceRequester**: A component responsible for all interactions with a credential issuer for submitting credential issuance requests.
 
 #### Initialize an Issuer
+
+Two construction paths are supported:
+
+**Direct initialisation** — for wallets that do not enable WRP Registration
+Certificate (WRPRC) enforcement:
 
 ```swift
 import OpenID4VCI
@@ -164,6 +169,70 @@ let issuer = try Issuer(
     config: config
 )
 ```
+
+**`Issuer.make(...)` factory** — required when
+`config.registrationCertificatePolicy` is set. Runs WRPRC policy enforcement
+against the resolved offer and returns an `IssuerResolutionResult` pairing
+the constructed `Issuer` with any warnings produced by the policy:
+
+```swift
+import OpenID4VCI
+
+let result = try await Issuer.make(
+    credentialOffer: offer,
+    config: config,
+    session: session
+)
+let issuer = result.issuer
+let warnings = result.warnings  // [String: [PolicyViolation]]
+```
+
+The library treats the WRPRC as an opaque `String` and delegates every trust
+and signature decision to the caller-supplied policy. Library responsibilities
+are limited to:
+
+1. Enforcing WRPRC presence — exactly one `registration_cert`-format entry in
+   `issuer_info` when a policy is configured (per CIR 2024/2082).
+2. Ensuring the WRPAC is available on the resolved metadata.
+3. Applying the caller's policy and acting on its result.
+
+The policy receives:
+
+- **WRPAC** — the WRP Access Certificate (base64 DER, single X.509 leaf) that
+  signed the issuer metadata.
+- **WRPRC** — the raw registration certificate value as delivered in
+  `issuer_info` (a `String`, typically a JWT). Parse it yourself if you need
+  to inspect the leaf/chain and perform your own trust checks.
+- **offeredConfigurations** — the credential configurations referenced by the
+  resolved `CredentialOffer`.
+
+...and returns an `Authorization`:
+
+- `.granted(warnings: [String: [PolicyViolation]] = [:])` — resolution succeeds.
+  Warnings are keyed by a caller-defined bucket; convention is to key by
+  `CredentialConfigurationIdentifier.value` so a wallet UI can render warnings
+  next to each credential option, and use `"global"` for request-wide warnings.
+- `.notGranted(error: PolicyViolation)` — resolution fails with
+  `WRPRCError.policyNotMet(error)`.
+
+```swift
+let policy = RegistrationCertificatePolicy { wrpac, wrprc, offered in
+    // Parse/verify the raw WRPRC yourself if your policy needs it.
+    if /* reject */ {
+        return .notGranted(error: PolicyViolation("reason for rejection"))
+    }
+    var warnings: [String: [PolicyViolation]] = [:]
+    for id in offered.keys {
+        // ...evaluate per credential; append to warnings[id.value]...
+    }
+    return .granted(warnings: warnings)
+}
+```
+
+Setting `registrationCertificatePolicy` while `issuerMetadataPolicy` is
+`.preferSigned` or `.ignoreSigned` trips a `preconditionFailure` at
+`OpenId4VCIConfig` construction — WRPRC enforcement requires a
+cryptographically bound issuer metadata signer to supply the WRPAC.
 
 #### Authorize request via Authorization Code Flow
 
@@ -286,11 +355,14 @@ public struct OpenId4VCIConfig: Sendable {
   public let client: Client
   public let authFlowRedirectionURI: URL
   public let authorizeIssuanceConfig: AuthorizeIssuanceConfig
-  public let requirePAR: Bool
-  public let dPoPConstructor: DPoPConstructorType?
+  public let requirePAR: ParUsage
   public let clientAttestationPoPBuilder: ClientAttestationPoPBuilder?
   public let issuerMetadataPolicy: IssuerMetadataPolicy
+  public let supportedCompressionAlgorithms: [CompressionAlgorithm]?
+  public let requireDpop: Bool
+  public let supportedCredentialReusePolicies: SupportedCredentialReusePolicies
   public let proofTypesPolicy: ProofTypesPolicy
+  public let registrationCertificatePolicy: RegistrationCertificatePolicy?
 }
 ```
 
@@ -300,11 +372,16 @@ public struct OpenId4VCIConfig: Sendable {
 
 - `authFlowRedirectionURI`: It is the `redirect_uri` parameter that will be included in a PAR or simple authorization request.
 - `authorizeIssuanceConfig`: An enum that allows you to favour scopes or authorization details, favour scopes is the default.
-- `requirePAR`: Force the usage of PAR if the authorization server supports it. Fail if true and not supported by server
-- `dPoPConstructor`: If dpop is supported this option constructs what is required.
+- `requirePAR`: A `ParUsage` enum that controls whether Pushed Authorization Requests are required (`.required(authorizationCodeDPoPBinding:)`) or never used (`.never`).
 - `clientAttestationPoPBuilder`: If the authorization supports client attestations, this object constructs what is required.
-- `issuerMetadataPolicy`: Trust between the Wallet and the Signer of the signed metadata advertised by the Credential Issuer is established using this configuration option.
+- `issuerMetadataPolicy`: Trust between the Wallet and the Signer of the signed metadata advertised by the Credential Issuer is established using this configuration option. `.requireSigned` and `.preferSigned` both take an `IssuerTrust.byCertificateChain(certificateChainTrust:)` (JWK-based pinning was removed in favour of chain-of-trust rooted in the EU List of Trusted Lists).
+- `supportedCompressionAlgorithms`: Optional list of `CompressionAlgorithm`s the wallet advertises support for when negotiating signed metadata / request compression. `nil` means the wallet does not advertise compression support.
+- `requireDpop`: If `true`, the wallet requires the authorization server to support DPoP. If DPoP is not supported by the server the issuance flow is halted.
+- `supportedCredentialReusePolicies`: The set of credential reuse policies the wallet is willing to honour. Defaults to `.notSupported`.
 - `proofTypesPolicy`: Policy defining which proof types the wallet supports. See [Proof Types Policy Configuration](#proof-types-policy-configuration) for details.
+- `registrationCertificatePolicy`: Optional. When set, activates WRP Registration Certificate (WRPRC) enforcement in `Issuer.make(...)`. Carries an `Authorize` closure that receives the WRPAC (`String`), the raw opaque WRPRC value (`String`) as delivered in `issuer_info`, and the offered credential configurations, and returns an `Authorization` — either `.granted(warnings: [String: [PolicyViolation]])` or `.notGranted(error: PolicyViolation)`. The library performs no chain-of-trust or signature validation on the WRPRC — those decisions live in the caller's closure. Requires `issuerMetadataPolicy = .requireSigned(...)` (checked at construction). Defaults to `nil` (no WRPRC enforcement).
+
+The DPoP constructor itself is passed as a parameter to `Issuer(...)` / `Issuer.make(...)`, not stored on `OpenId4VCIConfig`.
 
 ### Proof Types Policy Configuration
 
