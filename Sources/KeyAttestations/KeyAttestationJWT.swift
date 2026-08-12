@@ -47,8 +47,6 @@ public struct KeyAttestationJWT: Sendable {
   
   public static let keyAttestationJWTType = "key-attestation+jwt"
   
-  private static let allowedAlgorithms: Set<SignatureAlgorithm> = [.ES256, .ES384, .ES512]
-
   // MARK: - Validation Helpers
   
   private static func validateHeader(_ header: JWSHeader) throws {
@@ -56,14 +54,7 @@ public struct KeyAttestationJWT: Sendable {
     guard let algorithm = header.algorithm else {
       throw KeyAttestationError.missingAlgorithm
     }
-    
-    guard allowedAlgorithms.contains(algorithm) else {
-      throw KeyAttestationError.unsupportedAlgorithm(
-        found: algorithm,
-        allowed: allowedAlgorithms
-      )
-    }
-    
+
     guard header.typ == keyAttestationJWTType else {
       throw KeyAttestationError.invalidType
     }
@@ -144,9 +135,7 @@ public struct KeyAttestationJWT: Sendable {
       case .P256: .ES256
       case .P384: .ES384
       case .P521: .ES512
-      default:
-        throw KeyAttestationError.unsupportedKeyType("Unsupported EC curve: \(ecKey.crv.rawValue)")
-      }
+    }
 
     case let rsaKey as RSAPublicKey:
       // RSA keys not required by TS3 v1.5, but support for compatibility
