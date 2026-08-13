@@ -1,0 +1,38 @@
+{
+  "issuer": "https://auth-server-two.example.com",
+  "authorization_endpoint": "https://auth-server-two.example.com/protocol/openid-connect/auth",
+  "token_endpoint": "https://auth-server-two.example.com/protocol/openid-connect/token",
+  "introspection_endpoint": "https://auth-server-two.example.com/protocol/openid-connect/token/introspect",
+  "userinfo_endpoint": "https://auth-server-two.example.com/protocol/openid-connect/userinfo",
+  "end_session_endpoint": "https://auth-server-two.example.com/protocol/openid-connect/logout",
+  "frontchannel_logout_session_supported": true,
+  "frontchannel_logout_supported": true,
+  "jwks_uri": "https://auth-server-two.example.com/protocol/openid-connect/certs",
+  "grant_types_supported": [
+    "authorization_code",
+    "urn:ietf:params:oauth:grant-type:pre-authorized_code",
+    "refresh_token"
+  ],
+  "response_types_supported": [
+    "code"
+  ],
+  "subject_types_supported": [
+    "public"
+  ],
+  "id_token_signing_alg_values_supported": [
+    "ES256",
+    "RS256"
+  ],
+  "token_endpoint_auth_methods_supported": [
+    "private_key_jwt",
+    "client_secret_basic"
+  ],
+  "code_challenge_methods_supported": [
+    "S256"
+  ],
+  "dpop_signing_alg_values_supported": [
+    "ES256",
+    "RS256"
+  ],
+  "pushed_authorization_request_endpoint": "https://auth-server-two.example.com/protocol/openid-connect/ext/par/request"
+}

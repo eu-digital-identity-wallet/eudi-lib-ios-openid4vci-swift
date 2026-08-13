@@ -645,4 +645,251 @@ class CredentialOfferResolverTests: XCTestCase {
       XCTFail("Expected success but got failure: \(error.localizedDescription)")
     }
   }
+
+  // MARK: - Per-Grant Authorization Server Tests
+
+  func testResolvesCredentialOfferWithDifferentAuthServersPerGrant() async throws {
+    // Given: A credential offer where authorization_code and pre-authorized_code
+    // grants specify DIFFERENT authorization servers
+    let credentialIssuerMetadataResolver = CredentialIssuerMetadataResolver(
+      fetcher: MetadataFetcher(
+        rawFetcher: RawDataFetcher(
+          session: NetworkingMock(
+            path: "credential_issuer_metadata_multiple_auth_servers",
+            extension: "json",
+            headers: ["Content-Type": "application/json"]
+        ))))
+
+    // Use routing mock to return different metadata for each auth server
+    let routingMock = RoutingNetworkingMock(routes: [
+      .init(
+        urlPattern: "example.com/realms/pid-issuer-realm",
+        path: "oidc_authorization_server_metadata",
+        extension: "json"
+      ),
+      .init(
+        urlPattern: "auth-server-two.example.com",
+        path: "oidc_authorization_server_metadata_second",
+        extension: "json"
+      )
+    ])
+
+    let authorizationServerMetadataResolver = AuthorizationServerMetadataResolver(
+      oidcFetcher: Fetcher<OIDCProviderMetadata>(session: routingMock),
+      oauthFetcher: Fetcher<AuthorizationServerMetadata>(session: routingMock)
+    )
+
+    let credentialOfferRequestResolver = CredentialOfferRequestResolver(
+      fetcher: Fetcher<CredentialOfferRequestObject>(session: NetworkingMock(
+        path: "credential_offer_with_different_auth_servers_per_grant",
+        extension: "json"
+      )),
+      credentialIssuerMetadataResolver: credentialIssuerMetadataResolver,
+      authorizationServerMetadataResolver: authorizationServerMetadataResolver
+    )
+
+    // When
+    let result = await credentialOfferRequestResolver.resolve(
+      source: .fetchByReference(url: .stub()),
+      policy: .ignoreSigned
+    )
+
+    // Then
+    switch result {
+    case .success(let credentialOffer):
+      // Verify it's a .both grant
+      guard case .both(let authCode, let preAuthCode) = credentialOffer.grants else {
+        XCTFail("Expected .both grants but got: \(String(describing: credentialOffer.grants))")
+        return
+      }
+
+      // Verify the grants have different authorization servers
+      XCTAssertEqual(
+        authCode.authorizationServer?.absoluteString,
+        "https://example.com/realms/pid-issuer-realm"
+      )
+      XCTAssertEqual(
+        preAuthCode.authorizationServer?.absoluteString,
+        "https://auth-server-two.example.com"
+      )
+
+      // Verify per-grant metadata was resolved
+      XCTAssertNotNil(credentialOffer.authorizationCodeServerMetadata)
+      XCTAssertNotNil(credentialOffer.preAuthorizationCodeServerMetadata)
+
+      // Verify the auth code server metadata points to the first server
+      XCTAssertEqual(
+        credentialOffer.authorizationCodeServerMetadata?.issuer,
+        nil
+      )
+
+      // Verify the pre-auth code server metadata points to the second server
+      XCTAssertEqual(
+        credentialOffer.preAuthorizationCodeServerMetadata?.issuer,
+        "https://auth-server-two.example.com"
+      )
+
+      // Verify the issuers (and thus token endpoints) are different
+      XCTAssertNotEqual(
+        credentialOffer.authorizationCodeServerMetadata?.issuer,
+        credentialOffer.preAuthorizationCodeServerMetadata?.issuer,
+        "Issuers should be different for different auth servers"
+      )
+
+      // Verify backward compatibility - authorizationServerMetadata should return the auth code one
+      XCTAssertEqual(
+        credentialOffer.authorizationServerMetadata.issuer,
+        nil
+      )
+
+    case .failure(let error):
+      XCTFail("Expected success but got failure: \(error.localizedDescription)")
+    }
+  }
+
+  func testCredentialOfferWithSameAuthServerForBothGrantsSharesMetadata() async throws {
+    // Given: A credential offer where both grants specify the same authorization server
+    let credentialIssuerMetadataResolver = CredentialIssuerMetadataResolver(
+      fetcher: createMetadataFetcher()
+    )
+
+    let authorizationServerMetadataResolver = AuthorizationServerMetadataResolver(
+      oidcFetcher: Fetcher<OIDCProviderMetadata>(session: NetworkingMock(
+        path: "oidc_authorization_server_metadata",
+        extension: "json"
+      )),
+      oauthFetcher: Fetcher<AuthorizationServerMetadata>(session: NetworkingMock(
+        path: "oauth_authorization_server_metadata",
+        extension: "json"
+      ))
+    )
+
+    let credentialOfferRequestResolver = CredentialOfferRequestResolver(
+      fetcher: Fetcher<CredentialOfferRequestObject>(session: NetworkingMock(
+        path: "credential_offer_with_auth_server_hint",
+        extension: "json"
+      )),
+      credentialIssuerMetadataResolver: credentialIssuerMetadataResolver,
+      authorizationServerMetadataResolver: authorizationServerMetadataResolver
+    )
+
+    // When
+    let result = await credentialOfferRequestResolver.resolve(
+      source: .fetchByReference(url: .stub()),
+      policy: .ignoreSigned
+    )
+
+    // Then
+    switch result {
+    case .success(let credentialOffer):
+      // Both metadata should be available and have the same issuer
+      XCTAssertNotNil(credentialOffer.authorizationCodeServerMetadata)
+      XCTAssertNotNil(credentialOffer.preAuthorizationCodeServerMetadata)
+
+      XCTAssertEqual(
+        credentialOffer.authorizationCodeServerMetadata?.issuer,
+        credentialOffer.preAuthorizationCodeServerMetadata?.issuer
+      )
+
+    case .failure(let error):
+      XCTFail("Expected success but got failure: \(error.localizedDescription)")
+    }
+  }
+
+  func testCredentialOfferInitializerWithPerGrantMetadata() throws {
+    // Given: Different metadata for each grant
+    let authCodeMetadata = IdentityAndAccessManagementMetadata.oauth(
+      AuthorizationServerMetadata(
+        issuer: "https://auth-server-one.example.com",
+        authorizationEndpoint: "https://auth-server-one.example.com/auth",
+        tokenEndpoint: "https://auth-server-one.example.com/token"
+      )
+    )
+
+    let preAuthCodeMetadata = IdentityAndAccessManagementMetadata.oauth(
+      AuthorizationServerMetadata(
+        issuer: "https://auth-server-two.example.com",
+        authorizationEndpoint: "https://auth-server-two.example.com/auth",
+        tokenEndpoint: "https://auth-server-two.example.com/token"
+      )
+    )
+
+    let issuerMetadata = try CredentialIssuerMetadata(
+      deferredCredentialEndpoint: nil,
+      credentialRequestEncryption: nil
+    )
+
+    // When: Creating a CredentialOffer with different per-grant metadata
+    let credentialOffer = try CredentialOffer(
+      credentialIssuerIdentifier: CredentialIssuerId("https://issuer.example.com"),
+      credentialIssuerMetadata: issuerMetadata,
+      credentialConfigurationIdentifiers: [try CredentialConfigurationIdentifier(value: "TestCredential")],
+      grants: .both(
+        try Grants.AuthorizationCode(issuerState: nil, authorizationServer: URL(string: "https://auth-server-one.example.com")),
+        Grants.PreAuthorizedCode(preAuthorizedCode: "code123", txCode: nil, authorizationServer: URL(string: "https://auth-server-two.example.com"))
+      ),
+      authorizationCodeServerMetadata: authCodeMetadata,
+      preAuthorizationCodeServerMetadata: preAuthCodeMetadata
+    )
+
+    // Then: Verify metadata is correctly stored
+    XCTAssertEqual(credentialOffer.authorizationCodeServerMetadata?.issuer, "https://auth-server-one.example.com")
+    XCTAssertEqual(credentialOffer.preAuthorizationCodeServerMetadata?.issuer, "https://auth-server-two.example.com")
+
+    // Backward compatible property should return auth code metadata
+    XCTAssertEqual(credentialOffer.authorizationServerMetadata.issuer, "https://auth-server-one.example.com")
+  }
+
+  func testCredentialOfferInitializerWithSingleMetadataBackwardCompatibility() throws {
+    // Given: Single metadata (old API)
+    let singleMetadata = IdentityAndAccessManagementMetadata.oauth(
+      AuthorizationServerMetadata(
+        issuer: "https://auth-server.example.com",
+        authorizationEndpoint: "https://auth-server.example.com/auth",
+        tokenEndpoint: "https://auth-server.example.com/token"
+      )
+    )
+
+    let issuerMetadata = try CredentialIssuerMetadata(
+      deferredCredentialEndpoint: nil,
+      credentialRequestEncryption: nil
+    )
+
+    // When: Using the backward-compatible initializer
+    let credentialOffer = try CredentialOffer(
+      credentialIssuerIdentifier: CredentialIssuerId("https://issuer.example.com"),
+      credentialIssuerMetadata: issuerMetadata,
+      credentialConfigurationIdentifiers: [try CredentialConfigurationIdentifier(value: "TestCredential")],
+      grants: nil,
+      authorizationServerMetadata: singleMetadata
+    )
+
+    // Then: Both per-grant metadata should be set to the same value
+    XCTAssertEqual(credentialOffer.authorizationCodeServerMetadata?.issuer, "https://auth-server.example.com")
+    XCTAssertEqual(credentialOffer.preAuthorizationCodeServerMetadata?.issuer, "https://auth-server.example.com")
+    XCTAssertEqual(credentialOffer.authorizationServerMetadata.issuer, "https://auth-server.example.com")
+  }
+
+  func testCredentialOfferRequiresAtLeastOneMetadata() throws {
+    // Given: No metadata provided
+    let issuerMetadata = try CredentialIssuerMetadata(
+      deferredCredentialEndpoint: nil,
+      credentialRequestEncryption: nil
+    )
+
+    // When/Then: Should throw an error
+    XCTAssertThrowsError(try CredentialOffer(
+      credentialIssuerIdentifier: CredentialIssuerId("https://issuer.example.com"),
+      credentialIssuerMetadata: issuerMetadata,
+      credentialConfigurationIdentifiers: [try CredentialConfigurationIdentifier(value: "TestCredential")],
+      grants: nil,
+      authorizationCodeServerMetadata: nil,
+      preAuthorizationCodeServerMetadata: nil
+    )) { error in
+      XCTAssertTrue(
+        error.localizedDescription.contains("authorization server metadata"),
+        "Error should mention missing metadata"
+      )
+    }
+  }
 }

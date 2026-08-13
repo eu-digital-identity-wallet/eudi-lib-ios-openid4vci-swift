@@ -184,7 +184,7 @@ protocol AuthorizationServerClientType: Sendable {
 }
 
 internal actor AuthorizationServerClient: AuthorizationServerClientType {
-  
+
   public let config: OpenId4VCIConfig
   public let service: AuthorisationServiceType
   public let parPoster: PostingType
@@ -192,17 +192,24 @@ internal actor AuthorizationServerClient: AuthorizationServerClientType {
   public let parEndpoint: URL?
   public let authorizationEndpoint: URL
   public let tokenEndpoint: URL
+  public let preAuthTokenEndpoint: URL
   public let redirectionURI: URL
   public let client: Client
   public let authorizationServerMetadata: IdentityAndAccessManagementMetadata
+  public let preAuthorizationServerMetadata: IdentityAndAccessManagementMetadata?
   public let credentialIssuerIdentifier: CredentialIssuerId
   public let dpopConstructor: DPoPConstructorType?
   public let challenger: ChallengeEndpointClientType?
-  
+
   static let responseType = "code"
   static let grantAuthorizationCode = "authorization_code"
   static let grantPreauthorizationCode = "urn:ietf:params:oauth:grant-type:pre-authorized_code"
-  
+
+  /// Initializes the authorization server client with support for per-grant authorization servers.
+  /// - Parameters:
+  ///   - authorizationServerMetadata: Metadata for the authorization code flow (also used as fallback).
+  ///   - preAuthorizationServerMetadata: Optional metadata for the pre-authorization code flow.
+  ///     If nil, the authorizationServerMetadata is used for both flows.
   public init(
     service: AuthorisationServiceType = AuthorisationService(),
     challenger: ChallengeEndpointClientType?,
@@ -210,64 +217,90 @@ internal actor AuthorizationServerClient: AuthorizationServerClientType {
     tokenPoster: PostingType = Poster(),
     config: OpenId4VCIConfig,
     authorizationServerMetadata: IdentityAndAccessManagementMetadata,
+    preAuthorizationServerMetadata: IdentityAndAccessManagementMetadata? = nil,
     credentialIssuerIdentifier: CredentialIssuerId,
     dpopConstructor: DPoPConstructorType? = nil
   ) throws {
     self.service = service
     self.challenger = challenger
-    
+
     self.parPoster = parPoster
     self.tokenPoster = tokenPoster
     self.config = config
-    
+
     self.authorizationServerMetadata = authorizationServerMetadata
+    self.preAuthorizationServerMetadata = preAuthorizationServerMetadata
     self.credentialIssuerIdentifier = credentialIssuerIdentifier
-    
+
     self.redirectionURI = config.authFlowRedirectionURI
     self.client = config.client
-    
+
     self.dpopConstructor = dpopConstructor
-    
+
+    // Extract endpoints from authorization code flow's server metadata
     switch authorizationServerMetadata {
     case .oidc(let data):
-      
+
       if let tokenEndpoint = data.tokenEndpoint, let url = URL(string: tokenEndpoint) {
         self.tokenEndpoint = url
       } else {
         throw ValidationError.error(reason: "Invalid token endpoint")
       }
-      
+
       if let authorizationEndpoint = data.authorizationEndpoint, let url = URL(string: authorizationEndpoint) {
         self.authorizationEndpoint = url
       } else {
         throw ValidationError.error(reason: "Invalid authorization endpoint")
       }
-      
+
       if let pushedAuthorizationRequestEndpoint = data.pushedAuthorizationRequestEndpoint, let url = URL(string: pushedAuthorizationRequestEndpoint) {
         self.parEndpoint = url
       } else {
         self.parEndpoint = nil
       }
-      
+
     case .oauth(let data):
-      
+
       if let tokenEndpoint = data.tokenEndpoint, let url = URL(string: tokenEndpoint) {
         self.tokenEndpoint = url
       } else {
         throw ValidationError.error(reason: "Invalid token endpoint")
       }
-      
+
       if let authorizationEndpoint = data.authorizationEndpoint, let url = URL(string: authorizationEndpoint) {
         self.authorizationEndpoint = url
       } else {
         throw ValidationError.error(reason: "In valid authorization endpoint")
       }
-      
+
       if let pushedAuthorizationRequestEndpoint = data.pushedAuthorizationRequestEndpoint, let url = URL(string: pushedAuthorizationRequestEndpoint) {
         self.parEndpoint = url
       } else {
         self.parEndpoint = nil
       }
+    }
+
+    // Extract token endpoint from pre-authorization code flow's server metadata (if different)
+    if let preAuthMetadata = preAuthorizationServerMetadata {
+      switch preAuthMetadata {
+      case .oidc(let data):
+        if let tokenEndpoint = data.tokenEndpoint, let url = URL(string: tokenEndpoint) {
+          self.preAuthTokenEndpoint = url
+        } else {
+          // Fall back to auth code flow's token endpoint
+          self.preAuthTokenEndpoint = self.tokenEndpoint
+        }
+      case .oauth(let data):
+        if let tokenEndpoint = data.tokenEndpoint, let url = URL(string: tokenEndpoint) {
+          self.preAuthTokenEndpoint = url
+        } else {
+          // Fall back to auth code flow's token endpoint
+          self.preAuthTokenEndpoint = self.tokenEndpoint
+        }
+      }
+    } else {
+      // No separate pre-auth metadata, use the same token endpoint
+      self.preAuthTokenEndpoint = self.tokenEndpoint
     }
   }
   
@@ -784,12 +817,15 @@ internal actor AuthorizationServerClient: AuthorizationServerClientType {
         transactionCode: transactionCode,
         identifiers: identifiers
       )
-      
+
+      // Use the pre-authorization server's metadata for issuer ID (if available)
+      let preAuthServerIssuer = preAuthorizationServerMetadata?.issuer ?? authorizationServerMetadata.issuer
+
       do {
         let clientAttestation = try await generateClientAttestationIfNeeded(
           clock: Clock(),
           authServerId: URL(
-            string: authorizationServerMetadata.issuer ?? ""
+            string: preAuthServerIssuer ?? ""
           ),
           challenge: challenge
         )
@@ -797,15 +833,16 @@ internal actor AuthorizationServerClient: AuthorizationServerClientType {
         let clientAttestationHeaders = clientAttestationHeaders(
           clientAttestation: clientAttestation
         )
-        
+
+        // Use the pre-authorization token endpoint
         let tokenHeaders = try await tokenEndPointHeaders(
-          url: tokenEndpoint,
+          url: preAuthTokenEndpoint,
           dpopNonce: dpopNonce
         )
-        
+
         let response: ResponseWithHeaders<AccessTokenRequestResponse> = try await service.formPost(
           poster: tokenPoster,
-          url: tokenEndpoint,
+          url: preAuthTokenEndpoint,
           headers: clientAttestationHeaders + tokenHeaders,
           parameters: parameters.toDictionary().convertToDictionaryOfStrings()
         )

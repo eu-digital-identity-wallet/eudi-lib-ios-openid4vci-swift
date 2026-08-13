@@ -81,7 +81,7 @@ public actor CredentialOfferRequestResolver {
         else {
           return .failure(ValidationError.error(reason: "Unable to parse credential offer request"))
         }
-        
+
         let credentialIssuerId = try CredentialIssuerId(credentialOfferRequestObject.credentialIssuer)
         guard let credentialIssuerMetadata = try? await credentialIssuerMetadataResolver.resolve(
           source: .credentialIssuer(credentialIssuerId),
@@ -90,27 +90,26 @@ public actor CredentialOfferRequestResolver {
           return .failure(ValidationError.error(reason: "Invalid credential metadata"))
         }
 
-        let authServerHint = getAuthorizationServerFromGrants(credentialOfferRequestObject.grants)
-        let authorizationServerResult = selectAuthorizationServer(
-          hint: authServerHint,
-          availableServers: credentialIssuerMetadata.authorizationServers
-        )
-
-        guard case .success(let authorizationServer) = authorizationServerResult else {
-          if case .failure(let error) = authorizationServerResult {
-            return .failure(error)
-          }
-          return .failure(ValidationError.error(reason: "Invalid authorization metadata"))
+        // Resolve per-grant authorization server metadata
+        let perGrantMetadata: (authCodeMetadata: IdentityAndAccessManagementMetadata?, preAuthCodeMetadata: IdentityAndAccessManagementMetadata?)
+        do {
+          perGrantMetadata = try await resolvePerGrantAuthorizationServers(
+            grants: credentialOfferRequestObject.grants,
+            availableServers: credentialIssuerMetadata.authorizationServers
+          )
+        } catch {
+          return .failure(error)
         }
 
-        guard let authorizationServerMetadata = try? await authorizationServerMetadataResolver.resolve(url: authorizationServer).get() else {
+        guard perGrantMetadata.authCodeMetadata != nil || perGrantMetadata.preAuthCodeMetadata != nil else {
           return .failure(ValidationError.error(reason: "Invalid authorization metadata"))
         }
 
         let domain = try toDomain(
           credentialOfferRequestObject: credentialOfferRequestObject,
           credentialIssuerMetadata: credentialIssuerMetadata,
-          authorizationServerMetadata: authorizationServerMetadata
+          authorizationCodeServerMetadata: perGrantMetadata.authCodeMetadata,
+          preAuthorizationCodeServerMetadata: perGrantMetadata.preAuthCodeMetadata
         )
         return .success(domain)
 
@@ -126,27 +125,26 @@ public actor CredentialOfferRequestResolver {
             return .failure(ValidationError.error(reason: "Invalid credential metadata"))
           }
 
-          let authServerHint = getAuthorizationServerFromGrants(credentialOfferRequestObject.grants)
-          let authorizationServerResult = selectAuthorizationServer(
-            hint: authServerHint,
-            availableServers: credentialIssuerMetadata.authorizationServers
-          )
-
-          guard case .success(let authorizationServer) = authorizationServerResult else {
-            if case .failure(let error) = authorizationServerResult {
-              return .failure(error)
-            }
-            return .failure(ValidationError.error(reason: "Invalid authorization metadata"))
+          // Resolve per-grant authorization server metadata
+          let perGrantMetadata: (authCodeMetadata: IdentityAndAccessManagementMetadata?, preAuthCodeMetadata: IdentityAndAccessManagementMetadata?)
+          do {
+            perGrantMetadata = try await resolvePerGrantAuthorizationServers(
+              grants: credentialOfferRequestObject.grants,
+              availableServers: credentialIssuerMetadata.authorizationServers
+            )
+          } catch {
+            return .failure(error)
           }
 
-          guard let authorizationServerMetadata = try? await authorizationServerMetadataResolver.resolve(url: authorizationServer).get() else {
+          guard perGrantMetadata.authCodeMetadata != nil || perGrantMetadata.preAuthCodeMetadata != nil else {
             return .failure(ValidationError.error(reason: "Invalid authorization metadata"))
           }
 
           let domain = try toDomain(
             credentialOfferRequestObject: credentialOfferRequestObject,
             credentialIssuerMetadata: credentialIssuerMetadata,
-            authorizationServerMetadata: authorizationServerMetadata
+            authorizationCodeServerMetadata: perGrantMetadata.authCodeMetadata,
+            preAuthorizationCodeServerMetadata: perGrantMetadata.preAuthCodeMetadata
           )
           return .success(domain)
         }
@@ -157,26 +155,36 @@ public actor CredentialOfferRequestResolver {
     }
   }
   
-  /// Extracts the authorization server URL from the grants if specified in the credential offer.
-  /// Checks both authorization code and pre-authorization code grants as per the specification.
-  private func getAuthorizationServerFromGrants(_ grants: GrantsDTO?) -> URL? {
-    guard let grants = grants else { return nil }
+  /// Extracts the authorization server URLs from both grants if specified in the credential offer.
+  /// Returns separate URLs for the authorization code and pre-authorization code grants.
+  private func getAuthorizationServersFromGrants(_ grants: GrantsDTO?) -> (authCode: URL?, preAuthCode: URL?) {
+    guard let grants = grants else { return (nil, nil) }
 
-    // Check authorization code grant first
+    var authCodeServer: URL? = nil
+    var preAuthCodeServer: URL? = nil
+
+    // Extract authorization code grant's server
     if let authServer = grants.authorizationCode?.authorizationServer,
        !authServer.isEmpty,
        let url = URL(string: authServer) {
-      return url
+      authCodeServer = url
     }
 
-    // Check pre-authorization code grant
+    // Extract pre-authorization code grant's server
     if let authServer = grants.preAuthorizationCode?.authorizationServer,
        !authServer.isEmpty,
        let url = URL(string: authServer) {
-      return url
+      preAuthCodeServer = url
     }
 
-    return nil
+    return (authCodeServer, preAuthCodeServer)
+  }
+
+  /// Legacy method for backward compatibility - returns a single authorization server hint.
+  /// Prefers authorization code grant's server, falls back to pre-authorization code grant's server.
+  private func getAuthorizationServerFromGrants(_ grants: GrantsDTO?) -> URL? {
+    let servers = getAuthorizationServersFromGrants(grants)
+    return servers.authCode ?? servers.preAuthCode
   }
 
   /// Selects the authorization server based on the hint from the credential offer.
@@ -208,16 +216,83 @@ public actor CredentialOfferRequestResolver {
     ))
   }
 
+  /// Resolves authorization server metadata for both grants when they specify different servers.
+  /// Returns metadata for both the authorization code and pre-authorization code flows.
+  private func resolvePerGrantAuthorizationServers(
+    grants: GrantsDTO?,
+    availableServers: [URL]?
+  ) async throws -> (authCodeMetadata: IdentityAndAccessManagementMetadata?, preAuthCodeMetadata: IdentityAndAccessManagementMetadata?) {
+    let serverHints = getAuthorizationServersFromGrants(grants)
+
+    var authCodeMetadata: IdentityAndAccessManagementMetadata? = nil
+    var preAuthCodeMetadata: IdentityAndAccessManagementMetadata? = nil
+
+    // Resolve authorization code grant's server if specified
+    if let authCodeHint = serverHints.authCode {
+      let selectedResult = selectAuthorizationServer(hint: authCodeHint, availableServers: availableServers)
+      if case .success(let selectedServer) = selectedResult {
+        authCodeMetadata = try await authorizationServerMetadataResolver.resolve(url: selectedServer).get()
+      } else if case .failure(let error) = selectedResult {
+        throw error
+      }
+    }
+
+    // Resolve pre-authorization code grant's server if specified
+    if let preAuthCodeHint = serverHints.preAuthCode {
+      // If same as auth code server, reuse the metadata
+      if preAuthCodeHint == serverHints.authCode, let existingMetadata = authCodeMetadata {
+        preAuthCodeMetadata = existingMetadata
+      } else {
+        let selectedResult = selectAuthorizationServer(hint: preAuthCodeHint, availableServers: availableServers)
+        if case .success(let selectedServer) = selectedResult {
+          preAuthCodeMetadata = try await authorizationServerMetadataResolver.resolve(url: selectedServer).get()
+        } else if case .failure(let error) = selectedResult {
+          throw error
+        }
+      }
+    }
+
+    // If neither grant specifies a server, use the default (first available)
+    if authCodeMetadata == nil && preAuthCodeMetadata == nil {
+      let defaultResult = selectAuthorizationServer(hint: nil, availableServers: availableServers)
+      if case .success(let defaultServer) = defaultResult {
+        let defaultMetadata = try await authorizationServerMetadataResolver.resolve(url: defaultServer).get()
+        authCodeMetadata = defaultMetadata
+        preAuthCodeMetadata = defaultMetadata
+      } else if case .failure(let error) = defaultResult {
+        throw error
+      }
+    }
+
+    // If only one grant specifies a server, use default for the other
+    if authCodeMetadata == nil && preAuthCodeMetadata != nil {
+      // Auth code grant doesn't specify a server, use default
+      let defaultResult = selectAuthorizationServer(hint: nil, availableServers: availableServers)
+      if case .success(let defaultServer) = defaultResult {
+        authCodeMetadata = try await authorizationServerMetadataResolver.resolve(url: defaultServer).get()
+      }
+    } else if preAuthCodeMetadata == nil && authCodeMetadata != nil {
+      // Pre-auth code grant doesn't specify a server, use default
+      let defaultResult = selectAuthorizationServer(hint: nil, availableServers: availableServers)
+      if case .success(let defaultServer) = defaultResult {
+        preAuthCodeMetadata = try await authorizationServerMetadataResolver.resolve(url: defaultServer).get()
+      }
+    }
+
+    return (authCodeMetadata, preAuthCodeMetadata)
+  }
+
   func toDomain(
     credentialOfferRequestObject: CredentialOfferRequestObject,
     credentialIssuerMetadata: CredentialIssuerMetadata?,
-    authorizationServerMetadata: IdentityAndAccessManagementMetadata
+    authorizationCodeServerMetadata: IdentityAndAccessManagementMetadata?,
+    preAuthorizationCodeServerMetadata: IdentityAndAccessManagementMetadata?
   ) throws -> CredentialOffer {
-    
+
     guard let credentialIssuerMetadata = credentialIssuerMetadata else {
       throw ValidationError.error(reason: "Invalid to fetch credential offer request by reference")
     }
-    
+
     do {
       let credentialIssuerId = credentialIssuerMetadata.credentialIssuerIdentifier
       let credentialConfigurationIdentifiers: [CredentialConfigurationIdentifier] = credentialOfferRequestObject.credentialConfigurationIds.compactMap { try? CredentialConfigurationIdentifier(value: $0.stringValue) }
@@ -227,10 +302,25 @@ public actor CredentialOfferRequestResolver {
         credentialIssuerMetadata: credentialIssuerMetadata,
         credentialConfigurationIdentifiers: credentialConfigurationIdentifiers,
         grants: grants,
-        authorizationServerMetadata: authorizationServerMetadata
+        authorizationCodeServerMetadata: authorizationCodeServerMetadata,
+        preAuthorizationCodeServerMetadata: preAuthorizationCodeServerMetadata
       )
     } catch {
       throw ValidationError.error(reason: error.localizedDescription)
     }
+  }
+
+  /// Legacy toDomain for backward compatibility
+  func toDomain(
+    credentialOfferRequestObject: CredentialOfferRequestObject,
+    credentialIssuerMetadata: CredentialIssuerMetadata?,
+    authorizationServerMetadata: IdentityAndAccessManagementMetadata
+  ) throws -> CredentialOffer {
+    try toDomain(
+      credentialOfferRequestObject: credentialOfferRequestObject,
+      credentialIssuerMetadata: credentialIssuerMetadata,
+      authorizationCodeServerMetadata: authorizationServerMetadata,
+      preAuthorizationCodeServerMetadata: authorizationServerMetadata
+    )
   }
 }
