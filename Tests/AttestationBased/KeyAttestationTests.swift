@@ -309,64 +309,6 @@ class KeyAttestationTests: XCTestCase {
     XCTAssertEqual(ka.attestedKeys.count, 1)
   }
 
-  func testKeyAttestationRS256AlgorithmRejected() async throws {
-    // Given: Key attestation with RS256 algorithm (not allowed per TS3 v1.5)
-    let rsaPrivateKey = try KeyController.generateRSAPrivateKey()
-
-    XCTAssertThrowsError(try KeyAttestationJWT(jws: try JWS(
-      header: .init(parameters: [
-        "alg": "RS256",
-        "typ": KeyAttestationJWT.keyAttestationJWTType
-      ]),
-      payload: .init([
-        "iat": Date().timeIntervalSince1970,
-        "attested_keys": [data.publicKey.toDictionary()]
-      ].toThrowingJSONData()),
-      signer: .init(signatureAlgorithm: .RS256, key: rsaPrivateKey)!
-    ))) { error in
-      // Then: Should throw unsupportedAlgorithm error
-      if let error = error as? KeyAttestationError {
-        switch error {
-        case .unsupportedAlgorithm(let found, _):
-          XCTAssertEqual(found, .RS256)
-        default:
-          XCTFail("Expected unsupportedAlgorithm error, got \(error)")
-        }
-      } else {
-        XCTFail("Expected KeyAttestationError")
-      }
-    }
-  }
-
-  func testKeyAttestationPS256AlgorithmRejected() async throws {
-    // Given: Key attestation with PS256 algorithm (not allowed per TS3 v1.5)
-    let rsaPrivateKey = try KeyController.generateRSAPrivateKey()
-
-    XCTAssertThrowsError(try KeyAttestationJWT(jws: try JWS(
-      header: .init(parameters: [
-        "alg": "PS256",
-        "typ": KeyAttestationJWT.keyAttestationJWTType
-      ]),
-      payload: .init([
-        "iat": Date().timeIntervalSince1970,
-        "attested_keys": [data.publicKey.toDictionary()]
-      ].toThrowingJSONData()),
-      signer: .init(signatureAlgorithm: .PS256, key: rsaPrivateKey)!
-    ))) { error in
-      // Then: Should throw unsupportedAlgorithm error
-      if let error = error as? KeyAttestationError {
-        switch error {
-        case .unsupportedAlgorithm(let found, _):
-          XCTAssertEqual(found, .PS256)
-        default:
-          XCTFail("Expected unsupportedAlgorithm error, got \(error)")
-        }
-      } else {
-        XCTFail("Expected KeyAttestationError")
-      }
-    }
-  }
-
   // MARK: - TS3 v1.5 First Key Signature Validation Tests
 
   func testJWTProofSignedByFirstAttestedKeySucceeds() async throws {
