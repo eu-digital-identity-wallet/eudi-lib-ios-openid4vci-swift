@@ -37,7 +37,7 @@ class IssuanceAuthorizationTest: XCTestCase {
     
     // When
     let issuer = try Issuer(
-      authorizationServerMetadata: offer.authorizationServerMetadata,
+      grantsMetadata: offer.grantsMetadata,
       issuerMetadata: offer.credentialIssuerMetadata,
       config: config,
       parPoster: Poster(
@@ -73,7 +73,7 @@ class IssuanceAuthorizationTest: XCTestCase {
     
     // When
     let issuer = try Issuer(
-      authorizationServerMetadata: offer.authorizationServerMetadata,
+      grantsMetadata: offer.grantsMetadata,
       issuerMetadata: offer.credentialIssuerMetadata,
       config: config,
       parPoster: Poster(
@@ -109,7 +109,7 @@ class IssuanceAuthorizationTest: XCTestCase {
     
     // When
     let issuer = try Issuer(
-      authorizationServerMetadata: offer.authorizationServerMetadata,
+      grantsMetadata: offer.grantsMetadata,
       issuerMetadata: offer.credentialIssuerMetadata,
       config: config,
       parPoster: Poster(
@@ -154,7 +154,7 @@ class IssuanceAuthorizationTest: XCTestCase {
     
     // When
     let issuer = try Issuer(
-      authorizationServerMetadata: offer.authorizationServerMetadata,
+      grantsMetadata: offer.grantsMetadata,
       issuerMetadata: offer.credentialIssuerMetadata,
       config: config,
       parPoster: Poster(
@@ -198,7 +198,7 @@ class IssuanceAuthorizationTest: XCTestCase {
     
     // When
     let issuer = try Issuer(
-      authorizationServerMetadata: offer.authorizationServerMetadata,
+      grantsMetadata: offer.grantsMetadata,
       issuerMetadata: offer.credentialIssuerMetadata,
       config: config,
       parPoster: Poster(
@@ -241,7 +241,7 @@ class IssuanceAuthorizationTest: XCTestCase {
     
     // When
     let issuer = try Issuer(
-      authorizationServerMetadata: offer.authorizationServerMetadata,
+      grantsMetadata: offer.grantsMetadata,
       issuerMetadata: offer.credentialIssuerMetadata,
       config: config,
       parPoster: Poster(
@@ -320,7 +320,7 @@ class IssuanceAuthorizationTest: XCTestCase {
     let offer: CredentialOffer = try resolution.get()
     let issuerMetadata = offer.credentialIssuerMetadata
     let issuer = try Issuer(
-      authorizationServerMetadata: offer.authorizationServerMetadata,
+      grantsMetadata: offer.grantsMetadata,
       issuerMetadata: issuerMetadata,
       config: config,
       dpopConstructor: dpopConstructor(
@@ -461,7 +461,7 @@ class IssuanceAuthorizationTest: XCTestCase {
     let offer: CredentialOffer = try resolution.get()
     let issuerMetadata = offer.credentialIssuerMetadata
     let issuer = try Issuer(
-      authorizationServerMetadata: offer.authorizationServerMetadata,
+      grantsMetadata: offer.grantsMetadata,
       issuerMetadata: issuerMetadata,
       config: attestationConfig,
       dpopConstructor: dpopConstructor(
@@ -543,7 +543,7 @@ class IssuanceAuthorizationTest: XCTestCase {
     let offer: CredentialOffer = try resolution.get()
     let issuerMetadata = offer.credentialIssuerMetadata
     let issuer = try Issuer(
-      authorizationServerMetadata: offer.authorizationServerMetadata,
+      grantsMetadata: offer.grantsMetadata,
       issuerMetadata: issuerMetadata,
       config: config,
       dpopConstructor: dpopConstructor(
@@ -667,7 +667,7 @@ class IssuanceAuthorizationTest: XCTestCase {
     let offer: CredentialOffer = try resolution.get()
     let issuerMetadata = offer.credentialIssuerMetadata
     let issuer = try Issuer(
-      authorizationServerMetadata: offer.authorizationServerMetadata,
+      grantsMetadata: offer.grantsMetadata,
       issuerMetadata: issuerMetadata,
       config: config,
       dpopConstructor: dpopConstructor(

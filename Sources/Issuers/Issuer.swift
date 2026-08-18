@@ -139,10 +139,14 @@ public actor Issuer: IssuerType {
 
   public var deferredResponseEncryptionSpec: IssuanceResponseEncryptionSpec?
 
-  public let authorizationServerMetadata: IdentityAndAccessManagementMetadata
-  public let preAuthorizationServerMetadata: IdentityAndAccessManagementMetadata?
+  public let grantsMetadata: GrantsMetadata
   public let issuerMetadata: CredentialIssuerMetadata
   public let config: OpenId4VCIConfig
+
+  /// Returns the primary authorization server metadata for backward compatibility.
+  public var authorizationServerMetadata: IdentityAndAccessManagementMetadata {
+    grantsMetadata.primary
+  }
 
   private let authorizeIssuance: AuthorizeIssuanceType
   private let authorizer: AuthorizationServerClientType
@@ -187,26 +191,25 @@ public actor Issuer: IssuerType {
   }
   
   public init(
-    authorizationServerMetadata: IdentityAndAccessManagementMetadata,
-    preAuthorizationServerMetadata: IdentityAndAccessManagementMetadata? = nil,
+    grantsMetadata: GrantsMetadata,
     issuerMetadata: CredentialIssuerMetadata,
     config: OpenId4VCIConfig,
     dpopConstructor: DPoPConstructorType? = nil,
     session: Networking
   ) throws {
-    self.authorizationServerMetadata = authorizationServerMetadata
-    self.preAuthorizationServerMetadata = preAuthorizationServerMetadata
+    self.grantsMetadata = grantsMetadata
     self.issuerMetadata = issuerMetadata
     self.config = config
 
-    if let challengeEndpoint = authorizationServerMetadata.challengeEndpointURI {
+    let primaryMetadata = grantsMetadata.primary
+    if let challengeEndpoint = primaryMetadata.challengeEndpointURI {
       challenger = ChallengeEndpointClient(challengeEndpoint: challengeEndpoint)
     } else {
       challenger = nil
     }
 
     if config.requireDpop {
-      guard let dpopAlgs = authorizationServerMetadata.dpopSigningAlgValuesSupported,
+      guard let dpopAlgs = primaryMetadata.dpopSigningAlgValuesSupported,
             !dpopAlgs.isEmpty else {
         throw ValidationError.dpopRequired
       }
@@ -217,8 +220,7 @@ public actor Issuer: IssuerType {
       parPoster: Poster(session: session),
       tokenPoster: Poster(session: session),
       config: config,
-      authorizationServerMetadata: authorizationServerMetadata,
-      preAuthorizationServerMetadata: preAuthorizationServerMetadata,
+      grantsMetadata: grantsMetadata,
       credentialIssuerIdentifier: issuerMetadata.credentialIssuerIdentifier,
       dpopConstructor: config.requireDpop ? dpopConstructor : nil
     )
@@ -231,7 +233,7 @@ public actor Issuer: IssuerType {
     )
 
     try? config.client.ensureSupportedByAuthorizationServer(
-      self.authorizationServerMetadata
+      primaryMetadata
     )
 
     issuanceRequester = IssuanceRequester(
@@ -259,8 +261,7 @@ public actor Issuer: IssuerType {
   }
   
   public init(
-    authorizationServerMetadata: IdentityAndAccessManagementMetadata,
-    preAuthorizationServerMetadata: IdentityAndAccessManagementMetadata? = nil,
+    grantsMetadata: GrantsMetadata,
     issuerMetadata: CredentialIssuerMetadata,
     config: OpenId4VCIConfig,
     parPoster: PostingType = Poster(),
@@ -272,12 +273,12 @@ public actor Issuer: IssuerType {
     noncePoster: PostingType = Poster(),
     dpopConstructor: DPoPConstructorType? = nil
   ) throws {
-    self.authorizationServerMetadata = authorizationServerMetadata
-    self.preAuthorizationServerMetadata = preAuthorizationServerMetadata
+    self.grantsMetadata = grantsMetadata
     self.issuerMetadata = issuerMetadata
     self.config = config
 
-    if let challengeEndpoint = authorizationServerMetadata.challengeEndpointURI {
+    let primaryMetadata = grantsMetadata.primary
+    if let challengeEndpoint = primaryMetadata.challengeEndpointURI {
       challenger = ChallengeEndpointClient(
         poster: challengePoster,
         challengeEndpoint: challengeEndpoint
@@ -291,8 +292,7 @@ public actor Issuer: IssuerType {
       parPoster: parPoster,
       tokenPoster: tokenPoster,
       config: config,
-      authorizationServerMetadata: authorizationServerMetadata,
-      preAuthorizationServerMetadata: preAuthorizationServerMetadata,
+      grantsMetadata: grantsMetadata,
       credentialIssuerIdentifier: issuerMetadata.credentialIssuerIdentifier,
       dpopConstructor: dpopConstructor
     )
@@ -305,7 +305,7 @@ public actor Issuer: IssuerType {
     )
 
     try? config.client.ensureSupportedByAuthorizationServer(
-      self.authorizationServerMetadata
+      primaryMetadata
     )
 
     issuanceRequester = IssuanceRequester(
@@ -358,10 +358,8 @@ public actor Issuer: IssuerType {
       warnings = [:]
     }
 
-    // Use per-grant authorization server metadata if available
     let issuer = try Issuer(
-      authorizationServerMetadata: credentialOffer.authorizationServerMetadata,
-      preAuthorizationServerMetadata: credentialOffer.preAuthorizationCodeServerMetadata,
+      grantsMetadata: credentialOffer.grantsMetadata,
       issuerMetadata: credentialOffer.credentialIssuerMetadata,
       config: config,
       dpopConstructor: dpopConstructor,
@@ -784,14 +782,15 @@ public extension Issuer {
     deferredRequesterPoster: PostingType,
     config: OpenId4VCIConfig
   ) throws -> Issuer {
-    try Issuer(
-      authorizationServerMetadata: .oauth(
-        .init(
-          authorizationEndpoint: Constants.url,
-          tokenEndpoint: Constants.url,
-          pushedAuthorizationRequestEndpoint: Constants.url
-        )
-      ),
+    let placeholderMetadata: IdentityAndAccessManagementMetadata = .oauth(
+      .init(
+        authorizationEndpoint: Constants.url,
+        tokenEndpoint: Constants.url,
+        pushedAuthorizationRequestEndpoint: Constants.url
+      )
+    )
+    return try Issuer(
+      grantsMetadata: GrantsMetadata(shared: placeholderMetadata),
       issuerMetadata: .init(
         deferredCredentialEndpoint: deferredCredentialEndpoint,
         credentialRequestEncryption: credentialRequestEncryption

@@ -105,7 +105,7 @@ extension Wallet {
     
     let issuerMetadata = offer.credentialIssuerMetadata
     let issuer = try Issuer(
-      authorizationServerMetadata: offer.authorizationServerMetadata,
+      grantsMetadata: offer.grantsMetadata,
       issuerMetadata: issuerMetadata,
       config: config,
       parPoster: Poster(session: self.session),
@@ -148,7 +148,7 @@ extension Wallet {
   ) async throws -> Credential {
     
     let issuer = try Issuer(
-      authorizationServerMetadata: offer.authorizationServerMetadata,
+      grantsMetadata: offer.grantsMetadata,
       issuerMetadata: offer.credentialIssuerMetadata,
       config: config,
       dpopConstructor: dpopConstructor(
@@ -284,7 +284,7 @@ extension Wallet {
     }
     
     let issuer = try Issuer(
-      authorizationServerMetadata: offer.authorizationServerMetadata,
+      grantsMetadata: offer.grantsMetadata,
       issuerMetadata: offer.credentialIssuerMetadata,
       config: config,
       parPoster: Poster(session: self.session),
@@ -321,7 +321,7 @@ extension Wallet {
     }
     
     let issuer = try Issuer(
-      authorizationServerMetadata: offer.authorizationServerMetadata,
+      grantsMetadata: offer.grantsMetadata,
       issuerMetadata: offer.credentialIssuerMetadata,
       config: config,
       parPoster: Poster(session: self.session),

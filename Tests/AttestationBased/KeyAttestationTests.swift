@@ -517,7 +517,7 @@ class KeyAttestationTests: XCTestCase {
     let offer = try XCTUnwrap(offerOptional)
     let spec = data.spec
     let issuer = try Issuer(
-      authorizationServerMetadata: offer.authorizationServerMetadata,
+      grantsMetadata: offer.grantsMetadata,
       issuerMetadata: offer.credentialIssuerMetadata,
       config: config,
       parPoster: Poster(session: NetworkingMock(path: "pushed_authorization_request_response", extension: "json")),
@@ -597,7 +597,7 @@ extension KeyAttestationTests {
     
     let offer = await TestsConstants.createMockCredentialOfferopenidKeyAttestationRequired()!
     let issuer = try Issuer(
-      authorizationServerMetadata: offer.authorizationServerMetadata,
+      grantsMetadata: offer.grantsMetadata,
       issuerMetadata: offer.credentialIssuerMetadata,
       config: config,
       parPoster: Poster(

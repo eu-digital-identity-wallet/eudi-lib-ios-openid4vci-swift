@@ -714,25 +714,25 @@ class CredentialOfferResolverTests: XCTestCase {
       )
 
       // Verify per-grant metadata was resolved
-      XCTAssertNotNil(credentialOffer.authorizationCodeServerMetadata)
-      XCTAssertNotNil(credentialOffer.preAuthorizationCodeServerMetadata)
+      XCTAssertNotNil(credentialOffer.grantsMetadata.authorizationCode)
+      XCTAssertNotNil(credentialOffer.grantsMetadata.preAuthorizationCode)
 
       // Verify the auth code server metadata points to the first server
       XCTAssertEqual(
-        credentialOffer.authorizationCodeServerMetadata?.issuer,
+        credentialOffer.grantsMetadata.authorizationCode?.issuer,
         nil
       )
 
       // Verify the pre-auth code server metadata points to the second server
       XCTAssertEqual(
-        credentialOffer.preAuthorizationCodeServerMetadata?.issuer,
+        credentialOffer.grantsMetadata.preAuthorizationCode?.issuer,
         "https://auth-server-two.example.com"
       )
 
       // Verify the issuers (and thus token endpoints) are different
       XCTAssertNotEqual(
-        credentialOffer.authorizationCodeServerMetadata?.issuer,
-        credentialOffer.preAuthorizationCodeServerMetadata?.issuer,
+        credentialOffer.grantsMetadata.authorizationCode?.issuer,
+        credentialOffer.grantsMetadata.preAuthorizationCode?.issuer,
         "Issuers should be different for different auth servers"
       )
 
@@ -783,12 +783,12 @@ class CredentialOfferResolverTests: XCTestCase {
     switch result {
     case .success(let credentialOffer):
       // Both metadata should be available and have the same issuer
-      XCTAssertNotNil(credentialOffer.authorizationCodeServerMetadata)
-      XCTAssertNotNil(credentialOffer.preAuthorizationCodeServerMetadata)
+      XCTAssertNotNil(credentialOffer.grantsMetadata.authorizationCode)
+      XCTAssertNotNil(credentialOffer.grantsMetadata.preAuthorizationCode)
 
       XCTAssertEqual(
-        credentialOffer.authorizationCodeServerMetadata?.issuer,
-        credentialOffer.preAuthorizationCodeServerMetadata?.issuer
+        credentialOffer.grantsMetadata.authorizationCode?.issuer,
+        credentialOffer.grantsMetadata.preAuthorizationCode?.issuer
       )
 
     case .failure(let error):
@@ -828,13 +828,15 @@ class CredentialOfferResolverTests: XCTestCase {
         try Grants.AuthorizationCode(issuerState: nil, authorizationServer: URL(string: "https://auth-server-one.example.com")),
         Grants.PreAuthorizedCode(preAuthorizedCode: "code123", txCode: nil, authorizationServer: URL(string: "https://auth-server-two.example.com"))
       ),
-      authorizationCodeServerMetadata: authCodeMetadata,
-      preAuthorizationCodeServerMetadata: preAuthCodeMetadata
+      grantsMetadata: try GrantsMetadata(
+        authorizationCode: authCodeMetadata,
+        preAuthorizationCode: preAuthCodeMetadata
+      )
     )
 
     // Then: Verify metadata is correctly stored
-    XCTAssertEqual(credentialOffer.authorizationCodeServerMetadata?.issuer, "https://auth-server-one.example.com")
-    XCTAssertEqual(credentialOffer.preAuthorizationCodeServerMetadata?.issuer, "https://auth-server-two.example.com")
+    XCTAssertEqual(credentialOffer.grantsMetadata.authorizationCode?.issuer, "https://auth-server-one.example.com")
+    XCTAssertEqual(credentialOffer.grantsMetadata.preAuthorizationCode?.issuer, "https://auth-server-two.example.com")
 
     // Backward compatible property should return auth code metadata
     XCTAssertEqual(credentialOffer.authorizationServerMetadata.issuer, "https://auth-server-one.example.com")
@@ -865,8 +867,8 @@ class CredentialOfferResolverTests: XCTestCase {
     )
 
     // Then: Both per-grant metadata should be set to the same value
-    XCTAssertEqual(credentialOffer.authorizationCodeServerMetadata?.issuer, "https://auth-server.example.com")
-    XCTAssertEqual(credentialOffer.preAuthorizationCodeServerMetadata?.issuer, "https://auth-server.example.com")
+    XCTAssertEqual(credentialOffer.grantsMetadata.authorizationCode?.issuer, "https://auth-server.example.com")
+    XCTAssertEqual(credentialOffer.grantsMetadata.preAuthorizationCode?.issuer, "https://auth-server.example.com")
     XCTAssertEqual(credentialOffer.authorizationServerMetadata.issuer, "https://auth-server.example.com")
   }
 
@@ -877,14 +879,10 @@ class CredentialOfferResolverTests: XCTestCase {
       credentialRequestEncryption: nil
     )
 
-    // When/Then: Should throw an error
-    XCTAssertThrowsError(try CredentialOffer(
-      credentialIssuerIdentifier: CredentialIssuerId("https://issuer.example.com"),
-      credentialIssuerMetadata: issuerMetadata,
-      credentialConfigurationIdentifiers: [try CredentialConfigurationIdentifier(value: "TestCredential")],
-      grants: nil,
-      authorizationCodeServerMetadata: nil,
-      preAuthorizationCodeServerMetadata: nil
+    // When/Then: Should throw an error when creating GrantsMetadata with no metadata
+    XCTAssertThrowsError(try GrantsMetadata(
+      authorizationCode: nil,
+      preAuthorizationCode: nil
     )) { error in
       XCTAssertTrue(
         error.localizedDescription.contains("authorization server metadata"),

@@ -224,7 +224,7 @@ extension IssuanceEncryptionTest {
     }
 
     let issuer = try Issuer(
-      authorizationServerMetadata: offer.authorizationServerMetadata,
+      grantsMetadata: offer.grantsMetadata,
       issuerMetadata: offer.credentialIssuerMetadata,
       config: config,
       parPoster: Poster(
@@ -271,7 +271,7 @@ extension IssuanceEncryptionTest {
     }
 
     let issuer = try Issuer(
-      authorizationServerMetadata: offer.authorizationServerMetadata,
+      grantsMetadata: offer.grantsMetadata,
       issuerMetadata: offer.credentialIssuerMetadata,
       config: config,
       parPoster: Poster(

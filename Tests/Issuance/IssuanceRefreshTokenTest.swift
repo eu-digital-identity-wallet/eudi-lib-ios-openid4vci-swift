@@ -54,7 +54,7 @@ class IssuanceRefreshTokenTest: XCTestCase {
 
     // Create issuer with mock token endpoint
     let issuer = try Issuer(
-      authorizationServerMetadata: offer.authorizationServerMetadata,
+      grantsMetadata: offer.grantsMetadata,
       issuerMetadata: offer.credentialIssuerMetadata,
       config: config,
       tokenPoster: Poster(
@@ -111,7 +111,7 @@ class IssuanceRefreshTokenTest: XCTestCase {
     )
 
     let issuer = try Issuer(
-      authorizationServerMetadata: offer.authorizationServerMetadata,
+      grantsMetadata: offer.grantsMetadata,
       issuerMetadata: offer.credentialIssuerMetadata,
       config: config
     )
@@ -160,7 +160,7 @@ class IssuanceRefreshTokenTest: XCTestCase {
     )
 
     let issuer = try Issuer(
-      authorizationServerMetadata: offer.authorizationServerMetadata,
+      grantsMetadata: offer.grantsMetadata,
       issuerMetadata: offer.credentialIssuerMetadata,
       config: config,
       tokenPoster: Poster(

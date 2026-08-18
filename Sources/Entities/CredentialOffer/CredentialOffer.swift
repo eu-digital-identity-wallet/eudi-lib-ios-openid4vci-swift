@@ -16,29 +16,59 @@
 import Foundation
 import SwiftyJSON
 
+/// Holds per-grant authorization server metadata.
+/// Each grant type (authorization code, pre-authorization code) can specify
+/// a different authorization server, and this struct captures the resolved
+/// metadata for each.
+public struct GrantsMetadata: Sendable {
+
+  /// Metadata for the authorization code flow.
+  public let authorizationCode: IdentityAndAccessManagementMetadata?
+
+  /// Metadata for the pre-authorization code flow.
+  /// When different from `authorizationCode`, the pre-auth flow
+  /// will use this server's token endpoint.
+  public let preAuthorizationCode: IdentityAndAccessManagementMetadata?
+
+  /// Primary metadata, guaranteed to be non-nil.
+  /// Prefers authorization code metadata, falls back to pre-authorization code.
+  public let primary: IdentityAndAccessManagementMetadata
+
+  /// Creates metadata for both grant types.
+  /// At least one metadata must be provided.
+  public init(
+    authorizationCode: IdentityAndAccessManagementMetadata?,
+    preAuthorizationCode: IdentityAndAccessManagementMetadata?
+  ) throws {
+    guard let primary = authorizationCode ?? preAuthorizationCode else {
+      throw ValidationError.error(reason: "At least one authorization server metadata must be provided")
+    }
+    self.authorizationCode = authorizationCode
+    self.preAuthorizationCode = preAuthorizationCode
+    self.primary = primary
+  }
+
+  /// Convenience initializer when both grants use the same authorization server.
+  public init(shared: IdentityAndAccessManagementMetadata) {
+    self.authorizationCode = shared
+    self.preAuthorizationCode = shared
+    self.primary = shared
+  }
+}
+
 public struct CredentialOffer: Sendable {
   public let credentialIssuerIdentifier: CredentialIssuerId
   public let credentialIssuerMetadata: CredentialIssuerMetadata
   public let credentialConfigurationIdentifiers: [CredentialConfigurationIdentifier]
   public let grants: Grants?
 
-  //// Authorization server metadata for the authorization code flow.
-  public let authorizationCodeServerMetadata: IdentityAndAccessManagementMetadata?
+  /// Per-grant authorization server metadata.
+  public let grantsMetadata: GrantsMetadata
 
-  //// Authorization server metadata for the pre-authorization code flow.
-  //// When different from authorizationCodeServerMetadata, the pre-auth flow
-  //// will use this server's token endpoint.
-  public let preAuthorizationCodeServerMetadata: IdentityAndAccessManagementMetadata?
-
-  //// Primary authorization server metadata, guaranteed to be non-nil.
-  //// This is set during initialization to whichever metadata is available,
-  //// preferring the authorization code server.
-  private let primaryAuthorizationServerMetadata: IdentityAndAccessManagementMetadata
-
-  //// Returns the authorization server metadata, preferring the authorization code server.
-  //// This property maintains backward compatibility with code that expects a single metadata.
+  /// Returns the primary authorization server metadata.
+  /// Maintains backward compatibility with code that expects a single metadata.
   public var authorizationServerMetadata: IdentityAndAccessManagementMetadata {
-    primaryAuthorizationServerMetadata
+    grantsMetadata.primary
   }
 
   public init(
@@ -46,21 +76,13 @@ public struct CredentialOffer: Sendable {
     credentialIssuerMetadata: CredentialIssuerMetadata,
     credentialConfigurationIdentifiers: [CredentialConfigurationIdentifier],
     grants: Grants? = nil,
-    authorizationCodeServerMetadata: IdentityAndAccessManagementMetadata?,
-    preAuthorizationCodeServerMetadata: IdentityAndAccessManagementMetadata?
+    grantsMetadata: GrantsMetadata
   ) throws {
     self.credentialIssuerIdentifier = credentialIssuerIdentifier
     self.credentialIssuerMetadata = credentialIssuerMetadata
     self.credentialConfigurationIdentifiers = credentialConfigurationIdentifiers
     self.grants = grants
-    self.authorizationCodeServerMetadata = authorizationCodeServerMetadata
-    self.preAuthorizationCodeServerMetadata = preAuthorizationCodeServerMetadata
-
-    // At least one authorization server metadata must be provided
-    guard let primary = authorizationCodeServerMetadata ?? preAuthorizationCodeServerMetadata else {
-      throw ValidationError.error(reason: "At least one authorization server metadata must be provided")
-    }
-    self.primaryAuthorizationServerMetadata = primary
+    self.grantsMetadata = grantsMetadata
 
     if credentialConfigurationIdentifiers.isEmpty {
       throw CredentialOfferRequestError.emptyCredentialsError
@@ -80,8 +102,7 @@ public struct CredentialOffer: Sendable {
       credentialIssuerMetadata: credentialIssuerMetadata,
       credentialConfigurationIdentifiers: credentialConfigurationIdentifiers,
       grants: grants,
-      authorizationCodeServerMetadata: authorizationServerMetadata,
-      preAuthorizationCodeServerMetadata: authorizationServerMetadata
+      grantsMetadata: GrantsMetadata(shared: authorizationServerMetadata)
     )
   }
 }

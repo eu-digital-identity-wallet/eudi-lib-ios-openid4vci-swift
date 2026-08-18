@@ -91,9 +91,9 @@ public actor CredentialOfferRequestResolver {
         }
 
         // Resolve per-grant authorization server metadata
-        let perGrantMetadata: (authCodeMetadata: IdentityAndAccessManagementMetadata?, preAuthCodeMetadata: IdentityAndAccessManagementMetadata?)
+        let grantsMetadata: GrantsMetadata
         do {
-          perGrantMetadata = try await resolvePerGrantAuthorizationServers(
+          grantsMetadata = try await resolveGrantsMetadata(
             grants: credentialOfferRequestObject.grants,
             availableServers: credentialIssuerMetadata.authorizationServers
           )
@@ -101,15 +101,10 @@ public actor CredentialOfferRequestResolver {
           return .failure(error)
         }
 
-        guard perGrantMetadata.authCodeMetadata != nil || perGrantMetadata.preAuthCodeMetadata != nil else {
-          return .failure(ValidationError.error(reason: "Invalid authorization metadata"))
-        }
-
         let domain = try toDomain(
           credentialOfferRequestObject: credentialOfferRequestObject,
           credentialIssuerMetadata: credentialIssuerMetadata,
-          authorizationCodeServerMetadata: perGrantMetadata.authCodeMetadata,
-          preAuthorizationCodeServerMetadata: perGrantMetadata.preAuthCodeMetadata
+          grantsMetadata: grantsMetadata
         )
         return .success(domain)
 
@@ -126,9 +121,9 @@ public actor CredentialOfferRequestResolver {
           }
 
           // Resolve per-grant authorization server metadata
-          let perGrantMetadata: (authCodeMetadata: IdentityAndAccessManagementMetadata?, preAuthCodeMetadata: IdentityAndAccessManagementMetadata?)
+          let grantsMetadata: GrantsMetadata
           do {
-            perGrantMetadata = try await resolvePerGrantAuthorizationServers(
+            grantsMetadata = try await resolveGrantsMetadata(
               grants: credentialOfferRequestObject.grants,
               availableServers: credentialIssuerMetadata.authorizationServers
             )
@@ -136,15 +131,10 @@ public actor CredentialOfferRequestResolver {
             return .failure(error)
           }
 
-          guard perGrantMetadata.authCodeMetadata != nil || perGrantMetadata.preAuthCodeMetadata != nil else {
-            return .failure(ValidationError.error(reason: "Invalid authorization metadata"))
-          }
-
           let domain = try toDomain(
             credentialOfferRequestObject: credentialOfferRequestObject,
             credentialIssuerMetadata: credentialIssuerMetadata,
-            authorizationCodeServerMetadata: perGrantMetadata.authCodeMetadata,
-            preAuthorizationCodeServerMetadata: perGrantMetadata.preAuthCodeMetadata
+            grantsMetadata: grantsMetadata
           )
           return .success(domain)
         }
@@ -217,11 +207,11 @@ public actor CredentialOfferRequestResolver {
   }
 
   /// Resolves authorization server metadata for both grants when they specify different servers.
-  /// Returns metadata for both the authorization code and pre-authorization code flows.
-  private func resolvePerGrantAuthorizationServers(
+  /// Returns a `GrantsMetadata` containing metadata for both the authorization code and pre-authorization code flows.
+  private func resolveGrantsMetadata(
     grants: GrantsDTO?,
     availableServers: [URL]?
-  ) async throws -> (authCodeMetadata: IdentityAndAccessManagementMetadata?, preAuthCodeMetadata: IdentityAndAccessManagementMetadata?) {
+  ) async throws -> GrantsMetadata {
     let serverHints = getAuthorizationServersFromGrants(grants)
 
     var authCodeMetadata: IdentityAndAccessManagementMetadata? = nil
@@ -257,8 +247,7 @@ public actor CredentialOfferRequestResolver {
       let defaultResult = selectAuthorizationServer(hint: nil, availableServers: availableServers)
       if case .success(let defaultServer) = defaultResult {
         let defaultMetadata = try await authorizationServerMetadataResolver.resolve(url: defaultServer).get()
-        authCodeMetadata = defaultMetadata
-        preAuthCodeMetadata = defaultMetadata
+        return GrantsMetadata(shared: defaultMetadata)
       } else if case .failure(let error) = defaultResult {
         throw error
       }
@@ -279,14 +268,16 @@ public actor CredentialOfferRequestResolver {
       }
     }
 
-    return (authCodeMetadata, preAuthCodeMetadata)
+    return try GrantsMetadata(
+      authorizationCode: authCodeMetadata,
+      preAuthorizationCode: preAuthCodeMetadata
+    )
   }
 
   func toDomain(
     credentialOfferRequestObject: CredentialOfferRequestObject,
     credentialIssuerMetadata: CredentialIssuerMetadata?,
-    authorizationCodeServerMetadata: IdentityAndAccessManagementMetadata?,
-    preAuthorizationCodeServerMetadata: IdentityAndAccessManagementMetadata?
+    grantsMetadata: GrantsMetadata
   ) throws -> CredentialOffer {
 
     guard let credentialIssuerMetadata = credentialIssuerMetadata else {
@@ -302,8 +293,7 @@ public actor CredentialOfferRequestResolver {
         credentialIssuerMetadata: credentialIssuerMetadata,
         credentialConfigurationIdentifiers: credentialConfigurationIdentifiers,
         grants: grants,
-        authorizationCodeServerMetadata: authorizationCodeServerMetadata,
-        preAuthorizationCodeServerMetadata: preAuthorizationCodeServerMetadata
+        grantsMetadata: grantsMetadata
       )
     } catch {
       throw ValidationError.error(reason: error.localizedDescription)
@@ -319,8 +309,7 @@ public actor CredentialOfferRequestResolver {
     try toDomain(
       credentialOfferRequestObject: credentialOfferRequestObject,
       credentialIssuerMetadata: credentialIssuerMetadata,
-      authorizationCodeServerMetadata: authorizationServerMetadata,
-      preAuthorizationCodeServerMetadata: authorizationServerMetadata
+      grantsMetadata: GrantsMetadata(shared: authorizationServerMetadata)
     )
   }
 }

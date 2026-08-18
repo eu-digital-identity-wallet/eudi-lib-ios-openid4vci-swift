@@ -195,11 +195,15 @@ internal actor AuthorizationServerClient: AuthorizationServerClientType {
   public let preAuthTokenEndpoint: URL
   public let redirectionURI: URL
   public let client: Client
-  public let authorizationServerMetadata: IdentityAndAccessManagementMetadata
-  public let preAuthorizationServerMetadata: IdentityAndAccessManagementMetadata?
+  public let grantsMetadata: GrantsMetadata
   public let credentialIssuerIdentifier: CredentialIssuerId
   public let dpopConstructor: DPoPConstructorType?
   public let challenger: ChallengeEndpointClientType?
+
+  /// Returns the primary authorization server metadata.
+  public var authorizationServerMetadata: IdentityAndAccessManagementMetadata {
+    grantsMetadata.primary
+  }
 
   static let responseType = "code"
   static let grantAuthorizationCode = "authorization_code"
@@ -207,17 +211,14 @@ internal actor AuthorizationServerClient: AuthorizationServerClientType {
 
   /// Initializes the authorization server client with support for per-grant authorization servers.
   /// - Parameters:
-  ///   - authorizationServerMetadata: Metadata for the authorization code flow (also used as fallback).
-  ///   - preAuthorizationServerMetadata: Optional metadata for the pre-authorization code flow.
-  ///     If nil, the authorizationServerMetadata is used for both flows.
+  ///   - grantsMetadata: Per-grant authorization server metadata.
   public init(
     service: AuthorisationServiceType = AuthorisationService(),
     challenger: ChallengeEndpointClientType?,
     parPoster: PostingType = Poster(),
     tokenPoster: PostingType = Poster(),
     config: OpenId4VCIConfig,
-    authorizationServerMetadata: IdentityAndAccessManagementMetadata,
-    preAuthorizationServerMetadata: IdentityAndAccessManagementMetadata? = nil,
+    grantsMetadata: GrantsMetadata,
     credentialIssuerIdentifier: CredentialIssuerId,
     dpopConstructor: DPoPConstructorType? = nil
   ) throws {
@@ -228,8 +229,7 @@ internal actor AuthorizationServerClient: AuthorizationServerClientType {
     self.tokenPoster = tokenPoster
     self.config = config
 
-    self.authorizationServerMetadata = authorizationServerMetadata
-    self.preAuthorizationServerMetadata = preAuthorizationServerMetadata
+    self.grantsMetadata = grantsMetadata
     self.credentialIssuerIdentifier = credentialIssuerIdentifier
 
     self.redirectionURI = config.authFlowRedirectionURI
@@ -237,8 +237,9 @@ internal actor AuthorizationServerClient: AuthorizationServerClientType {
 
     self.dpopConstructor = dpopConstructor
 
-    // Extract endpoints from authorization code flow's server metadata
-    switch authorizationServerMetadata {
+    // Extract endpoints from authorization code flow's server metadata (or primary if auth code not available)
+    let primaryMetadata = grantsMetadata.primary
+    switch primaryMetadata {
     case .oidc(let data):
 
       if let tokenEndpoint = data.tokenEndpoint, let url = URL(string: tokenEndpoint) {
@@ -281,20 +282,20 @@ internal actor AuthorizationServerClient: AuthorizationServerClientType {
     }
 
     // Extract token endpoint from pre-authorization code flow's server metadata (if different)
-    if let preAuthMetadata = preAuthorizationServerMetadata {
+    if let preAuthMetadata = grantsMetadata.preAuthorizationCode {
       switch preAuthMetadata {
       case .oidc(let data):
         if let tokenEndpoint = data.tokenEndpoint, let url = URL(string: tokenEndpoint) {
           self.preAuthTokenEndpoint = url
         } else {
-          // Fall back to auth code flow's token endpoint
+          // Fall back to primary token endpoint
           self.preAuthTokenEndpoint = self.tokenEndpoint
         }
       case .oauth(let data):
         if let tokenEndpoint = data.tokenEndpoint, let url = URL(string: tokenEndpoint) {
           self.preAuthTokenEndpoint = url
         } else {
-          // Fall back to auth code flow's token endpoint
+          // Fall back to primary token endpoint
           self.preAuthTokenEndpoint = self.tokenEndpoint
         }
       }
@@ -819,7 +820,7 @@ internal actor AuthorizationServerClient: AuthorizationServerClientType {
       )
 
       // Use the pre-authorization server's metadata for issuer ID (if available)
-      let preAuthServerIssuer = preAuthorizationServerMetadata?.issuer ?? authorizationServerMetadata.issuer
+      let preAuthServerIssuer = grantsMetadata.preAuthorizationCode?.issuer ?? authorizationServerMetadata.issuer
 
       do {
         let clientAttestation = try await generateClientAttestationIfNeeded(

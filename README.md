@@ -164,7 +164,7 @@ let offer: CredentialOffer = ...
 let config: OpenId4VCIConfig = ...
 
 let issuer = try Issuer(
-    authorizationServerMetadata: offer.authorizationServerMetadata,
+    grantsMetadata: offer.grantsMetadata,
     issuerMetadata: offer.credentialIssuerMetadata,
     config: config
 )
