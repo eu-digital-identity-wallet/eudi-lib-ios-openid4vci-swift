@@ -68,6 +68,17 @@ extension GrantsDTO {
   func toDomain() throws -> Grants {
     if let authorizationCode = authorizationCode,
        let preAuthorizationCode = preAuthorizationCode {
+
+      // CredentialOfferRequestResolver resolves the metadata of the first Authorization Server.
+      // To avoid issues, require AuthorizationCode and PreAuthorizedCode use the same Authorization Server.
+      if let authServer = authorizationCode.authorizationServer,
+         let preAuthServer = preAuthorizationCode.authorizationServer,
+         !authServer.isEmpty,
+         !preAuthServer.isEmpty,
+         authServer != preAuthServer {
+        throw CredentialOfferRequestValidationError.invalidGrants
+      }
+
       return .both(
         try Grants.AuthorizationCode(
           issuerState: authorizationCode.issuerState,
