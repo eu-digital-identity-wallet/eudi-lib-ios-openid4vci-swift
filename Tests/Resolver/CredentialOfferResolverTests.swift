@@ -645,4 +645,58 @@ class CredentialOfferResolverTests: XCTestCase {
       XCTFail("Expected success but got failure: \(error.localizedDescription)")
     }
   }
+
+  func testFailsWhenBothGrantsHaveDifferentAuthorizationServers() async throws {
+    // Given: A credential offer with both grants specifying different authorization servers
+    let credentialIssuerMetadataResolver = CredentialIssuerMetadataResolver(
+      fetcher: MetadataFetcher(
+        rawFetcher: RawDataFetcher(
+          session: NetworkingMock(
+            path: "credential_issuer_metadata_multiple_auth_servers",
+            extension: "json",
+            headers: ["Content-Type": "application/json"]
+        ))))
+
+    let authorizationServerMetadataResolver = AuthorizationServerMetadataResolver(
+      oidcFetcher: Fetcher<OIDCProviderMetadata>(session: NetworkingMock(
+        path: "oidc_authorization_server_metadata",
+        extension: "json"
+      )),
+      oauthFetcher: Fetcher<AuthorizationServerMetadata>(session: NetworkingMock(
+        path: "oauth_authorization_server_metadata",
+        extension: "json"
+      ))
+    )
+
+    let credentialOfferRequestResolver = CredentialOfferRequestResolver(
+      fetcher: Fetcher<CredentialOfferRequestObject>(session: NetworkingMock(
+        path: "credential_offer_with_different_auth_servers",
+        extension: "json"
+      )),
+      credentialIssuerMetadataResolver: credentialIssuerMetadataResolver,
+      authorizationServerMetadataResolver: authorizationServerMetadataResolver
+    )
+
+    // When
+    let result = await credentialOfferRequestResolver.resolve(
+      source: .fetchByReference(url: .stub()),
+      policy: .ignoreSigned
+    )
+
+    // Then
+    switch result {
+    case .success:
+      XCTFail("Expected failure when both grants have different authorization servers")
+
+    case .failure(let error):
+      // The error is wrapped in ValidationError, check that it mentions invalidGrants
+      let errorDescription = error.localizedDescription
+      XCTAssertTrue(
+        errorDescription.contains("CredentialOfferRequestValidationError") ||
+        errorDescription.contains("invalidGrants") ||
+        errorDescription.contains("error 4"),
+        "Error should be related to invalidGrants: \(errorDescription)"
+      )
+    }
+  }
 }
