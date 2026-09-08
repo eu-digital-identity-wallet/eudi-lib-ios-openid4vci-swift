@@ -222,8 +222,13 @@ internal actor AuthorizationServerClient: AuthorizationServerClientType {
     
     self.authorizationServerMetadata = authorizationServerMetadata
     self.credentialIssuerIdentifier = credentialIssuerIdentifier
-    
-    self.redirectionURI = config.authFlowRedirectionURI
+
+    guard let authFlowRedirectionURI = config.authFlowRedirectionURI else {
+      throw ValidationError.error(
+        reason: "authFlowRedirectionURI is required for authorization code flow"
+      )
+    }
+    self.redirectionURI = authFlowRedirectionURI
     self.client = config.client
     
     self.dpopConstructor = dpopConstructor
@@ -295,7 +300,7 @@ internal actor AuthorizationServerClient: AuthorizationServerClientType {
     let authzRequest = AuthorizationRequest(
       responseType: Self.responseType,
       clientId: config.client.id,
-      redirectUri: config.authFlowRedirectionURI.absoluteString,
+      redirectUri: redirectionURI.absoluteString,
       scope: scopeValue,
       credentialConfigurationIds: toAuthorizationDetail(credentialConfigurationIds: credentialConfigurationIdentifiers),
       state: state,
@@ -345,7 +350,7 @@ internal actor AuthorizationServerClient: AuthorizationServerClientType {
     let authRequest: AuthorizationRequest = .init(
       responseType: Self.responseType,
       clientId: config.client.id,
-      redirectUri: config.authFlowRedirectionURI.absoluteString,
+      redirectUri: redirectionURI.absoluteString,
       scope: scopeValue,
       credentialConfigurationIds: toAuthorizationDetail(
         credentialConfigurationIds: credentialConfigurationIdentifiers

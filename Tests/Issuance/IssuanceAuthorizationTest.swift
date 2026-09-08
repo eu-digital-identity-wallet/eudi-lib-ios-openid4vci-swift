@@ -21,7 +21,7 @@ import JOSESwift
 
 class IssuanceAuthorizationTest: XCTestCase {
   
-  let config: OpenId4VCIConfig = .init(
+  let config: OpenId4VCIConfig = try! .init(
     client: attestionClient,
     authFlowRedirectionURI: URL(string: "urn:ietf:wg:oauth:2.0:oob")!,
     authorizeIssuanceConfig: .favorScopes
@@ -451,7 +451,7 @@ class IssuanceAuthorizationTest: XCTestCase {
         policy: .ignoreSigned
       )
     
-    let attestationConfig: OpenId4VCIConfig = .init(
+    let attestationConfig: OpenId4VCIConfig = try .init(
       client: attestionClient,
       authFlowRedirectionURI: URL(string: "urn:ietf:wg:oauth:2.0:oob")!,
       authorizeIssuanceConfig: .favorScopes,

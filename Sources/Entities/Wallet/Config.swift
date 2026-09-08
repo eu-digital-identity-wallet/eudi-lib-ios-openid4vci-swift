@@ -55,34 +55,35 @@ public typealias ClientSecret = String
 
 /// Configuration for OpenID4VCI.
 public struct OpenId4VCIConfig: Sendable {
-  
+
   /// The client used for OpenID4VCI operations.
   public let client: Client
-  
+
   /// The URI to which the authentication flow should redirect.
-  public let authFlowRedirectionURI: URL
-  
+  /// Required when `supportedGrants` is `.authorizationCode` or `.both`.
+  public let authFlowRedirectionURI: URL?
+
   /// Configuration specifying how issuance authorization should be handled.
   public let authorizeIssuanceConfig: AuthorizeIssuanceConfig
-  
+
   /// Whether to require PAR or not.
   public let requirePAR: ParUsage
-  
+
   /// An optional builder for client attestation proof-of-possession tokens.
   public let clientAttestationPoPBuilder: ClientAttestationPoPBuilder?
-  
+
   /// Policy defining how issuer metadata should be handled.
   public let issuerMetadataPolicy: IssuerMetadataPolicy
-  
+
   /// Client supported compression algorithms
   public let supportedCompressionAlgorithms: [CompressionAlgorithm]?
-  
+
   /// Dpop requirement, if required by wallet and not supported by issuer, halt the issuance process
   public let requireDpop: Bool
-  
+
   /// Wallet's supported credential reuse policies
   public let supportedCredentialReusePolicies: SupportedCredentialReusePolicies
-  
+
   /// Policy defining which signing algorithms and attested proof types the
   /// wallet supports. Plain `jwt` proofs (no key attestation) are not supported.
   ///
@@ -93,10 +94,14 @@ public struct OpenId4VCIConfig: Sendable {
   /// enforcement during `Issuer.make(...)`. When `nil`, WRPRC is not validated.
   public let registrationCertificatePolicy: RegistrationCertificatePolicy?
 
+  /// The grant types supported by the wallet.
+  /// Default is `.both`.
+  public let supportedGrants: SupportedGrants
+
   /// Initializes an `OpenId4VCIConfig` instance with the given parameters.
   /// - Parameters:
   ///   - client: The client used for OpenID4VCI operations.
-  ///   - authFlowRedirectionURI: The URI to which the authentication flow should redirect.
+  ///   - authFlowRedirectionURI: The URI to which the authentication flow should redirect. Required when `supportedGrants` is `.authorizationCode` or `.both`.
   ///   - authorizeIssuanceConfig: Specifies how issuance authorization should be handled (default: `.favorScopes`).
   ///   - requirePAR: Whether to require Pushed Authorization Requests (default: `true`).
   ///   - clientAttestationPoPBuilder: An optional client attestation PoP builder (default: `nil`).
@@ -105,9 +110,11 @@ public struct OpenId4VCIConfig: Sendable {
   ///   - proofTypesPolicy: Policy defining which proof types the wallet supports (default: `.haipCompliant()`).
   ///   - supportedCredentialReusePolicies: Wallet's supported credential reuse policies (default: `.notSupported`).
   ///   - registrationCertificatePolicy: Optional policy that, when set, activates WRPRC enforcement in `Issuer.make(...)` (default: `nil`).
+  ///   - supportedGrants: The grant types supported by the wallet (default: `.both`).
+  /// - Throws: `ValidationError` if configuration is invalid.
   public init(
     client: Client,
-    authFlowRedirectionURI: URL,
+    authFlowRedirectionURI: URL? = nil,
     authorizeIssuanceConfig: AuthorizeIssuanceConfig = .favorScopes,
     requirePAR: ParUsage = .required(authorizationCodeDPoPBinding: true),
     clientAttestationPoPBuilder: ClientAttestationPoPBuilder? = nil,
@@ -116,8 +123,33 @@ public struct OpenId4VCIConfig: Sendable {
     proofTypesPolicy: ProofTypesPolicy = .haipCompliant(),
     requireDpop: Bool = true,
     supportedCredentialReusePolicies: SupportedCredentialReusePolicies = .notSupported,
-    registrationCertificatePolicy: RegistrationCertificatePolicy? = nil
-  ) {
+    registrationCertificatePolicy: RegistrationCertificatePolicy? = nil,
+    supportedGrants: SupportedGrants = .both
+  ) throws {
+    // Validate: authFlowRedirectionURI must be provided when supportedGrants is .authorizationCode or .both
+    if supportedGrants.requiresAuthorizationCodeFlow && authFlowRedirectionURI == nil {
+      throw ValidationError.error(
+        reason: "authFlowRedirectionURI must be provided when supportedGrants is .authorizationCode or .both"
+      )
+    }
+
+    // When a WRPRC policy is configured, the issuer metadata must be signed —
+    // otherwise there is no cryptographic binding of the `issuer_info` (and
+    // therefore the WRPRC) to the issuer's identity, and no WRP Access
+    // Certificate to hand to the policy validator.
+    if registrationCertificatePolicy != nil {
+      switch issuerMetadataPolicy {
+      case .requireSigned:
+        break
+      case .preferSigned, .ignoreSigned:
+        throw ValidationError.error(
+          reason: "OpenId4VCIConfig: registrationCertificatePolicy requires " +
+          "issuerMetadataPolicy = .requireSigned(...). " +
+          "Received: \(issuerMetadataPolicy)"
+        )
+      }
+    }
+
     self.client = client
     self.authFlowRedirectionURI = authFlowRedirectionURI
     self.authorizeIssuanceConfig = authorizeIssuanceConfig
@@ -129,22 +161,6 @@ public struct OpenId4VCIConfig: Sendable {
     self.supportedCredentialReusePolicies = supportedCredentialReusePolicies
     self.proofTypesPolicy = proofTypesPolicy
     self.registrationCertificatePolicy = registrationCertificatePolicy
-
-    // When a WRPRC policy is configured, the issuer metadata must be signed —
-    // otherwise there is no cryptographic binding of the `issuer_info` (and
-    // therefore the WRPRC) to the issuer's identity, and no WRP Access
-    // Certificate to hand to the policy validator.
-    if registrationCertificatePolicy != nil {
-      switch issuerMetadataPolicy {
-      case .requireSigned:
-        break
-      case .preferSigned, .ignoreSigned:
-        preconditionFailure(
-          "OpenId4VCIConfig: registrationCertificatePolicy requires " +
-          "issuerMetadataPolicy = .requireSigned(...). " +
-          "Received: \(issuerMetadataPolicy)"
-        )
-      }
-    }
+    self.supportedGrants = supportedGrants
   }
 }
