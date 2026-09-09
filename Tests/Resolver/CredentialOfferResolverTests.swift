@@ -495,7 +495,9 @@ class CredentialOfferResolverTests: XCTestCase {
   }
 
   func testSelectsSecondAuthServerWhenHintedInMultipleServers() async throws {
-    // Given: Metadata with multiple auth servers and offer hints at the second one
+    // Given: Metadata with multiple auth servers and offer hints at the second one.
+    // The oauth fixture used here advertises `issuer: https://auth-server-two.example.com`
+    // so that the RFC 8414 issuer==discovery-URL check accepts it.
     let credentialIssuerMetadataResolver = CredentialIssuerMetadataResolver(
       fetcher: MetadataFetcher(
         rawFetcher: RawDataFetcher(
@@ -511,7 +513,7 @@ class CredentialOfferResolverTests: XCTestCase {
         extension: "json"
       )),
       oauthFetcher: Fetcher<AuthorizationServerMetadata>(session: NetworkingMock(
-        path: "oauth_authorization_server_metadata",
+        path: "oauth_authorization_server_metadata_two",
         extension: "json"
       ))
     )

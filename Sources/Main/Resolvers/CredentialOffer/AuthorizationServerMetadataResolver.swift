@@ -54,20 +54,20 @@ public actor AuthorizationServerMetadataResolver: AuthorizationServerMetadataRes
   public func resolve(
     url: URL
   ) async -> Result<IdentityAndAccessManagementMetadata, Error> {
-    
+
     if let oauth = await fetchAuthorizationServerMetadata(
       fetcher: oauthFetcher,
       url: url
     ) {
       return .success(.oauth(oauth))
-      
+
     } else if let oidc = await fetchOIDCProviderMetadata(
       fetcher: oidcFetcher,
       url: url
     ) {
       return .success(.oidc(oidc))
     }
-    
+
     return .failure(ValidationError.error(reason: "Unable to fetch metadata"))
   }
   
@@ -87,7 +87,10 @@ public actor AuthorizationServerMetadataResolver: AuthorizationServerMetadataRes
       return nil
     }
 
-    return try? await fetcher.fetch(url: insertedUrl).get()
+    guard let metadata = try? await fetcher.fetch(url: insertedUrl).get() else {
+      return nil
+    }
+    return isIssuerBoundToDiscoveryURL(metadata.issuer, discoveryURL: url) ? metadata : nil
   }
 
   private func fetchAuthorizationServerMetadata(
@@ -106,7 +109,21 @@ public actor AuthorizationServerMetadataResolver: AuthorizationServerMetadataRes
       return nil
     }
 
-    return try? await fetcher.fetch(url: insertedUrl).get()
+    guard let metadata = try? await fetcher.fetch(url: insertedUrl).get() else {
+      return nil
+    }
+    return isIssuerBoundToDiscoveryURL(metadata.issuer, discoveryURL: url) ? metadata : nil
+  }
+
+  // RFC 8414 §3.3 (OAuth) / OpenID Discovery (OIDC): the metadata `issuer` MUST equal the URL
+  // used to retrieve it. A branch that returns metadata failing this check is treated as
+  // "no usable metadata from this well-known" so the other branch can still be tried; if both
+  // branches fail, the caller sees a single unable-to-fetch error. This prevents a malicious AS
+  // from declaring an arbitrary issuer and receiving client-attestation PoPs audienced to
+  // another, honest server.
+  private func isIssuerBoundToDiscoveryURL(_ metadataIssuer: String?, discoveryURL: URL) -> Bool {
+    guard let metadataIssuer, !metadataIssuer.isEmpty else { return false }
+    return metadataIssuer == discoveryURL.absoluteString
   }
 }
 
