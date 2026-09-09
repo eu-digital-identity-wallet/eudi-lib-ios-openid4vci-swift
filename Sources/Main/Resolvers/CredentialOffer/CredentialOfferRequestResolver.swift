@@ -216,14 +216,11 @@ public actor CredentialOfferRequestResolver {
     credentialIssuerMetadata: CredentialIssuerMetadata?,
     authorizationServerMetadata: IdentityAndAccessManagementMetadata
   ) throws -> CredentialOffer {
-
+    
     guard let credentialIssuerMetadata = credentialIssuerMetadata else {
       throw ValidationError.error(reason: "Invalid to fetch credential offer request by reference")
     }
-
-    // Use the identifier that came in with the offer, not the one echoed back in the metadata.
-    // The resolver has already verified they are equal (full-URL match); preserving the offer's
-    // value keeps the trust anchor at the source that supplied it.
+    
     do {
       let credentialConfigurationIdentifiers: [CredentialConfigurationIdentifier] = credentialOfferRequestObject.credentialConfigurationIds.compactMap { try? CredentialConfigurationIdentifier(value: $0.stringValue) }
       let grants = try credentialOfferRequestObject.grants?.toDomain()

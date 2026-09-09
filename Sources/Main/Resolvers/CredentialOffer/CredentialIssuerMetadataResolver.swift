@@ -72,9 +72,6 @@ public actor CredentialIssuerMetadataResolver: CredentialIssuerMetadataType {
         issuerId: issuerId
       )
       
-      // OpenID4VCI: the fetched metadata's credential_issuer MUST be identical to the identifier
-      // the wallet used to discover it — full URL, not just hostname. A hostname-only check lets
-      // a tenant on a shared host serve metadata claiming a sibling tenant's identity.
       if case .success(let metadata) = result {
         let expected = issuerId.url.absoluteString
         let actual = metadata.credentialIssuerIdentifier.url.absoluteString

@@ -496,8 +496,6 @@ class CredentialOfferResolverTests: XCTestCase {
 
   func testSelectsSecondAuthServerWhenHintedInMultipleServers() async throws {
     // Given: Metadata with multiple auth servers and offer hints at the second one.
-    // The oauth fixture used here advertises `issuer: https://auth-server-two.example.com`
-    // so that the RFC 8414 issuer==discovery-URL check accepts it.
     let credentialIssuerMetadataResolver = CredentialIssuerMetadataResolver(
       fetcher: MetadataFetcher(
         rawFetcher: RawDataFetcher(
@@ -701,10 +699,8 @@ class CredentialOfferResolverTests: XCTestCase {
       )
     }
   }
-
-  // The metadata fixture claims `credential_issuer: https://credential-issuer.example.com`.
-  // Asking for a sibling tenant path on the same host must fail: hostname alone is not enough
-  // to bind the metadata to the requested identifier.
+  
+  
   func testRejectsMetadataWhoseCredentialIssuerDoesNotMatchRequestedIssuer() async throws {
     let credentialIssuerMetadataResolver = CredentialIssuerMetadataResolver(
       fetcher: createMetadataFetcher())
@@ -729,9 +725,7 @@ class CredentialOfferResolverTests: XCTestCase {
     }
   }
 
-  // RFC 8414 §3.3: authorization server metadata whose `issuer` differs from the URL used
-  // to retrieve it must be unusable. The mock OAuth fixture advertises pid-issuer-realm;
-  // fetching against a different URL must be rejected.
+
   func testRejectsAuthorizationServerMetadataWithMismatchedIssuer() async throws {
     let resolver = AuthorizationServerMetadataResolver(
       oidcFetcher: Fetcher<OIDCProviderMetadata>(session: NetworkingMock(
