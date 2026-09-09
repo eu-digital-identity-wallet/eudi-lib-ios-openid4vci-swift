@@ -27,7 +27,13 @@ final class ProofTypesPolicyTests: XCTestCase {
 
     XCTAssertEqual(policy.supportedAlgorithms.count, 1)
     XCTAssertEqual(policy.supportedAlgorithms.first?.name, "ES256")
-    XCTAssertEqual(policy.supportedProofTypes, [.jwtWithKeyAttestation, .attestation])
+
+    // Verify it's a strict policy with both attested proof types
+    if case .strict(let strictPolicy) = policy {
+      XCTAssertEqual(strictPolicy.supportedProofTypes, [.jwtWithKeyAttestation, .attestation])
+    } else {
+      XCTFail("Expected .strict policy")
+    }
   }
 
   // MARK: - validateIssuerMetadata: no-proof case
@@ -172,10 +178,10 @@ final class ProofTypesPolicyTests: XCTestCase {
   // MARK: - validateIssuerMetadata: wallet policy restrictions
 
   func testRejectsWhenWalletSupportsNeitherAdvertisedType() {
-    let policy = ProofTypesPolicy(
+    let policy = ProofTypesPolicy.strict(StrictProofPolicy(
       supportedAlgorithms: [JWSAlgorithm(.ES256)],
       supportedProofTypes: []
-    )
+    ))
     let config = makeConfig(proofTypesSupported: [
       "jwt": ProofTypeSupportedMeta(
         algorithms: ["ES256"],
@@ -194,10 +200,10 @@ final class ProofTypesPolicyTests: XCTestCase {
   }
 
   func testRejectsWhenIssuerOnlyJwtButWalletOnlyAttestation() {
-    let policy = ProofTypesPolicy(
+    let policy = ProofTypesPolicy.strict(StrictProofPolicy(
       supportedAlgorithms: [JWSAlgorithm(.ES256)],
       supportedProofTypes: [.attestation]
-    )
+    ))
     let config = makeConfig(proofTypesSupported: [
       "jwt": ProofTypeSupportedMeta(
         algorithms: ["ES256"],
@@ -212,10 +218,10 @@ final class ProofTypesPolicyTests: XCTestCase {
   }
 
   func testRejectsWhenIssuerOnlyAttestationButWalletOnlyJwt() {
-    let policy = ProofTypesPolicy(
+    let policy = ProofTypesPolicy.strict(StrictProofPolicy(
       supportedAlgorithms: [JWSAlgorithm(.ES256)],
       supportedProofTypes: [.jwtWithKeyAttestation]
-    )
+    ))
     let config = makeConfig(proofTypesSupported: [
       "attestation": ProofTypeSupportedMeta(
         algorithms: ["ES256"],
@@ -247,7 +253,7 @@ final class ProofTypesPolicyTests: XCTestCase {
     )
   }
 
-  // MARK: - validate(bindingKey:)
+  // MARK: - validate(bindingKey:) for strict policy
 
   func testValidateRejectsNonAttestationCapableBindingKey() {
     let config = makeConfig(proofTypesSupported: [
@@ -268,6 +274,118 @@ final class ProofTypesPolicyTests: XCTestCase {
         bindingKey: .did(identity: "did:example:123")
       )
     )
+  }
+
+  // MARK: - acceptAll policy tests
+
+  func testAcceptAllAcceptsPlainJwtIssuer() {
+    let policy = ProofTypesPolicy.acceptAll(supportedAlgorithms: [JWSAlgorithm(.ES256)])
+    let config = makeConfig(proofTypesSupported: [
+      "jwt": ProofTypeSupportedMeta(
+        algorithms: ["ES256"],
+        keyAttestationRequirement: .notRequired
+      )
+    ])
+
+    XCTAssertNoThrow(try policy.validateIssuerMetadata(credentialConfiguration: config))
+  }
+
+  func testAcceptAllAcceptsAttestedIssuer() {
+    let policy = ProofTypesPolicy.acceptAll(supportedAlgorithms: [JWSAlgorithm(.ES256)])
+    let config = makeConfig(proofTypesSupported: [
+      "jwt": ProofTypeSupportedMeta(
+        algorithms: ["ES256"],
+        keyAttestationRequirement: .requiredNoConstraints
+      )
+    ])
+
+    XCTAssertNoThrow(try policy.validateIssuerMetadata(credentialConfiguration: config))
+  }
+
+  func testAcceptAllRejectsAlgorithmMismatch() {
+    let policy = ProofTypesPolicy.acceptAll(supportedAlgorithms: [JWSAlgorithm(.ES256)])
+    let config = makeConfig(proofTypesSupported: [
+      "jwt": ProofTypeSupportedMeta(
+        algorithms: ["RS256"],
+        keyAttestationRequirement: .notRequired
+      )
+    ])
+
+    expectError(
+      .noMatchingAlgorithmForProofType,
+      try policy.validateIssuerMetadata(credentialConfiguration: config)
+    )
+  }
+
+  func testAcceptAllRejectsPlainJwtBindingKeyWhenIssuerRequiresAttestation() {
+    let policy = ProofTypesPolicy.acceptAll(supportedAlgorithms: [JWSAlgorithm(.ES256)])
+    let config = makeConfig(proofTypesSupported: [
+      "jwt": ProofTypeSupportedMeta(
+        algorithms: ["ES256"],
+        keyAttestationRequirement: .requiredNoConstraints
+      )
+    ])
+
+    expectError(
+      .proofTypeKeyAttestationRequired,
+      try policy.validate(
+        credentialConfiguration: config,
+        bindingKey: makePlainJwtBindingKey()
+      )
+    )
+  }
+
+  // MARK: - flexible policy tests
+
+  func testFlexibleWithPlainJwtAllowedAcceptsPlainJwtIssuer() {
+    let policy = ProofTypesPolicy.flexible(FlexibleProofPolicy(
+      supportedAlgorithms: [JWSAlgorithm(.ES256)],
+      supportedAttestedProofTypes: [.jwtWithKeyAttestation, .attestation],
+      allowPlainJwtProof: true
+    ))
+    let config = makeConfig(proofTypesSupported: [
+      "jwt": ProofTypeSupportedMeta(
+        algorithms: ["ES256"],
+        keyAttestationRequirement: .notRequired
+      )
+    ])
+
+    XCTAssertNoThrow(try policy.validateIssuerMetadata(credentialConfiguration: config))
+  }
+
+  func testFlexibleWithoutPlainJwtRejectsPlainJwtIssuer() {
+    let policy = ProofTypesPolicy.flexible(FlexibleProofPolicy(
+      supportedAlgorithms: [JWSAlgorithm(.ES256)],
+      supportedAttestedProofTypes: [.jwtWithKeyAttestation, .attestation],
+      allowPlainJwtProof: false
+    ))
+    let config = makeConfig(proofTypesSupported: [
+      "jwt": ProofTypeSupportedMeta(
+        algorithms: ["ES256"],
+        keyAttestationRequirement: .notRequired
+      )
+    ])
+
+    expectError(
+      .issuerMetadataNoAttestedProofType,
+      try policy.validateIssuerMetadata(credentialConfiguration: config)
+    )
+  }
+
+  func testFlexibleWithPlainJwtAllowedAcceptsAttestedIssuer() {
+    let policy = ProofTypesPolicy.flexible(FlexibleProofPolicy(
+      supportedAlgorithms: [JWSAlgorithm(.ES256)],
+      supportedAttestedProofTypes: [.jwtWithKeyAttestation],
+      allowPlainJwtProof: true
+    ))
+    let config = makeConfig(proofTypesSupported: [
+      "jwt": ProofTypeSupportedMeta(
+        algorithms: ["ES256"],
+        keyAttestationRequirement: .requiredNoConstraints
+      )
+    ])
+
+    XCTAssertNoThrow(try policy.validateIssuerMetadata(credentialConfiguration: config))
   }
 
   // MARK: - Helpers
@@ -291,6 +409,20 @@ final class ProofTypesPolicyTests: XCTestCase {
     return .sdJwtVc(config)
   }
 
+  private func makePlainJwtBindingKey() -> BindingKey {
+    // Create a minimal JWK for testing
+    let jwk = try! ECPublicKey(
+      crv: .P256,
+      x: "WbbPfH2vTcXhlbl1tTQBK4kYPZ7WOZJZKbGQPjbcTrQ",
+      y: "h3RrNKl0WE0NVU7IwxEJr1rXnP2_mP4mfQF1sXnRNPg"
+    )
+    return .jwt(
+      algorithm: JWSAlgorithm(.ES256),
+      jwk: jwk,
+      privateKey: .custom(MockAsyncSigner())
+    )
+  }
+
   private func expectError(
     _ expected: CredentialIssuanceError,
     _ expression: @autoclosure () throws -> Void,
@@ -310,5 +442,20 @@ final class ProofTypesPolicyTests: XCTestCase {
         line: line
       )
     }
+  }
+}
+
+// Mock signer for testing
+private struct MockAsyncSigner: AsyncSignerProtocol {
+  var publicKey: any JWK {
+    return try! ECPublicKey(
+      crv: .P256,
+      x: "WbbPfH2vTcXhlbl1tTQBK4kYPZ7WOZJZKbGQPjbcTrQ",
+      y: "h3RrNKl0WE0NVU7IwxEJr1rXnP2_mP4mfQF1sXnRNPg"
+    )
+  }
+
+  func signAsync(_ header: Data, _ payload: Data) async throws -> Data {
+    return Data()
   }
 }

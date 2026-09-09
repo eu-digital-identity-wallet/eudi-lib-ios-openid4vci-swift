@@ -385,29 +385,70 @@ The DPoP constructor itself is passed as a parameter to `Issuer(...)` / `Issuer.
 
 ### Proof Types Policy Configuration
 
-The library enforces device-bound attestations. Only the following proof types are
-accepted for credential issuance:
+The library supports configurable proof type policies. By default, it enforces
+device-bound attestations (HAIP-compliant), but can be configured to accept
+plain JWT proofs for testing or legacy compatibility.
 
+#### Policy Options
+
+**1. Strict (HAIP-Compliant) - Default**
+
+Enforces device-bound attestations. Only accepts:
 - `proof_type: attestation`
 - `proof_type: jwt` with `key_attestation` in the protected header
 
-Plain JWT proofs (no `key_attestation`) are not supported.
-
-Issuer metadata is validated:
-
-- A credential configuration whose `proof_types_supported` is missing or empty
-  is treated as "no proof required" and accepted.
-- A non-empty `proof_types_supported` MUST advertise BOTH `jwt` AND
-  `attestation`, and BOTH MUST carry `key_attestations_required`. Any other
-  shape is rejected with `CredentialIssuanceError.issuerMetadataNoAttestedProofType`.
-
-`ProofTypesPolicy` is a struct that declares the wallet's supported signing
-algorithms and supported attested proof types:
+Rejects issuers that don't advertise `key_attestations_required`.
 
 ```swift
-public struct ProofTypesPolicy: Sendable {
-  public let supportedAlgorithms: [JWSAlgorithm]
-  public let supportedProofTypes: Set<AttestedProofType>
+// Default - recommended for production
+let config = OpenId4VCIConfig(
+  client: client,
+  authFlowRedirectionURI: redirectURI,
+  proofTypesPolicy: .haipCompliant()  // This is the default
+)
+```
+
+**2. Accept All (Legacy/Testing)**
+
+Accepts any proof type including plain JWT without key attestation.
+Use for testing or compatibility with non-HAIP issuers.
+
+```swift
+let config = OpenId4VCIConfig(
+  client: client,
+  authFlowRedirectionURI: redirectURI,
+  proofTypesPolicy: .acceptAll(supportedAlgorithms: [JWSAlgorithm(.ES256)])
+)
+```
+
+**3. Flexible (Custom Configuration)**
+
+Fine-grained control over which proof types are accepted.
+
+```swift
+let config = OpenId4VCIConfig(
+  client: client,
+  authFlowRedirectionURI: redirectURI,
+  proofTypesPolicy: .flexible(FlexibleProofPolicy(
+    supportedAlgorithms: [JWSAlgorithm(.ES256)],
+    supportedAttestedProofTypes: [.jwtWithKeyAttestation, .attestation],
+    allowPlainJwtProof: true  // Also accept plain JWT
+  ))
+)
+```
+
+#### Policy Types
+
+```swift
+public enum ProofTypesPolicy: Sendable {
+  case strict(StrictProofPolicy)
+  case acceptAll(supportedAlgorithms: [JWSAlgorithm])
+  case flexible(FlexibleProofPolicy)
+
+  // Convenience for HAIP-compliant strict policy
+  public static func haipCompliant(
+    algorithms: [JWSAlgorithm] = [JWSAlgorithm(.ES256)]
+  ) -> ProofTypesPolicy
 }
 
 public enum AttestedProofType: String, Sendable {
@@ -416,10 +457,31 @@ public enum AttestedProofType: String, Sendable {
 }
 ```
 
-The default for `OpenId4VCIConfig.proofTypesPolicy` is `.haipCompliant()`, which
-accepts `ES256` and both attested proof types. Provide a custom
-`ProofTypesPolicy(supportedAlgorithms:, supportedProofTypes:)` to narrow the
-algorithms or the attested proof types your wallet is willing to produce.
+#### Binding Keys
+
+When using plain JWT proofs, use `BindingKey.jwt`:
+
+```swift
+let bindingKey: BindingKey = .jwt(
+  algorithm: JWSAlgorithm(.ES256),
+  jwk: publicKeyJWK,
+  privateKey: .secKey(privateKey)
+)
+```
+
+For attested proofs (default), use `BindingKey.jwtKeyAttestation` or `BindingKey.attestation`.
+
+#### Validation Behavior
+
+| Policy | Issuer Requires Attestation | Issuer Allows Plain JWT | BindingKey.jwt | BindingKey.jwtKeyAttestation |
+|--------|----------------------------|------------------------|----------------|------------------------------|
+| `.strict` | Pass | Reject | Reject | Pass |
+| `.acceptAll` | Pass | Pass | Pass (if issuer allows) | Pass |
+| `.flexible(allowPlainJwt: true)` | Pass | Pass | Pass (if issuer allows) | Pass |
+| `.flexible(allowPlainJwt: false)` | Pass | Reject | Reject | Pass |
+
+If the issuer requires key attestation but the wallet provides `BindingKey.jwt`,
+the request will fail with `CredentialIssuanceError.proofTypeKeyAttestationRequired`.
 
 
 ## Features supported
@@ -441,12 +503,14 @@ endpoints.
 OpenId4VCI specification defines several extension points to accommodate the differences across Credential formats. The current version of the library fully supports **ISO mDL** profile and gives some initial support for **IETF SD-JWT VC** profile.  
 
 #### Proof Types
-OpenId4VCI specification (draft 14) defines proofs that can be included in a credential issuance request. The library supports the two attested proof types only:
+OpenId4VCI specification (draft 14) defines proofs that can be included in a credential issuance request. The library supports:
 
-- `attestation` proof.
-- `jwt` proof with `key_attestation` in the protected header.
+- `attestation` proof
+- `jwt` proof with `key_attestation` in the protected header (HAIP-compliant)
+- `jwt` proof without key attestation (plain JWT, opt-in via policy)
 
-Plain JWT proofs (without `key_attestation`) are intentionally not supported. See [Proof Types Policy Configuration](#proof-types-policy-configuration) above.
+By default, only attested proof types are accepted (HAIP-compliant). Plain JWT proofs
+can be enabled via `.acceptAll` or `.flexible` policies. See [Proof Types Policy Configuration](#proof-types-policy-configuration) above.
 
 ### Demonstrating Proof of Possession (DPoP)
 

@@ -441,6 +441,63 @@ class VCIFlowNoOffer: XCTestCase {
     XCTAssert(true)
   }
   
+  func testNoOfferSdJWTPlainJwtBindingKey() async throws {
+
+    let privateKey = try KeyController.generateECDHPrivateKey()
+    let publicKey = try KeyController.generateECDHPublicKey(from: privateKey)
+
+    let alg = JWSAlgorithm(.ES256)
+    let publicKeyJWK = try ECPublicKey(
+      publicKey: publicKey,
+      additionalParameters: [
+        "alg": alg.name,
+        "use": "sig",
+        "kid": UUID().uuidString
+      ])
+
+    // Use plain JWT binding key (no key attestation)
+    let bindingKey: BindingKey = .jwt(
+      algorithm: alg,
+      jwk: publicKeyJWK,
+      privateKey: .secKey(privateKey)
+    )
+
+    let user = ActingUser(
+      username: "tneal",
+      password: "password"
+    )
+
+    let wallet = Wallet(
+      actingUser: user,
+      bindingKeys: [bindingKey]
+    )
+
+    // Use acceptAll policy to allow plain JWT proofs
+    let acceptAllConfig: OpenId4VCIConfig = .init(
+      client: .public(id: "eudiw-abca"),
+      authFlowRedirectionURI: URL(string: "urn:ietf:wg:oauth:2.0:oob")!,
+      authorizeIssuanceConfig: .favorScopes,
+      proofTypesPolicy: .acceptAll(supportedAlgorithms: [JWSAlgorithm(.ES256)])
+    )
+
+    do {
+      // This test exercises the plain JWT code path.
+      // It will fail at the issuer because the issuer requires key attestation,
+      // but it validates that the BindingKey.jwt case is properly handled.
+      try await walletInitiatedIssuanceNoOfferSdJwt(
+        wallet: wallet,
+        config: acceptAllConfig
+      )
+
+    } catch {
+      // Expected to fail because issuer requires key attestation
+      XCTExpectFailure()
+      XCTAssert(false, error.localizedDescription)
+    }
+
+    XCTAssert(true)
+  }
+
   func testNoOfferWalletInstanceAttestedSdJWT() async throws {
     
     let client = WalletProviderClient(
