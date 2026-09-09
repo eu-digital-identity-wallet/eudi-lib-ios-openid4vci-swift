@@ -48,7 +48,7 @@ public enum CredentialRequestEncryption: Decodable, Sendable {
     let container = try decoder.container(keyedBy: CodingKeys.self)
     
     let encryptionRequired = (try? container.decode(Bool.self, forKey: .encryptionRequired)) ?? false
-    let jwkWrappers = try? container.decodeIfPresent(JWKSet.self, forKey: .jwks)
+    let jwkWrappers = try container.decodeIfPresent(JWKSet.self, forKey: .jwks)
     let jwks = jwkWrappers?.keys.map(\.key) ?? []
     let encryptionMethodsSupported = try? container.decode([JOSEEncryptionMethod].self, forKey: .encryptionMethodsSupported)
     let compressionMethodsSupported = try? container.decode([CompressionAlgorithm].self, forKey: .compressionMethodsSupported)
