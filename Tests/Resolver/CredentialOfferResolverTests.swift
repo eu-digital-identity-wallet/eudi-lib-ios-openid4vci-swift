@@ -701,4 +701,58 @@ class CredentialOfferResolverTests: XCTestCase {
       )
     }
   }
+
+  // The metadata fixture claims `credential_issuer: https://credential-issuer.example.com`.
+  // Asking for a sibling tenant path on the same host must fail: hostname alone is not enough
+  // to bind the metadata to the requested identifier.
+  func testRejectsMetadataWhoseCredentialIssuerDoesNotMatchRequestedIssuer() async throws {
+    let credentialIssuerMetadataResolver = CredentialIssuerMetadataResolver(
+      fetcher: createMetadataFetcher())
+
+    do {
+      _ = try await credentialIssuerMetadataResolver.resolve(
+        source: .credentialIssuer(
+          try .init("https://credential-issuer.example.com/tenant-a")
+        ),
+        policy: .ignoreSigned
+      )
+      XCTFail("Expected mismatch to be rejected")
+    } catch let error as CredentialIssuerMetadataError {
+      guard case .issuerMismatch(let expected, let actual) = error else {
+        XCTFail("Expected issuerMismatch error, got \(error)")
+        return
+      }
+      XCTAssertEqual(expected, "https://credential-issuer.example.com/tenant-a")
+      XCTAssertEqual(actual, "https://credential-issuer.example.com")
+    } catch {
+      XCTFail("Unexpected error type: \(error)")
+    }
+  }
+
+  // RFC 8414 §3.3: authorization server metadata whose `issuer` differs from the URL used
+  // to retrieve it must be unusable. The mock OAuth fixture advertises pid-issuer-realm;
+  // fetching against a different URL must be rejected.
+  func testRejectsAuthorizationServerMetadataWithMismatchedIssuer() async throws {
+    let resolver = AuthorizationServerMetadataResolver(
+      oidcFetcher: Fetcher<OIDCProviderMetadata>(session: NetworkingMock(
+        path: "oidc_authorization_server_metadata",
+        extension: "json"
+      )),
+      oauthFetcher: Fetcher<AuthorizationServerMetadata>(session: NetworkingMock(
+        path: "oauth_authorization_server_metadata",
+        extension: "json"
+      ))
+    )
+
+    let result = await resolver.resolve(
+      url: URL(string: "https://different-authorization-server.example.com")!
+    )
+
+    switch result {
+    case .success:
+      XCTFail("Expected mismatched issuer to be rejected")
+    case .failure:
+      XCTAssertTrue(true)
+    }
+  }
 }
