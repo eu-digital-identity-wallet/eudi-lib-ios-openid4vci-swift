@@ -278,10 +278,10 @@ struct TestsConstants {
         extension: "json",
         headers: ["Content-type": "application/json"]
       ))))
-    
+
     let authorizationServerMetadataResolver = AuthorizationServerMetadataResolver(
       oidcFetcher: Fetcher<OIDCProviderMetadata>(session: NetworkingMock(
-        path: "oidc_authorization_server_metadata",
+        path: "oidc_authorization_server_metadata_auth_server_example",
         extension: "json"
       )),
       oauthFetcher: Fetcher<AuthorizationServerMetadata>()
@@ -309,10 +309,10 @@ struct TestsConstants {
         extension: "json",
         headers: ["Content-type": "application/json"]
       ))))
-    
+
     let authorizationServerMetadataResolver = AuthorizationServerMetadataResolver(
       oidcFetcher: Fetcher<OIDCProviderMetadata>(session: NetworkingMock(
-        path: "oidc_authorization_server_metadata",
+        path: "oidc_authorization_server_metadata_auth_server_example",
         extension: "json"
       ))
     )
@@ -344,7 +344,7 @@ struct TestsConstants {
 
     let authorizationServerMetadataResolver = AuthorizationServerMetadataResolver(
       oidcFetcher: Fetcher<OIDCProviderMetadata>(session: NetworkingMock(
-        path: "oidc_authorization_server_metadata",
+        path: "oidc_authorization_server_metadata_auth_server_example",
         extension: "json"
       ))
     )
@@ -371,10 +371,10 @@ struct TestsConstants {
         extension: "json",
         headers: ["Content-type": "application/json"]
       ))))
-    
+
     let authorizationServerMetadataResolver = AuthorizationServerMetadataResolver(
       oidcFetcher: Fetcher<OIDCProviderMetadata>(session: NetworkingMock(
-        path: "oidc_authorization_server_metadata",
+        path: "oidc_authorization_server_metadata_auth_server_example",
         extension: "json"
       )),
       oauthFetcher: Fetcher<AuthorizationServerMetadata>()

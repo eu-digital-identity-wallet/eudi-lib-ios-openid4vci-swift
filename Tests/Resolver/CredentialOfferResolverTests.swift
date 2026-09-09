@@ -495,7 +495,7 @@ class CredentialOfferResolverTests: XCTestCase {
   }
 
   func testSelectsSecondAuthServerWhenHintedInMultipleServers() async throws {
-    // Given: Metadata with multiple auth servers and offer hints at the second one
+    // Given: Metadata with multiple auth servers and offer hints at the second one.
     let credentialIssuerMetadataResolver = CredentialIssuerMetadataResolver(
       fetcher: MetadataFetcher(
         rawFetcher: RawDataFetcher(
@@ -511,7 +511,7 @@ class CredentialOfferResolverTests: XCTestCase {
         extension: "json"
       )),
       oauthFetcher: Fetcher<AuthorizationServerMetadata>(session: NetworkingMock(
-        path: "oauth_authorization_server_metadata",
+        path: "oauth_authorization_server_metadata_two",
         extension: "json"
       ))
     )
@@ -697,6 +697,56 @@ class CredentialOfferResolverTests: XCTestCase {
         errorDescription.contains("error 4"),
         "Error should be related to invalidGrants: \(errorDescription)"
       )
+    }
+  }
+  
+  
+  func testRejectsMetadataWhoseCredentialIssuerDoesNotMatchRequestedIssuer() async throws {
+    let credentialIssuerMetadataResolver = CredentialIssuerMetadataResolver(
+      fetcher: createMetadataFetcher())
+
+    do {
+      _ = try await credentialIssuerMetadataResolver.resolve(
+        source: .credentialIssuer(
+          try .init("https://credential-issuer.example.com/tenant-a")
+        ),
+        policy: .ignoreSigned
+      )
+      XCTFail("Expected mismatch to be rejected")
+    } catch let error as CredentialIssuerMetadataError {
+      guard case .issuerMismatch(let expected, let actual) = error else {
+        XCTFail("Expected issuerMismatch error, got \(error)")
+        return
+      }
+      XCTAssertEqual(expected, "https://credential-issuer.example.com/tenant-a")
+      XCTAssertEqual(actual, "https://credential-issuer.example.com")
+    } catch {
+      XCTFail("Unexpected error type: \(error)")
+    }
+  }
+
+
+  func testRejectsAuthorizationServerMetadataWithMismatchedIssuer() async throws {
+    let resolver = AuthorizationServerMetadataResolver(
+      oidcFetcher: Fetcher<OIDCProviderMetadata>(session: NetworkingMock(
+        path: "oidc_authorization_server_metadata",
+        extension: "json"
+      )),
+      oauthFetcher: Fetcher<AuthorizationServerMetadata>(session: NetworkingMock(
+        path: "oauth_authorization_server_metadata",
+        extension: "json"
+      ))
+    )
+
+    let result = await resolver.resolve(
+      url: URL(string: "https://different-authorization-server.example.com")!
+    )
+
+    switch result {
+    case .success:
+      XCTFail("Expected mismatched issuer to be rejected")
+    case .failure:
+      XCTAssertTrue(true)
     }
   }
 }
