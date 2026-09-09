@@ -72,20 +72,20 @@ public actor CredentialIssuerMetadataResolver: CredentialIssuerMetadataType {
         issuerId: issuerId
       )
       
-      // Validate on success
+      // OpenID4VCI: the fetched metadata's credential_issuer MUST be identical to the identifier
+      // the wallet used to discover it — full URL, not just hostname. A hostname-only check lets
+      // a tenant on a shared host serve metadata claiming a sibling tenant's identity.
       if case .success(let metadata) = result {
-        
-        guard
-          let requestHost = wellKnownURL.host,
-          let issuerHost = metadata.credentialIssuerIdentifier.url.host,
-          requestHost.caseInsensitiveCompare(issuerHost) == .orderedSame
-        else {
-          throw ValidationError.error(
-            reason: "Issuer domain does not match metadata issuer"
+        let expected = issuerId.url.absoluteString
+        let actual = metadata.credentialIssuerIdentifier.url.absoluteString
+        guard expected == actual else {
+          throw CredentialIssuerMetadataError.issuerMismatch(
+            expected: expected,
+            actual: actual
           )
         }
       }
-      
+
       return result
     }
   }

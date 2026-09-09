@@ -20,6 +20,7 @@ public enum CredentialIssuerMetadataError: Error {
   case nonParseableCredentialIssuerMetadata(cause: Error)
   
   case invalidCredentialIssuerId
+  case issuerMismatch(expected: String, actual: String)
   case credentialResponseAsymmetricEncryptionAlgorithmsRequired
   case credentialRequestEncryptionMustExistIfCredentialResponseEncryptionExists
   case unsupportedRequestEncryptionMethods
