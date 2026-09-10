@@ -474,7 +474,7 @@ class VCIFlowNoOffer: XCTestCase {
 
     // Use acceptAll policy to allow plain JWT proofs
     let acceptAllConfig: OpenId4VCIConfig = .init(
-      client: .public(id: "eudiw-abca"),
+      client: .public(id: "wallet-dev"),
       authFlowRedirectionURI: URL(string: "urn:ietf:wg:oauth:2.0:oob")!,
       authorizeIssuanceConfig: .favorScopes,
       proofTypesPolicy: .acceptAll(supportedAlgorithms: [JWSAlgorithm(.ES256)])
