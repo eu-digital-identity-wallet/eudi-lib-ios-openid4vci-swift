@@ -140,7 +140,7 @@ func testSigningKeyPair(alg: JWSAlgorithm) -> (public: JWK, private: SigningKeyP
 
 let testingSigningKeyPair = testSigningKeyPair(alg: .init(.ES256))
 
-let attestationConfig: OpenId4VCIConfig = .init(
+let attestationConfig: OpenId4VCIConfig = try! .init(
   client: attestionClient,
   authFlowRedirectionURI: URL(string: "urn:ietf:wg:oauth:2.0:oob")!,
   authorizeIssuanceConfig: .favorScopes,

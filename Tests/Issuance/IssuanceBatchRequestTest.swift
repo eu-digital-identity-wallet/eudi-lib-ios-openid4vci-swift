@@ -22,7 +22,7 @@ import SwiftyJSON
 
 class IssuanceBatchRequestTest: XCTestCase {
   
-  let config: OpenId4VCIConfig = .init(
+  let config: OpenId4VCIConfig = try! .init(
     client: attestionClient,
     authFlowRedirectionURI: URL(string: "urn:ietf:wg:oauth:2.0:oob")!,
     authorizeIssuanceConfig: .favorScopes

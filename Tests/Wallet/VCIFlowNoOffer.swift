@@ -514,7 +514,7 @@ class VCIFlowNoOffer: XCTestCase {
       privateKey: privateKey
     )
     do {
-      let attestationConfig: OpenId4VCIConfig = .init(
+      let attestationConfig: OpenId4VCIConfig = try .init(
         client: provider.client,
         authFlowRedirectionURI: URL(string: "urn:ietf:wg:oauth:2.0:oob")!,
         authorizeIssuanceConfig: .favorScopes,
