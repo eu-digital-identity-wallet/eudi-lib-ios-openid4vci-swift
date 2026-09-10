@@ -692,7 +692,7 @@ internal extension Issuer {
     /// Filter for keys we care about
     let eligibleKeys = bindingKeys.filter {
       switch $0 {
-      case .jwtKeyAttestation, .attestation: true
+      case .jwt, .jwtKeyAttestation, .attestation: true
       default: false
       }
     }
