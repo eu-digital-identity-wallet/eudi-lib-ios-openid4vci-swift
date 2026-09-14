@@ -109,6 +109,7 @@ public actor CredentialOfferRequestResolver {
 
         let domain = try toDomain(
           credentialOfferRequestObject: credentialOfferRequestObject,
+          credentialIssuerId: credentialIssuerId,
           credentialIssuerMetadata: credentialIssuerMetadata,
           authorizationServerMetadata: authorizationServerMetadata
         )
@@ -145,6 +146,7 @@ public actor CredentialOfferRequestResolver {
 
           let domain = try toDomain(
             credentialOfferRequestObject: credentialOfferRequestObject,
+            credentialIssuerId: credentialIssuerId,
             credentialIssuerMetadata: credentialIssuerMetadata,
             authorizationServerMetadata: authorizationServerMetadata
           )
@@ -210,6 +212,7 @@ public actor CredentialOfferRequestResolver {
 
   func toDomain(
     credentialOfferRequestObject: CredentialOfferRequestObject,
+    credentialIssuerId: CredentialIssuerId,
     credentialIssuerMetadata: CredentialIssuerMetadata?,
     authorizationServerMetadata: IdentityAndAccessManagementMetadata
   ) throws -> CredentialOffer {
@@ -219,7 +222,6 @@ public actor CredentialOfferRequestResolver {
     }
     
     do {
-      let credentialIssuerId = credentialIssuerMetadata.credentialIssuerIdentifier
       let credentialConfigurationIdentifiers: [CredentialConfigurationIdentifier] = credentialOfferRequestObject.credentialConfigurationIds.compactMap { try? CredentialConfigurationIdentifier(value: $0.stringValue) }
       let grants = try credentialOfferRequestObject.grants?.toDomain()
       return try .init(

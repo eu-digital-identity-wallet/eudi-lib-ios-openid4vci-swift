@@ -87,7 +87,10 @@ public actor AuthorizationServerMetadataResolver: AuthorizationServerMetadataRes
       return nil
     }
 
-    return try? await fetcher.fetch(url: insertedUrl).get()
+    guard let metadata = try? await fetcher.fetch(url: insertedUrl).get() else {
+      return nil
+    }
+    return isIssuerBoundToDiscoveryURL(metadata.issuer, discoveryURL: url) ? metadata : nil
   }
 
   private func fetchAuthorizationServerMetadata(
@@ -106,7 +109,16 @@ public actor AuthorizationServerMetadataResolver: AuthorizationServerMetadataRes
       return nil
     }
 
-    return try? await fetcher.fetch(url: insertedUrl).get()
+    guard let metadata = try? await fetcher.fetch(url: insertedUrl).get() else {
+      return nil
+    }
+    return isIssuerBoundToDiscoveryURL(metadata.issuer, discoveryURL: url) ? metadata : nil
+  }
+
+  
+  private func isIssuerBoundToDiscoveryURL(_ metadataIssuer: String?, discoveryURL: URL) -> Bool {
+    guard let metadataIssuer, !metadataIssuer.isEmpty else { return false }
+    return metadataIssuer == discoveryURL.absoluteString
   }
 }
 
