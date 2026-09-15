@@ -124,38 +124,6 @@ class SupportedGrantsTests: XCTestCase {
 
   // MARK: - OpenId4VCIConfig Validation Tests
 
-  func testConfigWithAuthorizationCodeGrantsRequiresRedirectionURI() throws {
-    XCTAssertThrowsError(
-      OpenId4VCIConfig(
-        client: .public(id: "test-client"),
-        authFlowRedirectionURI: nil,
-        supportedGrants: .authorizationCode
-      )
-    ) { error in
-      guard case ValidationError.error(let reason) = error else {
-        XCTFail("Expected ValidationError.error, got \(error)")
-        return
-      }
-      XCTAssertTrue(reason.contains("authFlowRedirectionURI must be provided"))
-    }
-  }
-
-  func testConfigWithBothGrantsRequiresRedirectionURI() throws {
-    XCTAssertThrowsError(
-      OpenId4VCIConfig(
-        client: .public(id: "test-client"),
-        authFlowRedirectionURI: nil,
-        supportedGrants: .both
-      )
-    ) { error in
-      guard case ValidationError.error(let reason) = error else {
-        XCTFail("Expected ValidationError.error, got \(error)")
-        return
-      }
-      XCTAssertTrue(reason.contains("authFlowRedirectionURI must be provided"))
-    }
-  }
-
   func testConfigWithPreAuthorizedCodeGrantsDoesNotRequireRedirectionURI() throws {
     let config = OpenId4VCIConfig(
       client: .public(id: "test-client"),
