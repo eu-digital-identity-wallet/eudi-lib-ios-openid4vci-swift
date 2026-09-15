@@ -125,11 +125,11 @@ public struct OpenId4VCIConfig: Sendable {
     supportedCredentialReusePolicies: SupportedCredentialReusePolicies = .notSupported,
     registrationCertificatePolicy: RegistrationCertificatePolicy? = nil,
     supportedGrants: SupportedGrants = .both
-  ) throws {
+  ) {
     // Validate: authFlowRedirectionURI must be provided when supportedGrants is .authorizationCode or .both
     if supportedGrants.requiresAuthorizationCodeFlow && authFlowRedirectionURI == nil {
-      throw ValidationError.error(
-        reason: "authFlowRedirectionURI must be provided when supportedGrants is .authorizationCode or .both"
+      preconditionFailure(
+        "authFlowRedirectionURI must be provided when supportedGrants is .authorizationCode or .both"
       )
     }
 
@@ -142,8 +142,8 @@ public struct OpenId4VCIConfig: Sendable {
       case .requireSigned:
         break
       case .preferSigned, .ignoreSigned:
-        throw ValidationError.error(
-          reason: "OpenId4VCIConfig: registrationCertificatePolicy requires " +
+        preconditionFailure(
+          "OpenId4VCIConfig: registrationCertificatePolicy requires " +
           "issuerMetadataPolicy = .requireSigned(...). " +
           "Received: \(issuerMetadataPolicy)"
         )

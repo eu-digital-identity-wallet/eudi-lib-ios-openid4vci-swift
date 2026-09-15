@@ -34,7 +34,7 @@ class KeyAttestationTests: XCTestCase {
   override func setUp() async throws {
     try await super.setUp()
     
-    config = try .init(
+    config = .init(
       client: attestionClient,
       authFlowRedirectionURI: URL(string: "urn:ietf:wg:oauth:2.0:oob")!,
       authorizeIssuanceConfig: .favorScopes

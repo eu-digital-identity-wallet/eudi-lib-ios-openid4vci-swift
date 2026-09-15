@@ -126,7 +126,7 @@ class SupportedGrantsTests: XCTestCase {
 
   func testConfigWithAuthorizationCodeGrantsRequiresRedirectionURI() throws {
     XCTAssertThrowsError(
-      try OpenId4VCIConfig(
+      OpenId4VCIConfig(
         client: .public(id: "test-client"),
         authFlowRedirectionURI: nil,
         supportedGrants: .authorizationCode
@@ -142,7 +142,7 @@ class SupportedGrantsTests: XCTestCase {
 
   func testConfigWithBothGrantsRequiresRedirectionURI() throws {
     XCTAssertThrowsError(
-      try OpenId4VCIConfig(
+      OpenId4VCIConfig(
         client: .public(id: "test-client"),
         authFlowRedirectionURI: nil,
         supportedGrants: .both
@@ -157,7 +157,7 @@ class SupportedGrantsTests: XCTestCase {
   }
 
   func testConfigWithPreAuthorizedCodeGrantsDoesNotRequireRedirectionURI() throws {
-    let config = try OpenId4VCIConfig(
+    let config = OpenId4VCIConfig(
       client: .public(id: "test-client"),
       authFlowRedirectionURI: nil,
       supportedGrants: .preAuthorizedCode
@@ -169,7 +169,7 @@ class SupportedGrantsTests: XCTestCase {
 
   func testConfigWithAuthorizationCodeGrantsAndRedirectionURISucceeds() throws {
     let redirectURI = URL(string: "https://example.com/callback")!
-    let config = try OpenId4VCIConfig(
+    let config = OpenId4VCIConfig(
       client: .public(id: "test-client"),
       authFlowRedirectionURI: redirectURI,
       supportedGrants: .authorizationCode
@@ -181,7 +181,7 @@ class SupportedGrantsTests: XCTestCase {
 
   func testConfigWithBothGrantsAndRedirectionURISucceeds() throws {
     let redirectURI = URL(string: "https://example.com/callback")!
-    let config = try OpenId4VCIConfig(
+    let config = OpenId4VCIConfig(
       client: .public(id: "test-client"),
       authFlowRedirectionURI: redirectURI,
       supportedGrants: .both
