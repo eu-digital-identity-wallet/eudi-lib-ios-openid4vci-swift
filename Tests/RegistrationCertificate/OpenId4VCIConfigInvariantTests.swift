@@ -28,7 +28,7 @@ final class OpenId4VCIConfigInvariantTests: XCTestCase {
 
   private let redirectURI = URL(string: "urn:ietf:wg:oauth:2.0:oob")!
 
-  func testPolicyOmittedIsAlwaysValid() {
+  func testPolicyOmittedIsAlwaysValid() throws {
     // No WRPRC policy configured — every issuerMetadataPolicy value is fine.
     _ = OpenId4VCIConfig(
       client: attestionClient,
@@ -44,7 +44,7 @@ final class OpenId4VCIConfigInvariantTests: XCTestCase {
     )
   }
 
-  func testPolicyWithRequireSignedAndCertificateChainIsValid() {
+  func testPolicyWithRequireSignedAndCertificateChainIsValid() throws {
     // WRPRC policy configured AND metadata must be signed via cert chain —
     // the only combination that yields a WRPAC.
     _ = OpenId4VCIConfig(

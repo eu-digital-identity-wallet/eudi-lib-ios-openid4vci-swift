@@ -343,7 +343,7 @@ class IssuanceAuthorizationTest: XCTestCase {
     let publicKey = try KeyController.generateRSAPublicKey(from: privateKey)
     
     let alg = JWSAlgorithm(.RS256)
-    let publicKeyJWK = try RSAPublicKey(
+    let _ = try RSAPublicKey(
       publicKey: publicKey,
       additionalParameters: [
         "alg": alg.name,
@@ -425,7 +425,7 @@ class IssuanceAuthorizationTest: XCTestCase {
     let privateKeyProxy: SigningKeyProxy = .secKey(privateKey)
     
     let alg = JWSAlgorithm(.RS256)
-    let publicKeyJWK = try RSAPublicKey(
+    let _ = try RSAPublicKey(
       publicKey: publicKey,
       additionalParameters: [
         "alg": alg.name,
@@ -566,7 +566,7 @@ class IssuanceAuthorizationTest: XCTestCase {
     let publicKey = try KeyController.generateECDHPublicKey(from: privateKey)
 
     let alg = JWSAlgorithm(.ES256)
-    let publicKeyJWK = try ECPublicKey(
+    let _ = try ECPublicKey(
       publicKey: publicKey,
       additionalParameters: [
         "alg": alg.name,
@@ -656,7 +656,7 @@ class IssuanceAuthorizationTest: XCTestCase {
     let publicKey = try KeyController.generateECDHPublicKey(from: privateKey)
     
     let alg = JWSAlgorithm(.ES256)
-    let jwk = try ECPublicKey(
+    let _ = try ECPublicKey(
       publicKey: publicKey,
       additionalParameters: [
         "alg": alg.name,

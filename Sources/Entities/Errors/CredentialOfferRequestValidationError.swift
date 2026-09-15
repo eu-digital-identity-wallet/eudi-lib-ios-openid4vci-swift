@@ -21,4 +21,6 @@ public enum CredentialOfferRequestValidationError: Error {
   case invalidCredentialIssuerId
   case invalidCredentials
   case invalidGrants
+  /// The Credential Offer contains Grant Types not supported by the Wallet.
+  case unsupportedGrants(reason: Error)
 }
