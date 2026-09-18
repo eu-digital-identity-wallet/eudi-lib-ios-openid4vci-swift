@@ -135,9 +135,11 @@ class CredentialOfferResolverTests: XCTestCase {
     }
   }
     
-  func testResolutionSucceedWhenOptionalResponseEncryptionExistsButNoRequestEncryption() async throws {
-    
-    // Given: Metadata JSON that includes credential_response_encryption but no credential_request_encryption
+  // An issuer that advertises credential_response_encryption (required OR optional)
+  // must also advertise credential_request_encryption. Metadata that fails this invariant is
+  // rejected
+  func testResolutionFailsWhenOptionalResponseEncryptionExistsButNoRequestEncryption() async throws {
+
     let fetcher = MetadataFetcher(
       rawFetcher: RawDataFetcher(
         session: NetworkingMock(
@@ -145,26 +147,22 @@ class CredentialOfferResolverTests: XCTestCase {
           extension: "json",
           headers: ["Content-Type": "application/json"]
         )))
-    
+
     let credentialIssuerMetadataResolver = CredentialIssuerMetadataResolver(
       fetcher: fetcher)
-    
-    // When
+
     let result = try await credentialIssuerMetadataResolver.resolve(
-      source:
-          .credentialIssuer(
-            CredentialIssuerId(
-              "https://credential-issuer.example.com"
-            )
-          ),
+      source: .credentialIssuer(CredentialIssuerId(
+        "https://credential-issuer.example.com"
+      )),
       policy: .ignoreSigned
     )
-    
+
     switch result {
-    case .success(let result):
-      print(result)
-    case .failure(let error):
-      XCTAssert(false, error.localizedDescription)
+    case .success:
+      XCTFail("Expected failure because response encryption is advertised without request encryption")
+    case .failure:
+      XCTAssertTrue(true)
     }
   }
   
