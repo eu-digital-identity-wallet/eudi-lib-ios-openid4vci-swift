@@ -29,6 +29,7 @@ public enum CredentialIssuanceError: Error, LocalizedError {
   case responseEncryptionAlgorithmNotSupportedByIssuer
   case responseEncryptionMethodNotSupportedByIssuer
   case responseCompressionMethodNotSupportedByIssuer
+  case responseEncryptionRequiresRequestEncryption
   
   case requestEncryptionNotSupportedByIssuer
   case requestEncryptionAlgorithmNotSupportedByIssuer
@@ -85,6 +86,8 @@ public enum CredentialIssuanceError: Error, LocalizedError {
       return "Response encryption method not supported by issuer."
     case .responseCompressionMethodNotSupportedByIssuer:
       return "Response compression method not supported by issuer."
+    case .responseEncryptionRequiresRequestEncryption:
+      return "Response encryption requires request encryption to be configured."
     
     case .requestEncryptionNotSupportedByIssuer:
       return "Encrypted request not supported by issuer."

@@ -66,11 +66,13 @@ public extension CredentialSupported {
     requester: IssuanceRequesterType,
     proofs: [Proof] = [],
     issuancePayload: IssuanceRequestPayload,
+    requestEncryptionSpec: EncryptionSpec? = nil,
     responseEncryptionSpecProvider: (_ issuerResponseEncryptionMetadata: CredentialResponseEncryption) -> IssuanceResponseEncryptionSpec?
   ) throws -> CredentialIssuanceRequest {
     
     let (issuerEncryption, responseEncryptionSpec) = try validateAndPrepareEncryption(
       requester: requester,
+      requestEncryptionSpec: requestEncryptionSpec,
       responseEncryptionSpecProvider: responseEncryptionSpecProvider
     )
     
@@ -97,11 +99,16 @@ public extension CredentialSupported {
   
   private func validateAndPrepareEncryption(
     requester: IssuanceRequesterType,
+    requestEncryptionSpec: EncryptionSpec?,
     responseEncryptionSpecProvider: (CredentialResponseEncryption) -> IssuanceResponseEncryptionSpec?
   ) throws -> (CredentialResponseEncryption, IssuanceResponseEncryptionSpec?) {
     let issuerEncryption = requester.issuerMetadata.credentialResponseEncryption
     let responseEncryptionSpec = responseEncryptionSpecProvider(issuerEncryption)
-    
+    // Wallet asking for an encrypted response must also encrypt its own request.
+    if !issuerEncryption.notSupported, responseEncryptionSpec != nil, requestEncryptionSpec == nil {
+      throw CredentialIssuanceError.responseEncryptionRequiresRequestEncryption
+    }
+
     if let responseEncryptionSpec {
       switch issuerEncryption {
       case .notSupported:

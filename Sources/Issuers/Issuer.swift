@@ -547,6 +547,7 @@ internal extension Issuer {
         requester: issuanceRequester,
         proofs: proofs.actualProofs,
         issuancePayload: issuancePayload,
+        requestEncryptionSpec: encryptionSpec,
         responseEncryptionSpecProvider: responseEncryptionSpecProvider
       )
     }
@@ -600,6 +601,7 @@ internal extension Issuer {
         requester: issuanceRequester,
         proofs: proofs.actualProofs,
         issuancePayload: issuancePayload,
+        requestEncryptionSpec: encryptionSpec,
         responseEncryptionSpecProvider: responseEncryptionSpecProvider
       )
     }
