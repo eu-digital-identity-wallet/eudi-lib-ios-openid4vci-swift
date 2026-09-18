@@ -108,6 +108,10 @@ public extension CredentialSupported {
     if !issuerEncryption.notSupported, responseEncryptionSpec != nil, requestEncryptionSpec == nil {
       throw CredentialIssuanceError.responseEncryptionRequiresRequestEncryption
     }
+    // Issuer mandates response encryption but wallet supplied no spec — fail closed.
+    if case .required = issuerEncryption, responseEncryptionSpec == nil {
+      throw CredentialIssuanceError.responseEncryptionRequiredByIssuerButSpecMissing
+    }
 
     if let responseEncryptionSpec {
       switch issuerEncryption {
