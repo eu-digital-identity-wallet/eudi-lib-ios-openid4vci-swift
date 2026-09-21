@@ -190,7 +190,7 @@ internal actor AuthorizationServerClient: AuthorizationServerClientType {
   public let parPoster: PostingType
   public let tokenPoster: PostingType
   public let parEndpoint: URL?
-  public let authorizationEndpoint: URL
+  public let authorizationEndpoint: URL?
   public let tokenEndpoint: URL
   public let redirectionURI: URL
   public let client: Client
@@ -245,7 +245,7 @@ internal actor AuthorizationServerClient: AuthorizationServerClientType {
       if let authorizationEndpoint = data.authorizationEndpoint, let url = URL(string: authorizationEndpoint) {
         self.authorizationEndpoint = url
       } else {
-        throw ValidationError.error(reason: "Invalid authorization endpoint")
+        self.authorizationEndpoint = nil
       }
       
       if let pushedAuthorizationRequestEndpoint = data.pushedAuthorizationRequestEndpoint, let url = URL(string: pushedAuthorizationRequestEndpoint) {
@@ -265,7 +265,7 @@ internal actor AuthorizationServerClient: AuthorizationServerClientType {
       if let authorizationEndpoint = data.authorizationEndpoint, let url = URL(string: authorizationEndpoint) {
         self.authorizationEndpoint = url
       } else {
-        throw ValidationError.error(reason: "In valid authorization endpoint")
+        self.authorizationEndpoint = nil
       }
       
       if let pushedAuthorizationRequestEndpoint = data.pushedAuthorizationRequestEndpoint, let url = URL(string: pushedAuthorizationRequestEndpoint) {
@@ -309,7 +309,7 @@ internal actor AuthorizationServerClient: AuthorizationServerClientType {
       issuerState: issuerState
     )
     
-    guard let urlWithParams = authorizationEndpoint.appendingQueryParameters(
+    guard let urlWithParams = authorizationEndpoint?.appendingQueryParameters(
       try authzRequest.toDictionary().convertToDictionaryOfStrings(
         excludingKeys: [
           "credential_configuration_ids"
@@ -413,7 +413,7 @@ internal actor AuthorizationServerClient: AuthorizationServerClientType {
           AuthorizationCodeURL.PARAM_REQUEST_URI: requestURI
         ]
         
-        guard let urlWithParams = authorizationEndpoint.appendingQueryParameters(queryParams) else {
+        guard let urlWithParams = authorizationEndpoint?.appendingQueryParameters(queryParams) else {
           throw ValidationError.invalidUrl(parEndpoint.absoluteString)
         }
         
