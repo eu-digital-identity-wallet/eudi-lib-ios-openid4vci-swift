@@ -116,7 +116,7 @@ public actor IssuanceRequester: IssuanceRequesterType {
         endpoint: endpoint
       )
       
-      let encodedRequest: [String: any Sendable] = try request.toPayload(encryptionSpec: encryptionSpec).dictionaryValue
+      let encodedRequest: [String: any Sendable] = try request.toPayload().dictionaryValue
       
       try ensureJwtAlgIsSupported(
         credentialConfigurationIdentifier: request.credentialConfigurationIdentifier,
@@ -132,6 +132,10 @@ public actor IssuanceRequester: IssuanceRequesterType {
         encryptionSpec: encryptionSpec
       )
       
+      if case .required = issuerMetadata.credentialResponseEncryption {
+        throw CredentialIssuanceError.responseEncryptionRequiredByIssuerButPlaintextReceived
+      }
+
       return try response.body.toSingleIssuanceResponse()
       
     } catch PostError.useDpopNonce(let nonce) {
@@ -276,6 +280,10 @@ public actor IssuanceRequester: IssuanceRequesterType {
         encryptionSpec: encryptionSpec
       )
       
+      if case .required = issuerMetadata.credentialResponseEncryption {
+        throw CredentialIssuanceError.responseEncryptionRequiredByIssuerButPlaintextReceived
+      }
+
       if let interval = response.body.interval {
         return .issuancePending(
             transactionId: transactionId,
