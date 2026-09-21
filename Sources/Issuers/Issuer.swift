@@ -616,7 +616,7 @@ internal extension Issuer {
     case .proofNotRequired:
       return ([], nil)
     default:
-      let cNonce = try? await nonceEndpointClient?.getNonce().get()
+      let cNonce = try await nonceEndpointClient?.getNonce().get()
       
       try await validateBindingKeys(
         credentialSpec: supportedCredential,

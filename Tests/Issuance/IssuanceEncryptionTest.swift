@@ -239,6 +239,12 @@ extension IssuanceEncryptionTest {
           extension: "json"
         )
       ),
+      noncePoster: Poster(
+        session: NetworkingMock(
+          path: "mock_cnonce_endpoint_response",
+          extension: "json"
+        )
+      ),
       dpopConstructor: dpopConstructor(
         algorithms: offer.authorizationServerMetadata.dpopSigningAlgValuesSupported
       )
@@ -248,7 +254,7 @@ extension IssuanceEncryptionTest {
       XCTAssert(false, "Unable to create request")
       return nil
     }
-    
+
       guard let authorizedRequest = try? await issuer.authorizeWithAuthorizationCode(
         serverState: parRequested.state,
         request: parRequested,
@@ -260,7 +266,7 @@ extension IssuanceEncryptionTest {
       }
       return (authorizedRequest, issuer)
   }
-  
+
   private func initIssuerWithOfferAndAuthorizeRequesterGenericError(
     issuanceResponseEncryptionSpec: IssuanceResponseEncryptionSpec
   ) async throws -> (AuthorizedRequest, Issuer)? {
@@ -292,6 +298,12 @@ extension IssuanceEncryptionTest {
           extension: "json"
         )
       ),
+      noncePoster: Poster(
+        session: NetworkingMock(
+          path: "mock_cnonce_endpoint_response",
+          extension: "json"
+        )
+      ),
       dpopConstructor: dpopConstructor(
         algorithms: offer.authorizationServerMetadata.dpopSigningAlgValuesSupported
       )
@@ -301,7 +313,7 @@ extension IssuanceEncryptionTest {
       XCTAssert(false, "Unable to create request")
       return nil
     }
-    
+
       guard let authorizedRequest = try? await issuer.authorizeWithAuthorizationCode(
         serverState: parRequested.state,
         request: parRequested,
