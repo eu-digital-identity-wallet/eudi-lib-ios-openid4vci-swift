@@ -159,20 +159,20 @@ public actor Issuer: IssuerType {
       let encryptionMethodsSupported,
       _ /// compressionMethods
     ):
-      guard let jwk = jwks.first, let method = encryptionMethodsSupported.first else {
+      guard let jwk = jwks.first(where: { $0.keyType == .EC }), let method = encryptionMethodsSupported.first else {
         return nil
       }
       return try .init(
         recipientKey: jwk,
         encryptionMethod: method
       )
-      
+
     case .required(
       let jwks,
       let encryptionMethodsSupported,
       _ /// compressionMethods
     ):
-      guard let jwk = jwks.first, let method = encryptionMethodsSupported.first else {
+      guard let jwk = jwks.first(where: { $0.keyType == .EC }), let method = encryptionMethodsSupported.first else {
         return nil
       }
       return try .init(
@@ -694,7 +694,7 @@ internal extension Issuer {
     /// Filter for keys we care about
     let eligibleKeys = bindingKeys.filter {
       switch $0 {
-      case .jwtKeyAttestation, .attestation: true
+      case .jwt, .jwtKeyAttestation, .attestation: true
       default: false
       }
     }
