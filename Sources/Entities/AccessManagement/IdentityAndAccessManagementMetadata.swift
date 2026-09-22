@@ -27,6 +27,15 @@ public enum IdentityAndAccessManagementMetadata: Sendable {
       return metaData.issuer
     }
   }
+
+  var authorizationResponseIssParameterSupported: Bool {
+    switch self {
+    case .oidc(let metaData):
+      return metaData.authorizationResponseIssParameterSupported ?? false
+    case .oauth(let metaData):
+      return metaData.authorizationResponseIssParameterSupported ?? false
+    }
+  }
   
   var authorizationServerSupportsPar: Bool {
     switch self {

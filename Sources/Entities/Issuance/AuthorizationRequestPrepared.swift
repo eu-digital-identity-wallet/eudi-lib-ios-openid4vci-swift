@@ -23,14 +23,24 @@ public struct AuthorizationRequested: Sendable {
   public let state: String
   public let configurationIds: [CredentialConfigurationIdentifier]
   public let dpopNonce: Nonce?
-  
+  /// The authorization server's `issuer` value at the time the request was prepared. Used to
+  /// bind the authorization response's RFC 9207 `iss` parameter to a single, trusted AS at
+  /// callback time.
+  public let expectedIssuer: URL?
+  /// True when the authorization server metadata declares
+  /// `authorization_response_iss_parameter_supported: true`. If so, the wallet MUST receive an
+  /// `iss` parameter in the authorization response per RFC 9207.
+  public let issParameterRequired: Bool
+
   public init(
     credentials: [CredentialIdentifier],
     authorizationCodeURL: AuthorizationCodeURL,
     pkceVerifier: PKCEVerifier,
     state: String,
     configurationIds: [CredentialConfigurationIdentifier],
-    dpopNonce: Nonce? = nil
+    dpopNonce: Nonce? = nil,
+    expectedIssuer: URL? = nil,
+    issParameterRequired: Bool = false
   ) {
     self.credentials = credentials
     self.authorizationCodeURL = authorizationCodeURL
@@ -38,5 +48,7 @@ public struct AuthorizationRequested: Sendable {
     self.state = state
     self.configurationIds = configurationIds
     self.dpopNonce = dpopNonce
+    self.expectedIssuer = expectedIssuer
+    self.issParameterRequired = issParameterRequired
   }
 }
