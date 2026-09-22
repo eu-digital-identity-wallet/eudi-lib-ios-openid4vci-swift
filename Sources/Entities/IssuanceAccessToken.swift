@@ -24,12 +24,14 @@ public enum TokenType: String, Codable, Sendable {
       self = .bearer
       return
     }
-    
-    if value == TokenType.bearer.rawValue {
+
+    // A server responding with "dpop" would otherwise silently fall through to Bearer.
+    switch value.lowercased() {
+    case TokenType.bearer.rawValue.lowercased():
       self = .bearer
-    } else if value == TokenType.dpop.rawValue {
+    case TokenType.dpop.rawValue.lowercased():
       self = .dpop
-    } else {
+    default:
       self = .bearer
     }
   }
@@ -65,9 +67,10 @@ public extension IssuanceAccessToken {
     dPopNonce: Nonce?,
     endpoint: URL?
   ) async throws -> [String: String] {
-    if tokenType == TokenType.bearer {
-      return ["Authorization": "\(TokenType.bearer.rawValue) \(accessToken)"]
-    } else if let dpopConstructor, tokenType == TokenType.dpop, let endpoint {
+    if tokenType == TokenType.dpop {
+      guard let dpopConstructor, let endpoint else {
+        throw ValidationError.dpopConstructorMissing
+      }
       let jwt = try await dpopConstructor.jwt(
         endpoint: endpoint,
         accessToken: accessToken,
