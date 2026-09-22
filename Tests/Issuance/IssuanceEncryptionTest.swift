@@ -253,7 +253,8 @@ extension IssuanceEncryptionTest {
         serverState: parRequested.state,
         request: parRequested,
         authorizationCode: AuthorizationCode(value: UUID().uuidString),
-        grant: offer.grants!
+        grant: offer.grants!,
+        issuerFromRedirect: parRequested.expectedIssuer
       ) else {
         XCTAssert(false, "Could not get authorized request")
         return nil
@@ -306,7 +307,8 @@ extension IssuanceEncryptionTest {
         serverState: parRequested.state,
         request: parRequested,
         authorizationCode: AuthorizationCode(value: UUID().uuidString),
-        grant: offer.grants!
+        grant: offer.grants!,
+        issuerFromRedirect: parRequested.expectedIssuer
       ) else {
         XCTAssert(false, "Could not get authorized request")
         return nil
