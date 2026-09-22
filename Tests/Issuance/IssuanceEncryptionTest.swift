@@ -50,7 +50,7 @@ class IssuanceEncryptionTest: XCTestCase {
     )
     
     let keyBindingKey: BindingKey = try! .jwtKeyAttestation(
-      algorithm: .init(.ES256),
+      algorithm: .init(.RS256),
       keyAttestationJWT: { _ in
         try! .init(
           jws: .init(
@@ -58,7 +58,7 @@ class IssuanceEncryptionTest: XCTestCase {
           )
         )
       },
-      keyIndex: 1,
+      keyIndex: 0,
       privateKey: .secKey(privateKey)
     )
     
@@ -116,7 +116,7 @@ class IssuanceEncryptionTest: XCTestCase {
     )
     
     let keyBindingKey: BindingKey = try! .jwtKeyAttestation(
-      algorithm: .init(.ES256),
+      algorithm: .init(.RS256),
       keyAttestationJWT: { _ in
         try! .init(
           jws: .init(
@@ -124,7 +124,7 @@ class IssuanceEncryptionTest: XCTestCase {
           )
         )
       },
-      keyIndex: 1,
+      keyIndex: 0,
       privateKey: .secKey(privateKey)
     )
     
@@ -169,7 +169,7 @@ class IssuanceEncryptionTest: XCTestCase {
     
     let privateKey = try KeyController.generateRSAPrivateKey()
     let keyBindingKey: BindingKey = try! .jwtKeyAttestation(
-      algorithm: .init(.ES256),
+      algorithm: .init(.RS256),
       keyAttestationJWT: { _ in
         try! .init(
           jws: .init(
@@ -177,7 +177,7 @@ class IssuanceEncryptionTest: XCTestCase {
           )
         )
       },
-      keyIndex: 1,
+      keyIndex: 0,
       privateKey: .secKey(privateKey)
     )
     

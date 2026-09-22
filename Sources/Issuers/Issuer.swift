@@ -623,7 +623,7 @@ internal extension Issuer {
         bindingKeys: bindingKeys
       )
       
-      let proofs = await calculateProofs(
+      let proofs = try await calculateProofs(
         bindingKeys: bindingKeys,
         supportedCredential: supportedCredential,
         omitIss: authorizedRequest.grantType == .preAuthorizationCode || authorizedRequest.grantType == .both,
@@ -688,7 +688,7 @@ internal extension Issuer {
     supportedCredential: CredentialSupported,
     omitIss: Bool,
     nonce: String?
-  ) async -> [Proof] {
+  ) async throws -> [Proof] {
     /// Filter for keys we care about
     let eligibleKeys = bindingKeys.filter {
       switch $0 {
@@ -696,24 +696,26 @@ internal extension Issuer {
       default: false
       }
     }
-    
+
     /// Grab the first attestation function, if any
     let attestationFunction = bindingKeys
       .first(where: { $0.isAttestationCapable })?
       .attestationFunction
-    
+
     /// Resolve the attestation JWT once; if we have a function
-    let attestationJwt = try? await attestationFunction?(nonce)
-    
-    /// Build proofs
-    let proofs = await eligibleKeys.asyncCompactMap { key in
-      try? await key.toSupportedProof(
+    let attestationJwt = try await attestationFunction?(nonce)
+
+    /// Build proofs — propagate any construction error rather than dropping the key silently.
+    var proofs: [Proof] = []
+    for key in eligibleKeys {
+      let proof = try await key.toSupportedProof(
         issuanceRequester: issuanceRequester,
         credentialSpec: supportedCredential,
         keyAttestationJwt: attestationJwt,
         cNonce: nonce,
         omitIss: omitIss
       )
+      proofs.append(proof)
     }
     return proofs
   }
