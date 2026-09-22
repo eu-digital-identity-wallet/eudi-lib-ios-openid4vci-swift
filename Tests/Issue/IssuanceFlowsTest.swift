@@ -27,10 +27,11 @@ class IssuanceFlowsTest: XCTestCase {
       deferredRequesterPoster: Poster(),
       config: .init(
         client: attestionClient,
-        authFlowRedirectionURI: URL(string: example)!
+        authFlowRedirectionURI: URL(string: example)!,
+        requireDpop: false
       )
     )
-      
+
     let endPoint = await issuer.issuerMetadata.deferredCredentialEndpoint!.url.absoluteString
     XCTAssertEqual(endPoint, example)
   }

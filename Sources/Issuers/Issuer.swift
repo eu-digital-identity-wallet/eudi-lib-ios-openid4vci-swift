@@ -270,7 +270,7 @@ public actor Issuer: IssuerType {
     self.authorizationServerMetadata = authorizationServerMetadata
     self.issuerMetadata = issuerMetadata
     self.config = config
-    
+
     if let challengeEndpoint = authorizationServerMetadata.challengeEndpointURI {
       challenger = ChallengeEndpointClient(
         poster: challengePoster,
@@ -279,7 +279,16 @@ public actor Issuer: IssuerType {
     } else {
       challenger = nil
     }
-    
+
+    // Symmetric to the session-based initializer: refuse to construct an Issuer against an AS
+    // that advertises no DPoP algorithms when the wallet requires DPoP.
+    if config.requireDpop {
+      guard let dpopAlgs = authorizationServerMetadata.dpopSigningAlgValuesSupported,
+            !dpopAlgs.isEmpty else {
+        throw ValidationError.dpopRequired
+      }
+    }
+
     authorizer = try AuthorizationServerClient(
       challenger: challenger,
       parPoster: parPoster,
@@ -287,7 +296,7 @@ public actor Issuer: IssuerType {
       config: config,
       authorizationServerMetadata: authorizationServerMetadata,
       credentialIssuerIdentifier: issuerMetadata.credentialIssuerIdentifier,
-      dpopConstructor: dpopConstructor
+      dpopConstructor: config.requireDpop ? dpopConstructor : nil
     )
     
     authorizeIssuance = AuthorizeIssuance(
