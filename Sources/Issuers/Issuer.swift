@@ -241,19 +241,20 @@ public actor Issuer: IssuerType {
       poster: Poster(session: session),
       dpopConstructor: dpopConstructor
     )
-    
+
     notifyIssuer = NotifyIssuer(
       issuerMetadata: issuerMetadata,
-      poster: Poster(session: session)
+      poster: Poster(session: session),
+      dpopConstructor: dpopConstructor
     )
-    
+
     if let nonceEndpoint = issuerMetadata.nonceEndpoint {
       nonceEndpointClient = NonceEndpointClient(nonceEndpoint: nonceEndpoint)
     } else {
       nonceEndpointClient = nil
     }
   }
-  
+
   public init(
     authorizationServerMetadata: IdentityAndAccessManagementMetadata,
     issuerMetadata: CredentialIssuerMetadata,
@@ -318,12 +319,14 @@ public actor Issuer: IssuerType {
     
     deferredIssuanceRequester = IssuanceRequester(
       issuerMetadata: issuerMetadata,
-      poster: deferredRequesterPoster
+      poster: deferredRequesterPoster,
+      dpopConstructor: dpopConstructor
     )
-    
+
     notifyIssuer = NotifyIssuer(
       issuerMetadata: issuerMetadata,
-      poster: notificationPoster
+      poster: notificationPoster,
+      dpopConstructor: dpopConstructor
     )
     
     if let nonceEndpoint = issuerMetadata.nonceEndpoint {
