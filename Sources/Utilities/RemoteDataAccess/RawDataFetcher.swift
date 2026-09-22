@@ -33,7 +33,7 @@ public struct RawDataFetcher: RawDataFetching {
    Initializes a Fetcher instance.
    */
   public init(
-    session: Networking = URLSession.shared
+    session: Networking = HardenedSession.default
   ) {
     self.session = session
   }

@@ -96,7 +96,7 @@ public struct Fetcher<Element: Decodable>: Fetching {
    Initializes a Fetcher instance.
    */
   public init(
-    session: Networking = URLSession.shared
+    session: Networking = HardenedSession.default
   ) {
     self.session = session
   }
