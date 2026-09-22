@@ -73,8 +73,21 @@ public struct Display: Codable, Equatable, Sendable {
 }
 
 public extension Display {
-  
+
+  /// Display metadata for the credential's logo.
+  ///
+  /// - Important: `uri` is a remote URL controlled by the credential issuer. Loading it
+  ///   at display or presentation time gives the issuer a passive usage beacon: they
+  ///   observe the holder's IP address, timestamp, and user agent every time the wallet
+  ///   renders the credential, and can trivially generate a unique URL per credential
+  ///   instance to correlate views. Wallet apps SHOULD fetch the logo at issuance time,
+  ///   store the bytes locally, and render from the local copy. Do NOT bind this URL
+  ///   directly into an `AsyncImage`/`Image` at presentation time.
   struct Logo: Codable, Equatable, Sendable {
+    /// Remote URL to the credential logo, as declared by the issuer's metadata.
+    ///
+    /// - Warning: See the `Logo` type documentation for the privacy implications of
+    ///   loading this URL at display or presentation time.
     public let uri: URL?
     public let alternativeText: String?
     

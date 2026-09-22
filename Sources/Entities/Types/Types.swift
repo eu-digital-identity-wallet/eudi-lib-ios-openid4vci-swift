@@ -331,9 +331,22 @@ public struct ProofsTO: Codable {
   }
 }
 
+/// Display metadata for the credential's background image.
+///
+/// - Important: `url` is a remote URL controlled by the credential issuer. Loading it at
+///   display or presentation time gives the issuer a passive usage beacon: they observe
+///   the holder's IP address, timestamp, and user agent every time the wallet renders
+///   the credential, and can trivially generate a unique URL per credential instance to
+///   correlate views. Wallet apps SHOULD fetch the image at issuance time, store the
+///   bytes locally, and render from the local copy. Do NOT bind this URL directly into
+///   an `AsyncImage`/`Image` at presentation time.
 public struct BackgroundImage: Codable, Equatable, Sendable {
+  /// Remote URL to the credential background image, as declared by the issuer's metadata.
+  ///
+  /// - Warning: See the `BackgroundImage` type documentation for the privacy implications
+  ///   of loading this URL at display or presentation time.
   public let url: URL
-  
+
   public init(uri: String) throws {
     guard let url = URL(string: uri) else {
       throw BackgroundImageError.invalidURL
