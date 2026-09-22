@@ -35,4 +35,37 @@ class IssuanceFlowsTest: XCTestCase {
     let endPoint = await issuer.issuerMetadata.deferredCredentialEndpoint!.url.absoluteString
     XCTAssertEqual(endPoint, example)
   }
+
+  // The poster-based Issuer initializer must refuse to construct when the wallet requires
+  // DPoP and the authorization server advertises no DPoP algorithms — same guarantee as the
+  // session-based one.
+  func testPosterBasedIssuerInitFailsWhenRequireDpopButASAdvertisesNoAlgorithms() async throws {
+    let example = "https://www.example.com"
+    let asMetadata: IdentityAndAccessManagementMetadata = .oauth(
+      .init(
+        authorizationEndpoint: example,
+        tokenEndpoint: example,
+        pushedAuthorizationRequestEndpoint: example
+      )
+    )
+    let issuerMetadata = try CredentialIssuerMetadata(
+      deferredCredentialEndpoint: .init(string: example)
+    )
+
+    do {
+      _ = try Issuer(
+        authorizationServerMetadata: asMetadata,
+        issuerMetadata: issuerMetadata,
+        config: .init(
+          client: attestionClient,
+          authFlowRedirectionURI: URL(string: example)!
+        )
+      )
+      XCTFail("Expected ValidationError.dpopRequired")
+    } catch ValidationError.dpopRequired {
+      XCTAssertTrue(true)
+    } catch {
+      XCTFail("Unexpected error: \(error)")
+    }
+  }
 }
