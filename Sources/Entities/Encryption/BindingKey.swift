@@ -201,6 +201,11 @@ public extension BindingKey {
         if let string = value as? String, string.isEmpty {
           return false
         }
+
+        if key == JWTClaimNames.issuer, omitIss {
+          return false
+        }
+
         return true
       }
       
