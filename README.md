@@ -360,6 +360,7 @@ public struct OpenId4VCIConfig: Sendable {
   public let issuerMetadataPolicy: IssuerMetadataPolicy
   public let supportedCompressionAlgorithms: [CompressionAlgorithm]?
   public let requireDpop: Bool
+  public let requireClientAttestation: Bool
   public let supportedCredentialReusePolicies: SupportedCredentialReusePolicies
   public let proofTypesPolicy: ProofTypesPolicy
   public let registrationCertificatePolicy: RegistrationCertificatePolicy?
@@ -377,6 +378,7 @@ public struct OpenId4VCIConfig: Sendable {
 - `issuerMetadataPolicy`: Trust between the Wallet and the Signer of the signed metadata advertised by the Credential Issuer is established using this configuration option. `.requireSigned` and `.preferSigned` both take an `IssuerTrust.byCertificateChain(certificateChainTrust:)` (JWK-based pinning was removed in favour of chain-of-trust rooted in the EU List of Trusted Lists).
 - `supportedCompressionAlgorithms`: Optional list of `CompressionAlgorithm`s the wallet advertises support for when negotiating signed metadata / request compression. `nil` means the wallet does not advertise compression support.
 - `requireDpop`: If `true`, the wallet requires the authorization server to support DPoP. If DPoP is not supported by the server the issuance flow is halted.
+- `requireClientAttestation`: If `true`, the wallet insists on presenting a client-attestation PoP JWT on every authorization-server exchange that supports it. When set, any misconfiguration throws `ValidationError.clientAttestationRequired`. Defaults to `false`(backward-compatible).
 - `supportedCredentialReusePolicies`: The set of credential reuse policies the wallet is willing to honour. Defaults to `.notSupported`.
 - `proofTypesPolicy`: Policy defining which proof types the wallet supports. See [Proof Types Policy Configuration](#proof-types-policy-configuration) for details.
 - `registrationCertificatePolicy`: Optional. When set, activates WRP Registration Certificate (WRPRC) enforcement in `Issuer.make(...)`. Carries an `Authorize` closure that receives the WRPAC (`String`), the raw opaque WRPRC value (`String`) as delivered in `issuer_info`, and the offered credential configurations, and returns an `Authorization` — either `.granted(warnings: [String: [PolicyViolation]])` or `.notGranted(error: PolicyViolation)`. The library performs no chain-of-trust or signature validation on the WRPRC — those decisions live in the caller's closure. Requires `issuerMetadataPolicy = .requireSigned(...)` (checked at construction). Defaults to `nil` (no WRPRC enforcement).
