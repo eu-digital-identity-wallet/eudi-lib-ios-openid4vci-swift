@@ -953,6 +953,9 @@ private extension AuthorizationServerClient {
     clock: ClockType
   ) async throws -> ([String: String], SigningKeyProxy?) {
     guard let clientAttestationPoPBuilder = config.clientAttestationPoPBuilder else {
+      if config.requireClientAttestation {
+        throw ValidationError.clientAttestationRequired(reason: "no clientAttestationPoPBuilder configured on OpenId4VCIConfig")
+      }
       return ([:], nil)
     }
 
@@ -960,16 +963,25 @@ private extension AuthorizationServerClient {
       let issuer = authorizationServerMetadata.issuer,
       let authServerId = URL(string: issuer)
     else {
+      if config.requireClientAttestation {
+        throw ValidationError.clientAttestationRequired(reason: "authorization server metadata has no valid issuer to audience the PoP JWT to")
+      }
       return ([:], nil)
     }
 
     let challenge = try? await challenger?.getChallenge()
-    
+
     guard let provider = client.provider() else {
+      if config.requireClientAttestation {
+        throw ValidationError.clientAttestationRequired(reason: "client is not attestation-capable (no provider)")
+      }
       return ([:], nil)
     }
-    
+
     guard let spec = client.spec() else {
+      if config.requireClientAttestation {
+        throw ValidationError.clientAttestationRequired(reason: "client is not attestation-capable (no PoP spec)")
+      }
       return ([:], nil)
     }
     

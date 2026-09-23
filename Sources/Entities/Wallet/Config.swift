@@ -81,6 +81,10 @@ public struct OpenId4VCIConfig: Sendable {
   /// Dpop requirement, if required by wallet and not supported by issuer, halt the issuance process
   public let requireDpop: Bool
 
+  /// When `true`, the wallet insists on presenting a client-attestation PoP JWT on every
+  /// authorization-server exchange that supports it.
+  public let requireClientAttestation: Bool
+
   /// Wallet's supported credential reuse policies
   public let supportedCredentialReusePolicies: SupportedCredentialReusePolicies
 
@@ -122,6 +126,7 @@ public struct OpenId4VCIConfig: Sendable {
     supportedCompressionAlgorithms: [CompressionAlgorithm]? = nil,
     proofTypesPolicy: ProofTypesPolicy = .haipCompliant(),
     requireDpop: Bool = true,
+    requireClientAttestation: Bool = false,
     supportedCredentialReusePolicies: SupportedCredentialReusePolicies = .notSupported,
     registrationCertificatePolicy: RegistrationCertificatePolicy? = nil,
     supportedGrants: SupportedGrants = .both
@@ -158,6 +163,7 @@ public struct OpenId4VCIConfig: Sendable {
     self.issuerMetadataPolicy = issuerMetadataPolicy
     self.supportedCompressionAlgorithms = supportedCompressionAlgorithms
     self.requireDpop = requireDpop
+    self.requireClientAttestation = requireClientAttestation
     self.supportedCredentialReusePolicies = supportedCredentialReusePolicies
     self.proofTypesPolicy = proofTypesPolicy
     self.registrationCertificatePolicy = registrationCertificatePolicy

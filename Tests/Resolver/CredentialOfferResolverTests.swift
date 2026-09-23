@@ -747,4 +747,30 @@ class CredentialOfferResolverTests: XCTestCase {
       XCTAssertTrue(true)
     }
   }
+
+  // Even when the AS metadata's `issuer` matches the discovery URL, an endpoint on a
+  // different origin (attacker-controlled host) would let a compromised or malicious AS have
+  // the wallet post DPoP proofs and client-attestation PoP JWTs to somewhere else. The
+  // resolver must refuse.
+  func testRejectsAuthorizationServerMetadataWithOffOriginEndpoint() async throws {
+    let resolver = AuthorizationServerMetadataResolver(
+      oidcFetcher: Fetcher<OIDCProviderMetadata>(session: NetworkingMock(
+        path: "oidc_authorization_server_metadata",
+        extension: "json"
+      )),
+      oauthFetcher: Fetcher<AuthorizationServerMetadata>(session: NetworkingMock(
+        path: "oauth_authorization_server_metadata_off_origin_token",
+        extension: "json"
+      ))
+    )
+
+    let result = await resolver.resolve(url: URL(string: "https://as.example.com")!)
+
+    switch result {
+    case .success:
+      XCTFail("Expected off-origin token_endpoint to be rejected")
+    case .failure:
+      XCTAssertTrue(true)
+    }
+  }
 }
