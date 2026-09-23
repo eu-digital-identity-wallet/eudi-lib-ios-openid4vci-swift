@@ -234,6 +234,17 @@ public struct OIDCProviderMetadata: Codable, Equatable, Sendable {
   public static func == (lhs: OIDCProviderMetadata, rhs: OIDCProviderMetadata) -> Bool {
     lhs.authorizationEndpoint == rhs.authorizationEndpoint
   }
+
+  /// Endpoints whose origin should be pinned to the AS issuer. Any URL the wallet posts
+  /// authenticated / attestation-bound material to belongs here.
+  func endpointsForOriginBinding() -> [String?] {
+    [
+      authorizationEndpoint,
+      tokenEndpoint,
+      pushedAuthorizationRequestEndpoint,
+      challengeEndpoint,
+    ]
+  }
 }
 
 // MARK: - MtlsEndpointAliases
