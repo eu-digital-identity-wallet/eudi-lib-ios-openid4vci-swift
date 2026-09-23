@@ -382,7 +382,8 @@ extension Wallet {
       request: parRequested,
       authorizationCode: authorizationCode,
       authorizationDetailsInTokenRequest: .doNotInclude,
-      grant: offer.grants!
+      grant: offer.grants!,
+      issuerFromRedirect: nil
     )
       print("--> [AUTHORIZATION] Authorization code exchanged with access token : \(authorizedRequest.accessToken)")
       

@@ -49,13 +49,17 @@ public protocol IssuerType: RefreshAccessToken {
   /// - Parameters:
   ///   - authorizationCode: The unauthorized request containing the authorization code.
   ///   - authorizationDetailsInTokenRequest: Additional authorization details for the token request.
+  ///   - issuerFromRedirect: The `iss` parameter received on the authorization response (RFC
+  ///     9207). MUST be provided when the AS advertised
+  ///     `authorization_response_iss_parameter_supported: true`.
   /// - Returns: A result containing either an `AuthorizedRequest` if successful or an `Error` otherwise.
   func authorizeWithAuthorizationCode(
     serverState: String,
     request: AuthorizationRequested,
     authorizationCode: AuthorizationCode,
     authorizationDetailsInTokenRequest: AuthorizationDetailsInTokenRequest,
-    grant: Grants
+    grant: Grants,
+    issuerFromRedirect: URL?
   ) async throws -> AuthorizedRequest
   
   /// Requests credential issuance after authorization.
@@ -407,13 +411,33 @@ public actor Issuer: IssuerType {
     request: AuthorizationRequested,
     authorizationCode: AuthorizationCode,
     authorizationDetailsInTokenRequest: AuthorizationDetailsInTokenRequest = .doNotInclude,
-    grant: Grants
+    grant: Grants,
+    issuerFromRedirect: URL? = nil
   ) async throws -> AuthorizedRequest {
-    
+
     if serverState != request.state {
       throw ValidationError.stateMismatch(serverState, request.state)
     }
-    
+
+    // RFC 9207: bind the authorization response to the authorization server the wallet
+    // originally targeted. When the AS advertised support the `iss` parameter is mandatory;
+    // when the wallet did provide one it must match the expected issuer.
+    if let issuerFromRedirect {
+      guard let expectedIssuer = request.expectedIssuer else {
+        throw ValidationError.error(
+          reason: "Received `iss` parameter but authorization request has no expected issuer to validate against"
+        )
+      }
+      if issuerFromRedirect.absoluteString != expectedIssuer.absoluteString {
+        throw ValidationError.issMismatch(
+          expected: expectedIssuer.absoluteString,
+          actual: issuerFromRedirect.absoluteString
+        )
+      }
+    } else if request.issParameterRequired, let expectedIssuer = request.expectedIssuer {
+      throw ValidationError.issParameterRequiredButMissing(expected: expectedIssuer.absoluteString)
+    }
+
     return try await authorizeIssuance.authorizeWithAuthorizationCode(
       grant: grant,
       request: request,

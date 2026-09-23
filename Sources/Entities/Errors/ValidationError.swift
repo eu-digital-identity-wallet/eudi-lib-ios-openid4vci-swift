@@ -30,6 +30,8 @@ public enum ValidationError: Error, LocalizedError {
   case clientAttestationRequired(reason: String)
   case parRequired
   case stateMismatch(String, String)
+  case issMismatch(expected: String, actual: String)
+  case issParameterRequiredButMissing(expected: String)
   
   public var errorDescription: String? {
     switch self {
@@ -61,6 +63,10 @@ public enum ValidationError: Error, LocalizedError {
       return "parRequired"
     case .stateMismatch(let l, let r):
       return "stateMismatch: \(l) != \(r)"
+    case .issMismatch(let expected, let actual):
+      return "issMismatch: expected \(expected) but received \(actual)"
+    case .issParameterRequiredButMissing(let expected):
+      return "issParameterRequiredButMissing: authorization server \(expected) advertises authorization_response_iss_parameter_supported but the callback did not include an `iss` parameter"
     }
   }
 }

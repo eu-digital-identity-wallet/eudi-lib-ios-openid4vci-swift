@@ -94,7 +94,11 @@ internal actor AuthorizeIssuance: AuthorizeIssuanceType {
     }
     
     let state = StateValue().value
-    
+
+    let asMetadata = credentialOffer.authorizationServerMetadata
+    let expectedIssuer = asMetadata.issuer.flatMap { URL(string: $0) }
+    let issRequired = asMetadata.authorizationResponseIssParameterSupported
+
     if authorizationServerSupportsPar {
       return try await handlePARAuthorization(
         parUsage: config.requirePAR,
@@ -102,15 +106,19 @@ internal actor AuthorizeIssuance: AuthorizeIssuanceType {
         scopes: scopes,
         credentialConfigurationIdentifiers: identifiers,
         issuerState: issuerState,
-        state: state
+        state: state,
+        expectedIssuer: expectedIssuer,
+        issRequired: issRequired
       )
-      
+
     } else {
       return try await handleStandardAuthorization(
         scopes: scopes,
         credentialConfigurationIdentifiers: credentialOffer.credentialConfigurationIdentifiers,
         issuerState: issuerState,
-        state: state
+        state: state,
+        expectedIssuer: expectedIssuer,
+        issRequired: issRequired
       )
     }
   }
@@ -267,14 +275,16 @@ private extension AuthorizeIssuance {
     scopes: [Scope],
     credentialConfigurationIdentifiers: [CredentialConfigurationIdentifier],
     issuerState: String?,
-    state: String
+    state: String,
+    expectedIssuer: URL?,
+    issRequired: Bool
   ) async throws -> AuthorizationRequested {
       let resource: String? = issuerMetadata.authorizationServers.map { _ in
         credentialOffer.credentialIssuerIdentifier.url.absoluteString
       }
 
       let challenge = try? await challenger?.getChallenge()
-      
+
       let result: (
         verifier: PKCEVerifier,
         code: AuthorizationCodeURL,
@@ -299,15 +309,19 @@ private extension AuthorizeIssuance {
             pkceVerifier: result.verifier,
             state: state,
             configurationIds: credentialConfigurationIdentifiers,
-            dpopNonce: result.dPopNonce
+            dpopNonce: result.dPopNonce,
+            expectedIssuer: expectedIssuer,
+            issParameterRequired: issRequired
         )
   }
-  
+
   private func handleStandardAuthorization(
     scopes: [Scope],
     credentialConfigurationIdentifiers: [CredentialConfigurationIdentifier],
     issuerState: String?,
-    state: String
+    state: String,
+    expectedIssuer: URL?,
+    issRequired: Bool
   ) async throws -> AuthorizationRequested {
       let result: (
         verifier: PKCEVerifier,
@@ -326,7 +340,9 @@ private extension AuthorizeIssuance {
         authorizationCodeURL: result.code,
         pkceVerifier: result.verifier,
         state: state,
-        configurationIds: credentialConfigurationIdentifiers
+        configurationIds: credentialConfigurationIdentifiers,
+        expectedIssuer: expectedIssuer,
+        issParameterRequired: issRequired
       )
   }
 }
