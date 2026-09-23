@@ -26,6 +26,7 @@ public enum ValidationError: Error, LocalizedError {
   case retryFailedAfterDpopNonce
   case retryFailedAfterUseAttestationNonce
   case dpopRequired
+  case dpopConstructorMissing
   case parRequired
   case stateMismatch(String, String)
   
@@ -51,6 +52,8 @@ public enum ValidationError: Error, LocalizedError {
       return "retryFailedAfterUseAttestationNonce"
     case .dpopRequired:
       return "dpopRequired"
+    case .dpopConstructorMissing:
+      return "Token type is DPoP but no DPoP constructor or endpoint is available."
     case .parRequired:
       return "parRequired"
     case .stateMismatch(let l, let r):

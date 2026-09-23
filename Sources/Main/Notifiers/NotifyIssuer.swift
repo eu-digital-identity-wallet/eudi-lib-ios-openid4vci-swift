@@ -25,14 +25,16 @@ public protocol NotifyIssuerType: Sendable {
 
 public final class NotifyIssuer: NotifyIssuerType {
   private let issuanceRequester: IssuanceRequester
-  
+
   public init(
     issuerMetadata: CredentialIssuerMetadata,
-    poster: PostingType
+    poster: PostingType,
+    dpopConstructor: DPoPConstructorType? = nil
   ) {
     self.issuanceRequester = IssuanceRequester(
       issuerMetadata: issuerMetadata,
-      poster: poster
+      poster: poster,
+      dpopConstructor: dpopConstructor
     )
   }
   
