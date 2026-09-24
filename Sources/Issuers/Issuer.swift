@@ -163,20 +163,20 @@ public actor Issuer: IssuerType {
       let encryptionMethodsSupported,
       _ /// compressionMethods
     ):
-      guard let jwk = jwks.first(where: { $0.keyType == .EC }), let method = encryptionMethodsSupported.first else {
+      guard let jwk = jwks.first, let method = encryptionMethodsSupported.first else {
         return nil
       }
       return try .init(
         recipientKey: jwk,
         encryptionMethod: method
       )
-
+      
     case .required(
       let jwks,
       let encryptionMethodsSupported,
       _ /// compressionMethods
     ):
-      guard let jwk = jwks.first(where: { $0.keyType == .EC }), let method = encryptionMethodsSupported.first else {
+      guard let jwk = jwks.first, let method = encryptionMethodsSupported.first else {
         return nil
       }
       return try .init(
@@ -245,19 +245,20 @@ public actor Issuer: IssuerType {
       poster: Poster(session: session),
       dpopConstructor: dpopConstructor
     )
-    
+
     notifyIssuer = NotifyIssuer(
       issuerMetadata: issuerMetadata,
-      poster: Poster(session: session)
+      poster: Poster(session: session),
+      dpopConstructor: dpopConstructor
     )
-    
+
     if let nonceEndpoint = issuerMetadata.nonceEndpoint {
       nonceEndpointClient = NonceEndpointClient(nonceEndpoint: nonceEndpoint)
     } else {
       nonceEndpointClient = nil
     }
   }
-  
+
   public init(
     authorizationServerMetadata: IdentityAndAccessManagementMetadata,
     issuerMetadata: CredentialIssuerMetadata,
@@ -274,7 +275,7 @@ public actor Issuer: IssuerType {
     self.authorizationServerMetadata = authorizationServerMetadata
     self.issuerMetadata = issuerMetadata
     self.config = config
-    
+
     if let challengeEndpoint = authorizationServerMetadata.challengeEndpointURI {
       challenger = ChallengeEndpointClient(
         poster: challengePoster,
@@ -283,7 +284,16 @@ public actor Issuer: IssuerType {
     } else {
       challenger = nil
     }
-    
+
+    // Symmetric to the session-based initializer: refuse to construct an Issuer against an AS
+    // that advertises no DPoP algorithms when the wallet requires DPoP.
+    if config.requireDpop {
+      guard let dpopAlgs = authorizationServerMetadata.dpopSigningAlgValuesSupported,
+            !dpopAlgs.isEmpty else {
+        throw ValidationError.dpopRequired
+      }
+    }
+
     authorizer = try AuthorizationServerClient(
       challenger: challenger,
       parPoster: parPoster,
@@ -291,7 +301,7 @@ public actor Issuer: IssuerType {
       config: config,
       authorizationServerMetadata: authorizationServerMetadata,
       credentialIssuerIdentifier: issuerMetadata.credentialIssuerIdentifier,
-      dpopConstructor: dpopConstructor
+      dpopConstructor: config.requireDpop ? dpopConstructor : nil
     )
     
     authorizeIssuance = AuthorizeIssuance(
@@ -313,12 +323,14 @@ public actor Issuer: IssuerType {
     
     deferredIssuanceRequester = IssuanceRequester(
       issuerMetadata: issuerMetadata,
-      poster: deferredRequesterPoster
+      poster: deferredRequesterPoster,
+      dpopConstructor: dpopConstructor
     )
-    
+
     notifyIssuer = NotifyIssuer(
       issuerMetadata: issuerMetadata,
-      poster: notificationPoster
+      poster: notificationPoster,
+      dpopConstructor: dpopConstructor
     )
     
     if let nonceEndpoint = issuerMetadata.nonceEndpoint {
@@ -571,6 +583,7 @@ internal extension Issuer {
         requester: issuanceRequester,
         proofs: proofs.actualProofs,
         issuancePayload: issuancePayload,
+        requestEncryptionSpec: encryptionSpec,
         responseEncryptionSpecProvider: responseEncryptionSpecProvider
       )
     }
@@ -624,6 +637,7 @@ internal extension Issuer {
         requester: issuanceRequester,
         proofs: proofs.actualProofs,
         issuancePayload: issuancePayload,
+        requestEncryptionSpec: encryptionSpec,
         responseEncryptionSpecProvider: responseEncryptionSpecProvider
       )
     }
@@ -640,14 +654,14 @@ internal extension Issuer {
     case .proofNotRequired:
       return ([], nil)
     default:
-      let cNonce = try? await nonceEndpointClient?.getNonce().get()
+      let cNonce = try await nonceEndpointClient?.getNonce().get()
       
       try await validateBindingKeys(
         credentialSpec: supportedCredential,
         bindingKeys: bindingKeys
       )
       
-      let proofs = await calculateProofs(
+      let proofs = try await calculateProofs(
         bindingKeys: bindingKeys,
         supportedCredential: supportedCredential,
         omitIss: authorizedRequest.grantType == .preAuthorizationCode || authorizedRequest.grantType == .both,
@@ -712,7 +726,7 @@ internal extension Issuer {
     supportedCredential: CredentialSupported,
     omitIss: Bool,
     nonce: String?
-  ) async -> [Proof] {
+  ) async throws -> [Proof] {
     /// Filter for keys we care about
     let eligibleKeys = bindingKeys.filter {
       switch $0 {
@@ -720,24 +734,26 @@ internal extension Issuer {
       default: false
       }
     }
-    
+
     /// Grab the first attestation function, if any
     let attestationFunction = bindingKeys
       .first(where: { $0.isAttestationCapable })?
       .attestationFunction
-    
+
     /// Resolve the attestation JWT once; if we have a function
-    let attestationJwt = try? await attestationFunction?(nonce)
-    
-    /// Build proofs
-    let proofs = await eligibleKeys.asyncCompactMap { key in
-      try? await key.toSupportedProof(
+    let attestationJwt = try await attestationFunction?(nonce)
+
+    /// Build proofs — propagate any construction error rather than dropping the key silently.
+    var proofs: [Proof] = []
+    for key in eligibleKeys {
+      let proof = try await key.toSupportedProof(
         issuanceRequester: issuanceRequester,
         credentialSpec: supportedCredential,
         keyAttestationJwt: attestationJwt,
         cNonce: nonce,
         omitIss: omitIss
       )
+      proofs.append(proof)
     }
     return proofs
   }

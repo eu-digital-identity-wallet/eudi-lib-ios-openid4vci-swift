@@ -47,13 +47,18 @@ public enum AccessTokenRequestResponse: Codable, Sendable {
   
   public init(from decoder: Decoder) throws {
     let container = try decoder.container(keyedBy: CodingKeys.self)
-    
-    if let accessToken = try? container.decode(String.self, forKey: .accessToken),
-       let expiresIn = try? container.decode(Int.self, forKey: .expiresIn) {
-      
+
+    if let accessToken = try? container.decode(String.self, forKey: .accessToken) {
+      // RFC 6749 §4.2.2: `expires_in` is OPTIONAL and RECOMMENDED as an integer, but many
+      // authorization servers serialize it as a JSON string. Accept either, and default to 0
+      // when the field is absent so that a legitimate token response with no `expires_in`
+      // does not fall through to the failure branch and end up in a `cannotParse` error whose
+      // raw body would leak access / refresh tokens.
+      let expiresIn = Self.lenientNumber(from: container, forKey: .expiresIn) ?? 0
+
       let tokenType = try? container.decode(String.self, forKey: .tokenType)
       let refeshToken = try? container.decode(String.self, forKey: .refreshToken)
-      let refreshTokenExpiresIn = try? container.decode(Int.self, forKey: .refreshTokenExpiresIn)
+      let refreshTokenExpiresIn = Self.lenientNumber(from: container, forKey: .refreshTokenExpiresIn)
       var authorizationDetails: AuthorizationDetailsIdentifiers = [:]
       
       let json = try? container.decode(JSON.self, forKey: .authorizationDetails)
@@ -84,8 +89,10 @@ public enum AccessTokenRequestResponse: Codable, Sendable {
         scope: try? container.decode(String.self, forKey: .scope),
         authorizationDetails: (authorizationDetails.isEmpty ? nil : authorizationDetails)
       )
-    } else if let error = try? container.decode(String.self, forKey: .error),
-              let errorDescription = try? container.decode(String.self, forKey: .errorDescription) {
+    } else if let error = try? container.decode(String.self, forKey: .error) {
+      // RFC 6749 §5.2: `error_description` is OPTIONAL; treat a valid error response with
+      // no description as failure rather than falling through.
+      let errorDescription = try? container.decode(String.self, forKey: .errorDescription)
       self = .failure(error: error, errorDescription: errorDescription)
     } else {
       throw DecodingError.dataCorrupted(
@@ -97,6 +104,18 @@ public enum AccessTokenRequestResponse: Codable, Sendable {
     }
   }
   
+  /// Decode an integer from a container even when the wire representation is a JSON string.
+  /// Returns nil only when the key is truly absent or the value is neither number nor
+  /// integer-shaped string.
+  private static func lenientNumber(
+    from container: KeyedDecodingContainer<CodingKeys>,
+    forKey key: CodingKeys
+  ) -> Int? {
+    if let n = try? container.decode(Int.self, forKey: key) { return n }
+    if let s = try? container.decode(String.self, forKey: key), let n = Int(s) { return n }
+    return nil
+  }
+
   public func encode(to encoder: Encoder) throws {
     var container = encoder.container(keyedBy: CodingKeys.self)
     

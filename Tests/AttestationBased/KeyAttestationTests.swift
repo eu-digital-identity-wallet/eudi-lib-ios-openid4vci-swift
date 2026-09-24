@@ -50,15 +50,19 @@ class KeyAttestationTests: XCTestCase {
     config = nil
   }
   
-  func testWhenIssuerRequiressKeyAttestationShouldBeIncludedInProof() async throws {
-    
+  // The shipped attestation JWT (`TestsConstants.ketAttestationJWT`) attests one key, at
+  // index 0. Requesting proof for a key at index 1 must surface `keyIndexOutOfBounds` —
+  // previously a `try?` in Issuer.calculateProofs swallowed this and the request went out
+  // with no proof at all while the test asserted success.
+  func testWhenKeyIndexIsOutOfBoundsProofConstructionFailsLoudly() async throws {
+
     // Given
     let sdJwtVCpayload: IssuanceRequestPayload = .configurationBased(
       credentialConfigurationIdentifier: try .init(value: "eu.europa.ec.eudiw.pid_vc_sd_jwt")
     )
     let spec = data.spec
-    
-    let keyBindingKey: BindingKey = try! .jwtKeyAttestation(
+
+    let outOfBoundsBindingKey: BindingKey = try! .jwtKeyAttestation(
       algorithm: .init(.ES256),
       keyAttestationJWT: { _ in
         try! .init(
@@ -70,8 +74,7 @@ class KeyAttestationTests: XCTestCase {
       keyIndex: 1,
       privateKey: .secKey(data.privateKey)
     )
-    
-    // When
+
     let authorized = try! await data.issuer.authorizeWithAuthorizationCode(
       serverState: TestsConstants.unAuthorizedRequest.state,
       request: TestsConstants.unAuthorizedRequest,
@@ -79,26 +82,70 @@ class KeyAttestationTests: XCTestCase {
       grant: data.offer.grants!
     )
 
-    
     do {
-      
-      // Then
       _ = try await data.issuer.requestCredential(
         request: authorized,
-        bindingKeys: [
-          keyBindingKey
-        ],
+        bindingKeys: [outOfBoundsBindingKey],
         requestPayload: sdJwtVCpayload,
-        responseEncryptionSpecProvider: { _ in
-          spec
-        })
-      
-        XCTAssert(true, "Success")
+        responseEncryptionSpecProvider: { _ in spec }
+      )
+      XCTFail("Expected keyIndexOutOfBounds error but request succeeded")
+    } catch CredentialIssuanceError.keyIndexOutOfBounds(let index, let available) {
+      XCTAssertEqual(index, 1)
+      XCTAssertEqual(available, 1)
     } catch {
-      XCTAssert(false, error.localizedDescription)
+      XCTFail("Expected CredentialIssuanceError.keyIndexOutOfBounds, got \(error)")
     }
   }
-  
+
+  // When the issuer publishes a nonce endpoint and the fetch fails, Issuer.obtainProofs must
+  // surface the error to the caller. Previously a `try?` swallowed the failure and the wallet
+  // proceeded to build proofs without the c_nonce claim.
+  func testWhenNonceEndpointFailsErrorPropagates() async throws {
+    let offerOptional = await TestsConstants.createMockCredentialOfferopenidKeyAttestationRequired()
+    let offer = try XCTUnwrap(offerOptional)
+    let spec = data.spec
+
+    let issuer = try Issuer(
+      authorizationServerMetadata: offer.authorizationServerMetadata,
+      issuerMetadata: offer.credentialIssuerMetadata,
+      config: config,
+      parPoster: Poster(session: NetworkingMock(path: "pushed_authorization_request_response", extension: "json")),
+      tokenPoster: Poster(session: NetworkingMock(path: "access_token_request_response_no_proof", extension: "json")),
+      requesterPoster: Poster(session: NetworkingMock(path: "batch_credential_issuance_success_response_credentials", extension: "json")),
+      noncePoster: Poster(session: NetworkingThrowingMock()),
+      dpopConstructor: dpopConstructor(algorithms: offer.authorizationServerMetadata.dpopSigningAlgValuesSupported)
+    )
+
+    let authorized = try await issuer.authorizeWithAuthorizationCode(
+      serverState: TestsConstants.unAuthorizedRequest.state,
+      request: TestsConstants.unAuthorizedRequest,
+      authorizationCode: try AuthorizationCode(value: "MZqG9bsQ8UALhsGNlY39Yw=="),
+      grant: offer.grants!
+    )
+
+    let keyBindingKey: BindingKey = .attestation(
+      keyAttestationJWT: { _ in
+        try! .init(jws: try! .init(compactSerialization: TestsConstants.ketAttestationJWT))
+      }
+    )
+    let payload: IssuanceRequestPayload = .configurationBased(
+      credentialConfigurationIdentifier: try .init(value: "eu.europa.ec.eudiw.pid_vc_sd_jwt")
+    )
+
+    do {
+      _ = try await issuer.requestCredential(
+        request: authorized,
+        bindingKeys: [keyBindingKey],
+        requestPayload: payload,
+        responseEncryptionSpecProvider: { _ in spec }
+      )
+      XCTFail("Expected nonce endpoint failure to propagate")
+    } catch {
+      XCTAssertTrue(true)
+    }
+  }
+
   func testWhenIssuerRequiresAttestationShouldBeIncludedInProof() async throws {
     
     // Given

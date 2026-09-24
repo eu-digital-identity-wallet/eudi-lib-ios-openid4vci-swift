@@ -53,7 +53,7 @@ public enum PostError: LocalizedError {
     case .networkError(let error):
       return "Network Error: \(error.localizedDescription)"
     case .cannotParse(let string):
-      return "Could not parse: \(string)"
+      return "Could not parse response body (\(string.count) bytes)"
     case .serverError:
       return "Server error"
     case .useDpopNonce(let nonce):
@@ -99,7 +99,7 @@ public struct Poster: PostingType {
    Initializes a Poster instance.
    */
   public init(
-    session: Networking = URLSession.shared
+    session: Networking = HardenedSession.default
   ) {
     self.session = session
   }

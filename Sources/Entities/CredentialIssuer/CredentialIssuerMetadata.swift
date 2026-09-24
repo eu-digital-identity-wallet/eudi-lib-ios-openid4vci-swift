@@ -141,18 +141,19 @@ public struct CredentialIssuerMetadata: Decodable, Equatable, Sendable {
       forKey: .notificationEndpoint
     )
     
-    credentialResponseEncryption = (try? container.decode(
+    credentialResponseEncryption = try container.decodeIfPresent(
       CredentialResponseEncryption.self,
       forKey: .credentialResponseEncryption
-    )) ?? .notSupported
-    
-    credentialRequestEncryption = (try? container.decode(
+    ) ?? .notSupported
+
+    credentialRequestEncryption = try container.decodeIfPresent(
       CredentialRequestEncryption.self,
       forKey: .credentialRequestEncryption
-    )) ?? .notSupported
+    ) ?? .notSupported
     
-    // If issuer supports and requires credential response encryption then it must advertise its request encryption capabilities
-    if !credentialResponseEncryption.notSupported, credentialResponseEncryption.required {
+    // if the issuer advertises credential_response_encryption at all — required or
+    // optional — it must also advertise credential_request_encryption
+    if !credentialResponseEncryption.notSupported {
         guard let requestEncryption = credentialRequestEncryption,
               !requestEncryption.notSupported else {
             throw CredentialIssuerMetadataError

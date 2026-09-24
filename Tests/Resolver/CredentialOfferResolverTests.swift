@@ -135,9 +135,11 @@ class CredentialOfferResolverTests: XCTestCase {
     }
   }
     
-  func testResolutionSucceedWhenOptionalResponseEncryptionExistsButNoRequestEncryption() async throws {
-    
-    // Given: Metadata JSON that includes credential_response_encryption but no credential_request_encryption
+  // An issuer that advertises credential_response_encryption (required OR optional)
+  // must also advertise credential_request_encryption. Metadata that fails this invariant is
+  // rejected
+  func testResolutionFailsWhenOptionalResponseEncryptionExistsButNoRequestEncryption() async throws {
+
     let fetcher = MetadataFetcher(
       rawFetcher: RawDataFetcher(
         session: NetworkingMock(
@@ -145,26 +147,22 @@ class CredentialOfferResolverTests: XCTestCase {
           extension: "json",
           headers: ["Content-Type": "application/json"]
         )))
-    
+
     let credentialIssuerMetadataResolver = CredentialIssuerMetadataResolver(
       fetcher: fetcher)
-    
-    // When
+
     let result = try await credentialIssuerMetadataResolver.resolve(
-      source:
-          .credentialIssuer(
-            CredentialIssuerId(
-              "https://credential-issuer.example.com"
-            )
-          ),
+      source: .credentialIssuer(CredentialIssuerId(
+        "https://credential-issuer.example.com"
+      )),
       policy: .ignoreSigned
     )
-    
+
     switch result {
-    case .success(let result):
-      print(result)
-    case .failure(let error):
-      XCTAssert(false, error.localizedDescription)
+    case .success:
+      XCTFail("Expected failure because response encryption is advertised without request encryption")
+    case .failure:
+      XCTAssertTrue(true)
     }
   }
   
@@ -495,7 +493,7 @@ class CredentialOfferResolverTests: XCTestCase {
   }
 
   func testSelectsSecondAuthServerWhenHintedInMultipleServers() async throws {
-    // Given: Metadata with multiple auth servers and offer hints at the second one
+    // Given: Metadata with multiple auth servers and offer hints at the second one.
     let credentialIssuerMetadataResolver = CredentialIssuerMetadataResolver(
       fetcher: MetadataFetcher(
         rawFetcher: RawDataFetcher(
@@ -511,7 +509,7 @@ class CredentialOfferResolverTests: XCTestCase {
         extension: "json"
       )),
       oauthFetcher: Fetcher<AuthorizationServerMetadata>(session: NetworkingMock(
-        path: "oauth_authorization_server_metadata",
+        path: "oauth_authorization_server_metadata_two",
         extension: "json"
       ))
     )
@@ -697,6 +695,82 @@ class CredentialOfferResolverTests: XCTestCase {
         errorDescription.contains("error 4"),
         "Error should be related to invalidGrants: \(errorDescription)"
       )
+    }
+  }
+  
+  
+  func testRejectsMetadataWhoseCredentialIssuerDoesNotMatchRequestedIssuer() async throws {
+    let credentialIssuerMetadataResolver = CredentialIssuerMetadataResolver(
+      fetcher: createMetadataFetcher())
+
+    do {
+      _ = try await credentialIssuerMetadataResolver.resolve(
+        source: .credentialIssuer(
+          try .init("https://credential-issuer.example.com/tenant-a")
+        ),
+        policy: .ignoreSigned
+      )
+      XCTFail("Expected mismatch to be rejected")
+    } catch let error as CredentialIssuerMetadataError {
+      guard case .issuerMismatch(let expected, let actual) = error else {
+        XCTFail("Expected issuerMismatch error, got \(error)")
+        return
+      }
+      XCTAssertEqual(expected, "https://credential-issuer.example.com/tenant-a")
+      XCTAssertEqual(actual, "https://credential-issuer.example.com")
+    } catch {
+      XCTFail("Unexpected error type: \(error)")
+    }
+  }
+
+
+  func testRejectsAuthorizationServerMetadataWithMismatchedIssuer() async throws {
+    let resolver = AuthorizationServerMetadataResolver(
+      oidcFetcher: Fetcher<OIDCProviderMetadata>(session: NetworkingMock(
+        path: "oidc_authorization_server_metadata",
+        extension: "json"
+      )),
+      oauthFetcher: Fetcher<AuthorizationServerMetadata>(session: NetworkingMock(
+        path: "oauth_authorization_server_metadata",
+        extension: "json"
+      ))
+    )
+
+    let result = await resolver.resolve(
+      url: URL(string: "https://different-authorization-server.example.com")!
+    )
+
+    switch result {
+    case .success:
+      XCTFail("Expected mismatched issuer to be rejected")
+    case .failure:
+      XCTAssertTrue(true)
+    }
+  }
+
+  // Even when the AS metadata's `issuer` matches the discovery URL, an endpoint on a
+  // different origin (attacker-controlled host) would let a compromised or malicious AS have
+  // the wallet post DPoP proofs and client-attestation PoP JWTs to somewhere else. The
+  // resolver must refuse.
+  func testRejectsAuthorizationServerMetadataWithOffOriginEndpoint() async throws {
+    let resolver = AuthorizationServerMetadataResolver(
+      oidcFetcher: Fetcher<OIDCProviderMetadata>(session: NetworkingMock(
+        path: "oidc_authorization_server_metadata",
+        extension: "json"
+      )),
+      oauthFetcher: Fetcher<AuthorizationServerMetadata>(session: NetworkingMock(
+        path: "oauth_authorization_server_metadata_off_origin_token",
+        extension: "json"
+      ))
+    )
+
+    let result = await resolver.resolve(url: URL(string: "https://as.example.com")!)
+
+    switch result {
+    case .success:
+      XCTFail("Expected off-origin token_endpoint to be rejected")
+    case .failure:
+      XCTAssertTrue(true)
     }
   }
 }

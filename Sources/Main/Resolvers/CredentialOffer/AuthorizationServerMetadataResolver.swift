@@ -87,7 +87,16 @@ public actor AuthorizationServerMetadataResolver: AuthorizationServerMetadataRes
       return nil
     }
 
-    return try? await fetcher.fetch(url: insertedUrl).get()
+    guard let metadata = try? await fetcher.fetch(url: insertedUrl).get() else {
+      return nil
+    }
+    guard isIssuerBoundToDiscoveryURL(metadata.issuer, discoveryURL: url) else {
+      return nil
+    }
+    guard areEndpointsBoundToIssuer(metadata.endpointsForOriginBinding(), issuer: url) else {
+      return nil
+    }
+    return metadata
   }
 
   private func fetchAuthorizationServerMetadata(
@@ -106,7 +115,38 @@ public actor AuthorizationServerMetadataResolver: AuthorizationServerMetadataRes
       return nil
     }
 
-    return try? await fetcher.fetch(url: insertedUrl).get()
+    guard let metadata = try? await fetcher.fetch(url: insertedUrl).get() else {
+      return nil
+    }
+    guard isIssuerBoundToDiscoveryURL(metadata.issuer, discoveryURL: url) else {
+      return nil
+    }
+    guard areEndpointsBoundToIssuer(metadata.endpointsForOriginBinding(), issuer: url) else {
+      return nil
+    }
+    return metadata
+  }
+
+
+  private func isIssuerBoundToDiscoveryURL(_ metadataIssuer: String?, discoveryURL: URL) -> Bool {
+    guard let metadataIssuer, !metadataIssuer.isEmpty else { return false }
+    return metadataIssuer == discoveryURL.absoluteString
+  }
+
+  // Every endpoint the AS advertises must share origin (scheme + host + port) with the
+  // validated `issuer`. An off-origin endpoint would let a malicious or compromised AS have
+  // the wallet post its DPoP proof, client-attestation PoP JWT, or 307/308-preserved request
+  // body to a host different from the one the wallet targeted.
+  private func areEndpointsBoundToIssuer(_ endpoints: [String?], issuer: URL) -> Bool {
+    for endpoint in endpoints {
+      guard let endpoint, !endpoint.isEmpty, let endpointURL = URL(string: endpoint) else {
+        continue
+      }
+      if !SameOriginRedirectDelegate.sameOrigin(endpointURL, issuer) {
+        return false
+      }
+    }
+    return true
   }
 }
 
