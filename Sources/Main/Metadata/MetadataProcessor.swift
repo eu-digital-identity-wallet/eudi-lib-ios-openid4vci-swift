@@ -222,7 +222,7 @@ private extension MetadataProcessor {
 
 private extension JWS {
   
-  /// Validates the required claims: `iat`, `iss`, and `sub`
+  /// Validates the required claims: `sub` and `iat` are required, `iss` is optional
   /// - Returns: `self` if all claims are present and valid, throws otherwise.
   func validateSignedMetadataClaims() throws -> JWS {
     
@@ -242,11 +242,16 @@ private extension JWS {
     /// Validate required claims
     guard
       let _ = json[JWTClaimNames.issuedAt] as? TimeInterval,
-      let _ = json[JWTClaimNames.issuer] as? String,
       let _ = json[JWTClaimNames.subject] as? String
     else {
       throw CredentialIssuerMetadataError.invalidSignedMetadata(
         "Expected claims not found in signed metadata"
+      )
+    }
+    /// Validate optional claims
+    if let issuer = json[JWTClaimNames.issuer], !(issuer is String) {
+      throw CredentialIssuerMetadataError.invalidSignedMetadata(
+        "Invalid 'iss' claim. Expected a string"
       )
     }
     return self
