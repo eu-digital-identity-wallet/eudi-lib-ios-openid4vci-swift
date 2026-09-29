@@ -168,15 +168,4 @@ public struct AuthorizationServerMetadata: Codable, Equatable, Sendable {
     self.clientAttestationSigningAlgValuesSupported = clientAttestationSigningAlgValuesSupported
     self.clientAttestationPopSigningAlgValuesSupported = clientAttestationPopSigningAlgValuesSupported
   }
-
-  /// Endpoints whose origin should be pinned to the AS issuer. Any URL the wallet posts
-  /// authenticated / attestation-bound material to belongs here.
-  func endpointsForOriginBinding() -> [String?] {
-    [
-      authorizationEndpoint,
-      tokenEndpoint,
-      pushedAuthorizationRequestEndpoint,
-      challengeEndpoint,
-    ]
-  }
 }
