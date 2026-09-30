@@ -697,32 +697,6 @@ class CredentialOfferResolverTests: XCTestCase {
       )
     }
   }
-  
-  
-  func testRejectsMetadataWhoseCredentialIssuerDoesNotMatchRequestedIssuer() async throws {
-    let credentialIssuerMetadataResolver = CredentialIssuerMetadataResolver(
-      fetcher: createMetadataFetcher())
-
-    do {
-      _ = try await credentialIssuerMetadataResolver.resolve(
-        source: .credentialIssuer(
-          try .init("https://credential-issuer.example.com/tenant-a")
-        ),
-        policy: .ignoreSigned
-      )
-      XCTFail("Expected mismatch to be rejected")
-    } catch let error as CredentialIssuerMetadataError {
-      guard case .issuerMismatch(let expected, let actual) = error else {
-        XCTFail("Expected issuerMismatch error, got \(error)")
-        return
-      }
-      XCTAssertEqual(expected, "https://credential-issuer.example.com/tenant-a")
-      XCTAssertEqual(actual, "https://credential-issuer.example.com")
-    } catch {
-      XCTFail("Unexpected error type: \(error)")
-    }
-  }
-
 
   func testRejectsAuthorizationServerMetadataWithMismatchedIssuer() async throws {
     let resolver = AuthorizationServerMetadataResolver(

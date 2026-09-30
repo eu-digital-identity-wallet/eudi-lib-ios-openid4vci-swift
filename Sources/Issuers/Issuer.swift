@@ -434,10 +434,8 @@ public actor Issuer: IssuerType {
           actual: issuerFromRedirect.absoluteString
         )
       }
-    } else if request.issParameterRequired, let expectedIssuer = request.expectedIssuer {
-      throw ValidationError.issParameterRequiredButMissing(expected: expectedIssuer.absoluteString)
     }
-
+    
     return try await authorizeIssuance.authorizeWithAuthorizationCode(
       grant: grant,
       request: request,

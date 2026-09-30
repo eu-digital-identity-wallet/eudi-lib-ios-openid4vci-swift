@@ -373,7 +373,9 @@ internal actor AuthorizationServerClient: AuthorizationServerClientType {
       
       let clientAttestation = try await generateClientAttestationIfNeeded(
         clock: Clock(),
-        authServerId: parEndpoint,
+        authServerId: URL(
+          string: authorizationServerMetadata.issuer ?? ""
+        ),
         challenge: challenge
       )
 
@@ -488,7 +490,9 @@ internal actor AuthorizationServerClient: AuthorizationServerClientType {
     do {
       let clientAttestation = try await generateClientAttestationIfNeeded(
         clock: Clock(),
-        authServerId: tokenEndpoint,
+        authServerId: URL(
+          string: authorizationServerMetadata.issuer ?? ""
+        ),
         challenge: challenge
       )
 
@@ -685,7 +689,6 @@ internal actor AuthorizationServerClient: AuthorizationServerClientType {
     
     let (attestationHeaders, _) = try await makeAttestationHeadersIfNeeded(
       for: client,
-      endpoint: tokenEndpoint,
       clock: Clock()
     )
     
@@ -945,12 +948,21 @@ private extension AuthorizationServerClient {
   
   private func makeAttestationHeadersIfNeeded(
     for client: Client,
-    endpoint: URL,
     clock: ClockType
   ) async throws -> ([String: String], SigningKeyProxy?) {
     guard let clientAttestationPoPBuilder = config.clientAttestationPoPBuilder else {
       if config.requireClientAttestation {
         throw ValidationError.clientAttestationRequired(reason: "no clientAttestationPoPBuilder configured on OpenId4VCIConfig")
+      }
+      return ([:], nil)
+    }
+
+    guard
+      let issuer = authorizationServerMetadata.issuer,
+      let authServerId = URL(string: issuer)
+    else {
+      if config.requireClientAttestation {
+        throw ValidationError.clientAttestationRequired(reason: "authorization server metadata has no valid issuer to audience the PoP JWT to")
       }
       return ([:], nil)
     }
@@ -971,13 +983,13 @@ private extension AuthorizationServerClient {
       return ([:], nil)
     }
 
-    let (attestationJWT, signingKey) = try await provider(endpoint)
+    let (attestationJWT, signingKey) = try await provider(authServerId)
 
     let popJWT = try await clientAttestationPoPBuilder.buildAttestationPoPJWT(
       for: client,
       algorithm: spec.signingAlgorithm,
       clock: clock,
-      authServerId: endpoint,
+      authServerId: authServerId,
       challenge: challenge?.challenge.value
     )
 

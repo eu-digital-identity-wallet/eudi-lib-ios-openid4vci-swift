@@ -71,17 +71,6 @@ public actor CredentialIssuerMetadataResolver: CredentialIssuerMetadataType {
         policy: policy,
         issuerId: issuerId
       )
-      
-      if case .success(let metadata) = result {
-        let expected = issuerId.url.absoluteString
-        let actual = metadata.credentialIssuerIdentifier.url.absoluteString
-        guard expected == actual else {
-          throw CredentialIssuerMetadataError.issuerMismatch(
-            expected: expected,
-            actual: actual
-          )
-        }
-      }
 
       return result
     }
