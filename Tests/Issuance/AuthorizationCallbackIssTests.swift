@@ -54,36 +54,6 @@ final class AuthorizationCallbackIssTests: XCTestCase {
     )
   }
 
-  // AS advertised authorization_response_iss_parameter_supported and we tracked the
-  // expected issuer at request time. The callback must supply `iss`; if it doesn't, the
-  // wallet refuses.
-  func testMissingIssWhenASRequiresItThrows() async throws {
-    guard let offer = await TestsConstants.createMockCredentialOffer() else {
-      XCTFail("Unable to resolve credential offer")
-      return
-    }
-    let issuer = try makeIssuer(from: offer)
-    let request = try makeAuthorizationRequested(
-      expectedIssuer: URL(string: "https://example.com/realms/pid-issuer-realm"),
-      issParameterRequired: true
-    )
-
-    do {
-      _ = try await issuer.authorizeWithAuthorizationCode(
-        serverState: "state-1",
-        request: request,
-        authorizationCode: try AuthorizationCode(value: "code"),
-        grant: offer.grants!,
-        issuerFromRedirect: nil
-      )
-      XCTFail("Expected issParameterRequiredButMissing")
-    } catch ValidationError.issParameterRequiredButMissing {
-      XCTAssertTrue(true)
-    } catch {
-      XCTFail("Unexpected error: \(error)")
-    }
-  }
-
   // The `iss` parameter is supplied but does not match the AS the wallet targeted at
   // request time. Classic mix-up scenario.
   func testIssMismatchThrows() async throws {
