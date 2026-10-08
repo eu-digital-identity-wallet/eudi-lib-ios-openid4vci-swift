@@ -793,7 +793,9 @@ internal actor AuthorizationServerClient: AuthorizationServerClientType {
       do {
         let clientAttestation = try await generateClientAttestationIfNeeded(
           clock: Clock(),
-          authServerId: tokenEndpoint,
+          authServerId: URL(
+            string: authorizationServerMetadata.issuer ?? ""
+          ),
           challenge: challenge
         )
 
