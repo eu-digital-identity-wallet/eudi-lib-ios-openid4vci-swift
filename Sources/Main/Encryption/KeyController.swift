@@ -16,16 +16,20 @@
 import Foundation
 import Security
 import CryptoKit
+import JOSESwift
 
 public class KeyController {
   
-  public static func generateECPrivateKey(with data: Data) throws -> SecKey? {
+  public static func generateECPrivateKey(with data: Data, curve: ECCurveType? = nil) throws -> SecKey? {
         
     // Define the key attributes
-    let attributes: [CFString: Any] = [
+    var attributes: [CFString: Any] = [
       kSecAttrKeyType: kSecAttrKeyTypeECSECPrimeRandom,
       kSecAttrKeyClass: kSecAttrKeyClassPrivate
     ]
+    if let curve {
+      attributes[kSecAttrKeySizeInBits] = curve.keySizeInBits
+    }
     
     // Create the SecKey object
     var error: Unmanaged<CFError>?
@@ -87,10 +91,10 @@ public class KeyController {
     return secKey
   }
   
-  public static func generateRSAPrivateKey() throws -> SecKey {
+  public static func generateRSAPrivateKey(keySizeInBits: Int = 2048) throws -> SecKey {
     let attributes: [String: Any] = [
       kSecAttrKeyType as String: kSecAttrKeyTypeRSA,
-      kSecAttrKeySizeInBits as String: 2048
+      kSecAttrKeySizeInBits as String: keySizeInBits
     ]
     
     var error: Unmanaged<CFError>?
@@ -107,10 +111,10 @@ public class KeyController {
     return publicKey
   }
   
-  public static func generateECDHPrivateKey() throws -> SecKey {
+  public static func generateECDHPrivateKey(curve: ECCurveType = .P256) throws -> SecKey {
     let attributes: [String: Any] = [
       kSecAttrKeyType as String: kSecAttrKeyTypeECSECPrimeRandom,
-      kSecAttrKeySizeInBits as String: 256
+      kSecAttrKeySizeInBits as String: curve.keySizeInBits
     ]
     
     var error: Unmanaged<CFError>?

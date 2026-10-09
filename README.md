@@ -301,12 +301,9 @@ let payload: IssuanceRequestPayload = .configurationBased(
 )
 
 let requestOutcome = try await issuer.requestCredential(
-    proofRequest: ...,
+    request: ...,
     bindingKeys: ..., // SigningKeyProxy array
-    requestPayload: payload,
-    responseEncryptionSpecProvider:  { 
-        Issuer.createResponseEncryptionSpec($0) 
-    }
+    requestPayload: payload
 )
 
 switch requestOutcome {
@@ -364,6 +361,8 @@ public struct OpenId4VCIConfig: Sendable {
   public let supportedCredentialReusePolicies: SupportedCredentialReusePolicies
   public let proofTypesPolicy: ProofTypesPolicy
   public let registrationCertificatePolicy: RegistrationCertificatePolicy?
+  public let supportedGrants: SupportedGrants
+  public let encryptionSupportConfig: EncryptionSupportConfig
 }
 ```
 
@@ -383,7 +382,63 @@ public struct OpenId4VCIConfig: Sendable {
 - `proofTypesPolicy`: Policy defining which proof types the wallet supports. See [Proof Types Policy Configuration](#proof-types-policy-configuration) for details.
 - `registrationCertificatePolicy`: Optional. When set, activates WRP Registration Certificate (WRPRC) enforcement in `Issuer.make(...)`. Carries an `Authorize` closure that receives the WRPAC (`String`), the raw opaque WRPRC value (`String`) as delivered in `issuer_info`, and the offered credential configurations, and returns an `Authorization` — either `.granted(warnings: [String: [PolicyViolation]])` or `.notGranted(error: PolicyViolation)`. The library performs no chain-of-trust or signature validation on the WRPRC — those decisions live in the caller's closure. Requires `issuerMetadataPolicy = .requireSigned(...)` (checked at construction). Defaults to `nil` (no WRPRC enforcement).
 
+- `supportedGrants`: The grant types supported by the wallet. Defaults to `.both`.
+- `encryptionSupportConfig`: Wallet-side configuration of credential request / response encryption: whether encrypted responses are required, which key families (EC / RSA), curve, key size, algorithms and content encryption methods the wallet is willing to use. See [Credential response encryption configuration](#credential-response-encryption-configuration). Defaults to `.default`.
+
 The DPoP constructor itself is passed as a parameter to `Issuer(...)` / `Issuer.make(...)`, not stored on `OpenId4VCIConfig`.
+
+### Credential response encryption configuration
+
+The issuer advertises in its metadata (`credential_response_encryption`, `credential_request_encryption`)
+which JWE algorithms and content encryption methods it supports, and whether encryption is required.
+`EncryptionSupportConfig` describes what the **wallet** is willing to use; the library negotiates the
+intersection, preserving the issuer's preference order.
+
+```swift
+public struct EncryptionSupportConfig: Sendable {
+  public let credentialResponseEncryptionPolicy: CredentialResponseEncryptionPolicy // .required | .supported
+  public let ecConfig: EcConfig?        // nil disables the ECDH-ES family
+  public let rsaConfig: RsaConfig?      // nil disables the RSA family
+  public let supportedEncryptionMethods: [JOSEEncryptionMethod]
+}
+
+public struct EcConfig: Sendable {
+  public let ecKeyCurve: ECCurveType                    // JOSESwift: .P256 (default), .P384, .P521
+  public let supportedJWEAlgorithms: [JWEAlgorithm]   // subset of ECDH-ES, ECDH-ES+A128KW, ECDH-ES+A192KW, ECDH-ES+A256KW
+}
+
+public struct RsaConfig: Sendable {
+  public let rcaKeySize: Int                    // >= 2048, default 2048
+  public let supportedJWEAlgorithms: [JWEAlgorithm]   // subset of RSA1_5, RSA-OAEP, RSA-OAEP-256, RSA-OAEP-384, RSA-OAEP-512
+}
+```
+
+- `credentialResponseEncryptionPolicy`:
+  - `.supported` (default): encrypted responses are used whenever the issuer supports them; plaintext responses are accepted when the issuer does not require encryption.
+  - `.required`: issuance fails with `CredentialIssuanceError.responseEncryptionRequiredByWalletButNotSupportedByIssuer` when the issuer does not support response encryption, and with `CredentialIssuanceError.responseEncryptionRequiredByWalletButSpecMissing` when no mutually supported algorithm / method exists.
+- `ecConfig` / `rsaConfig`: key families the wallet is willing to generate key material for, each with an optional algorithm allow-list. `nil` disables the family.
+- `supportedEncryptionMethods`: content encryption methods for both request and response encryption. Defaults to every platform supported method (`A128GCM`, `A192GCM`, `A256GCM`, `A128CBC-HS256`, `A192CBC-HS384`, `A256CBC-HS512`).
+
+```swift
+// Require encrypted responses, ECDH-ES only (RSA disabled), AES-GCM only
+let config = OpenId4VCIConfig(
+  client: client,
+  authFlowRedirectionURI: redirectURI,
+  encryptionSupportConfig: EncryptionSupportConfig(
+    credentialResponseEncryptionPolicy: .required,
+    ecConfig: EcConfig(ecKeyCurve: .P256),
+    rsaConfig: nil,
+    supportedEncryptionMethods: [.init(.A128GCM), .init(.A256GCM)]
+  )
+)
+```
+
+The negotiated spec is available through `issuer.responseEncryptionSpec(privateKeyData:)`, which is also
+what `requestCredential(request:bindingKeys:requestPayload:)` uses. Pass the exported private key as
+`privateKeyData` to rebuild the same spec for a deferred credential request. The static
+`Issuer.createResponseEncryptionSpec(_:walletConfig:privateKeyData:)` performs the same negotiation for a
+given configuration. The legacy `Issuer.createResponseEncryptionSpec(_:privateKeyData:)` and
+`Issuer.createResponseEncryptionSpecFrom(...)` keep working and use `EncryptionSupportConfig.default`.
 
 ### Proof Types Policy Configuration
 
