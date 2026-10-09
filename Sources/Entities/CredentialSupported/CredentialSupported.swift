@@ -67,12 +67,14 @@ public extension CredentialSupported {
     proofs: [Proof] = [],
     issuancePayload: IssuanceRequestPayload,
     requestEncryptionSpec: EncryptionSpec? = nil,
+    walletResponseEncryptionPolicy: CredentialResponseEncryptionPolicy = .supported,
     responseEncryptionSpecProvider: (_ issuerResponseEncryptionMetadata: CredentialResponseEncryption) -> IssuanceResponseEncryptionSpec?
   ) throws -> CredentialIssuanceRequest {
     
     let (issuerEncryption, responseEncryptionSpec) = try validateAndPrepareEncryption(
       requester: requester,
       requestEncryptionSpec: requestEncryptionSpec,
+      walletResponseEncryptionPolicy: walletResponseEncryptionPolicy,
       responseEncryptionSpecProvider: responseEncryptionSpecProvider
     )
     
@@ -100,10 +102,20 @@ public extension CredentialSupported {
   private func validateAndPrepareEncryption(
     requester: IssuanceRequesterType,
     requestEncryptionSpec: EncryptionSpec?,
+    walletResponseEncryptionPolicy: CredentialResponseEncryptionPolicy,
     responseEncryptionSpecProvider: (CredentialResponseEncryption) -> IssuanceResponseEncryptionSpec?
   ) throws -> (CredentialResponseEncryption, IssuanceResponseEncryptionSpec?) {
     let issuerEncryption = requester.issuerMetadata.credentialResponseEncryption
     let responseEncryptionSpec = responseEncryptionSpecProvider(issuerEncryption)
+    // Wallet mandates response encryption: the issuer must support it and a spec must exist.
+    if case .required = walletResponseEncryptionPolicy {
+      if issuerEncryption.notSupported {
+        throw CredentialIssuanceError.responseEncryptionRequiredByWalletButNotSupportedByIssuer
+      }
+      if responseEncryptionSpec == nil {
+        throw CredentialIssuanceError.responseEncryptionRequiredByWalletButSpecMissing
+      }
+    }
     // Wallet asking for an encrypted response must also encrypt its own request.
     if !issuerEncryption.notSupported, responseEncryptionSpec != nil, requestEncryptionSpec == nil {
       throw CredentialIssuanceError.responseEncryptionRequiresRequestEncryption

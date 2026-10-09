@@ -156,37 +156,10 @@ public actor Issuer: IssuerType {
   private let challenger: ChallengeEndpointClientType?
   
   func encryptionSpec() throws -> EncryptionSpec? {
-    
-    switch issuerMetadata.credentialRequestEncryption {
-    case .notRequired(
-      let jwks,
-      let encryptionMethodsSupported,
-      _ /// compressionMethods
-    ):
-      guard let jwk = jwks.first, let method = encryptionMethodsSupported.first else {
-        return nil
-      }
-      return try .init(
-        recipientKey: jwk,
-        encryptionMethod: method
-      )
-      
-    case .required(
-      let jwks,
-      let encryptionMethodsSupported,
-      _ /// compressionMethods
-    ):
-      guard let jwk = jwks.first, let method = encryptionMethodsSupported.first else {
-        return nil
-      }
-      return try .init(
-        recipientKey: jwk,
-        encryptionMethod: method
-      )
-    default:
-      /// Not supported
-      return nil
-    }
+    try Self.createRequestEncryptionSpec(
+      issuerMetadata.credentialRequestEncryption,
+      walletConfig: config.encryptionSupportConfig
+    )
   }
   
   public init(
@@ -466,6 +439,37 @@ public actor Issuer: IssuerType {
       )
     }
   }
+  
+  /// Requests credential issuance, negotiating response encryption from the issuer's metadata and
+  /// the wallet's `OpenId4VCIConfig.encryptionSupportConfig`.
+  ///
+  /// This is the config-driven counterpart of
+  /// `requestCredential(request:bindingKeys:requestPayload:responseEncryptionSpecProvider:)`.
+  ///
+  /// - Parameters:
+  ///   - request: The authorized request.
+  ///   - bindingKeys: The binding keys used for proof generation.
+  ///   - requestPayload: The payload required for the credential issuance.
+  /// - Returns: A `SubmittedRequest`.
+  public func requestCredential(
+    request: AuthorizedRequest,
+    bindingKeys: [BindingKey],
+    requestPayload: IssuanceRequestPayload
+  ) async throws -> SubmittedRequest {
+    
+    let walletConfig = config.encryptionSupportConfig
+    return try await requestCredential(
+      request: request,
+      bindingKeys: bindingKeys,
+      requestPayload: requestPayload,
+      responseEncryptionSpecProvider: { issuerResponseEncryptionMetadata in
+        Self.createResponseEncryptionSpec(
+          issuerResponseEncryptionMetadata,
+          walletConfig: walletConfig
+        )
+      }
+    )
+  }
 }
 
 internal extension Issuer {
@@ -565,6 +569,7 @@ internal extension Issuer {
         proofs: proofs.actualProofs,
         issuancePayload: issuancePayload,
         requestEncryptionSpec: encryptionSpec,
+        walletResponseEncryptionPolicy: config.encryptionSupportConfig.credentialResponseEncryptionPolicy,
         responseEncryptionSpecProvider: responseEncryptionSpecProvider
       )
     }
@@ -619,6 +624,7 @@ internal extension Issuer {
         proofs: proofs.actualProofs,
         issuancePayload: issuancePayload,
         requestEncryptionSpec: encryptionSpec,
+        walletResponseEncryptionPolicy: config.encryptionSupportConfig.credentialResponseEncryptionPolicy,
         responseEncryptionSpecProvider: responseEncryptionSpecProvider
       )
     }
@@ -813,111 +819,212 @@ public extension Issuer {
     )
   }
   
+  /// Negotiates the response encryption spec from the issuer's metadata using
+  /// `EncryptionSupportConfig.default`. Prefer `responseEncryptionSpec(privateKeyData:)` or the
+  /// overload taking a `walletConfig`, which honour the wallet's configuration.
   static func createResponseEncryptionSpec(
     _ issuerResponseEncryptionMetadata: CredentialResponseEncryption,
     privateKeyData: Data? = nil
   ) -> IssuanceResponseEncryptionSpec? {
     switch issuerResponseEncryptionMetadata {
     case .notSupported:
-      return Self.createResponseEncryptionSpecFrom(
+      return createResponseEncryptionSpec(
         algorithmsSupported: [.init(.ECDH_ES)],
         encryptionMethodsSupported: [.init(.A128GCM)],
+        walletConfig: .default,
         privateKeyData: privateKeyData
       )
-    case let .required(
-      algorithmsSupported,
-      encryptionMethodsSupported,
-      compressionMethodsSupported
-    ):
-      return Self.createResponseEncryptionSpecFrom(
-        algorithmsSupported: algorithmsSupported,
-        encryptionMethodsSupported: encryptionMethodsSupported,
-        compressionMethodsSupported: compressionMethodsSupported,
-        privateKeyData: privateKeyData
-      )
-    case let .notRequired(
-      algorithmsSupported,
-      encryptionMethodsSupported,
-      compressionMethodsSupported
-    ):
-      return Self.createResponseEncryptionSpecFrom(
-        algorithmsSupported: algorithmsSupported,
-        encryptionMethodsSupported: encryptionMethodsSupported,
-        compressionMethodsSupported: compressionMethodsSupported,
+    default:
+      return createResponseEncryptionSpec(
+        issuerResponseEncryptionMetadata,
+        walletConfig: .default,
         privateKeyData: privateKeyData
       )
     }
   }
   
+  /// Negotiates the response encryption spec from the issuer's metadata and the wallet's configuration.
+  ///
+  /// The issuer's preference order is preserved, and the first algorithm / encryption method the wallet also supports wins.
+  ///
+  /// - Parameters:
+  ///   - issuerResponseEncryptionMetadata: The issuer's `credential_response_encryption` metadata.
+  ///   - walletConfig: The wallet's encryption configuration.
+  ///   - privateKeyData: Optional external representation of a previously generated private key, used
+  ///     to rebuild the same spec for a deferred credential request. When `nil` a fresh key is generated.
+  /// - Returns: The spec, or `nil` when the issuer does not support response encryption or no mutually
+  ///   supported algorithm / method exists.
+  static func createResponseEncryptionSpec(
+    _ issuerResponseEncryptionMetadata: CredentialResponseEncryption,
+    walletConfig: EncryptionSupportConfig,
+    privateKeyData: Data? = nil
+  ) -> IssuanceResponseEncryptionSpec? {
+    switch issuerResponseEncryptionMetadata {
+    case .notSupported:
+      return nil
+    case let .required(algorithmsSupported, encryptionMethodsSupported, _),
+         let .notRequired(algorithmsSupported, encryptionMethodsSupported, _):
+      return createResponseEncryptionSpec(
+        algorithmsSupported: algorithmsSupported,
+        encryptionMethodsSupported: encryptionMethodsSupported,
+        walletConfig: walletConfig,
+        privateKeyData: privateKeyData
+      )
+    }
+  }
+  
+  /// Builds a response encryption spec using `EncryptionSupportConfig.default`.
+  /// Prefer the overload taking a `walletConfig`.
   static func createResponseEncryptionSpecFrom(
     algorithmsSupported: [JWEAlgorithm],
     encryptionMethodsSupported: [JOSEEncryptionMethod],
     compressionMethodsSupported: [CompressionAlgorithm]? = nil,
     privateKeyData: Data? = nil
   ) -> IssuanceResponseEncryptionSpec? {
-    let firstAsymmetricAlgorithm = algorithmsSupported.first {
-      JWEAlgorithm.Family.parse(.ASYMMETRIC).contains($0)
-    }
-    
-    guard
-      let algorithm = firstAsymmetricAlgorithm
-    else {
-      return nil
-    }
-    
-    let privateKey: SecKey?
-    var jwk: JWK?
-    if JWEAlgorithm.Family.parse(.RSA).contains(algorithm) {
-      privateKey = if let privateKeyData {
-        try? KeyController.generateRSAPrivateKey(with: privateKeyData)
-      } else {
-        try? KeyController.generateRSAPrivateKey()
-      }
-      if let privateKey,
-         let publicKey = try? KeyController.generateRSAPublicKey(from: privateKey) {
-        jwk = try? RSAPublicKey(
-          publicKey: publicKey,
-          additionalParameters: [
-            "use": "enc",
-            "kid": UUID().uuidString,
-            "alg": algorithm.name
-          ]
-        )
-      }
-    } else if JWEAlgorithm.Family.parse(.ECDH_ES).contains(algorithm) {
-      privateKey = if let privateKeyData {
-        try? KeyController.generateECPrivateKey(with: privateKeyData)
-      } else {
-        try? KeyController.generateECDHPrivateKey()
-      }
-      if let privateKey,
-         let publicKey = try? KeyController.generateECDHPublicKey(from: privateKey) {
-        jwk = try? ECPublicKey(
-          publicKey: publicKey,
-          additionalParameters: [
-            "use": "enc",
-            "kid": UUID().uuidString,
-            "alg": algorithm.name
-          ]
-        )
-      }
-    } else {
-      privateKey = nil
-    }
-    
-    guard
-      let key = privateKey,
-      let encryptionMethodsSupported = encryptionMethodsSupported.first
-    else {
-      return nil
-    }
-    
-    return IssuanceResponseEncryptionSpec(
-      jwk: jwk,
-      privateKey: key,
-      algorithm: algorithm,
-      encryptionMethod: encryptionMethodsSupported
+    createResponseEncryptionSpec(
+      algorithmsSupported: algorithmsSupported,
+      encryptionMethodsSupported: encryptionMethodsSupported,
+      walletConfig: .default,
+      privateKeyData: privateKeyData
     )
+  }
+  
+  /// Builds a response encryption spec from the issuer's supported algorithms / methods and the
+  /// wallet's configuration. See `createResponseEncryptionSpec(_:walletConfig:privateKeyData:)`.
+  static func createResponseEncryptionSpec(
+    algorithmsSupported: [JWEAlgorithm],
+    encryptionMethodsSupported: [JOSEEncryptionMethod],
+    walletConfig: EncryptionSupportConfig,
+    privateKeyData: Data? = nil
+  ) -> IssuanceResponseEncryptionSpec? {
+    
+    guard let encryptionMethod = encryptionMethodsSupported.first(where: walletConfig.supports(method:)) else {
+      return nil
+    }
+    
+    for algorithm in algorithmsSupported {
+      let keyMaterial: (privateKey: SecKey, jwk: JWK)?
+      if let ecConfig = walletConfig.ecConfig, ecConfig.supports(algorithm) {
+        keyMaterial = ecKeyMaterial(for: algorithm, config: ecConfig, privateKeyData: privateKeyData)
+      } else if let rsaConfig = walletConfig.rsaConfig, rsaConfig.supports(algorithm) {
+        keyMaterial = rsaKeyMaterial(for: algorithm, config: rsaConfig, privateKeyData: privateKeyData)
+      } else {
+        keyMaterial = nil
+      }
+      
+      if let keyMaterial {
+        return IssuanceResponseEncryptionSpec(
+          jwk: keyMaterial.jwk,
+          privateKey: keyMaterial.privateKey,
+          algorithm: algorithm,
+          encryptionMethod: encryptionMethod
+        )
+      }
+    }
+    return nil
+  }
+  
+  /// Selects the request encryption spec from the issuer's `credential_request_encryption` metadata
+  /// and the wallet's configuration: the first issuer-advertised encryption method the wallet supports,
+  /// and the first issuer JWK whose key family / algorithm the wallet is willing to use.
+  ///
+  /// - Returns: The spec, or `nil` when the issuer does not support request encryption or no mutually
+  ///   supported JWK / method exists.
+  /// - Throws: When an issuer JWK is of a key type unusable for asymmetric encryption.
+  static func createRequestEncryptionSpec(
+    _ issuerRequestEncryptionMetadata: CredentialRequestEncryption?,
+    walletConfig: EncryptionSupportConfig
+  ) throws -> EncryptionSpec? {
+    switch issuerRequestEncryptionMetadata {
+    case let .required(jwks, encryptionMethodsSupported, _),
+         let .notRequired(jwks, encryptionMethodsSupported, _):
+      guard let encryptionMethod = encryptionMethodsSupported.first(where: walletConfig.supports(method:)) else {
+        return nil
+      }
+      for jwk in jwks {
+        let spec = try EncryptionSpec(
+          recipientKey: jwk,
+          encryptionMethod: encryptionMethod
+        )
+        if walletConfig.supports(algorithm: spec.algorithm) {
+          return spec
+        }
+      }
+      return nil
+    case .notSupported, .none:
+      return nil
+    }
+  }
+  
+  /// Negotiates the response encryption spec for this issuer from its metadata and the wallet's
+  /// `OpenId4VCIConfig.encryptionSupportConfig`.
+  ///
+  /// - Parameter privateKeyData: Optional external representation of a previously generated private
+  ///   key, used to rebuild the same spec for a deferred credential request.
+  nonisolated func responseEncryptionSpec(
+    privateKeyData: Data? = nil
+  ) -> IssuanceResponseEncryptionSpec? {
+    Self.createResponseEncryptionSpec(
+      issuerMetadata.credentialResponseEncryption,
+      walletConfig: config.encryptionSupportConfig,
+      privateKeyData: privateKeyData
+    )
+  }
+  
+  private static func ecKeyMaterial(
+    for algorithm: JWEAlgorithm,
+    config: EcConfig,
+    privateKeyData: Data?
+  ) -> (privateKey: SecKey, jwk: JWK)? {
+    let privateKey: SecKey?
+    if let privateKeyData {
+      privateKey = try? KeyController.generateECPrivateKey(with: privateKeyData, curve: config.ecKeyCurve)
+    } else {
+      privateKey = try? KeyController.generateECDHPrivateKey(curve: config.ecKeyCurve)
+    }
+    guard
+      let privateKey,
+      let publicKey = try? KeyController.generateECDHPublicKey(from: privateKey),
+      let jwk = try? ECPublicKey(
+        publicKey: publicKey,
+        additionalParameters: responseEncryptionJWKParameters(for: algorithm)
+      )
+    else {
+      return nil
+    }
+    return (privateKey, jwk)
+  }
+  
+  private static func rsaKeyMaterial(
+    for algorithm: JWEAlgorithm,
+    config: RsaConfig,
+    privateKeyData: Data?
+  ) -> (privateKey: SecKey, jwk: JWK)? {
+    let privateKey: SecKey?
+    if let privateKeyData {
+      privateKey = try? KeyController.generateRSAPrivateKey(with: privateKeyData)
+    } else {
+      privateKey = try? KeyController.generateRSAPrivateKey(keySizeInBits: config.rcaKeySize)
+    }
+    guard
+      let privateKey,
+      let publicKey = try? KeyController.generateRSAPublicKey(from: privateKey),
+      let jwk = try? RSAPublicKey(
+        publicKey: publicKey,
+        additionalParameters: responseEncryptionJWKParameters(for: algorithm)
+      )
+    else {
+      return nil
+    }
+    return (privateKey, jwk)
+  }
+  
+  private static func responseEncryptionJWKParameters(for algorithm: JWEAlgorithm) -> [String: String] {
+    [
+      "use": "enc",
+      "kid": UUID().uuidString,
+      "alg": algorithm.name
+    ]
   }
   
   func requestDeferredCredential(
