@@ -37,7 +37,7 @@ public enum PostError: LocalizedError {
   case networkError(Error)
   case cannotParse(String)
   case serverError
-  case useDpopNonce(Nonce)
+  case useDpopNonce(Nonce, attestationChallenge: Nonce? = nil)
   case useAttestationNonce(Nonce)
   case requestError(Int, Error)
   
@@ -56,7 +56,7 @@ public enum PostError: LocalizedError {
       return "Could not parse response body (\(string.count) bytes)"
     case .serverError:
       return "Server error"
-    case .useDpopNonce(let nonce):
+    case .useDpopNonce(let nonce, _):
       return "Use dPop Nonce error: \(nonce)"
     case .useAttestationNonce(let nonce):
       return "Use attestation Nonce error: \(nonce)"
@@ -118,6 +118,8 @@ public struct Poster: PostingType {
       let httpResponse = (response as? HTTPURLResponse)
       let statusCode = httpResponse?.statusCode ?? 0
       let headers = httpResponse?.allHeaderFields ?? [:]
+      let attestationChallenge = (headers.value(forCaseInsensitiveKey: Constants.OAUTH_CLIENT_ATTESTATION_CHALLENGE) as? String)
+        .flatMap { $0.isEmpty ? nil : Nonce(value: $0) }
       
       if statusCode >= HTTPStatusCode.badRequest && statusCode < HTTPStatusCode.internalServerError {
         if let httpResponse,
@@ -127,7 +129,8 @@ public struct Poster: PostingType {
             PostError.useDpopNonce(
               .init(
                 value: dPopNonce
-              )
+              ),
+              attestationChallenge: attestationChallenge
             )
           )
         } else {
@@ -139,17 +142,14 @@ public struct Poster: PostingType {
                 PostError.useDpopNonce(
                   .init(
                     value: dPopNonce
-                  )
+                  ),
+                  attestationChallenge: attestationChallenge
                 )
               )
             } else if object.error == Constants.USE_ATTESTATION_CHALLENGE,
-                      let attestationNonce = headers.value(forCaseInsensitiveKey: Constants.OAUTH_CLIENT_ATTESTATION_CHALLENGE) as? String {
+                      let attestationNonce = attestationChallenge {
               return .failure(
-                PostError.useAttestationNonce(
-                  .init(
-                    value: attestationNonce
-                  )
-                )
+                PostError.useAttestationNonce(attestationNonce)
               )
             }
             

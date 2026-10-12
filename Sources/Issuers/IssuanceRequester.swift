@@ -138,7 +138,7 @@ public actor IssuanceRequester: IssuanceRequesterType {
 
       return try response.body.toSingleIssuanceResponse()
       
-    } catch PostError.useDpopNonce(let nonce) {
+    } catch PostError.useDpopNonce(let nonce, _) {
       guard maxRetries > 0 else {
         throw ValidationError.retryFailedAfterDpopNonce
       }
@@ -293,7 +293,7 @@ public actor IssuanceRequester: IssuanceRequesterType {
       
       return response.body
       
-    } catch PostError.useDpopNonce(let nonce) {
+    } catch PostError.useDpopNonce(let nonce, _) {
       guard maxRetries > 0 else {
         throw ValidationError.retryFailedAfterDpopNonce
       }
@@ -377,7 +377,7 @@ public actor IssuanceRequester: IssuanceRequesterType {
           encryptionSpec: nil
         )
         
-      } catch PostError.useDpopNonce(let nonce) {
+      } catch PostError.useDpopNonce(let nonce, _) {
         guard maxRetries > 0 else {
           throw ValidationError.retryFailedAfterDpopNonce
         }

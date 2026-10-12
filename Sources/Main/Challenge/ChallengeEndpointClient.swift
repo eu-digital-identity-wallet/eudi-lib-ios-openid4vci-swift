@@ -59,6 +59,9 @@ public actor ChallengeEndpointClient: ChallengeEndpointClientType {
     
     switch result {
     case .success(let response):
+      guard !response.body.attestationChallenge.isEmpty else {
+        throw ValidationError.error(reason: "Challenge endpoint returned an empty attestation challenge")
+      }
       if let dPopNonce = response.headers.value(forCaseInsensitiveKey: Constants.DPOP_NONCE_HEADER) as? String {
         return (
           challenge: Nonce(value: response.body.attestationChallenge),

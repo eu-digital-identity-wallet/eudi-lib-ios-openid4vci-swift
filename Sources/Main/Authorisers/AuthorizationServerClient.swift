@@ -30,7 +30,7 @@ package extension ResponseWithHeaders {
   /// Extracts a fresh attestation challenge from the
   /// `OAuth-Client-Attestation-Challenge` response header
   func attestationChallenge() -> Nonce? {
-    if let value = headers.value(forCaseInsensitiveKey: Constants.OAUTH_CLIENT_ATTESTATION_CHALLENGE) as? String {
+    if let value = headers.value(forCaseInsensitiveKey: Constants.OAUTH_CLIENT_ATTESTATION_CHALLENGE) as? String, !value.isEmpty {
       return Nonce(value: value)
     }
     return nil
@@ -429,7 +429,7 @@ internal actor AuthorizationServerClient: AuthorizationServerClientType {
           errorDescription: errorDescription
         )
       }
-    } catch PostError.useDpopNonce(let nonce) {
+    } catch PostError.useDpopNonce(let nonce, let freshChallenge) {
       guard maxRetries > 0 else {
         throw ValidationError.retryFailedAfterDpopNonce
       }
@@ -442,7 +442,7 @@ internal actor AuthorizationServerClient: AuthorizationServerClientType {
         issuerState: issuerState,
         resource: resource,
         dpopNonce: nonce,
-        challenge: challenge,
+        challenge: freshChallenge ?? challenge,
         maxRetries: maxRetries - 1
       )
     } catch PostError.useAttestationNonce(let challenge) {
@@ -542,7 +542,7 @@ internal actor AuthorizationServerClient: AuthorizationServerClientType {
           errorDescription: errorDescription
         )
       }
-    } catch PostError.useDpopNonce(let nonce) {
+    } catch PostError.useDpopNonce(let nonce, let freshChallenge) {
       guard maxRetries > 0 else {
         throw ValidationError.retryFailedAfterDpopNonce
       }
@@ -552,7 +552,7 @@ internal actor AuthorizationServerClient: AuthorizationServerClientType {
         codeVerifier: codeVerifier,
         identifiers: identifiers,
         dpopNonce: nonce,
-        challenge: challenge,
+        challenge: freshChallenge ?? challenge,
         maxRetries: maxRetries - 1
       )
     } catch PostError.useAttestationNonce(let challenge) {
@@ -654,9 +654,13 @@ internal actor AuthorizationServerClient: AuthorizationServerClientType {
           errorDescription: errorDescription
         )
       }
-    } catch PostError.useDpopNonce(let nonce) {
+    } catch PostError.useDpopNonce(let nonce, let freshChallenge) {
       guard maxRetries > 0 else {
         throw ValidationError.retryFailedAfterDpopNonce
+      }
+
+      if let freshChallenge {
+        await challenger?.setChallenge(freshChallenge)
       }
 
       return try await refreshAccessToken(
@@ -681,19 +685,43 @@ internal actor AuthorizationServerClient: AuthorizationServerClientType {
     Int?,
     Nonce?
   ) {
+    return try await refreshAccessToken(
+      client: client,
+      refreshToken: refreshToken,
+      dpopNonce: dpopNonce,
+      challenge: nil,
+      maxRetries: maxRetries
+    )
+  }
+
+  private func refreshAccessToken(
+    client: Client,
+    refreshToken: IssuanceRefreshToken,
+    dpopNonce: Nonce?,
+    challenge: Nonce?,
+    maxRetries: Int
+  ) async throws -> (
+    IssuanceAccessToken,
+	  IssuanceRefreshToken?,
+    AuthorizationDetailsIdentifiers?,
+    TokenType?,
+    Int?,
+    Nonce?
+  ) {
     let parameters: JSON = JSON([
       Constants.CLIENT_ID_PARAM: client.id,
       Constants.GRANT_TYPE_PARAM: Constants.REFRESH_TOKEN,
       Constants.REFRESH_TOKEN_PARAM: refreshToken.refreshToken
     ].compactMapValues { $0 })
     
-    let (attestationHeaders, _) = try await makeAttestationHeadersIfNeeded(
+    let (attestationHeaders, _, challengeDpopNonce) = try await makeAttestationHeadersIfNeeded(
       for: client,
-      clock: Clock()
+      clock: Clock(),
+      challenge: challenge
     )
     
     do {
-      let headers = try await tokenEndPointHeaders(url: tokenEndpoint, dpopNonce: dpopNonce) + attestationHeaders
+      let headers = try await tokenEndPointHeaders(url: tokenEndpoint, dpopNonce: dpopNonce ?? challengeDpopNonce) + attestationHeaders
       let response: ResponseWithHeaders<AccessTokenRequestResponse> = try await service.formPost(
         poster: tokenPoster,
         url: tokenEndpoint,
@@ -740,7 +768,7 @@ internal actor AuthorizationServerClient: AuthorizationServerClientType {
           errorDescription: errorDescription
         )
       }
-    } catch PostError.useDpopNonce(let nonce) {
+    } catch PostError.useDpopNonce(let nonce, let freshChallenge) {
       guard maxRetries > 0 else {
         throw ValidationError.retryFailedAfterDpopNonce
       }
@@ -749,6 +777,7 @@ internal actor AuthorizationServerClient: AuthorizationServerClientType {
         client: client,
         refreshToken: refreshToken,
         dpopNonce: nonce,
+        challenge: freshChallenge ?? challenge,
         maxRetries: maxRetries - 1
       )
     } catch PostError.useAttestationNonce(let challenge) {
@@ -756,11 +785,11 @@ internal actor AuthorizationServerClient: AuthorizationServerClientType {
         throw ValidationError.retryFailedAfterDpopNonce
       }
 
-      await challenger?.setChallenge(challenge)
       return try await refreshAccessToken(
         client: client,
         refreshToken: refreshToken,
-        dpopNonce: dpopNonce,
+        dpopNonce: dpopNonce ?? challengeDpopNonce,
+        challenge: challenge,
         maxRetries: maxRetries - 1
       )
     }
@@ -850,7 +879,7 @@ internal actor AuthorizationServerClient: AuthorizationServerClientType {
             errorDescription: errorDescription
           )
         }
-      } catch PostError.useDpopNonce(let nonce) {
+      } catch PostError.useDpopNonce(let nonce, let freshChallenge) {
             guard maxRetries > 0 else {
               throw ValidationError.retryFailedAfterDpopNonce
             }
@@ -862,7 +891,7 @@ internal actor AuthorizationServerClient: AuthorizationServerClientType {
               transactionCode: transactionCode,
               identifiers: identifiers,
               dpopNonce: nonce,
-              challenge: challenge,
+              challenge: freshChallenge ?? challenge,
               maxRetries: maxRetries - 1
             )
       } catch PostError.useAttestationNonce(let challenge) {
@@ -950,13 +979,14 @@ private extension AuthorizationServerClient {
   
   private func makeAttestationHeadersIfNeeded(
     for client: Client,
-    clock: ClockType
-  ) async throws -> ([String: String], SigningKeyProxy?) {
+    clock: ClockType,
+    challenge: Nonce?
+  ) async throws -> ([String: String], SigningKeyProxy?, Nonce?) {
     guard let clientAttestationPoPBuilder = config.clientAttestationPoPBuilder else {
       if config.requireClientAttestation {
         throw ValidationError.clientAttestationRequired(reason: "no clientAttestationPoPBuilder configured on OpenId4VCIConfig")
       }
-      return ([:], nil)
+      return ([:], nil, nil)
     }
 
     guard
@@ -966,23 +996,27 @@ private extension AuthorizationServerClient {
       if config.requireClientAttestation {
         throw ValidationError.clientAttestationRequired(reason: "authorization server metadata has no valid issuer to audience the PoP JWT to")
       }
-      return ([:], nil)
+      return ([:], nil, nil)
     }
-
-    let challenge = try? await challenger?.getChallenge()
 
     guard let provider = client.provider() else {
       if config.requireClientAttestation {
         throw ValidationError.clientAttestationRequired(reason: "client is not attestation-capable (no provider)")
       }
-      return ([:], nil)
+      return ([:], nil, nil)
     }
 
     guard let spec = client.spec() else {
       if config.requireClientAttestation {
         throw ValidationError.clientAttestationRequired(reason: "client is not attestation-capable (no PoP spec)")
       }
-      return ([:], nil)
+      return ([:], nil, nil)
+    }
+
+    let fetchedChallenge: (challenge: Nonce, dpopNonce: Nonce?)? = if challenge == nil {
+      try await challenger?.getChallenge()
+    } else {
+      nil
     }
 
     let (attestationJWT, signingKey) = try await provider(authServerId)
@@ -992,13 +1026,13 @@ private extension AuthorizationServerClient {
       algorithm: spec.signingAlgorithm,
       clock: clock,
       authServerId: authServerId,
-      challenge: challenge?.challenge.value
+      challenge: (challenge ?? fetchedChallenge?.challenge)?.value
     )
 
     return ([
       Constants.OAUTH_CLIENT_ATTESTATION: attestationJWT.value,
       Constants.OAUTH_CLIENT_ATTESTATION_POP: popJWT.jws.compactSerializedString
-    ], signingKey)
+    ], signingKey, fetchedChallenge?.dpopNonce)
   }
   
   func tokenEndPointHeaders(

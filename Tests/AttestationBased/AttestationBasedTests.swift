@@ -133,18 +133,29 @@ class AttestationBasedTests: XCTestCase {
       algorithm: .ES256,
       clock: FixedClock(instant: fixedInstant),
       authServerId: URL(string: "https://as.example.com")!,
-      challenge: nil
+      challenge: "fresh-challenge"
     )
 
     let payload = JSON(pop.jws.payload.data())
     XCTAssertEqual(payload["iat"].int, fixedEpoch, "iat must equal the injected clock's epoch second")
-    XCTAssertEqual(payload["exp"].int, fixedEpoch + Int(duration), "exp must equal iat + popJwtSpec.duration")
+    XCTAssertEqual(payload["nbf"].int, fixedEpoch, "nbf must equal the injected clock's epoch second")
+    XCTAssertEqual(Set(payload.dictionaryValue.keys), ["iss", "aud", "jti", "iat", "nbf", "challenge"])
+    XCTAssertEqual(payload["iss"].string, "test-client")
+    XCTAssertEqual(payload["aud"].string, "https://as.example.com")
+    XCTAssertEqual(payload["challenge"].string, "fresh-challenge")
+    XCTAssertFalse(payload["jti"].stringValue.isEmpty)
+    let header = try XCTUnwrap(JSONSerialization.jsonObject(with: pop.jws.header.data()) as? [String: Any])
+    XCTAssertEqual(Set(header.keys), ["alg", "typ"])
+    XCTAssertEqual(header["alg"] as? String, "ES256")
+    XCTAssertEqual(header["typ"] as? String, "oauth-client-attestation-pop+jwt")
+    let publicKey = try KeyController.generateECDHPublicKey(from: privateKey)
+    let verifier = try XCTUnwrap(Verifier(signatureAlgorithm: .ES256, key: publicKey))
+    XCTAssertNoThrow(try pop.jws.validate(using: verifier))
 
     // Guard against fractional-seconds regression by inspecting the serialised bytes:
     // if the number carried a decimal, the substring "<epoch>." would appear.
     let raw = String(data: pop.jws.payload.data(), encoding: .utf8) ?? ""
     XCTAssertFalse(raw.contains("\(fixedEpoch)."), "iat must not be serialised with fractional seconds")
-    XCTAssertFalse(raw.contains("\(fixedEpoch + Int(duration))."), "exp must not be serialised with fractional seconds")
   }
 
   func testClientAttestationWithValidAlgorithms_shouldSucceed() async throws {

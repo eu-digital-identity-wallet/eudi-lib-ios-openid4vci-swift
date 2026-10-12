@@ -145,7 +145,7 @@ internal actor AuthorizeIssuance: AuthorizeIssuanceType {
         case .include(let filter): credentialOffer.credentialConfigurationIdentifiers.filter(filter)
         }
         
-        let challenge = try? await challenger?.getChallenge()
+        let challenge = try await challenger?.getChallenge()
         let (
             accessToken,
             refreshToken,
@@ -195,7 +195,7 @@ internal actor AuthorizeIssuance: AuthorizeIssuanceType {
     case .include(let filter): request.configurationIds.filter(filter)
     }
     
-    let challenge = try? await challenger?.getChallenge()
+    let challenge = try await challenger?.getChallenge()
     let response: (
       accessToken: IssuanceAccessToken,
       refreshToken: IssuanceRefreshToken,
@@ -283,7 +283,7 @@ private extension AuthorizeIssuance {
         credentialOffer.credentialIssuerIdentifier.url.absoluteString
       }
 
-      let challenge = try? await challenger?.getChallenge()
+      let challenge = try await challenger?.getChallenge()
 
       let result: (
         verifier: PKCEVerifier,
