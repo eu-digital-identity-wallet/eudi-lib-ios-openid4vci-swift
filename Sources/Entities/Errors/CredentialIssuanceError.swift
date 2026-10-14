@@ -32,6 +32,8 @@ public enum CredentialIssuanceError: Error, LocalizedError {
   case responseEncryptionRequiresRequestEncryption
   case responseEncryptionRequiredByIssuerButSpecMissing
   case responseEncryptionRequiredByIssuerButPlaintextReceived
+  case responseEncryptionRequiredByWalletButNotSupportedByIssuer
+  case responseEncryptionRequiredByWalletButSpecMissing
   
   case requestEncryptionNotSupportedByIssuer
   case requestEncryptionAlgorithmNotSupportedByIssuer
@@ -94,6 +96,10 @@ public enum CredentialIssuanceError: Error, LocalizedError {
       return "Issuer requires response encryption but the wallet could not build a response encryption spec."
     case .responseEncryptionRequiredByIssuerButPlaintextReceived:
       return "Issuer advertises credential_response_encryption as required but returned a plaintext response."
+    case .responseEncryptionRequiredByWalletButNotSupportedByIssuer:
+      return "Wallet requires credential response encryption but the issuer does not support it."
+    case .responseEncryptionRequiredByWalletButSpecMissing:
+      return "Wallet requires credential response encryption but no response encryption spec could be built from the issuer's and the wallet's supported algorithms and methods."
     
     case .requestEncryptionNotSupportedByIssuer:
       return "Encrypted request not supported by issuer."

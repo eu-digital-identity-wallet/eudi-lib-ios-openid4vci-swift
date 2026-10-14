@@ -102,6 +102,13 @@ public struct OpenId4VCIConfig: Sendable {
   /// Default is `.both`.
   public let supportedGrants: SupportedGrants
 
+  /// Wallet-side configuration of credential request / response encryption: whether encrypted
+  /// responses are required, which key families (EC / RSA), curve, key size, algorithms and
+  /// content encryption methods the wallet is willing to use.
+  ///
+  /// Default is `.default` (encryption supported but not required, EC P-256 and RSA 2048).
+  public let encryptionSupportConfig: EncryptionSupportConfig
+
   /// Initializes an `OpenId4VCIConfig` instance with the given parameters.
   /// - Parameters:
   ///   - client: The client used for OpenID4VCI operations.
@@ -115,6 +122,7 @@ public struct OpenId4VCIConfig: Sendable {
   ///   - supportedCredentialReusePolicies: Wallet's supported credential reuse policies (default: `.notSupported`).
   ///   - registrationCertificatePolicy: Optional policy that, when set, activates WRPRC enforcement in `Issuer.make(...)` (default: `nil`).
   ///   - supportedGrants: The grant types supported by the wallet (default: `.both`).
+  ///   - encryptionSupportConfig: Wallet-side request / response encryption configuration (default: `.default`).
   /// - Throws: `ValidationError` if configuration is invalid.
   public init(
     client: Client,
@@ -129,7 +137,8 @@ public struct OpenId4VCIConfig: Sendable {
     requireClientAttestation: Bool = false,
     supportedCredentialReusePolicies: SupportedCredentialReusePolicies = .notSupported,
     registrationCertificatePolicy: RegistrationCertificatePolicy? = nil,
-    supportedGrants: SupportedGrants = .both
+    supportedGrants: SupportedGrants = .both,
+    encryptionSupportConfig: EncryptionSupportConfig = .default
   ) {
     // Validate: authFlowRedirectionURI must be provided when supportedGrants is .authorizationCode or .both
     if supportedGrants.requiresAuthorizationCodeFlow && authFlowRedirectionURI == nil {
@@ -168,5 +177,6 @@ public struct OpenId4VCIConfig: Sendable {
     self.proofTypesPolicy = proofTypesPolicy
     self.registrationCertificatePolicy = registrationCertificatePolicy
     self.supportedGrants = supportedGrants
+    self.encryptionSupportConfig = encryptionSupportConfig
   }
 }
