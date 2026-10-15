@@ -174,7 +174,7 @@ public actor Issuer: IssuerType {
     self.config = config
     
     if let challengeEndpoint = authorizationServerMetadata.challengeEndpointURI {
-      challenger = ChallengeEndpointClient(challengeEndpoint: challengeEndpoint)
+      challenger = ChallengeEndpointClient(poster: Poster(session: session), challengeEndpoint: challengeEndpoint)
     } else {
       challenger = nil
     }

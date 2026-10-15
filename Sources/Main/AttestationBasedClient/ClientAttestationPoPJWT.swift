@@ -37,16 +37,12 @@ public struct ClientAttestationPoPJWT: Sendable {
       throw ClientAttestationError.missingIssuerClaim
     }
 
-    guard payload[JWTClaimNames.expirationTime].number != nil else {
-      throw ClientAttestationError.missingExpirationClaim
-    }
-    
     guard payload[JWTClaimNames.jwtId].string != nil else {
-      throw ClientAttestationError.missingExpirationClaim
+      throw ClientAttestationError.missingJtiClaim
     }
     
     guard payload[JWTClaimNames.audience].string != nil else {
-      throw ClientAttestationError.missingExpirationClaim
+      throw ClientAttestationError.missingAudienceClaim
     }
   }
 }
