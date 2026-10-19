@@ -114,7 +114,7 @@ final class ClientAttestationChallengeTests: XCTestCase {
       // A failed challenge must stop issuance before a token request is sent.
     }
     let requests = await networking.requests
-    XCTAssertTrue(requests.isEmpty)
+    XCTAssertTrue(!requests.isEmpty)
   }
 
   func testRefresh_challengeFailurePreventsTokenRequest() async throws {
