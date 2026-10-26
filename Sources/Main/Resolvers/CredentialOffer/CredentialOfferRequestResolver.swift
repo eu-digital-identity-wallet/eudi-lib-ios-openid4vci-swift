@@ -74,88 +74,96 @@ public actor CredentialOfferRequestResolver {
   ) async -> Result<CredentialOffer, Error> {
     guard let source = source else { return .failure(ValidationError.error(reason: "Invalid source")) }
     do {
+      let credentialOfferRequestObject: CredentialOfferRequestObject
       switch source {
       case .passByValue(let value):
-        guard
-          let credentialOfferRequestObject: CredentialOfferRequestObject = .init(jsonString: value)
-        else {
+        guard let parsed = CredentialOfferRequestObject(jsonString: value) else {
           return .failure(ValidationError.error(reason: "Unable to parse credential offer request"))
         }
-        
-        let credentialIssuerId = try CredentialIssuerId(credentialOfferRequestObject.credentialIssuer)
-        guard let credentialIssuerMetadata = try? await credentialIssuerMetadataResolver.resolve(
-          source: .credentialIssuer(credentialIssuerId),
-          policy: policy
-        ).get() else {
-          return .failure(ValidationError.error(reason: "Invalid credential metadata"))
-        }
-
-        let authServerHint = getAuthorizationServerFromGrants(credentialOfferRequestObject.grants)
-        let authorizationServerResult = selectAuthorizationServer(
-          hint: authServerHint,
-          availableServers: credentialIssuerMetadata.authorizationServers
-        )
-
-        guard case .success(let authorizationServer) = authorizationServerResult else {
-          if case .failure(let error) = authorizationServerResult {
-            return .failure(error)
-          }
-          return .failure(ValidationError.error(reason: "Invalid authorization metadata"))
-        }
-
-        guard let authorizationServerMetadata = try? await authorizationServerMetadataResolver.resolve(url: authorizationServer).get() else {
-          return .failure(ValidationError.error(reason: "Invalid authorization metadata"))
-        }
-
-        let domain = try toDomain(
-          credentialOfferRequestObject: credentialOfferRequestObject,
-          credentialIssuerId: credentialIssuerId,
-          credentialIssuerMetadata: credentialIssuerMetadata,
-          authorizationServerMetadata: authorizationServerMetadata
-        )
-        return .success(domain)
+        credentialOfferRequestObject = parsed
 
       case .fetchByReference(let url):
-        let result = await fetcher.fetch(url: url)
-        let credentialOfferRequestObject = try? result.get()
-        if let credentialOfferRequestObject = credentialOfferRequestObject {
-          let credentialIssuerId = try CredentialIssuerId(credentialOfferRequestObject.credentialIssuer)
-          guard let credentialIssuerMetadata = try? await credentialIssuerMetadataResolver.resolve(
-            source: .credentialIssuer(credentialIssuerId),
-            policy: policy
-          ).get() else {
-            return .failure(ValidationError.error(reason: "Invalid credential metadata"))
-          }
-
-          let authServerHint = getAuthorizationServerFromGrants(credentialOfferRequestObject.grants)
-          let authorizationServerResult = selectAuthorizationServer(
-            hint: authServerHint,
-            availableServers: credentialIssuerMetadata.authorizationServers
-          )
-
-          guard case .success(let authorizationServer) = authorizationServerResult else {
-            if case .failure(let error) = authorizationServerResult {
-              return .failure(error)
-            }
-            return .failure(ValidationError.error(reason: "Invalid authorization metadata"))
-          }
-
-          guard let authorizationServerMetadata = try? await authorizationServerMetadataResolver.resolve(url: authorizationServer).get() else {
-            return .failure(ValidationError.error(reason: "Invalid authorization metadata"))
-          }
-
-          let domain = try toDomain(
-            credentialOfferRequestObject: credentialOfferRequestObject,
-            credentialIssuerId: credentialIssuerId,
-            credentialIssuerMetadata: credentialIssuerMetadata,
-            authorizationServerMetadata: authorizationServerMetadata
-          )
-          return .success(domain)
+        switch await fetcher.fetch(url: url) {
+        case .success(let fetched):
+          credentialOfferRequestObject = fetched
+        case .failure(let error) where error.isNetworkFailure:
+          return .failure(ValidationError.networkError(.init(stage: .GET, url: url, fetchError: error)))
+        case .failure:
+          return .failure(ValidationError.error(reason: "Unable to fetch credential offer request by reference"))
         }
-        return .failure(ValidationError.error(reason: "Unable to fetch credential offer request by reference"))
       }
+
+      let credentialIssuerId = try CredentialIssuerId(credentialOfferRequestObject.credentialIssuer)
+      let credentialIssuerMetadata = try await resolveCredentialIssuerMetadata(
+        issuerId: credentialIssuerId,
+        policy: policy
+      )
+
+      let authServerHint = getAuthorizationServerFromGrants(credentialOfferRequestObject.grants)
+      let authorizationServerResult = selectAuthorizationServer(
+        hint: authServerHint,
+        availableServers: credentialIssuerMetadata.authorizationServers
+      )
+
+      guard case .success(let authorizationServer) = authorizationServerResult else {
+        if case .failure(let error) = authorizationServerResult {
+          return .failure(error)
+        }
+        return .failure(ValidationError.error(reason: "Invalid authorization metadata"))
+      }
+
+      let authorizationServerMetadata = try await resolveAuthorizationServerMetadata(url: authorizationServer)
+
+      let domain = try toDomain(
+        credentialOfferRequestObject: credentialOfferRequestObject,
+        credentialIssuerId: credentialIssuerId,
+        credentialIssuerMetadata: credentialIssuerMetadata,
+        authorizationServerMetadata: authorizationServerMetadata
+      )
+      return .success(domain)
+
+    } catch let error as ValidationError {
+      return .failure(error)
+    } catch let error as CredentialIssuerMetadataError {
+      return .failure(error)
     } catch {
       return .failure(ValidationError.error(reason: error.localizedDescription))
+    }
+  }
+
+  /// Resolves the credential issuer metadata. A network failure while fetching it is reported as such,
+  /// any other metadata error (not signed, not trusted, not parseable) is passed on unchanged.
+  private func resolveCredentialIssuerMetadata(
+    issuerId: CredentialIssuerId,
+    policy: IssuerMetadataPolicy
+  ) async throws -> CredentialIssuerMetadata {
+    let result = try await credentialIssuerMetadataResolver.resolve(
+      source: .credentialIssuer(issuerId),
+      policy: policy
+    )
+    switch result {
+    case .success(let metadata):
+      return metadata
+    case .failure(.unableToFetchCredentialIssuerMetadata(let cause)):
+      guard let fetchError = cause as? FetchError, fetchError.isNetworkFailure else {
+        throw ValidationError.error(reason: "Invalid credential metadata")
+      }
+      throw ValidationError.networkError(.init(stage: .GET, url: issuerId.url, fetchError: fetchError))
+    case .failure(let error):
+      throw error
+    }
+  }
+
+  /// Resolves the authorization server metadata, keeping a network failure as the reason.
+  private func resolveAuthorizationServerMetadata(url: URL) async throws -> IdentityAndAccessManagementMetadata {
+    switch await authorizationServerMetadataResolver.resolve(url: url) {
+    case .success(let metadata):
+      return metadata
+    case .failure(let error):
+      if case ValidationError.networkError = error {
+        throw error
+      }
+      throw ValidationError.error(reason: "Invalid authorization metadata")
     }
   }
   

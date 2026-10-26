@@ -32,7 +32,8 @@ public enum ValidationError: Error, LocalizedError {
   case stateMismatch(String, String)
   case issMismatch(expected: String, actual: String)
   case issParameterRequiredButMissing(expected: String)
-  
+  case networkError(NetworkFailure)
+
   public var errorDescription: String? {
     switch self {
     case .error(let reason):
@@ -67,6 +68,11 @@ public enum ValidationError: Error, LocalizedError {
       return "issMismatch: expected \(expected) but received \(actual)"
     case .issParameterRequiredButMissing(let expected):
       return "issParameterRequiredButMissing: authorization server \(expected) advertises authorization_response_iss_parameter_supported but the callback did not include an `iss` parameter"
+    case .networkError(let failure):
+      let cause = failure.statusCode.map { "status \($0)" }
+        ?? failure.underlying?.localizedDescription
+        ?? "unknown"
+      return ".networkError \(failure.stage) \(failure.url?.absoluteString ?? "-"): \(cause)"
     }
   }
 }
