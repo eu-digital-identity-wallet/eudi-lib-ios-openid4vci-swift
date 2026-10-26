@@ -49,9 +49,9 @@ public protocol IssuerType: RefreshAccessToken {
   /// - Parameters:
   ///   - authorizationCode: The unauthorized request containing the authorization code.
   ///   - authorizationDetailsInTokenRequest: Additional authorization details for the token request.
-  ///   - issuerFromRedirect: The `iss` parameter received on the authorization response (RFC
-  ///     9207). MUST be provided when the AS advertised
-  ///     `authorization_response_iss_parameter_supported: true`.
+  ///   - issuerFromRedirect: The `iss` parameter received on the authorization response. MUST be provided when `OpenId4VCIConfig.authResponseIssChecking` is `.required`,
+  ///     or `.ifSupported` and the AS advertised `authorization_response_iss_parameter_supported: true`.
+  ///     Ignored when the policy is `.never`.
   /// - Returns: A result containing either an `AuthorizedRequest` if successful or an `Error` otherwise.
   func authorizeWithAuthorizationCode(
     serverState: String,
@@ -391,7 +391,13 @@ public actor Issuer: IssuerType {
     if serverState != request.state {
       throw ValidationError.stateMismatch(serverState, request.state)
     }
-    
+
+    try Self.validateIssuer(
+      issuerFromRedirect,
+      for: request,
+      policy: config.authResponseIssChecking
+    )
+
     return try await authorizeIssuance.authorizeWithAuthorizationCode(
       grant: grant,
       request: request,
@@ -399,7 +405,44 @@ public actor Issuer: IssuerType {
       authorizationDetailsInTokenRequest: authorizationDetailsInTokenRequest
     )
   }
-  
+
+  /// Binds the authorization response to the authorization server the wallet
+  /// originally targeted, according to the wallet's `AuthorizationResponseIssChecking` policy.
+  /// Unless the policy is `.never`, the `iss` parameter is mandatory when `request.issParameterRequired`
+  /// is set, and whenever one is received it must match the expected issuer.
+  static func validateIssuer(
+    _ issuerFromRedirect: URL?,
+    for request: AuthorizationRequested,
+    policy: AuthorizationResponseIssChecking
+  ) throws {
+    if case .never = policy {
+      return
+    }
+
+    guard let issuerFromRedirect else {
+      if request.issParameterRequired {
+        throw ValidationError.issParameterRequiredButMissing(
+          expected: request.expectedIssuer?.absoluteString ?? "unknown"
+        )
+      }
+      return
+    }
+
+    guard let expectedIssuer = request.expectedIssuer else {
+      throw ValidationError.error(
+        reason: "Received `iss` parameter but authorization request has no expected issuer to validate against"
+      )
+    }
+
+    
+    if issuerFromRedirect.absoluteString != expectedIssuer.absoluteString {
+      throw ValidationError.issMismatch(
+        expected: expectedIssuer.absoluteString,
+        actual: issuerFromRedirect.absoluteString
+      )
+    }
+  }
+
   public func requestCredential(
     request: AuthorizedRequest,
     bindingKeys: [BindingKey],
