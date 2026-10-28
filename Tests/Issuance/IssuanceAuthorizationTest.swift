@@ -54,7 +54,8 @@ class IssuanceAuthorizationTest: XCTestCase {
     // Then
     do {
     let parRequested: AuthorizationRequested = try await issuer.prepareAuthorizationRequest(
-      credentialOffer: offer
+      credentialOffer: offer,
+      additionalAuthorizationParameters: nil
     )
       let requestUrl = parRequested.authorizationCodeURL.url.queryParameters["request_uri"]
       XCTAssertNotNil(requestUrl)
@@ -90,7 +91,8 @@ class IssuanceAuthorizationTest: XCTestCase {
     // Then
     do {
     _ = try await issuer.prepareAuthorizationRequest(
-      credentialOffer: offer
+      credentialOffer: offer,
+      additionalAuthorizationParameters: nil
     )
     
       XCTAssert(false, "Expected failure")
