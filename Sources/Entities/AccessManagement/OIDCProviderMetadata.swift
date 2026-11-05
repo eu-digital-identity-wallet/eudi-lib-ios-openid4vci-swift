@@ -240,8 +240,8 @@ public struct OIDCProviderMetadata: Codable, Equatable, Sendable {
 // MARK: - MtlsEndpointAliases
 
 public struct MtlsEndpointAliases: Codable, Sendable, Equatable {
-  public let tokenEndpoint, revocationEndpoint, introspectionEndpoint, deviceAuthorizationEndpoint: String
-  public let registrationEndpoint, userinfoEndpoint, pushedAuthorizationRequestEndpoint, backchannelAuthenticationEndpoint: String
+  public let tokenEndpoint, revocationEndpoint, introspectionEndpoint, deviceAuthorizationEndpoint: String?
+  public let registrationEndpoint, userinfoEndpoint, pushedAuthorizationRequestEndpoint, backchannelAuthenticationEndpoint: String?
   
   enum CodingKeys: String, CodingKey {
     case tokenEndpoint = "token_endpoint"
@@ -254,7 +254,16 @@ public struct MtlsEndpointAliases: Codable, Sendable, Equatable {
     case backchannelAuthenticationEndpoint = "backchannel_authentication_endpoint"
   }
   
-  public init(tokenEndpoint: String, revocationEndpoint: String, introspectionEndpoint: String, deviceAuthorizationEndpoint: String, registrationEndpoint: String, userinfoEndpoint: String, pushedAuthorizationRequestEndpoint: String, backchannelAuthenticationEndpoint: String) {
+  public init(
+    tokenEndpoint: String? = nil,
+    revocationEndpoint: String? = nil,
+    introspectionEndpoint: String? = nil,
+    deviceAuthorizationEndpoint: String? = nil,
+    registrationEndpoint: String? = nil,
+    userinfoEndpoint: String? = nil,
+    pushedAuthorizationRequestEndpoint: String? = nil,
+    backchannelAuthenticationEndpoint: String? = nil
+  ) {
     self.tokenEndpoint = tokenEndpoint
     self.revocationEndpoint = revocationEndpoint
     self.introspectionEndpoint = introspectionEndpoint
