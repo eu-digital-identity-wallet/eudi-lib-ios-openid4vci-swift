@@ -36,6 +36,7 @@ public actor AuthorizationServerMetadataResolver: AuthorizationServerMetadataRes
 
   private enum DiscoveryFailure: Error {
     case notUsable
+    case issuerMismatch
     case network(NetworkFailure)
 
     var networkFailure: NetworkFailure? {
@@ -72,6 +73,9 @@ public actor AuthorizationServerMetadataResolver: AuthorizationServerMetadataRes
     switch await fetchAuthorizationServerMetadata(fetcher: oauthFetcher, url: url) {
     case .success(let oauth):
       return .success(.oauth(oauth))
+    case .failure(.issuerMismatch):
+      // RFC 8414 Section 3.3: do not use the metadata and do not try other documents.
+      return .failure(ValidationError.error(reason: "Authorization server metadata issuer does not match \(url.absoluteString)"))
     case .failure(let failure):
       networkFailure = failure.networkFailure
     }
@@ -135,8 +139,11 @@ public actor AuthorizationServerMetadataResolver: AuthorizationServerMetadataRes
   ) async -> Result<Metadata, DiscoveryFailure> {
     switch await fetcher.fetch(url: url) {
     case .success(let metadata):
-      guard isIssuerBoundToDiscoveryURL(issuer(metadata), discoveryURL: discoveryURL) else {
+      guard let metadataIssuer = issuer(metadata), !metadataIssuer.isEmpty else {
         return .failure(.notUsable)
+      }
+      guard isIssuerBoundToDiscoveryURL(metadataIssuer, discoveryURL: discoveryURL) else {
+        return .failure(.issuerMismatch)
       }
       return .success(metadata)
     case .failure(let error):
