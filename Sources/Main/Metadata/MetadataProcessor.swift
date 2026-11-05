@@ -45,7 +45,7 @@ public struct MetadataProcessor: MetadataProcessing {
         issuerId: issuerId
       )
     } else {
-      return try handleJSONMetadata(data: rawResponse.data)
+      return try handleJSONMetadata(data: rawResponse.data, issuerId: issuerId)
     }
   }
 }
@@ -107,14 +107,31 @@ private extension MetadataProcessor {
     )
   }
   
-  func handleJSONMetadata(data: Data) throws -> CredentialIssuerMetadata {
+  func handleJSONMetadata(
+    data: Data,
+    issuerId: CredentialIssuerId
+  ) throws -> CredentialIssuerMetadata {
+    let metadata: CredentialIssuerMetadata
     do {
-      return try JSONDecoder().decode(CredentialIssuerMetadata.self, from: data)
+      metadata = try JSONDecoder().decode(CredentialIssuerMetadata.self, from: data)
     } catch {
       throw CredentialIssuerMetadataError.nonParseableCredentialIssuerMetadata(cause: error)
     }
+    try validateCredentialIssuer(of: data, issuerId: issuerId)
+    return metadata
   }
-  
+
+  /// OID4VCI §12.2.4: `credential_issuer` must be identical to the identifier used to build the
+  /// well-known URL, by simple string comparison with no normalization, otherwise the response
+  /// must not be used. The payload's string is compared, because `URL` parsing can alter it.
+  func validateCredentialIssuer(of payload: Data, issuerId: CredentialIssuerId) throws {
+    let actual = try JSONDecoder().decode(CredentialIssuerClaim.self, from: payload).credentialIssuer
+    let expected = issuerId.url.absoluteString
+    guard actual == expected else {
+      throw CredentialIssuerMetadataError.issuerMismatch(expected: expected, actual: actual)
+    }
+  }
+
   
   func getIssuerTrust(for policy: IssuerMetadataPolicy) -> IssuerTrust? {
     switch policy {
@@ -161,6 +178,7 @@ private extension MetadataProcessor {
     let payloadData = verifiedJWS.payload.data()
     let metadata = try JSONDecoder().decode(CredentialIssuerMetadata.self, from: payloadData)
     try validateJWTClaims(jws: verifiedJWS, expectedSubject: issuerId.url.absoluteString)
+    try validateCredentialIssuer(of: payloadData, issuerId: issuerId)
 
     // Capture the verified WRPAC (base64 DER — the LEAF of the JWS `x5c`
     // header) and attach it to the metadata so it can be used later by WRPRC
@@ -217,6 +235,15 @@ private extension MetadataProcessor {
         throw CredentialIssuerMetadataError.invalidSignedMetadata("JWT 'iat' is after 'exp'")
       }
     }
+  }
+}
+
+/// The `credential_issuer` of a metadata payload as sent, before it is parsed into a `URL`.
+private struct CredentialIssuerClaim: Decodable {
+  let credentialIssuer: String
+
+  private enum CodingKeys: String, CodingKey {
+    case credentialIssuer = "credential_issuer"
   }
 }
 
