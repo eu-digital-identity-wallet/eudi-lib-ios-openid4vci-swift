@@ -51,11 +51,15 @@ final class CryptographicBindingMethodTests: XCTestCase {
     XCTAssertEqual(decoded, .did(method: "did:key"))
   }
   
-  func testDecodeInvalidMethod() {
-    let json = "\"invalid_method\"".data(using: .utf8)!
-    XCTAssertThrowsError(try JSONDecoder().decode(CryptographicBindingMethod.self, from: json)) { error in
-      XCTAssertTrue(error is ValidationError)
-    }
+  func testDecodeUnknownMethod() throws {
+    let json = "\"urn:ietf:params:oauth:jwk-thumbprint\"".data(using: .utf8)!
+    let decoded = try JSONDecoder().decode(CryptographicBindingMethod.self, from: json)
+    XCTAssertEqual(decoded, .other("urn:ietf:params:oauth:jwk-thumbprint"))
+  }
+
+  func testEncodeUnknownMethod() throws {
+    let data = try JSONEncoder().encode(CryptographicBindingMethod.other("custom_method"))
+    XCTAssertEqual(String(data: data, encoding: .utf8), "\"custom_method\"")
   }
   
   func testEncodeJwk() throws {
@@ -101,9 +105,7 @@ final class CryptographicBindingMethodTests: XCTestCase {
     XCTAssertEqual(try CryptographicBindingMethod(method: "did:example"), .did(method: "did:example"))
   }
   
-  func testInitMethodInvalidCase() {
-    XCTAssertThrowsError(try CryptographicBindingMethod(method: "invalid_method")) { error in
-      XCTAssertTrue(error is ValidationError)
-    }
+  func testInitMethodUnknownCase() throws {
+    XCTAssertEqual(try CryptographicBindingMethod(method: "custom_method"), .other("custom_method"))
   }
 }
