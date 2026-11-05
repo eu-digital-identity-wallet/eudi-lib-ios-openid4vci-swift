@@ -391,6 +391,23 @@ public actor Issuer: IssuerType {
     if serverState != request.state {
       throw ValidationError.stateMismatch(serverState, request.state)
     }
+
+    // RFC 9207 Section 2.4: the iss of the authorization response must equal the expected issuer.
+    if let issuerFromRedirect {
+      guard let expectedIssuer = request.expectedIssuer else {
+        throw ValidationError.error(
+          reason: "Received `iss` parameter but authorization request has no expected issuer to validate against"
+        )
+      }
+      if issuerFromRedirect.absoluteString != expectedIssuer.absoluteString {
+        throw ValidationError.issMismatch(
+          expected: expectedIssuer.absoluteString,
+          actual: issuerFromRedirect.absoluteString
+        )
+      }
+    } else if request.issParameterRequired, let expectedIssuer = request.expectedIssuer {
+      throw ValidationError.issParameterRequiredButMissing(expected: expectedIssuer.absoluteString)
+    }
     
     return try await authorizeIssuance.authorizeWithAuthorizationCode(
       grant: grant,
