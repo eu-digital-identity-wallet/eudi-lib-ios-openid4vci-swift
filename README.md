@@ -266,35 +266,24 @@ Given an ```Issuer``` use [Authorization Code Flow](https://openid.github.io/Ope
 ```swift
 import OpenID4VCI
 
-let parPlaced = await issuer.pushAuthorizationCodeRequest(
-  credentialOffer: offer
+let parPlaced = try await issuer.prepareAuthorizationRequest(
+  credentialOffer: offer,
+  additionalAuthorizationParameters: [:] // Add additional authorization parameters if needed
 )
 
-if case let .success(request) = parPlaced,
-   case let .par(parRequested) = request {
-      
-    let authorizationCode = ...
-    let issuanceAuthorization: IssuanceAuthorization = .authorizationCode(authorizationCode: authorizationCode)
-    let unAuthorized = await issuer.handleAuthorizationCode(
-        parRequested: request,
-        authorizationCode: issuanceAuthorization
-      )
-      
-    switch unAuthorized {
-      case .success(let request):
-        let authorizedRequest = await issuer.requestAccessToken(authorizationCode: request)
-        
-        if case let .success(authorized) = authorizedRequest,
-           case let .noProofRequired(token) = authorized {
-          print("\(token.accessToken)")
-        }
-        
-      case .failure:
-        throw ...
-      }
-    }
-    throw ...
-}
+// use parPlaced.authorizationCodeURL to get authorizationCode
+let authorizationCode = ... 
+
+let typedAuthorizationCode = try AuthorizationCode(value: authorizationCode)
+
+let authorized = try await issuer.authorizeWithAuthorizationCode(
+  serverState: parPlaced.state,
+  request: parPlaced,
+  authorizationCode: typedAuthorizationCode,
+  authorizationDetailsInTokenRequest: .doNotInclude,
+  grant: try offer.grants ?? .authorizationCode(try Grants.AuthorizationCode(authorizationServer: nil)),
+  issuerFromRedirect: iss.flatMap(URL.init(string:))
+)
 ```
 
 #### Authorize request via Pre-Authorization Code Flow
