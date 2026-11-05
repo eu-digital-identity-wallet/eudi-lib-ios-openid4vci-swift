@@ -722,4 +722,78 @@ class CredentialOfferResolverTests: XCTestCase {
     }
   }
 
+  // OID4VCI §4.1.1: an empty `grants` is handled like an absent one, the Wallet uses the metadata instead.
+  func testResolvesOfferWithEmptyGrantsToNilGrants() async throws {
+    let offer = try await resolveOffer(grants: #""grants": {}"#)
+    XCTAssertNil(offer.grants)
+  }
+
+  func testResolvesOfferWithOnlyUnknownGrantTypesToNilGrants() async throws {
+    let offer = try await resolveOffer(grants: #""grants": {"urn:example:custom": {}}"#)
+    XCTAssertNil(offer.grants)
+  }
+
+  func testIgnoresUnknownGrantTypeNextToKnownGrant() async throws {
+    let offer = try await resolveOffer(
+      grants: #""grants": {"authorization_code": {}, "urn:example:custom": {}}"#
+    )
+    guard case .authorizationCode = offer.grants else {
+      return XCTFail("Expected authorization code grant but got: \(String(describing: offer.grants))")
+    }
+  }
+
+  func testResolvesOfferWithoutGrantsToNilGrants() async throws {
+    let offer = try await resolveOffer(grants: nil)
+    XCTAssertNil(offer.grants)
+  }
+
+  func testResolvesOfferWithPreAuthorizedGrant() async throws {
+    let offer = try await resolveOffer(
+      grants: #""grants": {"urn:ietf:params:oauth:grant-type:pre-authorized_code": {"pre-authorized_code": "code"}}"#
+    )
+    guard case .preAuthorizedCode(let preAuthorizedCode) = offer.grants else {
+      return XCTFail("Expected pre-authorized code grant but got: \(String(describing: offer.grants))")
+    }
+    XCTAssertEqual(preAuthorizedCode.preAuthorizedCode, "code")
+  }
+
+  /// Resolves a pass-by-value offer whose `grants` member is the given JSON, or that has none if nil.
+  private func resolveOffer(grants: String?) async throws -> CredentialOffer {
+    let members = [
+      #""credential_issuer": "https://credential-issuer.example.com""#,
+      #""credential_configuration_ids": ["eu.europa.ec.eudi.pid_mso_mdoc"]"#,
+      grants
+    ].compactMap { $0 }
+
+    let resolver = CredentialOfferRequestResolver(
+      fetcher: Fetcher<CredentialOfferRequestObject>(session: NetworkingMock(
+        path: "credential_offer_with_blank_pre_authorized_code",
+        extension: "json"
+      )),
+      credentialIssuerMetadataResolver: CredentialIssuerMetadataResolver(
+        fetcher: MetadataFetcher(
+          rawFetcher: RawDataFetcher(
+            session: NetworkingMock(
+              path: "credential_issuer_metadata_multiple_auth_servers",
+              extension: "json",
+              headers: ["Content-Type": "application/json"]
+          )))),
+      authorizationServerMetadataResolver: AuthorizationServerMetadataResolver(
+        oidcFetcher: Fetcher<OIDCProviderMetadata>(session: NetworkingMock(
+          path: "oidc_authorization_server_metadata",
+          extension: "json"
+        )),
+        oauthFetcher: Fetcher<AuthorizationServerMetadata>(session: NetworkingMock(
+          path: "oauth_authorization_server_metadata",
+          extension: "json"
+        ))
+      )
+    )
+
+    return try await resolver.resolve(
+      source: .passByValue(metaData: "{\(members.joined(separator: ", "))}"),
+      policy: .ignoreSigned
+    ).get()
+  }
+
 }

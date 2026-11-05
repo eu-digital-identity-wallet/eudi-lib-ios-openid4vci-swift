@@ -65,7 +65,8 @@ public enum Grants: Sendable {
 }
 
 extension GrantsDTO {
-  func toDomain() throws -> Grants {
+  /// Returns nil when no recognized grant is present, so that the offer is handled as one without `grants` (OID4VCI §4.1.1).
+  func toDomain() throws -> Grants? {
     if let authorizationCode = authorizationCode,
        let preAuthorizationCode = preAuthorizationCode {
 
@@ -108,6 +109,6 @@ extension GrantsDTO {
         )
       )
     }
-    throw ValidationError.error(reason: "Invalid Grants DTO")
+    return nil
   }
 }
