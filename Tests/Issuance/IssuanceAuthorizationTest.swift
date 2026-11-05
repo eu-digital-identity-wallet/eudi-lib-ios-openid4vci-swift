@@ -58,6 +58,10 @@ class IssuanceAuthorizationTest: XCTestCase {
     )
       let requestUrl = parRequested.authorizationCodeURL.url.queryParameters["request_uri"]
       XCTAssertNotNil(requestUrl)
+      XCTAssertEqual(
+        Set(parRequested.authorizationCodeURL.url.queryParameters.keys),
+        [AuthorizationCodeURL.PARAM_CLIENT_ID, AuthorizationCodeURL.PARAM_REQUEST_URI]
+      )
     } catch {
       XCTAssert(false, "parRequested failed")
     }

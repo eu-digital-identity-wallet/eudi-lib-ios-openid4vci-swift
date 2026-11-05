@@ -409,7 +409,6 @@ internal actor AuthorizationServerClient: AuthorizationServerClientType {
         
         let queryParams = [
           AuthorizationCodeURL.PARAM_CLIENT_ID: config.client.id,
-          AuthorizationCodeURL.PARAM_REQUEST_STATE: state,
           AuthorizationCodeURL.PARAM_REQUEST_URI: requestURI
         ]
         
