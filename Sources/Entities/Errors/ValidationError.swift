@@ -33,6 +33,7 @@ public enum ValidationError: Error, LocalizedError {
   case issMismatch(expected: String, actual: String)
   case issParameterRequiredButMissing(expected: String)
   case networkError(NetworkFailure)
+  case issParameterNotSupported(issuer: String)
 
   public var errorDescription: String? {
     switch self {
@@ -73,6 +74,8 @@ public enum ValidationError: Error, LocalizedError {
         ?? failure.underlying?.localizedDescription
         ?? "unknown"
       return ".networkError \(failure.stage) \(failure.url?.absoluteString ?? "-"): \(cause)"
+    case .issParameterNotSupported(let issuer):
+      return "issParameterNotSupported: wallet requires the `iss` authorization response parameter but authorization server \(issuer) does not advertise authorization_response_iss_parameter_supported"
     }
   }
 }
