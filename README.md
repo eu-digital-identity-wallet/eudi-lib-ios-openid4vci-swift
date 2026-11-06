@@ -388,6 +388,7 @@ public struct OpenId4VCIConfig: Sendable {
   public let registrationCertificatePolicy: RegistrationCertificatePolicy?
   public let supportedGrants: SupportedGrants
   public let encryptionSupportConfig: EncryptionSupportConfig
+  public let authResponseIssChecking: AuthorizationResponseIssChecking
 }
 ```
 
@@ -409,6 +410,7 @@ public struct OpenId4VCIConfig: Sendable {
 
 - `supportedGrants`: The grant types supported by the wallet. Defaults to `.both`.
 - `encryptionSupportConfig`: Wallet-side configuration of credential request / response encryption: whether encrypted responses are required, which key families (EC / RSA), curve, key size, algorithms and content encryption methods the wallet is willing to use. See [Credential response encryption configuration](#credential-response-encryption-configuration). Defaults to `.default`.
+- `authResponseIssChecking`: Wallet's policy for validating the `iss` parameter of the authorization response. `.never` skips the check, `.ifSupported` requires `iss` and checks that it matches the authorization server's `issuer` when the server advertises `authorization_response_iss_parameter_supported`, `.required` additionally fails the issuance (with `ValidationError.issParameterNotSupported`) if the server does not advertise it. When enabled, pass the `iss` value of the redirect as `issuerFromRedirect` to `authorizeWithAuthorizationCode`. Defaults to `.never`.
 
 The DPoP constructor itself is passed as a parameter to `Issuer(...)` / `Issuer.make(...)`, not stored on `OpenId4VCIConfig`.
 
