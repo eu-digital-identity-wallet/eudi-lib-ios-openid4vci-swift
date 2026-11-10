@@ -63,7 +63,7 @@ public struct RawDataFetcher: RawDataFetching {
       let statusCode = httpResponse?.statusCode ?? 0
       
       if !statusCode.isWithinRange(HTTPStatusCode.ok...HTTPStatusCode.imUsed) {
-        throw FetchError.invalidStatusCode(url, statusCode)
+        throw FetchError.invalidStatusCode(url, statusCode, data)
       }
       
       // Extract headers from the HTTP response
@@ -79,6 +79,8 @@ public struct RawDataFetcher: RawDataFetching {
       )
       
       return .success(fetchResponse)
+    } catch let error as FetchError {
+      return .failure(error)
     } catch let error as NSError {
       return .failure(.networkError(error))
     }

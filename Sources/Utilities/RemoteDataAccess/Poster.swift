@@ -40,10 +40,11 @@ public enum PostError: LocalizedError {
   case useDpopNonce(Nonce, attestationChallenge: Nonce? = nil)
   case useAttestationNonce(Nonce)
   case requestError(Int, Error)
-  
+  case invalidStatusCode(URL?, Int, Data?)
+
   /**
    Provides a localized description of the post error.
-   
+
    - Returns: A string describing the post error.
    */
   public var errorDescription: String? {
@@ -56,6 +57,8 @@ public enum PostError: LocalizedError {
       return "Could not parse response body (\(string.count) bytes)"
     case .serverError:
       return "Server error"
+    case .invalidStatusCode(let url, let code, _):
+      return "Invalid status code \(code) \(url?.absoluteString ?? "-")"
     case .useDpopNonce(let nonce, _):
       return "Use dPop Nonce error: \(nonce)"
     case .useAttestationNonce(let nonce):
@@ -160,7 +163,7 @@ public struct Poster: PostingType {
         }
         
       } else if statusCode >= HTTPStatusCode.internalServerError {
-        return .failure(PostError.serverError)
+        return .failure(PostError.invalidStatusCode(request.url, statusCode, data))
       }
       
       do {

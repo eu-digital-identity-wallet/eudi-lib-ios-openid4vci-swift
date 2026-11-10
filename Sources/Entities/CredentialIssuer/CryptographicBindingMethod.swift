@@ -21,6 +21,8 @@ public enum CryptographicBindingMethod: Codable, Equatable, Sendable {
   case coseKey
   case mso
   case did(method: String)
+  /// A method that this library does not know. OpenID4VCI 1.0 allows other values.
+  case other(String)
   
   private enum CodingKeys: String, CodingKey {
     case method
@@ -40,11 +42,7 @@ public enum CryptographicBindingMethod: Codable, Equatable, Sendable {
     case "mso":
       self = .mso
     default:
-      if stringValue.hasPrefix("did") {
-        self = .did(method: stringValue)
-      } else {
-        throw ValidationError.error(reason: "Unknown cryptographic binding method: \(stringValue)")
-      }
+      self = stringValue.hasPrefix("did") ? .did(method: stringValue) : .other(stringValue)
     }
   }
   
@@ -59,7 +57,7 @@ public enum CryptographicBindingMethod: Codable, Equatable, Sendable {
       try container.encode("cose_key")
     case .mso:
       try container.encode("mso")
-    case .did(let method):
+    case .did(let method), .other(let method):
       try container.encode(method)
     }
   }
@@ -75,13 +73,7 @@ public enum CryptographicBindingMethod: Codable, Equatable, Sendable {
     case "mso":
       self = .mso
     default:
-      if method.hasPrefix("did") {
-        self = .did(method: method)
-      } else {
-        throw ValidationError.error(
-          reason: "Unknown cryptographic binding method: \(method)"
-        )
-      }
+      self = method.hasPrefix("did") ? .did(method: method) : .other(method)
     }
   }
 }

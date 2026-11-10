@@ -134,6 +134,31 @@ switch result {
     ...
 }
 ```
+#### Network failures while resolving
+
+A failure of the transport, or a non-2xx answer from the issuer or the authorization server, is reported
+as `ValidationError.networkError(NetworkFailure)` instead of a generic validation error. This covers the
+credential offer fetched by reference, the credential issuer metadata and the authorization server
+metadata.
+
+```swift
+switch result {
+case .success(let offer):
+  ...
+case .failure(ValidationError.networkError(let failure)):
+  failure.stage         // .GET or .POST
+  failure.url           // the request that failed
+  failure.statusCode    // e.g. 408, 429 or 503, nil when the request did not get an answer
+  failure.responseBody  // the body of a non-2xx answer, if any
+  failure.urlError      // e.g. .timedOut, .notConnectedToInternet, nil for a server answer
+case .failure(let error):
+  ...
+}
+```
+
+A missing discovery document (404) of one authorization server is not a network failure: the
+other discovery method is tried, and only when both are unusable is the resolution reported as failed. Any other
+`CredentialIssuerMetadataError` (metadata not signed, not trusted, not parseable) is passed on unchanged.
 
 ### Credential Issuance
 
@@ -363,6 +388,7 @@ public struct OpenId4VCIConfig: Sendable {
   public let registrationCertificatePolicy: RegistrationCertificatePolicy?
   public let supportedGrants: SupportedGrants
   public let encryptionSupportConfig: EncryptionSupportConfig
+  public let authResponseIssChecking: AuthorizationResponseIssChecking
 }
 ```
 
@@ -384,6 +410,7 @@ public struct OpenId4VCIConfig: Sendable {
 
 - `supportedGrants`: The grant types supported by the wallet. Defaults to `.both`.
 - `encryptionSupportConfig`: Wallet-side configuration of credential request / response encryption: whether encrypted responses are required, which key families (EC / RSA), curve, key size, algorithms and content encryption methods the wallet is willing to use. See [Credential response encryption configuration](#credential-response-encryption-configuration). Defaults to `.default`.
+- `authResponseIssChecking`: Wallet's policy for validating the `iss` parameter of the authorization response. `.never` skips the check, `.ifSupported` requires `iss` and checks that it matches the authorization server's `issuer` when the server advertises `authorization_response_iss_parameter_supported`, `.required` additionally fails the issuance (with `ValidationError.issParameterNotSupported`) if the server does not advertise it. When enabled, pass the `iss` value of the redirect as `issuerFromRedirect` to `authorizeWithAuthorizationCode`. Defaults to `.never`.
 
 The DPoP constructor itself is passed as a parameter to `Issuer(...)` / `Issuer.make(...)`, not stored on `OpenId4VCIConfig`.
 

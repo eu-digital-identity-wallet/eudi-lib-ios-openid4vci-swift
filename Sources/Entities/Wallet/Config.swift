@@ -47,6 +47,23 @@ public enum ParUsage: Sendable {
   }
 }
 
+/// Wallet's policy in regard to validating the `iss` parameter present in the authorization response
+/// as described by the Authorization Server metadata field
+/// `authorization_response_iss_parameter_supported`.
+///
+/// The `iss` parameter is used to mitigate mix-up attacks, by allowing the Wallet to verify that the
+/// authorization response was issued by the expected Authorization Server.
+public enum AuthorizationResponseIssChecking: Sendable {
+  /// The Wallet never validates the `iss` parameter of the authorization response.
+  case never
+  /// The Wallet validates the `iss` parameter only when the Authorization Server
+  /// advertises support for it.
+  case ifSupported
+  /// The Wallet requires the Authorization Server to support the `iss` parameter.
+  /// If the Authorization Server does not advertise support, issuance fails.
+  case required
+}
+
 /// A type alias representing a Client ID.
 public typealias ClientId = String
 
@@ -109,6 +126,12 @@ public struct OpenId4VCIConfig: Sendable {
   /// Default is `.default` (encryption supported but not required, EC P-256 and RSA 2048).
   public let encryptionSupportConfig: EncryptionSupportConfig
 
+  /// Wallet's policy concerning the validation of the `iss` parameter present in the
+  /// authorization response (RFC 9207).
+  ///
+  /// Default is `.never`.
+  public let authResponseIssChecking: AuthorizationResponseIssChecking
+
   /// Initializes an `OpenId4VCIConfig` instance with the given parameters.
   /// - Parameters:
   ///   - client: The client used for OpenID4VCI operations.
@@ -123,6 +146,7 @@ public struct OpenId4VCIConfig: Sendable {
   ///   - registrationCertificatePolicy: Optional policy that, when set, activates WRPRC enforcement in `Issuer.make(...)` (default: `nil`).
   ///   - supportedGrants: The grant types supported by the wallet (default: `.both`).
   ///   - encryptionSupportConfig: Wallet-side request / response encryption configuration (default: `.default`).
+  ///   - authResponseIssChecking: Wallet's policy concerning the validation of the `iss` parameter of the authorization response (default: `.never`).
   /// - Throws: `ValidationError` if configuration is invalid.
   public init(
     client: Client,
@@ -138,7 +162,8 @@ public struct OpenId4VCIConfig: Sendable {
     supportedCredentialReusePolicies: SupportedCredentialReusePolicies = .notSupported,
     registrationCertificatePolicy: RegistrationCertificatePolicy? = nil,
     supportedGrants: SupportedGrants = .both,
-    encryptionSupportConfig: EncryptionSupportConfig = .default
+    encryptionSupportConfig: EncryptionSupportConfig = .default,
+    authResponseIssChecking: AuthorizationResponseIssChecking = .never
   ) {
     // Validate: authFlowRedirectionURI must be provided when supportedGrants is .authorizationCode or .both
     if supportedGrants.requiresAuthorizationCodeFlow && authFlowRedirectionURI == nil {
@@ -178,5 +203,6 @@ public struct OpenId4VCIConfig: Sendable {
     self.registrationCertificatePolicy = registrationCertificatePolicy
     self.supportedGrants = supportedGrants
     self.encryptionSupportConfig = encryptionSupportConfig
+    self.authResponseIssChecking = authResponseIssChecking
   }
 }
