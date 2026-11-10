@@ -38,15 +38,23 @@ public struct MetadataProcessor: MetadataProcessing {
       policy: policy
     )
     
+    let metadata: CredentialIssuerMetadata
     if isJWT {
-      return try await handleJWTMetadata(
+      metadata = try await handleJWTMetadata(
         data: rawResponse.data,
         policy: policy,
         issuerId: issuerId
       )
     } else {
-      return try handleJSONMetadata(data: rawResponse.data)
+      metadata = try handleJSONMetadata(data: rawResponse.data)
     }
+    
+    try validateCredentialIssuerIdentifier(
+      metadata: metadata,
+      expected: issuerId
+    )
+    
+    return metadata
   }
 }
 
@@ -105,6 +113,24 @@ private extension MetadataProcessor {
       issuerTrust: issuerTrust,
       issuerId: issuerId
     )
+  }
+  
+  /// OpenID4VCI 1.0, Section 12.2.4: the `credential_issuer` parameter MUST be identical
+  /// to the Credential Issuer Identifier used to build the well-known URL, compared with a
+  /// simple string comparison and no normalization. Otherwise the metadata MUST NOT be used.
+  /// Applies to both unsigned (JSON) and signed (JWT) metadata.
+  func validateCredentialIssuerIdentifier(
+    metadata: CredentialIssuerMetadata,
+    expected issuerId: CredentialIssuerId
+  ) throws {
+    let expected = issuerId.url.absoluteString
+    let actual = metadata.credentialIssuerIdentifier.url.absoluteString
+    guard actual == expected else {
+      throw CredentialIssuerMetadataError.issuerMismatch(
+        expected: expected,
+        actual: actual
+      )
+    }
   }
   
   func handleJSONMetadata(data: Data) throws -> CredentialIssuerMetadata {
