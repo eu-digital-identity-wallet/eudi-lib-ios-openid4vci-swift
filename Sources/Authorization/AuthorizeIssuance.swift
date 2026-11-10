@@ -97,7 +97,20 @@ internal actor AuthorizeIssuance: AuthorizeIssuanceType {
 
     let asMetadata = credentialOffer.authorizationServerMetadata
     let expectedIssuer = asMetadata.issuer.flatMap { URL(string: $0) }
-    let issRequired = asMetadata.authorizationResponseIssParameterSupported
+    let issSupported = asMetadata.authorizationResponseIssParameterSupported
+    let issRequired: Bool
+    switch config.authResponseIssChecking {
+    case .never:
+      issRequired = false
+    case .ifSupported:
+      issRequired = issSupported
+    case .required:
+      // Fail before the user is redirected to an AS that will never send `iss`.
+      guard issSupported else {
+        throw ValidationError.issParameterNotSupported(issuer: asMetadata.issuer ?? "unknown")
+      }
+      issRequired = true
+    }
 
     if authorizationServerSupportsPar {
       return try await handlePARAuthorization(
