@@ -1,4 +1,5 @@
 {
+  "token_type": "DPoP",
   "access_token": "my.access.token",
   "expires_in": 3600,
   "c_nonce": "c_nonce",
