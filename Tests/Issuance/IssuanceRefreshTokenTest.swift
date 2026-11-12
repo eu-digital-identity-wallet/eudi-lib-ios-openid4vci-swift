@@ -88,6 +88,58 @@ class IssuanceRefreshTokenTest: XCTestCase {
     }
   }
 
+  func testRefreshedAccessTokenIsNotImmediatelyExpired() async throws {
+
+    // Given
+    guard let offer = await TestsConstants.createMockCredentialOffer() else {
+      XCTFail("Unable to resolve credential offer")
+      return
+    }
+
+    let originalAccessToken = try IssuanceAccessToken(
+      accessToken: "original_access_token",
+      tokenType: .init(value: "Bearer"),
+      expiresIn: 3600
+    )
+    let refreshToken = try IssuanceRefreshToken(
+      refreshToken: "refresh_token_value",
+      expiresIn: 3600
+    )
+    let originalRequest = AuthorizedRequest(
+      accessToken: originalAccessToken,
+      refreshToken: refreshToken,
+      credentialIdentifiers: nil,
+      timeStamp: Date().timeIntervalSinceReferenceDate,
+      dPopNonce: nil,
+      grantType: .authorizationCode
+    )
+
+    let issuer = try Issuer(
+      authorizationServerMetadata: offer.authorizationServerMetadata,
+      issuerMetadata: offer.credentialIssuerMetadata,
+      config: config,
+      tokenPoster: Poster(
+        session: NetworkingMock(
+          path: "access_token_request_response",
+          extension: "json"
+        )
+      )
+    )
+
+    // When
+    let refreshedRequest = try await issuer.refresh(
+      authorizedRequest: originalRequest
+    )
+
+    // Then - the mock response returns expires_in = 3600, so a token that was
+    // just refreshed must not report itself as already expired. The refresh
+    // timeStamp must be the issuance instant, not the token lifetime.
+    XCTAssertFalse(
+      refreshedRequest.isAccessTokenExpired(),
+      "A freshly refreshed access token must not be reported as expired"
+    )
+  }
+
   func testManualRefreshWithoutRefreshTokenReturnsOriginal() async throws {
 
     // Given
