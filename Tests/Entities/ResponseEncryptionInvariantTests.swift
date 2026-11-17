@@ -148,6 +148,59 @@ final class ResponseEncryptionInvariantTests: XCTestCase {
     }
   }
 
+  // OpenID4VCI 1.0 section 8.2: the wallet "MAY" ask for an encrypted response when the issuer does not require it.
+  // Without request encryption the wallet cannot ask for it, so the request has no response encryption.
+  func testOptionalResponseEncryptionWithoutRequestEncryptionSendsPlainRequest() throws {
+    let responseSpec = try makeRSAResponseEncryptionSpec()
+    let metadata = try makeMetadata(
+      responseEncryption: .notRequired(
+        algorithmsSupported: [.init(.RSA_OAEP_256)],
+        encryptionMethodsSupported: [.init(.A128CBC_HS256)],
+        compressionMethodsSupported: nil
+      )
+    )
+    let request = try makeCredentialSupported().toIssuanceRequest(
+      requester: MockIssuanceRequester(issuerMetadata: metadata),
+      proofs: [],
+      issuancePayload: try makeRequestPayload(),
+      requestEncryptionSpec: nil,
+      responseEncryptionSpecProvider: { _ in responseSpec }
+    )
+    guard case .single(let single, let encryptionSpec) = request else {
+      return XCTFail("Expected a single request")
+    }
+    XCTAssertNil(encryptionSpec)
+    guard case .msoMdoc(let credential) = single, case .notRequested = credential.requestedCredentialResponseEncryption else {
+      return XCTFail("Expected no credential_response_encryption in the request")
+    }
+  }
+
+  // The wallet requires an encrypted response, but cannot encrypt the request: fail closed.
+  func testWalletRequiredResponseEncryptionWithoutRequestEncryptionThrows() throws {
+    let responseSpec = try makeRSAResponseEncryptionSpec()
+    let metadata = try makeMetadata(
+      responseEncryption: .notRequired(
+        algorithmsSupported: [.init(.RSA_OAEP_256)],
+        encryptionMethodsSupported: [.init(.A128CBC_HS256)],
+        compressionMethodsSupported: nil
+      )
+    )
+    XCTAssertThrowsError(
+      try makeCredentialSupported().toIssuanceRequest(
+        requester: MockIssuanceRequester(issuerMetadata: metadata),
+        proofs: [],
+        issuancePayload: try makeRequestPayload(),
+        requestEncryptionSpec: nil,
+        walletResponseEncryptionPolicy: .required,
+        responseEncryptionSpecProvider: { _ in responseSpec }
+      )
+    ) { error in
+      guard case CredentialIssuanceError.responseEncryptionRequiresRequestEncryption = error else {
+        return XCTFail("Expected responseEncryptionRequiresRequestEncryption, got \(error)")
+      }
+    }
+  }
+
   // When the issuer's response encryption is .notSupported, the wallet's spec
   // is inert and the invariant should not fire even without a request spec.
   func testWalletConfigInvariantDoesNotFireWhenIssuerHasNoResponseEncryption() throws {

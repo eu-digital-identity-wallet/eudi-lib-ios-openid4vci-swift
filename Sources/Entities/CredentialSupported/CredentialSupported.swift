@@ -106,7 +106,12 @@ public extension CredentialSupported {
     responseEncryptionSpecProvider: (CredentialResponseEncryption) -> IssuanceResponseEncryptionSpec?
   ) throws -> (CredentialResponseEncryption, IssuanceResponseEncryptionSpec?) {
     let issuerEncryption = requester.issuerMetadata.credentialResponseEncryption
-    let responseEncryptionSpec = responseEncryptionSpecProvider(issuerEncryption)
+    var responseEncryptionSpec = responseEncryptionSpecProvider(issuerEncryption)
+    // OpenID4VCI 1.0 section 8.2: a request with credential_response_encryption must be encrypted.
+    // When the issuer and the wallet accept a plain response, do not ask for an encrypted response.
+    if case .notRequired = issuerEncryption, walletResponseEncryptionPolicy != .required, requestEncryptionSpec == nil {
+      responseEncryptionSpec = nil
+    }
     // Wallet mandates response encryption: the issuer must support it and a spec must exist.
     if case .required = walletResponseEncryptionPolicy {
       if issuerEncryption.notSupported {
