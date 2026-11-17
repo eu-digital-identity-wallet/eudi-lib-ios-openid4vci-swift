@@ -585,7 +585,8 @@ internal actor AuthorizationServerClient: AuthorizationServerClientType {
         maxRetries: maxRetries - 1
       )
     } catch PostError.networkError(let error) {
-      guard maxRetries > 0 else {
+      // RFC 6749 section 4.1.2: the client uses the authorization code only once.
+      guard maxRetries > 0, Self.requestDidNotLeaveDevice(error) else {
         throw PostError.networkError(error)
       }
 
@@ -952,6 +953,12 @@ internal actor AuthorizationServerClient: AuthorizationServerClientType {
 }
 
 private extension AuthorizationServerClient {
+
+  /// True when the error shows that the request was not sent to the server.
+  static func requestDidNotLeaveDevice(_ error: Error) -> Bool {
+    guard let error = error as? URLError else { return false }
+    return [.notConnectedToInternet, .cannotFindHost, .dnsLookupFailed, .cannotConnectToHost].contains(error.code)
+  }
   
   func clientAttestationHeaders(
     clientAttestation: (ClientAttestationJWT, ClientAttestationPoPJWT, JWK, SigningKeyProxy)?
