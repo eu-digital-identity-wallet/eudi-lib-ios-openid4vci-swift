@@ -148,6 +148,72 @@ final class ResponseEncryptionInvariantTests: XCTestCase {
     }
   }
 
+  // OpenID4VCI 1.0 section 8.3: when the request has credential_response_encryption,
+  // the issuer encrypts the response. A plaintext response is refused.
+  func testPlaintextResponseAfterEncryptionRequestIsRejected() async throws {
+    let metadata = try makeMetadata(responseEncryption: .notRequired(
+      algorithmsSupported: [.init(.RSA_OAEP_256)],
+      encryptionMethodsSupported: [.init(.A128CBC_HS256)],
+      compressionMethodsSupported: nil
+    ))
+    let responseSpec = try makeRSAResponseEncryptionSpec()
+    let single = try makeSingleCredential(metadata: metadata, requestEncryptionSpec: testEncryptionSpec()) { _ in responseSpec }
+    XCTAssertTrue(single.requestsEncryptedResponse)
+
+    do {
+      _ = try await placePlaintextResponse(metadata: metadata, request: single)
+      XCTFail("Expected responseEncryptionRequestedButPlaintextReceived")
+    } catch CredentialIssuanceError.responseEncryptionRequestedButPlaintextReceived {
+    }
+  }
+
+  // Without credential_response_encryption in the request, a plaintext response is correct.
+  func testPlaintextResponseWithoutEncryptionRequestIsAccepted() async throws {
+    let metadata = try makeMetadata(responseEncryption: .notRequired(
+      algorithmsSupported: [.init(.RSA_OAEP_256)],
+      encryptionMethodsSupported: [.init(.A128CBC_HS256)],
+      compressionMethodsSupported: nil
+    ))
+    let single = try makeSingleCredential(metadata: metadata, requestEncryptionSpec: nil) { _ in nil }
+    XCTAssertFalse(single.requestsEncryptedResponse)
+
+    _ = try await placePlaintextResponse(metadata: metadata, request: single)
+  }
+
+  private func makeSingleCredential(
+    metadata: CredentialIssuerMetadata,
+    requestEncryptionSpec: EncryptionSpec?,
+    responseEncryptionSpecProvider: (CredentialResponseEncryption) -> IssuanceResponseEncryptionSpec?
+  ) throws -> SingleCredential {
+    let request = try makeCredentialSupported().toIssuanceRequest(
+      requester: MockIssuanceRequester(issuerMetadata: metadata),
+      proofs: [],
+      issuancePayload: try makeRequestPayload(),
+      requestEncryptionSpec: requestEncryptionSpec,
+      responseEncryptionSpecProvider: responseEncryptionSpecProvider
+    )
+    guard case .single(let single, _) = request else {
+      throw ValidationError.error(reason: "Expected a single request")
+    }
+    return single
+  }
+
+  private func placePlaintextResponse(
+    metadata: CredentialIssuerMetadata,
+    request: SingleCredential
+  ) async throws -> CredentialIssuanceResponse {
+    let requester = IssuanceRequester(
+      issuerMetadata: metadata,
+      poster: Poster(session: PlaintextCredentialNetworking())
+    )
+    return try await requester.placeIssuanceRequest(
+      accessToken: try IssuanceAccessToken(accessToken: "token", tokenType: .bearer),
+      request: request,
+      dPopNonce: nil,
+      encryptionSpec: nil
+    )
+  }
+
   // When the issuer's response encryption is .notSupported, the wallet's spec
   // is inert and the invariant should not fire even without a request spec.
   func testWalletConfigInvariantDoesNotFireWhenIssuerHasNoResponseEncryption() throws {
@@ -194,5 +260,19 @@ final class ResponseEncryptionInvariantTests: XCTestCase {
         return
       }
     }
+  }
+}
+
+/// Answers every request with a plaintext credential response.
+private struct PlaintextCredentialNetworking: Networking {
+  func data(from url: URL) async throws -> (Data, URLResponse) {
+    try await data(for: URLRequest(url: url))
+  }
+
+  func data(for request: URLRequest) async throws -> (Data, URLResponse) {
+    (Data(#"{"credentials":[{"credential":"credential"}]}"#.utf8), HTTPURLResponse(
+      url: request.url!, statusCode: 200, httpVersion: nil,
+      headerFields: ["Content-Type": "application/json"]
+    )!)
   }
 }
