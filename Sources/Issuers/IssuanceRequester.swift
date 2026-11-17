@@ -135,6 +135,10 @@ public actor IssuanceRequester: IssuanceRequesterType {
       if case .required = issuerMetadata.credentialResponseEncryption {
         throw CredentialIssuanceError.responseEncryptionRequiredByIssuerButPlaintextReceived
       }
+      // OpenID4VCI 1.0 section 8.3: the issuer encrypts the response when the request asks for it.
+      if request.requestsEncryptedResponse {
+        throw CredentialIssuanceError.responseEncryptionRequestedButPlaintextReceived
+      }
 
       return try response.body.toSingleIssuanceResponse()
       
@@ -282,6 +286,10 @@ public actor IssuanceRequester: IssuanceRequesterType {
       
       if case .required = issuerMetadata.credentialResponseEncryption {
         throw CredentialIssuanceError.responseEncryptionRequiredByIssuerButPlaintextReceived
+      }
+      // OpenID4VCI 1.0 section 9.2: the issuer encrypts the deferred response when the request asks for it.
+      if credentialResponseEncryption != nil {
+        throw CredentialIssuanceError.responseEncryptionRequestedButPlaintextReceived
       }
 
       if let interval = response.body.interval {

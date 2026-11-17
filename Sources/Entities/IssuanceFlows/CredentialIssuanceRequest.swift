@@ -33,6 +33,18 @@ public enum SingleCredential: Sendable {
 }
 
 public extension SingleCredential {
+
+  /// True when the request has `credential_response_encryption`.
+  var requestsEncryptedResponse: Bool {
+    let encryption = switch self {
+    case .msoMdoc(let credential): credential.requestedCredentialResponseEncryption
+    case .sdJwtVc(let credential): credential.requestedCredentialResponseEncryption
+    }
+    if case .requested = encryption {
+      return true
+    }
+    return false
+  }
   
   var credentialConfigurationIdentifier: CredentialConfigurationIdentifier {
     switch self {
