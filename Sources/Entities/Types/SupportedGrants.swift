@@ -18,11 +18,11 @@ import Foundation
 /// Wallet-supported grant types.
 public enum SupportedGrants: Sendable, Equatable {
   /// Wallet supports Authorization Code grant.
-  case authorizationCode
+  case authorizationCode(AuthorizationCodeGrant)
   /// Wallet supports Pre-authorized Code grant.
   case preAuthorizedCode
   /// Wallet supports both Authorization Code and Pre-authorized Code grants.
-  case both
+  case both(authorizationCode: AuthorizationCodeGrant)
 
   /// Checks if the wallet supports the given grants from a credential offer.
   /// - Parameter grants: The grants from a credential offer.
@@ -51,6 +51,18 @@ public enum SupportedGrants: Sendable, Equatable {
       return true
     case .preAuthorizedCode:
       return false
+    }
+  }
+
+  /// Returns the `AuthorizationCodeGrant` configuration if available.
+  public var authorizationCodeGrant: AuthorizationCodeGrant? {
+    switch self {
+    case .authorizationCode(let grant):
+      return grant
+    case .both(let grant):
+      return grant
+    case .preAuthorizedCode:
+      return nil
     }
   }
 }

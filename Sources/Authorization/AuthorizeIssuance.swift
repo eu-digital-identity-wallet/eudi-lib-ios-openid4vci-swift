@@ -84,15 +84,25 @@ internal actor AuthorizeIssuance: AuthorizeIssuanceType {
     let (scopes, identifiers) = try scopesAndCredentialConfigurationIds(
       credentialOffer: credentialOffer
     )
-    
-    let authorizationServerSupportsPar = credentialOffer.authorizationServerMetadata.authorizationServerSupportsPar && config.requirePAR.required
-    
-    if config.requirePAR.required {
-      guard let _ = credentialOffer.authorizationServerMetadata.pushedAuthorizationRequestEndpointURI else {
+
+    let parUsage = config.parUsage
+    let bindingMethod = config.authorizationCodeDPoPBindingMethod
+
+    // Determine if PAR should be used based on wallet policy and server support
+    let serverSupportsPar = credentialOffer.authorizationServerMetadata.authorizationServerSupportsPar
+    let usePar: Bool
+    switch parUsage {
+    case .never:
+      usePar = false
+    case .ifSupported:
+      usePar = serverSupportsPar
+    case .required:
+      guard credentialOffer.authorizationServerMetadata.pushedAuthorizationRequestEndpointURI != nil else {
         throw ValidationError.parRequired
       }
+      usePar = true
     }
-    
+
     let state = StateValue().value
 
     let asMetadata = credentialOffer.authorizationServerMetadata
@@ -112,9 +122,9 @@ internal actor AuthorizeIssuance: AuthorizeIssuanceType {
       issRequired = true
     }
 
-    if authorizationServerSupportsPar {
+    if usePar {
       return try await handlePARAuthorization(
-        parUsage: config.requirePAR,
+        bindingMethod: bindingMethod,
         credentialOffer: credentialOffer,
         scopes: scopes,
         credentialConfigurationIdentifiers: identifiers,
@@ -126,6 +136,7 @@ internal actor AuthorizeIssuance: AuthorizeIssuanceType {
 
     } else {
       return try await handleStandardAuthorization(
+        bindingMethod: bindingMethod,
         scopes: scopes,
         credentialConfigurationIdentifiers: credentialOffer.credentialConfigurationIdentifiers,
         issuerState: issuerState,
@@ -283,7 +294,7 @@ private extension AuthorizeIssuance {
   }
   
   private func handlePARAuthorization(
-    parUsage: ParUsage,
+    bindingMethod: AuthorizationCodeDPoPBindingMethod,
     credentialOffer: CredentialOffer,
     scopes: [Scope],
     credentialConfigurationIdentifiers: [CredentialConfigurationIdentifier],
@@ -303,7 +314,7 @@ private extension AuthorizeIssuance {
         code: AuthorizationCodeURL,
         dPopNonce: Nonce?
       ) = try await authorizer.submitPushedAuthorizationRequest(
-        parUsage: parUsage,
+        bindingMethod: bindingMethod,
         scopes: scopes,
         credentialConfigurationIdentifiers: credentialConfigurationIdentifiers,
         state: state,
@@ -329,6 +340,7 @@ private extension AuthorizeIssuance {
   }
 
   private func handleStandardAuthorization(
+    bindingMethod: AuthorizationCodeDPoPBindingMethod,
     scopes: [Scope],
     credentialConfigurationIdentifiers: [CredentialConfigurationIdentifier],
     issuerState: String?,
@@ -343,7 +355,8 @@ private extension AuthorizeIssuance {
         scopes: scopes,
         credentialConfigurationIdentifiers: credentialConfigurationIdentifiers,
         state: state,
-        issuerState: issuerState
+        issuerState: issuerState,
+        bindingMethod: bindingMethod
       )
 
       return AuthorizationRequested(

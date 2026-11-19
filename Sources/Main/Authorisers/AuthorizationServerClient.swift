@@ -41,37 +41,42 @@ package extension ResponseWithHeaders {
 /// This client is responsible for handling authorization requests, token exchanges, and refresh flows.
 protocol AuthorizationServerClientType: Sendable {
   
-  /// Generates a URL for initiating the authorization request.
+  /// Generates a URL for initiating the authorization request (non-PAR flow).
   ///
   /// - Parameters:
   ///   - scopes: The requested authorization scopes.
   ///   - credentialConfigurationIdentifiers: Identifiers for the credential configurations.
   ///   - state: A unique state parameter
   ///   - issuerState: Optional issuer-specific state parameter.
+  ///   - bindingMethod: How to bind the Authorization Code to the DPoP key (RFC 9449 §10.1).
+  ///                    When `.dpopHeader` is used without PAR, it falls back to `.dpopJkt`.
   /// - Returns: A result containing a `PKCEVerifier` and an authorization URL, or an error if the operation fails.
   func authorizationRequestUrl(
     scopes: [Scope],
     credentialConfigurationIdentifiers: [CredentialConfigurationIdentifier],
     state: String,
-    issuerState: String?
+    issuerState: String?,
+    bindingMethod: AuthorizationCodeDPoPBindingMethod
   ) async throws -> (PKCEVerifier, AuthorizationCodeURL)
   
   /// Submits a pushed authorization request (PAR).
   ///
   /// - Parameters:
-  ///   - parUsage: ParUsage,
+  ///   - bindingMethod: How to bind the Authorization Code to the DPoP key (RFC 9449 §10.1).
   ///   - scopes: The requested authorization scopes.
   ///   - credentialConfigurationIdentifiers: Identifiers for the credential configurations.
   ///   - state: A unique state parameter
   ///   - issuerState: Optional issuer-specific state parameter.
   ///   - resource: An optional resource identifier.
   ///   - dpopNonce: An optional nonce for DPoP (Demonstrating Proof-of-Possession).
+  ///   - challenge: An optional attestation challenge.
   ///   - maxRetries: Maximum number of retry attempts after nonce-related errors.
   /// - Returns: A result containing a `PKCEVerifier`, an authorization URL, and an optional nonce, or an error if the operation fails.
   /// See [RFC7636](https://www.rfc-editor.org/rfc/rfc7636.html) for more information
   /// See [RFC9126](https://www.rfc-editor.org/rfc/rfc9126) for more information
+  /// See [RFC9449 §10.1](https://www.rfc-editor.org/rfc/rfc9449#section-10.1) for DPoP binding methods
   func submitPushedAuthorizationRequest(
-    parUsage: ParUsage,
+    bindingMethod: AuthorizationCodeDPoPBindingMethod,
     scopes: [Scope],
     credentialConfigurationIdentifiers: [CredentialConfigurationIdentifier],
     state: String,
@@ -280,7 +285,8 @@ internal actor AuthorizationServerClient: AuthorizationServerClientType {
     scopes: [Scope],
     credentialConfigurationIdentifiers: [CredentialConfigurationIdentifier],
     state: String,
-    issuerState: String?
+    issuerState: String?,
+    bindingMethod: AuthorizationCodeDPoPBindingMethod
   ) async throws -> (PKCEVerifier, AuthorizationCodeURL) {
 
     guard !scopes.isEmpty || !credentialConfigurationIdentifiers.isEmpty else {
@@ -288,15 +294,23 @@ internal actor AuthorizationServerClient: AuthorizationServerClientType {
         reason: "Both scopes and credential configuration identifiers are missing or empty. Cannot submit par"
       )
     }
-    
+
     let codeVerifier = PKCEGenerator.codeVerifier() ?? ""
     let verifier = try PKCEVerifier(
       codeVerifier: codeVerifier,
       codeVerifierMethod: CodeChallenge.sha256.rawValue
     )
-    
+
     let scopeValue = scopes.isEmpty ? nil : scopes.map { $0.value }.joined(separator: " ").appending(" ").appending(Constants.OPENID_SCOPE)
-    
+
+    // For non-PAR flow, .dpopHeader falls back to .dpopJkt since DPoP header cannot be used
+    // Include dpop_jkt when binding method is .dpopJkt or .dpopHeader (fallback)
+    let dpopJkt: String? = if bindingMethod != .none, let dpopConstructor {
+      try dpopConstructor.jwkThumbprint()
+    } else {
+      nil
+    }
+
     let authzRequest = AuthorizationRequest(
       responseType: Self.responseType,
       clientId: config.client.id,
@@ -306,9 +320,10 @@ internal actor AuthorizationServerClient: AuthorizationServerClientType {
       state: state,
       codeChallenge: PKCEGenerator.generateCodeChallenge(codeVerifier: codeVerifier),
       codeChallengeMethod: CodeChallenge.sha256.rawValue,
+      dpopJkt: dpopJkt,
       issuerState: issuerState
     )
-    
+
     guard let urlWithParams = authorizationEndpoint?.appendingQueryParameters(
       try authzRequest.toDictionary().convertToDictionaryOfStrings(
         excludingKeys: [
@@ -318,16 +333,16 @@ internal actor AuthorizationServerClient: AuthorizationServerClientType {
     ) else {
       throw ValidationError.invalidUrl(parEndpoint?.absoluteString ?? "")
     }
-    
+
     let authorizationCodeURL = try AuthorizationCodeURL(
       urlString: urlWithParams.absoluteString
     )
-    
+
     return (verifier, authorizationCodeURL)
   }
   
   public func submitPushedAuthorizationRequest(
-    parUsage: ParUsage,
+    bindingMethod: AuthorizationCodeDPoPBindingMethod,
     scopes: [Scope],
     credentialConfigurationIdentifiers: [CredentialConfigurationIdentifier],
     state: String,
@@ -337,16 +352,24 @@ internal actor AuthorizationServerClient: AuthorizationServerClientType {
     challenge: Nonce? = nil,
     maxRetries: Int = Constants.MAX_RETRIES
   ) async throws -> (PKCEVerifier, AuthorizationCodeURL, Nonce?) {
-    
+
     guard !scopes.isEmpty || !credentialConfigurationIdentifiers.isEmpty else {
       throw ValidationError.error(
         reason: "Both scopes and credential configuration identifiers are missing or empty. Cannot submit par"
       )
     }
-    
+
     let scopeValue: String? = scopes.isEmpty ? nil : scopes.map { $0.value }.joined(separator: " ")
-    
+
     let codeVerifier = PKCEGenerator.codeVerifier() ?? ""
+
+    // Compute dpop_jkt when using .dpopJkt binding method
+    let dpopJkt: String? = if bindingMethod == .dpopJkt, let dpopConstructor {
+      try dpopConstructor.jwkThumbprint()
+    } else {
+      nil
+    }
+
     let authRequest: AuthorizationRequest = .init(
       responseType: Self.responseType,
       clientId: config.client.id,
@@ -361,16 +384,17 @@ internal actor AuthorizationServerClient: AuthorizationServerClientType {
       ),
       codeChallengeMethod: CodeChallenge.sha256.rawValue,
       resource: resource,
+      dpopJkt: dpopJkt,
       issuerState: issuerState
     )
-    
+
     do {
       guard let parEndpoint = parEndpoint else {
         throw ValidationError.error(
           reason: "Missing PAR endpoint"
         )
       }
-      
+
       let clientAttestation = try await generateClientAttestationIfNeeded(
         clock: Clock(),
         authServerId: URL(
@@ -384,11 +408,11 @@ internal actor AuthorizationServerClient: AuthorizationServerClientType {
       )
 
       let tokenHeaders = try await tokenEndPointHeaders(
-        parUsage: parUsage,
+        bindingMethod: bindingMethod,
         url: parEndpoint,
         dpopNonce: dpopNonce
       )
-      
+
       let response: ResponseWithHeaders<PushedAuthorizationRequestResponse> = try await service.formPost(
         poster: parPoster,
         url: parEndpoint,
@@ -406,22 +430,22 @@ internal actor AuthorizationServerClient: AuthorizationServerClientType {
           codeVerifier: codeVerifier,
           codeVerifierMethod: CodeChallenge.sha256.rawValue
         )
-        
+
         let queryParams = [
           AuthorizationCodeURL.PARAM_CLIENT_ID: config.client.id,
           AuthorizationCodeURL.PARAM_REQUEST_URI: requestURI
         ]
-        
+
         guard let urlWithParams = authorizationEndpoint?.appendingQueryParameters(queryParams) else {
           throw ValidationError.invalidUrl(parEndpoint.absoluteString)
         }
-        
+
         let authorizationCodeURL = try AuthorizationCodeURL(
           urlString: urlWithParams.absoluteString
         )
-        
+
         return (verifier, authorizationCodeURL, response.dpopNonce())
-        
+
       case .failure(let error, let errorDescription):
         throw CredentialIssuanceError.pushedAuthorizationRequestFailed(
           error: error,
@@ -434,7 +458,7 @@ internal actor AuthorizationServerClient: AuthorizationServerClientType {
       }
 
       return try await submitPushedAuthorizationRequest(
-        parUsage: parUsage,
+        bindingMethod: bindingMethod,
         scopes: scopes,
         credentialConfigurationIdentifiers: credentialConfigurationIdentifiers,
         state: state,
@@ -450,7 +474,7 @@ internal actor AuthorizationServerClient: AuthorizationServerClientType {
       }
 
       return try await submitPushedAuthorizationRequest(
-        parUsage: parUsage,
+        bindingMethod: bindingMethod,
         scopes: scopes,
         credentialConfigurationIdentifiers: credentialConfigurationIdentifiers,
         state: state,
@@ -1039,18 +1063,18 @@ private extension AuthorizationServerClient {
   }
   
   func tokenEndPointHeaders(
-    parUsage: ParUsage = .required(authorizationCodeDPoPBinding: true),
+    bindingMethod: AuthorizationCodeDPoPBindingMethod = .dpopHeader,
     url: URL?,
     dpopNonce: Nonce? = nil
   ) async throws -> [String: String] {
-    if let dpopConstructor, let url, parUsage.authorizationCodeDPoPBinding {
+    // Only include DPoP header when using .dpopHeader binding method
+    if let dpopConstructor, let url, bindingMethod == .dpopHeader {
       let jwt = try await dpopConstructor.jwt(
         endpoint: url,
         accessToken: nil,
         nonce: dpopNonce
       )
       return [Constants.DPOP: jwt]
-      
     } else {
       return [:]
     }
