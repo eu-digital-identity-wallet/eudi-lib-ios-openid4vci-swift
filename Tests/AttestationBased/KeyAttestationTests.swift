@@ -296,6 +296,73 @@ class KeyAttestationTests: XCTestCase {
     XCTAssert(true)
   }
 
+  // MARK: - Duplicate Attested Keys Tests (OpenID4VCI §8)
+
+  /// Tests that a key attestation with duplicate keys in attested_keys is rejected.
+  /// OpenID4VCI §8 requires distinct cryptographic material for each credential in a batch.
+  func testKeyAttestationWithDuplicateAttestedKeysIsRejected() async throws {
+    // Given: Key attestation with the SAME key appearing twice in attested_keys
+    XCTAssertThrowsError(try KeyAttestationJWT(jws: try JWS(
+      header: .init(parameters: [
+        "alg": "ES256",
+        "typ": KeyAttestationJWT.keyAttestationJWTType
+      ]),
+      payload: .init([
+        "iat": Date().timeIntervalSince1970,
+        "attested_keys": [
+          data.publicKey.toDictionary(),  // First occurrence
+          data.publicKey.toDictionary()   // Duplicate - same key
+        ]
+      ].toThrowingJSONData()),
+      signer: .init(
+        signatureAlgorithm: .ES256,
+        key: data.privateKey
+      )!
+    ))) { error in
+      // Then: Should throw duplicateAttestedKeys error
+      if let error = error as? KeyAttestationError {
+        switch error {
+        case .duplicateAttestedKeys:
+          XCTAssert(true, "Correctly rejected duplicate attested keys")
+        default:
+          XCTFail("Expected duplicateAttestedKeys error, got \(error)")
+        }
+      } else {
+        XCTFail("Expected KeyAttestationError, got \(error)")
+      }
+    }
+  }
+
+  /// Tests that a key attestation with unique keys is accepted.
+  func testKeyAttestationWithUniqueAttestedKeysIsAccepted() async throws {
+    // Given: Two different keys
+    let secondPrivateKey = try KeyController.generateECDHPrivateKey()
+    let secondPublicKey = try KeyController.generateECDHPublicKey(from: secondPrivateKey)
+    let secondJWK = try ECPublicKey(publicKey: secondPublicKey)
+
+    // When: Key attestation with two DIFFERENT keys in attested_keys
+    let keyAttestation = try KeyAttestationJWT(jws: try JWS(
+      header: .init(parameters: [
+        "alg": "ES256",
+        "typ": KeyAttestationJWT.keyAttestationJWTType
+      ]),
+      payload: .init([
+        "iat": Date().timeIntervalSince1970,
+        "attested_keys": [
+          data.publicKey.toDictionary(),  // First key
+          secondJWK.toDictionary()        // Second key (different)
+        ]
+      ].toThrowingJSONData()),
+      signer: .init(
+        signatureAlgorithm: .ES256,
+        key: data.privateKey
+      )!
+    ))
+
+    // Then: Should succeed with both keys
+    XCTAssertEqual(keyAttestation.attestedKeys.count, 2, "Should have 2 attested keys")
+  }
+
   // MARK: - TS3 v1.5 Algorithm Validation Tests
 
   func testKeyAttestationES256AlgorithmAccepted() async throws {

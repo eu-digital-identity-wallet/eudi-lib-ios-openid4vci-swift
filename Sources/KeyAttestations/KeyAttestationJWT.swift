@@ -22,25 +22,27 @@ public struct KeyAttestationJWT: Sendable {
   public let attestedKeys: [JWK]
   
   public init(jwt: String) throws {
-    
+
     self.jws = try .init(compactSerialization: jwt)
     try Self.validateHeader(jws.header)
-    
+
     let payload = try Self.parsePayload(jws.payload)
     try Self.validateClaims(payload)
-    
+
     self.attestedKeys = try Self.parseAttestedKeys(from: payload)
+    try Self.validateNoDuplicateKeys(attestedKeys)
   }
-  
+
   public init(jws: JWS) throws {
-    
+
     self.jws = jws
     try Self.validateHeader(jws.header)
-    
+
     let payload = try Self.parsePayload(jws.payload)
     try Self.validateClaims(payload)
-    
+
     self.attestedKeys = try Self.parseAttestedKeys(from: payload)
+    try Self.validateNoDuplicateKeys(attestedKeys)
   }
   
   // MARK: - Constants
@@ -87,18 +89,32 @@ public struct KeyAttestationJWT: Sendable {
     guard let keys = claims["attested_keys"] as? [[String: Any]] else {
       throw KeyAttestationError.missingOrEmptyAttestedKeys
     }
-    
+
     return try keys.enumerated().map { (index, jwkDict) in
       do {
         let data = try JSONSerialization.data(withJSONObject: jwkDict, options: [])
         let jwk = try JSONDecoder().decode(Either<ECPublicKey, RSAPublicKey>.self, from: data)
-        
+
         switch jwk {
         case .left(let ec): return ec
         case .right(let rsa): return rsa
         }
       } catch {
         throw KeyAttestationError.invalidJWK(index: index, underlying: error)
+      }
+    }
+  }
+
+  /// Validates that the attested_keys array doesn't contain duplicate keys.
+  /// Keys are compared by their JWK thumbprint.
+  private static func validateNoDuplicateKeys(_ keys: [JWK]) throws {
+    var seenThumbprints = Set<String>()
+    for key in keys {
+      if let thumbprint = try? key.thumbprint() {
+        if seenThumbprints.contains(thumbprint) {
+          throw KeyAttestationError.duplicateAttestedKeys
+        }
+        seenThumbprints.insert(thumbprint)
       }
     }
   }
@@ -174,6 +190,7 @@ public enum KeyAttestationError: Error, LocalizedError {
   case jwtProofNotSignedByFirstAttestedKey
   case invalidKeyType
   case unsupportedKeyType(String)
+  case duplicateAttestedKeys
 
   public var errorDescription: String? {
     switch self {
@@ -202,6 +219,8 @@ public enum KeyAttestationError: Error, LocalizedError {
       return "Key type is invalid or cannot be used for signature verification."
     case .unsupportedKeyType(let keyType):
       return "Key type '\(keyType)' is not supported for signature verification."
+    case .duplicateAttestedKeys:
+      return "Key attestation contains duplicate keys in the attested_keys array. Each key must be unique."
     }
   }
 }

@@ -131,4 +131,297 @@ class IssuanceBatchRequestTest: XCTestCase {
       XCTAssert(false, error.localizedDescription)
     }
   }
+
+  // MARK: - Duplicate Binding Keys Tests (OpenID4VCI §8)
+
+  /// Tests that a batch credential request with duplicate JWT binding keys is rejected.
+  /// OpenID4VCI §8 requires distinct cryptographic material for each credential in a batch.
+  func testBatchRequestWithDuplicateJwtBindingKeysIsRejected() async throws {
+    // Given
+    guard let offer = await TestsConstants.createMockCredentialOfferValidEncryptionWithBatchLimit() else {
+      XCTFail("Unable to resolve credential offer")
+      return
+    }
+
+    let privateKey = try KeyController.generateECDHPrivateKey()
+    let publicKey = try KeyController.generateECDHPublicKey(from: privateKey)
+    let publicKeyJWK = try ECPublicKey(
+      publicKey: publicKey,
+      additionalParameters: [
+        "alg": JWSAlgorithm(.ES256).name,
+        "use": "sig",
+        "kid": UUID().uuidString
+      ]
+    )
+
+    let responsePrivateKey = try KeyController.generateRSAPrivateKey()
+    let responsePublicKey = try KeyController.generateRSAPublicKey(from: responsePrivateKey)
+    let responsePublicKeyJWK = try RSAPublicKey(
+      publicKey: responsePublicKey,
+      additionalParameters: [
+        "alg": JWSAlgorithm(.RS256).name,
+        "use": "enc",
+        "kid": UUID().uuidString
+      ]
+    )
+
+    let spec = IssuanceResponseEncryptionSpec(
+      jwk: responsePublicKeyJWK,
+      privateKey: responsePrivateKey,
+      algorithm: .init(.RSA_OAEP_256),
+      encryptionMethod: .init(.A128CBC_HS256)
+    )
+
+    // Use a config that accepts plain JWT binding keys (not just attestation-capable ones)
+    let plainJwtConfig = OpenId4VCIConfig(
+      client: attestionClient,
+      authFlowRedirectionURI: URL(string: "urn:ietf:wg:oauth:2.0:oob")!,
+      authorizeIssuanceConfig: .favorScopes,
+      proofTypesPolicy: .acceptAll(supportedAlgorithms: [.init(.ES256)])
+    )
+
+    let issuer = try Issuer(
+      authorizationServerMetadata: offer.authorizationServerMetadata,
+      issuerMetadata: offer.credentialIssuerMetadata,
+      config: plainJwtConfig,
+      parPoster: Poster(session: NetworkingMock(path: "pushed_authorization_request_response", extension: "json")),
+      tokenPoster: Poster(session: NetworkingMock(path: "access_token_request_response_no_proof", extension: "json")),
+      requesterPoster: Poster(session: NetworkingMock(path: "batch_credential_issuance_success_response_credentials", extension: "json")),
+      noncePoster: Poster(session: NetworkingMock(path: "mock_cnonce_endpoint_response", extension: "json")),
+      dpopConstructor: dpopConstructor(algorithms: offer.authorizationServerMetadata.dpopSigningAlgValuesSupported)
+    )
+
+    let authorizedRequest = try await issuer.authorizeWithAuthorizationCode(
+      serverState: TestsConstants.unAuthorizedRequest.state,
+      request: TestsConstants.unAuthorizedRequest,
+      authorizationCode: try AuthorizationCode(value: "MZqG9bsQ8UALhsGNlY39Yw=="),
+      grant: offer.grants!
+    )
+
+    // Create two binding keys with the SAME public key (duplicate)
+    let bindingKey1: BindingKey = .jwt(
+      algorithm: .init(.ES256),
+      jwk: publicKeyJWK,
+      privateKey: .secKey(privateKey)
+    )
+    let bindingKey2: BindingKey = .jwt(
+      algorithm: .init(.ES256),
+      jwk: publicKeyJWK,  // Same key as bindingKey1
+      privateKey: .secKey(privateKey)
+    )
+
+    let payload: IssuanceRequestPayload = .configurationBased(
+      credentialConfigurationIdentifier: try .init(value: PID_MsoMdoc_config_id)
+    )
+
+    // When/Then: Should throw batchProofsShareBindingKey error
+    do {
+      _ = try await issuer.requestCredential(
+        request: authorizedRequest,
+        bindingKeys: [bindingKey1, bindingKey2],
+        requestPayload: payload,
+        responseEncryptionSpecProvider: { _ in spec }
+      )
+      XCTFail("Expected batchProofsShareBindingKey error but request succeeded")
+    } catch CredentialIssuanceError.batchProofsShareBindingKey {
+      XCTAssert(true, "Correctly rejected duplicate binding keys")
+    } catch {
+      XCTFail("Expected CredentialIssuanceError.batchProofsShareBindingKey, got \(error)")
+    }
+  }
+
+  /// Tests that a batch credential request with unique JWT binding keys is accepted.
+  func testBatchRequestWithUniqueJwtBindingKeysIsAccepted() async throws {
+    // Given
+    guard let offer = await TestsConstants.createMockCredentialOfferValidEncryptionWithBatchLimit() else {
+      XCTFail("Unable to resolve credential offer")
+      return
+    }
+
+    // Generate two different key pairs
+    let privateKey1 = try KeyController.generateECDHPrivateKey()
+    let publicKey1 = try KeyController.generateECDHPublicKey(from: privateKey1)
+    let publicKeyJWK1 = try ECPublicKey(
+      publicKey: publicKey1,
+      additionalParameters: [
+        "alg": JWSAlgorithm(.ES256).name,
+        "use": "sig",
+        "kid": UUID().uuidString
+      ]
+    )
+
+    let privateKey2 = try KeyController.generateECDHPrivateKey()
+    let publicKey2 = try KeyController.generateECDHPublicKey(from: privateKey2)
+    let publicKeyJWK2 = try ECPublicKey(
+      publicKey: publicKey2,
+      additionalParameters: [
+        "alg": JWSAlgorithm(.ES256).name,
+        "use": "sig",
+        "kid": UUID().uuidString
+      ]
+    )
+
+    let responsePrivateKey = try KeyController.generateRSAPrivateKey()
+    let responsePublicKey = try KeyController.generateRSAPublicKey(from: responsePrivateKey)
+    let responsePublicKeyJWK = try RSAPublicKey(
+      publicKey: responsePublicKey,
+      additionalParameters: [
+        "alg": JWSAlgorithm(.RS256).name,
+        "use": "enc",
+        "kid": UUID().uuidString
+      ]
+    )
+
+    let spec = IssuanceResponseEncryptionSpec(
+      jwk: responsePublicKeyJWK,
+      privateKey: responsePrivateKey,
+      algorithm: .init(.RSA_OAEP_256),
+      encryptionMethod: .init(.A128CBC_HS256)
+    )
+
+    // Use a config that accepts plain JWT binding keys (not just attestation-capable ones)
+    let plainJwtConfig = OpenId4VCIConfig(
+      client: attestionClient,
+      authFlowRedirectionURI: URL(string: "urn:ietf:wg:oauth:2.0:oob")!,
+      authorizeIssuanceConfig: .favorScopes,
+      proofTypesPolicy: .acceptAll(supportedAlgorithms: [.init(.ES256)])
+    )
+
+    let issuer = try Issuer(
+      authorizationServerMetadata: offer.authorizationServerMetadata,
+      issuerMetadata: offer.credentialIssuerMetadata,
+      config: plainJwtConfig,
+      parPoster: Poster(session: NetworkingMock(path: "pushed_authorization_request_response", extension: "json")),
+      tokenPoster: Poster(session: NetworkingMock(path: "access_token_request_response_no_proof", extension: "json")),
+      requesterPoster: Poster(session: NetworkingMock(path: "batch_credential_issuance_success_response_credentials", extension: "json")),
+      noncePoster: Poster(session: NetworkingMock(path: "mock_cnonce_endpoint_response", extension: "json")),
+      dpopConstructor: dpopConstructor(algorithms: offer.authorizationServerMetadata.dpopSigningAlgValuesSupported)
+    )
+
+    let authorizedRequest = try await issuer.authorizeWithAuthorizationCode(
+      serverState: TestsConstants.unAuthorizedRequest.state,
+      request: TestsConstants.unAuthorizedRequest,
+      authorizationCode: try AuthorizationCode(value: "MZqG9bsQ8UALhsGNlY39Yw=="),
+      grant: offer.grants!
+    )
+
+    // Create two binding keys with DIFFERENT public keys
+    let bindingKey1: BindingKey = .jwt(
+      algorithm: .init(.ES256),
+      jwk: publicKeyJWK1,
+      privateKey: .secKey(privateKey1)
+    )
+    let bindingKey2: BindingKey = .jwt(
+      algorithm: .init(.ES256),
+      jwk: publicKeyJWK2,  // Different key than bindingKey1
+      privateKey: .secKey(privateKey2)
+    )
+
+    let payload: IssuanceRequestPayload = .configurationBased(
+      credentialConfigurationIdentifier: try .init(value: PID_MsoMdoc_config_id)
+    )
+
+    // When/Then: Should succeed
+    do {
+      let request = try await issuer.requestCredential(
+        request: authorizedRequest,
+        bindingKeys: [bindingKey1, bindingKey2],
+        requestPayload: payload,
+        responseEncryptionSpecProvider: { _ in spec }
+      )
+
+      switch request {
+      case .success:
+        XCTAssert(true, "Batch request with unique binding keys succeeded")
+      case .failed(let error):
+        XCTFail("Request failed: \(error.localizedDescription)")
+      case .invalidProof(let errorDescription):
+        XCTFail("Invalid proof: \(errorDescription ?? "unknown")")
+      }
+    } catch {
+      XCTFail("Unexpected error: \(error)")
+    }
+  }
+
+  /// Tests that a batch credential request with duplicate key attestation indices is rejected.
+  func testBatchRequestWithDuplicateKeyAttestationIndicesIsRejected() async throws {
+    // Given
+    guard let offer = await TestsConstants.createMockCredentialOfferopenidKeyAttestationRequired() else {
+      XCTFail("Unable to resolve credential offer")
+      return
+    }
+
+    let privateKey = try KeyController.generateECDHPrivateKey()
+    let publicKey = try KeyController.generateECDHPublicKey(from: privateKey)
+    let publicKeyJWK = try ECPublicKey(
+      publicKey: publicKey,
+      additionalParameters: [
+        "alg": JWSAlgorithm(.ES256).name,
+        "use": "sig",
+        "kid": UUID().uuidString
+      ]
+    )
+
+    let spec = IssuanceResponseEncryptionSpec(
+      jwk: publicKeyJWK,
+      privateKey: privateKey,
+      algorithm: .init(.ECDH_ES),
+      encryptionMethod: .init(.A128GCM)
+    )
+
+    let issuer = try Issuer(
+      authorizationServerMetadata: offer.authorizationServerMetadata,
+      issuerMetadata: offer.credentialIssuerMetadata,
+      config: config,
+      parPoster: Poster(session: NetworkingMock(path: "pushed_authorization_request_response", extension: "json")),
+      tokenPoster: Poster(session: NetworkingMock(path: "access_token_request_response_no_proof", extension: "json")),
+      requesterPoster: Poster(session: NetworkingMock(path: "batch_credential_issuance_success_response_credentials", extension: "json")),
+      noncePoster: Poster(session: NetworkingMock(path: "mock_cnonce_endpoint_response", extension: "json")),
+      dpopConstructor: dpopConstructor(algorithms: offer.authorizationServerMetadata.dpopSigningAlgValuesSupported)
+    )
+
+    let authorizedRequest = try await issuer.authorizeWithAuthorizationCode(
+      serverState: TestsConstants.unAuthorizedRequest.state,
+      request: TestsConstants.unAuthorizedRequest,
+      authorizationCode: try AuthorizationCode(value: "MZqG9bsQ8UALhsGNlY39Yw=="),
+      grant: offer.grants!
+    )
+
+    // Create two binding keys with the SAME key index (duplicate)
+    let bindingKey1: BindingKey = .jwtKeyAttestation(
+      algorithm: .init(.ES256),
+      keyAttestationJWT: { _ in
+        try! .init(jws: .init(compactSerialization: TestsConstants.ketAttestationJWT))
+      },
+      keyIndex: 0,  // Same index
+      privateKey: .secKey(privateKey)
+    )
+    let bindingKey2: BindingKey = .jwtKeyAttestation(
+      algorithm: .init(.ES256),
+      keyAttestationJWT: { _ in
+        try! .init(jws: .init(compactSerialization: TestsConstants.ketAttestationJWT))
+      },
+      keyIndex: 0,  // Same index as bindingKey1
+      privateKey: .secKey(privateKey)
+    )
+
+    let payload: IssuanceRequestPayload = .configurationBased(
+      credentialConfigurationIdentifier: try .init(value: "eu.europa.ec.eudiw.pid_vc_sd_jwt")
+    )
+
+    // When/Then: Should throw batchProofsShareBindingKey error
+    do {
+      _ = try await issuer.requestCredential(
+        request: authorizedRequest,
+        bindingKeys: [bindingKey1, bindingKey2],
+        requestPayload: payload,
+        responseEncryptionSpecProvider: { _ in spec }
+      )
+      XCTFail("Expected batchProofsShareBindingKey error but request succeeded")
+    } catch CredentialIssuanceError.batchProofsShareBindingKey {
+      XCTAssert(true, "Correctly rejected duplicate key attestation indices")
+    } catch {
+      XCTFail("Expected CredentialIssuanceError.batchProofsShareBindingKey, got \(error)")
+    }
+  }
 }
