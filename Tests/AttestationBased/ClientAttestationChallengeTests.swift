@@ -57,7 +57,8 @@ final class ClientAttestationChallengeTests: XCTestCase {
             scopes: [try Scope("openid")],
             credentialConfigurationIdentifiers: [],
             state: "state", issuerState: nil,
-            challenge: Nonce(value: "old-challenge")
+            challenge: Nonce(value: "old-challenge"),
+            additionalAuthorizationParameters: [:]
           )
         case .authorizationCode:
           _ = try await sut.requestAccessTokenAuthFlow(

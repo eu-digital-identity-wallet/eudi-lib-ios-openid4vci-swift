@@ -18,10 +18,14 @@ import Foundation
 protocol AuthorizeIssuanceType: Sendable {
   /// Initiates an authorization request using a credential offer.
   ///
-  /// - Parameter credentialOffer: The credential offer containing necessary details for authorization.
-  /// - Returns: A result containing either an `UnauthorizedRequest` if the request is successful or an `Error` otherwise.
+  /// - Parameters:
+  ///   - credentialOffer: The credential offer containing necessary details for authorization.
+  ///   - additionalAuthorizationParameters: custom OAuth/OpenID authorization request parameters to be included in the Authorization Request or Pushed Authorization Request (PAR) (optional)
+  /// - Returns: ``AuthorizationRequested`` with state denoting that the pushed authorization request has been placed successfully and response processed.
+  /// - Throws: An error if the ``AuthorizationRequested`` creation fails.
   func prepareAuthorizationRequest(
-    credentialOffer: CredentialOffer
+    credentialOffer: CredentialOffer,
+    additionalAuthorizationParameters: [String: String]?
   ) async throws -> AuthorizationRequested
   
   /// Authorizes a request using a pre-authorization code.
@@ -77,7 +81,8 @@ internal actor AuthorizeIssuance: AuthorizeIssuanceType {
   }
   
   func prepareAuthorizationRequest(
-    credentialOffer: CredentialOffer
+    credentialOffer: CredentialOffer,
+    additionalAuthorizationParameters: [String: String]?
   ) async throws -> AuthorizationRequested {
     
     let issuerState: String? = getIssuerState(from: credentialOffer)
@@ -131,7 +136,8 @@ internal actor AuthorizeIssuance: AuthorizeIssuanceType {
         issuerState: issuerState,
         state: state,
         expectedIssuer: expectedIssuer,
-        issRequired: issRequired
+        issRequired: issRequired,
+        additionalAuthorizationParameters: additionalAuthorizationParameters
       )
 
     } else {
@@ -142,7 +148,8 @@ internal actor AuthorizeIssuance: AuthorizeIssuanceType {
         issuerState: issuerState,
         state: state,
         expectedIssuer: expectedIssuer,
-        issRequired: issRequired
+        issRequired: issRequired,
+        additionalAuthorizationParameters: additionalAuthorizationParameters
       )
     }
   }
@@ -301,7 +308,8 @@ private extension AuthorizeIssuance {
     issuerState: String?,
     state: String,
     expectedIssuer: URL?,
-    issRequired: Bool
+    issRequired: Bool,
+    additionalAuthorizationParameters: [String: String]? = nil
   ) async throws -> AuthorizationRequested {
       let resource: String? = issuerMetadata.authorizationServers.map { _ in
         credentialOffer.credentialIssuerIdentifier.url.absoluteString
@@ -322,7 +330,8 @@ private extension AuthorizeIssuance {
         resource: resource,
         dpopNonce: challenge?.dpopNonce,
         challenge: challenge?.challenge,
-        maxRetries: Constants.MAX_RETRIES
+        maxRetries: Constants.MAX_RETRIES,
+        additionalAuthorizationParameters: additionalAuthorizationParameters ?? [:]
       )
 
       return AuthorizationRequested(
@@ -346,7 +355,8 @@ private extension AuthorizeIssuance {
     issuerState: String?,
     state: String,
     expectedIssuer: URL?,
-    issRequired: Bool
+    issRequired: Bool,
+    additionalAuthorizationParameters: [String: String]? = nil
   ) async throws -> AuthorizationRequested {
       let result: (
         verifier: PKCEVerifier,
@@ -356,7 +366,8 @@ private extension AuthorizeIssuance {
         credentialConfigurationIdentifiers: credentialConfigurationIdentifiers,
         state: state,
         issuerState: issuerState,
-        bindingMethod: bindingMethod
+        bindingMethod: bindingMethod,
+        additionalAuthorizationParameters: additionalAuthorizationParameters ?? [:]
       )
 
       return AuthorizationRequested(

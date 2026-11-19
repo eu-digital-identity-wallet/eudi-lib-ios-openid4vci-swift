@@ -361,7 +361,7 @@ extension Wallet {
     print("--> [AUTHORIZATION] Placing PAR to AS server's endpoint \(pushedAuthorizationRequestEndpoint ?? "N/A")")
     
     let parRequested = try await issuer.prepareAuthorizationRequest(
-      credentialOffer: offer
+      credentialOffer: offer, additionalAuthorizationParameters: [:]
     )
     print("--> [AUTHORIZATION] Placed PAR. Get authorization code URL is: \(parRequested.authorizationCodeURL)")
     

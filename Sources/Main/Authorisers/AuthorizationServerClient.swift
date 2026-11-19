@@ -50,13 +50,16 @@ protocol AuthorizationServerClientType: Sendable {
   ///   - issuerState: Optional issuer-specific state parameter.
   ///   - bindingMethod: How to bind the Authorization Code to the DPoP key (RFC 9449 §10.1).
   ///                    When `.dpopHeader` is used without PAR, it falls back to `.dpopJkt`.
-  /// - Returns: A result containing a `PKCEVerifier` and an authorization URL, or an error if the operation fails.
+  ///   - additionalAuthorizationParameters: custom OAuth/OpenID authorization request parameters to be included in the Authorization Request or Pushed Authorization Request (PAR)
+  /// - Returns: a tuple containing `PKCEVerifier` and an authorization URL.
+  /// - Throws: An error if operation fails.
   func authorizationRequestUrl(
     scopes: [Scope],
     credentialConfigurationIdentifiers: [CredentialConfigurationIdentifier],
     state: String,
     issuerState: String?,
-    bindingMethod: AuthorizationCodeDPoPBindingMethod
+    bindingMethod: AuthorizationCodeDPoPBindingMethod,
+    additionalAuthorizationParameters: [String: String]
   ) async throws -> (PKCEVerifier, AuthorizationCodeURL)
   
   /// Submits a pushed authorization request (PAR).
@@ -71,7 +74,9 @@ protocol AuthorizationServerClientType: Sendable {
   ///   - dpopNonce: An optional nonce for DPoP (Demonstrating Proof-of-Possession).
   ///   - challenge: An optional attestation challenge.
   ///   - maxRetries: Maximum number of retry attempts after nonce-related errors.
-  /// - Returns: A result containing a `PKCEVerifier`, an authorization URL, and an optional nonce, or an error if the operation fails.
+  ///   - additionalAuthorizationParameters: custom OAuth/OpenID authorization request parameters to be included in the Authorization Request or Pushed Authorization Request (PAR)
+  /// - Returns: a tuple containing `PKCEVerifier`, an authorization URL and an optional nonce.
+  /// - Throws: An error if operation fails.
   /// See [RFC7636](https://www.rfc-editor.org/rfc/rfc7636.html) for more information
   /// See [RFC9126](https://www.rfc-editor.org/rfc/rfc9126) for more information
   /// See [RFC9449 §10.1](https://www.rfc-editor.org/rfc/rfc9449#section-10.1) for DPoP binding methods
@@ -84,7 +89,8 @@ protocol AuthorizationServerClientType: Sendable {
     resource: String?,
     dpopNonce: Nonce?,
     challenge: Nonce?,
-    maxRetries: Int
+    maxRetries: Int,
+    additionalAuthorizationParameters: [String: String]
   ) async throws -> (PKCEVerifier, AuthorizationCodeURL, Nonce?)
   
   /// Requests an access token using an authorization code.
@@ -157,7 +163,7 @@ protocol AuthorizationServerClientType: Sendable {
     maxRetries: Int
   ) async throws -> (
     IssuanceAccessToken,
-	IssuanceRefreshToken?,
+    IssuanceRefreshToken?,
     AuthorizationDetailsIdentifiers?,
     TokenType?,
     Int?,
@@ -179,7 +185,7 @@ protocol AuthorizationServerClientType: Sendable {
     maxRetries: Int
   ) async throws -> (
     IssuanceAccessToken,
-	IssuanceRefreshToken?,
+    IssuanceRefreshToken?,
     AuthorizationDetailsIdentifiers?,
     TokenType?,
     Int?,
@@ -286,7 +292,8 @@ internal actor AuthorizationServerClient: AuthorizationServerClientType {
     credentialConfigurationIdentifiers: [CredentialConfigurationIdentifier],
     state: String,
     issuerState: String?,
-    bindingMethod: AuthorizationCodeDPoPBindingMethod
+    bindingMethod: AuthorizationCodeDPoPBindingMethod,
+    additionalAuthorizationParameters: [String: String]
   ) async throws -> (PKCEVerifier, AuthorizationCodeURL) {
 
     guard !scopes.isEmpty || !credentialConfigurationIdentifiers.isEmpty else {
@@ -311,7 +318,7 @@ internal actor AuthorizationServerClient: AuthorizationServerClientType {
       nil
     }
 
-    let authzRequest = AuthorizationRequest(
+    let authRequest = AuthorizationRequest(
       responseType: Self.responseType,
       clientId: config.client.id,
       redirectUri: redirectionURI.absoluteString,
@@ -323,13 +330,15 @@ internal actor AuthorizationServerClient: AuthorizationServerClientType {
       dpopJkt: dpopJkt,
       issuerState: issuerState
     )
-
+            
+    let queryParameters = try authRequest.toDictionary().convertToDictionaryOfStrings(
+      excludingKeys: [
+        "credential_configuration_ids"
+      ]
+    ).merging(additionalAuthorizationParameters) { current, _ in current }
+    
     guard let urlWithParams = authorizationEndpoint?.appendingQueryParameters(
-      try authzRequest.toDictionary().convertToDictionaryOfStrings(
-        excludingKeys: [
-          "credential_configuration_ids"
-        ]
-      )
+      queryParameters
     ) else {
       throw ValidationError.invalidUrl(parEndpoint?.absoluteString ?? "")
     }
@@ -350,7 +359,8 @@ internal actor AuthorizationServerClient: AuthorizationServerClientType {
     resource: String? = nil,
     dpopNonce: Nonce? = nil,
     challenge: Nonce? = nil,
-    maxRetries: Int = Constants.MAX_RETRIES
+    maxRetries: Int = Constants.MAX_RETRIES,
+    additionalAuthorizationParameters: [String: String]
   ) async throws -> (PKCEVerifier, AuthorizationCodeURL, Nonce?) {
 
     guard !scopes.isEmpty || !credentialConfigurationIdentifiers.isEmpty else {
@@ -412,12 +422,16 @@ internal actor AuthorizationServerClient: AuthorizationServerClientType {
         url: parEndpoint,
         dpopNonce: dpopNonce
       )
-
+        
+      let parameters = try authRequest.toDictionary().convertToDictionaryOfStrings(
+          excludingKeys: ["credential_configuration_ids"]
+      ).merging(additionalAuthorizationParameters) { current, _ in current }
+      
       let response: ResponseWithHeaders<PushedAuthorizationRequestResponse> = try await service.formPost(
         poster: parPoster,
         url: parEndpoint,
-        request: authRequest,
-        headers: clientAttestationHeaders + tokenHeaders
+        headers: clientAttestationHeaders + tokenHeaders,
+        parameters: parameters
       )
 
       if let freshChallenge = response.attestationChallenge() {
@@ -466,7 +480,8 @@ internal actor AuthorizationServerClient: AuthorizationServerClientType {
         resource: resource,
         dpopNonce: nonce,
         challenge: freshChallenge ?? challenge,
-        maxRetries: maxRetries - 1
+        maxRetries: maxRetries - 1,
+        additionalAuthorizationParameters: additionalAuthorizationParameters
       )
     } catch PostError.useAttestationNonce(let challenge) {
       guard maxRetries > 0 else {
@@ -482,7 +497,8 @@ internal actor AuthorizationServerClient: AuthorizationServerClientType {
         resource: resource,
         dpopNonce: dpopNonce,
         challenge: challenge,
-        maxRetries: maxRetries - 1
+        maxRetries: maxRetries - 1,
+        additionalAuthorizationParameters: additionalAuthorizationParameters
       )
     }
   }
