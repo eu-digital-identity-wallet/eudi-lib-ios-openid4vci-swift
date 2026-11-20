@@ -55,6 +55,7 @@ class AuthorizationServerClientTest {
       credentialConfigurationIdentifiers: identifiers,
       state: state,
       issuerState: issuerState,
+      bindingMethod: .dpopHeader,
       additionalAuthorizationParameters: [customParamKey: customParamValue, "response_type": "overriding_wrong_response_type"]
     )
 
@@ -88,6 +89,7 @@ class AuthorizationServerClientTest {
         credentialConfigurationIdentifiers: [],
         state: "test-state",
         issuerState: nil,
+        bindingMethod: .dpopHeader,
         additionalAuthorizationParameters: [:]
       )
     }
@@ -102,6 +104,7 @@ class AuthorizationServerClientTest {
         credentialConfigurationIdentifiers: [],
         state: "test-state",
         issuerState: nil,
+        bindingMethod: .dpopHeader,
         additionalAuthorizationParameters: [:]
       )
     }
@@ -114,7 +117,7 @@ class AuthorizationServerClientTest {
     sut = try .create(service: serviceMock)
     
     let (verifier, _, _) = try await sut.submitPushedAuthorizationRequest(
-      parUsage: .required(authorizationCodeDPoPBinding: true),
+      bindingMethod: .dpopHeader,
       scopes: scopes,
       credentialConfigurationIdentifiers: identifiers,
       state: state,

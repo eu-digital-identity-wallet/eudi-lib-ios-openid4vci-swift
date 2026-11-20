@@ -20,10 +20,19 @@ import XCTest
 
 class SupportedGrantsTests: XCTestCase {
 
+  // Helper to create a test AuthorizationCodeGrant
+  private var testAuthCodeGrant: AuthorizationCodeGrant {
+    AuthorizationCodeGrant(
+      authFlowRedirectionURI: URL(string: "https://example.com/callback")!,
+      parUsage: .ifSupported,
+      authorizationCodeDPoPBindingMethod: .dpopHeader
+    )
+  }
+
   // MARK: - SupportedGrants.supports() Tests
 
   func testAuthorizationCodeSupportsAuthorizationCodeGrant() throws {
-    let supportedGrants = SupportedGrants.authorizationCode
+    let supportedGrants = SupportedGrants.authorizationCode(testAuthCodeGrant)
     let grants = Grants.authorizationCode(
       try Grants.AuthorizationCode(issuerState: "test-state", authorizationServer: nil)
     )
@@ -32,7 +41,7 @@ class SupportedGrantsTests: XCTestCase {
   }
 
   func testAuthorizationCodeDoesNotSupportPreAuthorizedCodeGrant() throws {
-    let supportedGrants = SupportedGrants.authorizationCode
+    let supportedGrants = SupportedGrants.authorizationCode(testAuthCodeGrant)
     let grants = Grants.preAuthorizedCode(
       Grants.PreAuthorizedCode(preAuthorizedCode: "pre-auth-code", txCode: nil, authorizationServer: nil)
     )
@@ -59,7 +68,7 @@ class SupportedGrantsTests: XCTestCase {
   }
 
   func testBothSupportsAuthorizationCodeGrant() throws {
-    let supportedGrants = SupportedGrants.both
+    let supportedGrants = SupportedGrants.both(authorizationCode: testAuthCodeGrant)
     let grants = Grants.authorizationCode(
       try Grants.AuthorizationCode(issuerState: "test-state", authorizationServer: nil)
     )
@@ -68,7 +77,7 @@ class SupportedGrantsTests: XCTestCase {
   }
 
   func testBothSupportsPreAuthorizedCodeGrant() throws {
-    let supportedGrants = SupportedGrants.both
+    let supportedGrants = SupportedGrants.both(authorizationCode: testAuthCodeGrant)
     let grants = Grants.preAuthorizedCode(
       Grants.PreAuthorizedCode(preAuthorizedCode: "pre-auth-code", txCode: nil, authorizationServer: nil)
     )
@@ -77,7 +86,7 @@ class SupportedGrantsTests: XCTestCase {
   }
 
   func testBothSupportsBothGrants() throws {
-    let supportedGrants = SupportedGrants.both
+    let supportedGrants = SupportedGrants.both(authorizationCode: testAuthCodeGrant)
     let grants = Grants.both(
       try Grants.AuthorizationCode(issuerState: "test-state", authorizationServer: nil),
       Grants.PreAuthorizedCode(preAuthorizedCode: "pre-auth-code", txCode: nil, authorizationServer: nil)
@@ -87,7 +96,7 @@ class SupportedGrantsTests: XCTestCase {
   }
 
   func testAuthorizationCodeSupportsBothGrantsFromOffer() throws {
-    let supportedGrants = SupportedGrants.authorizationCode
+    let supportedGrants = SupportedGrants.authorizationCode(testAuthCodeGrant)
     let grants = Grants.both(
       try Grants.AuthorizationCode(issuerState: "test-state", authorizationServer: nil),
       Grants.PreAuthorizedCode(preAuthorizedCode: "pre-auth-code", txCode: nil, authorizationServer: nil)
@@ -111,7 +120,7 @@ class SupportedGrantsTests: XCTestCase {
   // MARK: - requiresAuthorizationCodeFlow Tests
 
   func testAuthorizationCodeRequiresAuthorizationCodeFlow() {
-    XCTAssertTrue(SupportedGrants.authorizationCode.requiresAuthorizationCodeFlow)
+    XCTAssertTrue(SupportedGrants.authorizationCode(testAuthCodeGrant).requiresAuthorizationCodeFlow)
   }
 
   func testPreAuthorizedCodeDoesNotRequireAuthorizationCodeFlow() {
@@ -119,7 +128,7 @@ class SupportedGrantsTests: XCTestCase {
   }
 
   func testBothRequiresAuthorizationCodeFlow() {
-    XCTAssertTrue(SupportedGrants.both.requiresAuthorizationCodeFlow)
+    XCTAssertTrue(SupportedGrants.both(authorizationCode: testAuthCodeGrant).requiresAuthorizationCodeFlow)
   }
 
   // MARK: - OpenId4VCIConfig Validation Tests
@@ -127,7 +136,6 @@ class SupportedGrantsTests: XCTestCase {
   func testConfigWithPreAuthorizedCodeGrantsDoesNotRequireRedirectionURI() throws {
     let config = OpenId4VCIConfig(
       client: .public(id: "test-client"),
-      authFlowRedirectionURI: nil,
       supportedGrants: .preAuthorizedCode
     )
 
@@ -137,26 +145,32 @@ class SupportedGrantsTests: XCTestCase {
 
   func testConfigWithAuthorizationCodeGrantsAndRedirectionURISucceeds() throws {
     let redirectURI = URL(string: "https://example.com/callback")!
+    let authCodeGrant = AuthorizationCodeGrant(
+      authFlowRedirectionURI: redirectURI,
+      parUsage: .ifSupported,
+      authorizationCodeDPoPBindingMethod: .dpopHeader
+    )
     let config = OpenId4VCIConfig(
       client: .public(id: "test-client"),
-      authFlowRedirectionURI: redirectURI,
-      supportedGrants: .authorizationCode
+      supportedGrants: .authorizationCode(authCodeGrant)
     )
 
     XCTAssertEqual(config.authFlowRedirectionURI, redirectURI)
-    XCTAssertEqual(config.supportedGrants, SupportedGrants.authorizationCode)
   }
 
   func testConfigWithBothGrantsAndRedirectionURISucceeds() throws {
     let redirectURI = URL(string: "https://example.com/callback")!
+    let authCodeGrant = AuthorizationCodeGrant(
+      authFlowRedirectionURI: redirectURI,
+      parUsage: .ifSupported,
+      authorizationCodeDPoPBindingMethod: .dpopHeader
+    )
     let config = OpenId4VCIConfig(
       client: .public(id: "test-client"),
-      authFlowRedirectionURI: redirectURI,
-      supportedGrants: .both
+      supportedGrants: .both(authorizationCode: authCodeGrant)
     )
 
     XCTAssertEqual(config.authFlowRedirectionURI, redirectURI)
-    XCTAssertEqual(config.supportedGrants, SupportedGrants.both)
   }
 
   // MARK: - CredentialOfferRequestValidationError.unsupportedGrants Tests
@@ -200,8 +214,8 @@ class SupportedGrantsTests: XCTestCase {
           XCTAssertEqual(authCode.issuerState, "eyJhbGciOiJSU0Et...FYUaBy")
 
           // Wallet with authorizationCode support should support this
-          XCTAssertTrue(SupportedGrants.authorizationCode.supports(grants!))
-          XCTAssertTrue(SupportedGrants.both.supports(grants!))
+          XCTAssertTrue(SupportedGrants.authorizationCode(self.testAuthCodeGrant).supports(grants!))
+          XCTAssertTrue(SupportedGrants.both(authorizationCode: self.testAuthCodeGrant).supports(grants!))
 
           // Wallet with only preAuthorizedCode should NOT support this
           XCTAssertFalse(SupportedGrants.preAuthorizedCode.supports(grants!))
@@ -243,10 +257,10 @@ class SupportedGrantsTests: XCTestCase {
 
           // Wallet with preAuthorizedCode support should support this
           XCTAssertTrue(SupportedGrants.preAuthorizedCode.supports(grants!))
-          XCTAssertTrue(SupportedGrants.both.supports(grants!))
+          XCTAssertTrue(SupportedGrants.both(authorizationCode: self.testAuthCodeGrant).supports(grants!))
 
           // Wallet with only authorizationCode should NOT support this
-          XCTAssertFalse(SupportedGrants.authorizationCode.supports(grants!))
+          XCTAssertFalse(SupportedGrants.authorizationCode(self.testAuthCodeGrant).supports(grants!))
         } else {
           XCTFail("Expected pre-authorized_code grant")
         }
@@ -288,9 +302,9 @@ class SupportedGrantsTests: XCTestCase {
           XCTAssertEqual(preAuthCode.preAuthorizedCode, "adhjhdjajkdkhjhdj")
 
           // All wallet configurations should support "both" grants
-          XCTAssertTrue(SupportedGrants.authorizationCode.supports(grants!))
+          XCTAssertTrue(SupportedGrants.authorizationCode(self.testAuthCodeGrant).supports(grants!))
           XCTAssertTrue(SupportedGrants.preAuthorizedCode.supports(grants!))
-          XCTAssertTrue(SupportedGrants.both.supports(grants!))
+          XCTAssertTrue(SupportedGrants.both(authorizationCode: self.testAuthCodeGrant).supports(grants!))
         } else {
           XCTFail("Expected both grants")
         }
