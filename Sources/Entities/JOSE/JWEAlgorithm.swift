@@ -146,9 +146,9 @@ public extension JWEAlgorithm.Family {
 
   static func parse(_ type: FamilyType) -> JWEAlgorithm.Family {
   
+    // RSA1_5 (RSAES-PKCS1-v1_5) is intentionally excluded: RFC 8725 §3.2 advises against it
     var RSA: [JWEAlgorithm] {
       return [
-        .init(.RSA1_5),
         .init(.RSA_OAEP),
         .init(.RSA_OAEP_256),
         .init(.RSA_OAEP_384),

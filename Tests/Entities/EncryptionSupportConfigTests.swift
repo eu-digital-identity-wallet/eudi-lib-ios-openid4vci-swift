@@ -35,13 +35,13 @@ final class EncryptionSupportConfigTests: XCTestCase {
     XCTAssertEqual(config.rsaConfig?.rcaKeySize, 2048)
     XCTAssertEqual(
       config.rsaConfig?.supportedJWEAlgorithms.map(\.name),
-      ["RSA1_5", "RSA-OAEP", "RSA-OAEP-256", "RSA-OAEP-384", "RSA-OAEP-512"]
+      ["RSA-OAEP", "RSA-OAEP-256", "RSA-OAEP-384", "RSA-OAEP-512"]
     )
     XCTAssertEqual(
       config.supportedEncryptionMethods.map(\.name),
       ["A128GCM", "A192GCM", "A256GCM", "A128CBC-HS256", "A192CBC-HS384", "A256CBC-HS512"]
     )
-    XCTAssertEqual(config.supportedEncryptionAlgorithms.count, 9)
+    XCTAssertEqual(config.supportedEncryptionAlgorithms.count, 8)
   }
 
   func testOpenId4VCIConfigDefaultsToDefaultEncryptionSupportConfig() {
@@ -108,6 +108,31 @@ final class EncryptionSupportConfigTests: XCTestCase {
       walletConfig: walletConfig
     )
     XCTAssertEqual(spec?.algorithm.name, "RSA-OAEP-256")
+  }
+
+  func testRSA1_5IsNotPlatformSupported() {
+    XCTAssertFalse(RsaConfig.platformSupportedAlgorithms.contains { $0.name == "RSA1_5" })
+    XCTAssertFalse(EncryptionSupportConfig.default.supports(algorithm: .init(.RSA1_5)))
+    XCTAssertFalse(JWEAlgorithm.Family.parse(.ASYMMETRIC).contains(.init(.RSA1_5)))
+  }
+
+  func testRSA1_5IsSkippedEvenWhenIssuerListsItFirst() throws {
+    let spec = Issuer.createResponseEncryptionSpec(
+      algorithmsSupported: [.init(.RSA1_5), .init(.RSA_OAEP_256)],
+      encryptionMethodsSupported: [.init(.A128GCM)],
+      walletConfig: .default
+    )
+    XCTAssertEqual(spec?.algorithm.name, "RSA-OAEP-256")
+    XCTAssertEqual(spec?.jwk?["alg"], "RSA-OAEP-256")
+  }
+
+  func testIssuerOfferingOnlyRSA1_5YieldsNil() throws {
+    let spec = Issuer.createResponseEncryptionSpec(
+      algorithmsSupported: [.init(.RSA1_5)],
+      encryptionMethodsSupported: [.init(.A128GCM)],
+      walletConfig: .default
+    )
+    XCTAssertNil(spec)
   }
 
   func testWalletAlgorithmAllowListIsHonoured() throws {
