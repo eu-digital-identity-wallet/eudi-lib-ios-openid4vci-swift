@@ -685,6 +685,12 @@ internal extension Issuer {
     bindingKeys: [BindingKey],
     supportedCredential: CredentialSupported
   ) async throws -> (actualProofs: [Proof], dPopNonce: Nonce?) {
+    // Validate binding keys don't share cryptographic material early (OpenID4VCI §8)
+    // This check runs regardless of whether proofs are required by the issuer
+    if !bindingKeys.isEmpty {
+      try validateNoDuplicateBindingKeys(bindingKeys)
+    }
+
     let proofsRequired = proofsRequirement(credentialSupported: supportedCredential)
     switch proofsRequired {
     case .proofNotRequired:
@@ -733,14 +739,14 @@ internal extension Issuer {
     credentialSpec: CredentialSupported,
     bindingKeys: [BindingKey]
   ) async throws {
-    
+
     if let first = bindingKeys.first {
       let allSameCase = bindingKeys.allSatisfy { $0 == first }
       guard allSameCase else {
         throw CredentialIssuanceError.combinationOfBindingKeys
       }
     }
-    
+
     let keyAttestationRequirement = credentialSpec.proofTypesSupported?["jwt"]?.keyAttestationRequirement
     switch keyAttestationRequirement {
     case .required, .requiredNoConstraints:
@@ -779,6 +785,9 @@ internal extension Issuer {
     /// Resolve the attestation JWT once; if we have a function
     let attestationJwt = try await attestationFunction?(nonce)
 
+    /// For .jwtKeyAttestation keys, validate that different key indices are used
+    try validateNoDuplicateKeyAttestationIndices(eligibleKeys, attestationJwt: attestationJwt)
+
     /// Build proofs — propagate any construction error rather than dropping the key silently.
     var proofs: [Proof] = []
     for key in eligibleKeys {
@@ -792,6 +801,42 @@ internal extension Issuer {
       proofs.append(proof)
     }
     return proofs
+  }
+
+  /// Validates that no two binding keys share the same public key.
+  /// For `.jwt` keys, compares the JWK thumbprints.
+  private func validateNoDuplicateBindingKeys(_ bindingKeys: [BindingKey]) throws {
+    // Check for duplicate .jwt keys by comparing JWK thumbprints
+    var seenThumbprints = Set<String>()
+    for key in bindingKeys {
+      if let publicKey = key.publicKey,
+         let thumbprint = try? publicKey.thumbprint() {
+        if seenThumbprints.contains(thumbprint) {
+          throw CredentialIssuanceError.batchProofsShareBindingKey
+        }
+        seenThumbprints.insert(thumbprint)
+      }
+    }
+  }
+
+  /// Validates that `.jwtKeyAttestation` keys don't use the same key index,
+  /// which would mean they share the same underlying key from the attestation.
+  private func validateNoDuplicateKeyAttestationIndices(
+    _ bindingKeys: [BindingKey],
+    attestationJwt: KeyAttestationJWT?
+  ) throws {
+    // If no attestation, nothing to validate for key attestation indices
+    guard attestationJwt != nil else { return }
+
+    var seenIndices = Set<UInt>()
+    for key in bindingKeys {
+      if let keyIndex = key.keyAttestationIndex {
+        if seenIndices.contains(keyIndex) {
+          throw CredentialIssuanceError.batchProofsShareBindingKey
+        }
+        seenIndices.insert(keyIndex)
+      }
+    }
   }
   
   private func proofsRequirement(

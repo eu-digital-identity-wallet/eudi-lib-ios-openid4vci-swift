@@ -295,8 +295,32 @@ extension BindingKey {
       return nil
     }
   }
-  
+
   var isAttestationCapable: Bool {
     attestationFunction != nil
+  }
+
+  /// Returns the public key (JWK) for this binding key, if directly available.
+  /// For `.jwt` keys, returns the JWK.
+  /// For `.jwtKeyAttestation` keys, returns nil (key is in attestation's attested_keys).
+  /// For other key types, returns nil.
+  var publicKey: JWK? {
+    switch self {
+    case .jwt(_, let jwk, _, _):
+      return jwk
+    default:
+      return nil
+    }
+  }
+
+  /// Returns the key index for `.jwtKeyAttestation` binding keys.
+  /// This index refers to a key in the attestation's `attested_keys` array.
+  var keyAttestationIndex: UInt? {
+    switch self {
+    case .jwtKeyAttestation(_, _, let keyIndex, _, _):
+      return keyIndex
+    default:
+      return nil
+    }
   }
 }
