@@ -35,7 +35,7 @@ final class TokenResponseAndPostErrorTests: XCTestCase {
     }
     """#
     let response = try decode(json)
-    guard case .success(_, let accessToken, _, _, let expiresIn, _, _) = response else {
+    guard case .success(_, let accessToken, _, _, _, let expiresIn, _, _) = response else {
       XCTFail("Expected .success, got \(response)")
       return
     }
@@ -52,7 +52,7 @@ final class TokenResponseAndPostErrorTests: XCTestCase {
     }
     """#
     let response = try decode(json)
-    guard case .success(_, let accessToken, _, _, let expiresIn, _, _) = response else {
+    guard case .success(_, let accessToken, _, _, _, let expiresIn, _, _) = response else {
       XCTFail("Expected .success, got \(response)")
       return
     }
