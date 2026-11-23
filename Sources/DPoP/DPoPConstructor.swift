@@ -31,6 +31,14 @@ public protocol DPoPConstructorType: Sendable {
     accessToken: String?,
     nonce: Nonce?
   ) async throws -> String
+
+  /// Returns the RFC 7638 JWK thumbprint (SHA-256, Base64URL-encoded) of the DPoP public key.
+  ///
+  /// This is used for `dpop_jkt` parameter binding per RFC 9449 §10.1, as an alternative
+  /// to sending a DPoP proof header on authorization requests.
+  /// - Returns: The JWK thumbprint as a Base64URL-encoded string.
+  /// - Throws: An error if the thumbprint computation fails.
+  func jwkThumbprint() throws -> String
 }
 
 /// A concrete implementation of `DPoPConstructorType`.
@@ -128,5 +136,16 @@ public final class DPoPConstructor: DPoPConstructorType {
     )
 
     return jws.compactSerializedString
+  }
+
+  /// Returns the RFC 7638 JWK thumbprint (SHA-256, Base64URL-encoded) of the DPoP public key.
+  ///
+  /// This is used for `dpop_jkt` parameter binding per RFC 9449 §10.1, as an alternative
+  /// to sending a DPoP proof header on authorization requests.
+  ///
+  /// - Returns: The JWK thumbprint as a Base64URL-encoded string.
+  /// - Throws: An error if the thumbprint computation fails.
+  public func jwkThumbprint() throws -> String {
+    try jwk.thumbprint()
   }
 }

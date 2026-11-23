@@ -23,28 +23,37 @@ public enum AuthorizeIssuanceConfig: Sendable {
   case authorizationDetails
 }
 
-/// Configuration options for PAR usage.
-public enum ParUsage: Sendable {
+/// How the Authorization Code is bound to the DPoP key, per RFC 9449 §10.1.
+public enum AuthorizationCodeDPoPBindingMethod: Sendable, Equatable {
+  /// The Authorization Code is not bound to the DPoP key.
+  case none
+
+  /// Bind the Authorization Code to the DPoP key by attaching a DPoP proof in the `DPoP` header
+  /// of the PAR request. This method requires the use of PAR; without PAR the DPoP header cannot
+  /// be used, so the binding falls back to `dpopJkt`.
+  case dpopHeader
+
+  /// Bind the Authorization Code to the DPoP key by including the `dpop_jkt` parameter
+  /// (the RFC 7638 JWK thumbprint of the DPoP public key) in the PAR request body when PAR
+  /// is used, or in the authorization request when PAR is not used.
+  case dpopJkt
+}
+
+/// Configuration for Pushed Authorization Request (PAR) usage.
+///
+/// How the Authorization Code is bound to the DPoP key (if at all) is configured separately via
+/// `AuthorizationCodeGrant.authorizationCodeDPoPBindingMethod`, per RFC 9449 §10.1.
+public enum ParUsage: Sendable, Equatable {
+  /// Disables PAR. Wallet will use the usual authorization code flow.
   case never
-  case required(authorizationCodeDPoPBinding: Bool)
-  
-  public var required: Bool {
-    switch self {
-    case .never:
-      false
-    case .required:
-      true
-    }
-  }
-  
-  public var authorizationCodeDPoPBinding: Bool {
-    switch self {
-    case .never:
-      false
-    case .required(let authorizationCodeDPoPBinding):
-      authorizationCodeDPoPBinding
-    }
-  }
+
+  /// If authorization server advertises PAR endpoint it will be used.
+  /// Otherwise, falls back to usual authorization code flow.
+  case ifSupported
+
+  /// Wallet always will place PAR request, regardless of whether authorization server
+  /// advertises the PAR endpoint. If PAR endpoint is not being advertised, issuance fails.
+  case required
 }
 
 /// Wallet's policy in regard to validating the `iss` parameter present in the authorization response
@@ -64,6 +73,28 @@ public enum AuthorizationResponseIssChecking: Sendable {
   case required
 }
 
+/// Configuration for the Authorization Code grant type.
+public struct AuthorizationCodeGrant: Sendable, Equatable {
+  /// The redirect URI to be passed as the `redirect_uri` parameter of the authorization request.
+  public let authFlowRedirectionURI: URL
+
+  /// The wallet's policy regarding the use of the PAR endpoint.
+  public let parUsage: ParUsage
+
+  /// How the Authorization Code is bound to the DPoP key, per RFC 9449 §10.1.
+  public let authorizationCodeDPoPBindingMethod: AuthorizationCodeDPoPBindingMethod
+
+  public init(
+    authFlowRedirectionURI: URL,
+    parUsage: ParUsage = .ifSupported,
+    authorizationCodeDPoPBindingMethod: AuthorizationCodeDPoPBindingMethod = .dpopHeader
+  ) {
+    self.authFlowRedirectionURI = authFlowRedirectionURI
+    self.parUsage = parUsage
+    self.authorizationCodeDPoPBindingMethod = authorizationCodeDPoPBindingMethod
+  }
+}
+
 /// A type alias representing a Client ID.
 public typealias ClientId = String
 
@@ -76,15 +107,8 @@ public struct OpenId4VCIConfig: Sendable {
   /// The client used for OpenID4VCI operations.
   public let client: Client
 
-  /// The URI to which the authentication flow should redirect.
-  /// Required when `supportedGrants` is `.authorizationCode` or `.both`.
-  public let authFlowRedirectionURI: URL?
-
   /// Configuration specifying how issuance authorization should be handled.
   public let authorizeIssuanceConfig: AuthorizeIssuanceConfig
-
-  /// Whether to require PAR or not.
-  public let requirePAR: ParUsage
 
   /// An optional builder for client attestation proof-of-possession tokens.
   public let clientAttestationPoPBuilder: ClientAttestationPoPBuilder?
@@ -116,7 +140,6 @@ public struct OpenId4VCIConfig: Sendable {
   public let registrationCertificatePolicy: RegistrationCertificatePolicy?
 
   /// The grant types supported by the wallet.
-  /// Default is `.both`.
   public let supportedGrants: SupportedGrants
 
   /// Wallet-side configuration of credential request / response encryption: whether encrypted
@@ -132,27 +155,46 @@ public struct OpenId4VCIConfig: Sendable {
   /// Default is `.never`.
   public let authResponseIssChecking: AuthorizationResponseIssChecking
 
-  /// Initializes an `OpenId4VCIConfig` instance with the given parameters.
+  // MARK: - Computed Properties (Backward Compatibility)
+
+  /// The URI to which the authentication flow should redirect.
+  /// Extracted from `supportedGrants.authorizationCodeGrant`.
+  public var authFlowRedirectionURI: URL? {
+    supportedGrants.authorizationCodeGrant?.authFlowRedirectionURI
+  }
+
+  /// The wallet's PAR usage policy.
+  /// Extracted from `supportedGrants.authorizationCodeGrant`.
+  public var parUsage: ParUsage {
+    supportedGrants.authorizationCodeGrant?.parUsage ?? .never
+  }
+
+  /// The wallet's Authorization Code DPoP binding method.
+  /// Extracted from `supportedGrants.authorizationCodeGrant`.
+  public var authorizationCodeDPoPBindingMethod: AuthorizationCodeDPoPBindingMethod {
+    supportedGrants.authorizationCodeGrant?.authorizationCodeDPoPBindingMethod ?? .none
+  }
+
+  // MARK: - Initializers
+
+  /// Initializes an `OpenId4VCIConfig` instance with the new grant-based configuration.
   /// - Parameters:
   ///   - client: The client used for OpenID4VCI operations.
-  ///   - authFlowRedirectionURI: The URI to which the authentication flow should redirect. Required when `supportedGrants` is `.authorizationCode` or `.both`.
   ///   - authorizeIssuanceConfig: Specifies how issuance authorization should be handled (default: `.favorScopes`).
-  ///   - requirePAR: Whether to require Pushed Authorization Requests (default: `true`).
   ///   - clientAttestationPoPBuilder: An optional client attestation PoP builder (default: `nil`).
   ///   - issuerMetadataPolicy: Policy defining how issuer metadata should be handled (default: `.ignoreSigned`).
-  ///   - requireDpop: If dpop is supported then use it, otherwise always don't
+  ///   - supportedCompressionAlgorithms: Client supported compression algorithms (default: `nil`).
   ///   - proofTypesPolicy: Policy defining which proof types the wallet supports (default: `.haipCompliant()`).
+  ///   - requireDpop: If dpop is supported then use it, otherwise always don't (default: `true`).
+  ///   - requireClientAttestation: Whether to require client attestation (default: `false`).
   ///   - supportedCredentialReusePolicies: Wallet's supported credential reuse policies (default: `.notSupported`).
-  ///   - registrationCertificatePolicy: Optional policy that, when set, activates WRPRC enforcement in `Issuer.make(...)` (default: `nil`).
-  ///   - supportedGrants: The grant types supported by the wallet (default: `.both`).
-  ///   - encryptionSupportConfig: Wallet-side request / response encryption configuration (default: `.default`).
-  ///   - authResponseIssChecking: Wallet's policy concerning the validation of the `iss` parameter of the authorization response (default: `.never`).
-  /// - Throws: `ValidationError` if configuration is invalid.
+  ///   - registrationCertificatePolicy: Optional policy that activates WRPRC enforcement (default: `nil`).
+  ///   - supportedGrants: The grant types supported by the wallet.
+  ///   - encryptionSupportConfig: Wallet-side request/response encryption configuration (default: `.default`).
+  ///   - authResponseIssChecking: Wallet's policy concerning the validation of the `iss` parameter (default: `.never`).
   public init(
     client: Client,
-    authFlowRedirectionURI: URL? = nil,
     authorizeIssuanceConfig: AuthorizeIssuanceConfig = .favorScopes,
-    requirePAR: ParUsage = .required(authorizationCodeDPoPBinding: true),
     clientAttestationPoPBuilder: ClientAttestationPoPBuilder? = nil,
     issuerMetadataPolicy: IssuerMetadataPolicy = .ignoreSigned,
     supportedCompressionAlgorithms: [CompressionAlgorithm]? = nil,
@@ -161,21 +203,11 @@ public struct OpenId4VCIConfig: Sendable {
     requireClientAttestation: Bool = false,
     supportedCredentialReusePolicies: SupportedCredentialReusePolicies = .notSupported,
     registrationCertificatePolicy: RegistrationCertificatePolicy? = nil,
-    supportedGrants: SupportedGrants = .both,
+    supportedGrants: SupportedGrants,
     encryptionSupportConfig: EncryptionSupportConfig = .default,
     authResponseIssChecking: AuthorizationResponseIssChecking = .never
   ) {
-    // Validate: authFlowRedirectionURI must be provided when supportedGrants is .authorizationCode or .both
-    if supportedGrants.requiresAuthorizationCodeFlow && authFlowRedirectionURI == nil {
-      preconditionFailure(
-        "authFlowRedirectionURI must be provided when supportedGrants is .authorizationCode or .both"
-      )
-    }
-
-    // When a WRPRC policy is configured, the issuer metadata must be signed —
-    // otherwise there is no cryptographic binding of the `issuer_info` (and
-    // therefore the WRPRC) to the issuer's identity, and no WRP Access
-    // Certificate to hand to the policy validator.
+    // When a WRPRC policy is configured, the issuer metadata must be signed
     if registrationCertificatePolicy != nil {
       switch issuerMetadataPolicy {
       case .requireSigned:
@@ -190,9 +222,7 @@ public struct OpenId4VCIConfig: Sendable {
     }
 
     self.client = client
-    self.authFlowRedirectionURI = authFlowRedirectionURI
     self.authorizeIssuanceConfig = authorizeIssuanceConfig
-    self.requirePAR = requirePAR
     self.clientAttestationPoPBuilder = clientAttestationPoPBuilder
     self.issuerMetadataPolicy = issuerMetadataPolicy
     self.supportedCompressionAlgorithms = supportedCompressionAlgorithms
@@ -204,5 +234,62 @@ public struct OpenId4VCIConfig: Sendable {
     self.supportedGrants = supportedGrants
     self.encryptionSupportConfig = encryptionSupportConfig
     self.authResponseIssChecking = authResponseIssChecking
+  }
+
+  /// Legacy initializer for backward compatibility.
+  /// - Parameters:
+  ///   - client: The client used for OpenID4VCI operations.
+  ///   - authFlowRedirectionURI: The URI to which the authentication flow should redirect.
+  ///   - authorizeIssuanceConfig: Specifies how issuance authorization should be handled.
+  ///   - parUsage: The wallet's PAR usage policy.
+  ///   - authorizationCodeDPoPBindingMethod: How the Authorization Code is bound to the DPoP key.
+  ///   - clientAttestationPoPBuilder: An optional client attestation PoP builder.
+  ///   - issuerMetadataPolicy: Policy defining how issuer metadata should be handled.
+  ///   - supportedCompressionAlgorithms: Client supported compression algorithms.
+  ///   - proofTypesPolicy: Policy defining which proof types the wallet supports.
+  ///   - requireDpop: If dpop is required by wallet.
+  ///   - requireClientAttestation: Whether to require client attestation.
+  ///   - supportedCredentialReusePolicies: Wallet's supported credential reuse policies.
+  ///   - registrationCertificatePolicy: Optional policy that activates WRPRC enforcement.
+  ///   - encryptionSupportConfig: Wallet-side request/response encryption configuration.
+  ///   - authResponseIssChecking: Wallet's policy concerning the validation of the `iss` parameter.
+  public init(
+    client: Client,
+    authFlowRedirectionURI: URL,
+    authorizeIssuanceConfig: AuthorizeIssuanceConfig = .favorScopes,
+    parUsage: ParUsage = .required,
+    authorizationCodeDPoPBindingMethod: AuthorizationCodeDPoPBindingMethod = .dpopHeader,
+    clientAttestationPoPBuilder: ClientAttestationPoPBuilder? = nil,
+    issuerMetadataPolicy: IssuerMetadataPolicy = .ignoreSigned,
+    supportedCompressionAlgorithms: [CompressionAlgorithm]? = nil,
+    proofTypesPolicy: ProofTypesPolicy = .haipCompliant(),
+    requireDpop: Bool = true,
+    requireClientAttestation: Bool = false,
+    supportedCredentialReusePolicies: SupportedCredentialReusePolicies = .notSupported,
+    registrationCertificatePolicy: RegistrationCertificatePolicy? = nil,
+    encryptionSupportConfig: EncryptionSupportConfig = .default,
+    authResponseIssChecking: AuthorizationResponseIssChecking = .never
+  ) {
+    let authCodeGrant = AuthorizationCodeGrant(
+      authFlowRedirectionURI: authFlowRedirectionURI,
+      parUsage: parUsage,
+      authorizationCodeDPoPBindingMethod: authorizationCodeDPoPBindingMethod
+    )
+
+    self.init(
+      client: client,
+      authorizeIssuanceConfig: authorizeIssuanceConfig,
+      clientAttestationPoPBuilder: clientAttestationPoPBuilder,
+      issuerMetadataPolicy: issuerMetadataPolicy,
+      supportedCompressionAlgorithms: supportedCompressionAlgorithms,
+      proofTypesPolicy: proofTypesPolicy,
+      requireDpop: requireDpop,
+      requireClientAttestation: requireClientAttestation,
+      supportedCredentialReusePolicies: supportedCredentialReusePolicies,
+      registrationCertificatePolicy: registrationCertificatePolicy,
+      supportedGrants: .both(authorizationCode: authCodeGrant),
+      encryptionSupportConfig: encryptionSupportConfig,
+      authResponseIssChecking: authResponseIssChecking
+    )
   }
 }

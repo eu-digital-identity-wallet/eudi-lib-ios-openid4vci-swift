@@ -53,7 +53,7 @@ final class ClientAttestationChallengeTests: XCTestCase {
         switch flow {
         case .par:
           _ = try await sut.submitPushedAuthorizationRequest(
-            parUsage: .required(authorizationCodeDPoPBinding: true),
+            bindingMethod: .dpopHeader,
             scopes: [try Scope("openid")],
             credentialConfigurationIdentifiers: [],
             state: "state", issuerState: nil,
