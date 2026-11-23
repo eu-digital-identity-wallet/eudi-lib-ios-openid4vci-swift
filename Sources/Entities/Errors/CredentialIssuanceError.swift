@@ -61,6 +61,8 @@ public enum CredentialIssuanceError: Error, LocalizedError {
   case keyIndexOutOfBounds(index: UInt, available: Int)
   case missingKid
   case invalidKid(expected: String, actual: String)
+  case batchProofsShareBindingKey
+  case duplicateAttestedKeys
 
   public var errorDescription: String? {
     switch self {
@@ -150,6 +152,10 @@ public enum CredentialIssuanceError: Error, LocalizedError {
       return "JWT proof header is missing 'kid' claim. It requires kid='0' for JWT proof with key attestation."
     case .invalidKid(let expected, let actual):
       return "JWT proof header 'kid' must be '\(expected)', found '\(actual)'."
+    case .batchProofsShareBindingKey:
+      return "Batch credential request contains proofs that share the same binding key. Each credential in a batch must use distinct cryptographic material (OpenID4VCI §8)."
+    case .duplicateAttestedKeys:
+      return "Key attestation contains duplicate keys in the attested_keys array. Each attested key must be unique."
     }
   }
 }
