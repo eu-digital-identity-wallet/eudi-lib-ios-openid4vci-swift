@@ -152,7 +152,6 @@ class KeyAttestationTests: XCTestCase {
     let sdJwtVCpayload: IssuanceRequestPayload = .configurationBased(
       credentialConfigurationIdentifier: try .init(value: "eu.europa.ec.eudiw.pid_vc_sd_jwt")
     )
-    let spec = data.spec
     
     let keyBindingKey: BindingKey = .attestation(
       keyAttestationJWT: { nonce in
@@ -181,9 +180,8 @@ class KeyAttestationTests: XCTestCase {
           keyBindingKey
         ],
         requestPayload: sdJwtVCpayload,
-        responseEncryptionSpecProvider: { _ in
-          spec
-        })
+        // The mock issuer answers in plaintext, so the request asks for no response encryption.
+        responseEncryptionSpecProvider: { _ in nil })
       
         XCTAssert(true, "Success")
     } catch {
@@ -629,7 +627,6 @@ class KeyAttestationTests: XCTestCase {
   func testAttestationProofValidatedAgainstAttestationAlgsNotJwt() async throws {
     let offerOptional = await TestsConstants.createMockCredentialOfferAttestationOnly()
     let offer = try XCTUnwrap(offerOptional)
-    let spec = data.spec
     let issuer = try Issuer(
       authorizationServerMetadata: offer.authorizationServerMetadata,
       issuerMetadata: offer.credentialIssuerMetadata,
@@ -662,7 +659,8 @@ class KeyAttestationTests: XCTestCase {
         request: authorized,
         bindingKeys: [keyBindingKey],
         requestPayload: payload,
-        responseEncryptionSpecProvider: { _ in spec }
+        // The mock issuer answers in plaintext, so the request asks for no response encryption.
+        responseEncryptionSpecProvider: { _ in nil }
       )
     } catch {
       XCTFail("attestation proof was rejected by an attestation-only issuer (Bug#1): \(error.localizedDescription)")
