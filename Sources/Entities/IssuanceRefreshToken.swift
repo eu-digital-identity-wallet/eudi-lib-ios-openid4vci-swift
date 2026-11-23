@@ -19,9 +19,18 @@ public struct IssuanceRefreshToken: Codable, CanExpire, Sendable {
   public var expiresIn: TimeInterval?
     
   public let refreshToken: String?
-  
-  public init(refreshToken: String?, expiresIn: TimeInterval? = nil) throws {
+
+  /// Lifetime of the authorization behind this refresh token, in seconds from when the token
+  /// response was received (`authorization_expires_in`), or `nil` when the server didn't send it.
+  public let authorizationExpiresIn: TimeInterval?
+
+  public init(
+    refreshToken: String?,
+    expiresIn: TimeInterval? = nil,
+    authorizationExpiresIn: TimeInterval? = nil
+  ) throws {
     self.refreshToken = refreshToken
     self.expiresIn = expiresIn
+    self.authorizationExpiresIn = authorizationExpiresIn
   }
 }

@@ -190,7 +190,8 @@ internal actor AuthorizeIssuance: AuthorizeIssuanceType {
                 expiresIn: expiresIn?.asTimeInterval ?? .zero
               ),
               refreshToken: try .init(
-                refreshToken: refreshToken.refreshToken
+                refreshToken: refreshToken.refreshToken,
+                authorizationExpiresIn: refreshToken.authorizationExpiresIn
               ),
               credentialIdentifiers: identifiers,
               timeStamp: Date().timeIntervalSinceReferenceDate,
@@ -239,7 +240,8 @@ internal actor AuthorizeIssuance: AuthorizeIssuanceType {
         expiresIn: TimeInterval(response.expiresIn ?? .zero)
       ),
       refreshToken: try .init(
-        refreshToken: response.refreshToken.refreshToken
+        refreshToken: response.refreshToken.refreshToken,
+        authorizationExpiresIn: response.refreshToken.authorizationExpiresIn
       ),
       credentialIdentifiers: response.identifiers,
       timeStamp: Date().timeIntervalSinceReferenceDate,
